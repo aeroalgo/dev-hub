@@ -51,7 +51,7 @@ def test_mcp_cli_parity(tmp_path):
 
 def test_mcp_load_plan_section_parity(tmp_path):
     """Verify load_plan_section MCP tool wrapper."""
-    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "plan-T-HUB-045-test.md"
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-045" / "md" / "plan.md"
     plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan\n\n## Section 1\nContent 1\n\n## Section 2\nContent 2\n")
 

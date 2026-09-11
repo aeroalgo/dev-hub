@@ -52,16 +52,21 @@ def test_arm_rejects_decompose_back(tmp_path: Path) -> None:
     epic = _load_epic()
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-back/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| **s01** | x | pending |\n",
+        "memory-bank/back/plan/back/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: back\nsteps:\n  - id: s01\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-back/s01.yaml",
+        "memory-bank/back/plan/back/md/decompose-index.md",
+        "| step_id | title | status |\n|---|---|---|\n| *ks01** | x | pending |\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/back/yaml/steps/s01.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
     out = epic.arm_active_context_from_decompose(
-        tmp_path, "memory-bank/back/plan/decompose-back/index.md"
+        tmp_path, "memory-bank/back/plan/back/yaml/decompose-index.yaml"
     )
     assert out["ok"] is False
     assert out["diagnostic_code"] == "epic_id_reserved"
@@ -69,14 +74,14 @@ def test_arm_rejects_decompose_back(tmp_path: Path) -> None:
 
 def test_prepare_clears_reserved_role_arm(tmp_path: Path) -> None:
     ctx = _load_ctx()
-    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. ok\n\n## Handoff\n- x\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. okLn\n## Handoff\n- x\n")
     state = ctx.load_epic_state(tmp_path)
     state.update(
         {
             "active": True,
             "status": "armed",
             "armed_epic": "back",
-            "armed_decompose": "memory-bank/back/plan/decompose-back/index.md",
+            "armed_decompose": "memory-bank/back/plan/back/yaml/decompose-index.yaml",
             "armed_step": "s01",
         }
     )
@@ -104,7 +109,7 @@ def test_check_after_clears_reserved_before_missing_index(tmp_path: Path) -> Non
             "active": True,
             "status": "armed",
             "armed_epic": "back",
-            "armed_decompose": "memory-bank/back/plan/decompose-back/index.md",
+            "armed_decompose": "memory-bank/back/plan/back/yaml/decompose-index.yaml",
             "armed_step": "s01",
         }
     )
@@ -130,7 +135,7 @@ def test_dag_validate_rejects_reserved_decompose() -> None:
                 {
                     "id": "back",
                     "role": "BACK",
-                    "decompose": "memory-bank/back/plan/decompose-back/index.md",
+                    "decompose": "memory-bank/back/plan/back/yaml/decompose-index.yaml",
                     "depends_on": [],
                     "completion": {"type": "decompose"},
                     "action": "implement",

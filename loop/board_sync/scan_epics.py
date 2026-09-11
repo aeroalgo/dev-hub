@@ -66,7 +66,9 @@ def scan_epics(workspace_refs: list[WorkspaceRef]) -> ScanEpicsResult:
             continue
 
         for role in _ROLES:
-            queue_file = mb_dir / role / f"roadmap-{role}.queue.yaml"
+            queue_file = mb_dir / role / "roadmap" / "queue.yaml"
+            if not queue_file.is_file():
+                queue_file = mb_dir / role / f"roadmap-{role}.queue.yaml"
             queue_data: list[dict] = []
             if queue_file.is_file():
                 parsed = parse_roadmap_queue(ws_ref.path, queue_rel=str(queue_file.relative_to(ws_ref.path)))

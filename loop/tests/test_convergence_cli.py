@@ -20,12 +20,12 @@ def test_cli_help(capsys):
 
 
 def test_json_output(tmp_path: Path, capsys):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-TEST"
-    decomp_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("Requirement FR-001", encoding="utf-8")
-    (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: [FR-001]\n", encoding="utf-8")
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md" / "plan.md").write_text("Requirement FR-001", encoding="utf-8")
+    (plan_dir / "yaml" / "decompose-index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
+    (plan_dir / "yaml" / "steps" / "s01.yaml").write_text("step_id: s01\nplan_refs: [FR-001]\n", encoding="utf-8")
 
     sys.argv = [
         "epic_resolve.py",
@@ -47,12 +47,12 @@ def test_json_output(tmp_path: Path, capsys):
 
 
 def test_text_output(tmp_path: Path, capsys):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-TEST"
-    decomp_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
-    (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md" / "plan.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
+    (plan_dir / "yaml" / "decompose-index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
+    (plan_dir / "yaml" / "steps" / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
 
     sys.argv = [
         "epic_resolve.py",
@@ -71,12 +71,12 @@ def test_text_output(tmp_path: Path, capsys):
 
 
 def test_exit_codes(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-TEST"
-    decomp_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
-    (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md" / "plan.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
+    (plan_dir / "yaml" / "decompose-index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
+    (plan_dir / "yaml" / "steps" / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
 
     # Without strict -> exit 0
     sys.argv = [

@@ -39,17 +39,21 @@ def _write(cwd: Path, rel: str, body: str) -> None:
 def _seed(cwd: Path) -> None:
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **s01** | [s01-demo.yaml](s01-demo.yaml) | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: s01-demo.yaml\n"
+        "    title: step 1\n"
+        "    status: pending\n",
     )
-    _write(cwd, "memory-bank/back/plan/decompose-demo/s01-demo.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(cwd, "memory-bank/back/plan/demo/yaml/steps/s01-demo.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
     _write(
         cwd,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-demo/index.md`\n\n"
+        "- `memory-bank/back/plan/demo/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT @s01`\n",
     )
@@ -90,15 +94,18 @@ def test_rebuilds_malformed_state_and_preserves_runtime_metadata(tmp_path: Path)
 def test_cursor_rebuild_does_not_switch_epic(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
     _seed(tmp_path)
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/other/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: other\nsteps:\n  - id: s01\n    file: s01.yaml\n    status: pending\n",
+    )
     state_path = tmp_path / ".claude/runtime/epic/state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(
-        json.dumps({"armed_epic": "other", "armed_decompose": "memory-bank/back/plan/decompose-other/index.md", "fanout_cursor": "other-node"}),
+        json.dumps({"armed_epic": "other", "armed_decompose": "memory-bank/back/plan/other/yaml/decompose-index.yaml", "fanout_cursor": "other-node"}),
         encoding="utf-8",
     )
-
     rebuilt = epic_lib.rebuild_epic_projection(tmp_path)
-
     assert rebuilt["projection"]["epic_id"] == "other"
     assert rebuilt["projection"]["dag_node_id"] == "other-node"
     assert rebuilt["dag"]["cursor"] == "other-node"
@@ -112,10 +119,8 @@ def test_halt_reason_set_on_dirty_resume(tmp_path: Path) -> None:
         '{"type":"result","terminal_reason":"api_error","result":"API Error: terminated"}\n',
         encoding="utf-8",
     )
-
     out = context_loop.record_abort(tmp_path, log_path=log, exit_code=1)
     state = json.loads((tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8"))
-
     assert out["retryable"] is True
     assert state["halt_reason"] == "API Error: terminated"
 
@@ -128,8 +133,6 @@ def test_halt_reason_idle_after_clean_stop(tmp_path: Path) -> None:
     state_path.write_text('{"status":"running", "halt_reason":null}\n', encoding="utf-8")
     log = tmp_path / "session.log"
     log.write_text("clean stop\n", encoding="utf-8")
-
     context_loop.record_abort(tmp_path, log_path=log, exit_code=0)
     state = json.loads(state_path.read_text(encoding="utf-8"))
-
     assert state["halt_reason"] is None

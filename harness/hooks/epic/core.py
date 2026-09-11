@@ -4384,7 +4384,7 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
         candidates = {state_decompose.removeprefix("memory-bank/")}
     else:
         candidates = set(re.findall(
-            r"(?:memory-bank/)?((?:back|front|integration)/plan/[^/]+/"
+            r"(?:memory-bank/)?([A-Za-z0-9._-]+/plan/[^/]+/"
             r"(?:yaml|md)/decompose-index\.(?:yaml|yml|md))",
             text,
         ))

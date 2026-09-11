@@ -58,7 +58,7 @@ def _work_node(node_id: str, depends_on: list[str] | None = None) -> dict:
     return {
         "id": node_id,
         "role": "BACK",
-        "decompose": f"memory-bank/back/plan/decompose-{epic}/index.md",
+        "decompose": f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml",
         "depends_on": depends_on or [],
         "completion": {"type": "decompose"},
         "action": "implement",
@@ -68,10 +68,10 @@ def _work_node(node_id: str, depends_on: list[str] | None = None) -> dict:
 def _seed(cwd: Path) -> None:
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| **s01** | step | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - step_id: s01\n    title: step\n    status: pending\n",
     )
-    _write(cwd, "memory-bank/back/plan/decompose-demo/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(cwd, "memory-bank/back/plan/demo/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
     _write(
         cwd,
         "memory-bank/activeContext.md",
@@ -141,10 +141,10 @@ def test_checkpoint_conflict_halts_dag_without_promoting_cursor(tmp_path: Path) 
     _write(tmp_path, "loop/dag/portal.yaml", yaml.safe_dump(_manifest([_work_node("back")]), sort_keys=False))
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| **s01** | step | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - step_id: s01\n    title: step\n    status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
 
     state = ctx.load_epic_state(tmp_path)
     state.update({"dag_pipeline": "portal", "dag_done": ["unknown"], "dag_cursor": "missing"})

@@ -17,9 +17,9 @@ from loop.git_discipline import CommitResult
 
 def _setup_decompose_and_implement(tmp_path: Path) -> tuple[Path, str]:
     """Helper to set up a dummy decompose index and implement shard in tmp_path."""
-    mb = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-999"
+    mb = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     mb.mkdir(parents=True, exist_ok=True)
-    idx_path = mb / "index.yaml"
+    idx_path = mb / "decompose-index.yaml"
     idx_content = """schema: epic-decompose-index/v1
 plan_id: T-HUB-999
 role: back
@@ -31,7 +31,9 @@ steps:
 """
     idx_path.write_text(idx_content, encoding="utf-8")
 
-    shard_path = mb / "s01-test.yaml"
+    steps_dir = mb / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    shard_path = steps_dir / "s01-test.yaml"
     shard_content = """schema: epic-decompose/v1
 role: back
 step_id: s01
@@ -43,7 +45,7 @@ checkpoints:
 """
     shard_path.write_text(shard_content, encoding="utf-8")
 
-    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-999"
+    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-999"
     impl_dir.mkdir(parents=True, exist_ok=True)
     impl_path = impl_dir / "s01-test.yaml"
     impl_content = """schema: epic-implement/v1
@@ -53,7 +55,7 @@ plan_id: T-HUB-999
 title: Test Step 1
 status: in_progress
 date: '2026-08-31'
-decompose_ref: memory-bank/back/plan/decompose-T-HUB-999/s01-test.yaml
+decompose_ref: memory-bank/back/plan/T-HUB-999/yaml/steps/s01-test.yaml
 done:
 - Done item 1
 files:

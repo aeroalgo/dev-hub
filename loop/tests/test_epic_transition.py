@@ -85,7 +85,7 @@ def test_arm_phase_implement(tmp_path):
         "epic.core.arm_active_context_from_decompose",
         return_value=expected,
     ) as mock:
-        res = arm_phase(tmp_path, "T-TEST-001", "IMPLEMENT", "back", decompose_rel="memory-bank/back/plan/decompose-T-TEST-001/index.yaml")
+        res = arm_phase(tmp_path, "T-TEST-001", "IMPLEMENT", "back", decompose_rel="memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml")
 
     assert res["ok"] is True
     assert res["armed_step"] == "s01"
@@ -619,7 +619,7 @@ def test_load_phase_registry_invalid_yaml_raises(tmp_path):
 def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> None:
     from epic.core import arm_pre_implement_context, load_epic_state  # noqa: PLC0415
 
-    plan = tmp_path / "memory-bank" / "back" / "plan" / "plan-T-030-demo.md"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-030-demo" / "md" / "plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# plan\n", encoding="utf-8")
     res = arm_pre_implement_context(
@@ -627,7 +627,7 @@ def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> Non
         epic_id="T-030-demo",
         role="back",
         phase="DECOMPOSE",
-        target_rel="memory-bank/back/plan/plan-T-030-demo.md",
+        target_rel="memory-bank/back/plan/T-030-demo/md/plan.md",
     )
     assert res.get("ok") is True
     st = load_epic_state(tmp_path)
@@ -649,7 +649,7 @@ def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None
         / "memory-bank"
         / "back"
         / "plan"
-        / "plan-T-HUB-023-hooks-llm-fallbacks.md"
+        / "T-HUB-023-hooks-llm-fallbacks" / "md" / "plan.md"
     )
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# plan\n", encoding="utf-8")
@@ -658,7 +658,7 @@ def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None
         epic_id="T-HUB-023",
         role="back",
         phase="DECOMPOSE",
-        target_rel="memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md",
+        target_rel="memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/md/plan.md",
     )
     assert res.get("ok") is True
     assert res.get("epic_id") == "T-HUB-023-hooks-llm-fallbacks"
@@ -674,10 +674,10 @@ def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None
 def test_arm_pre_implement_decompose_with_index_sets_armed_decompose(tmp_path: Path) -> None:
     from epic.core import arm_pre_implement_context, load_epic_state  # noqa: PLC0415
 
-    plan = tmp_path / "memory-bank" / "back" / "plan" / "plan-T-030-demo.md"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-030-demo" / "md" / "plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# plan\n", encoding="utf-8")
-    idx = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-030-demo" / "index.yaml"
+    idx = tmp_path / "memory-bank" / "back" / "plan" / "T-030-demo" / "yaml" / "decompose-index.yaml"
     idx.parent.mkdir(parents=True, exist_ok=True)
     idx.write_text(
         "schema: epic-decompose-index/v1\nplan_id: T-030-demo\nsteps: []\n",
@@ -688,12 +688,12 @@ def test_arm_pre_implement_decompose_with_index_sets_armed_decompose(tmp_path: P
         epic_id="T-030-demo",
         role="back",
         phase="DECOMPOSE",
-        target_rel="memory-bank/back/plan/plan-T-030-demo.md",
+        target_rel="memory-bank/back/plan/T-030-demo/md/plan.md",
     )
     assert res.get("ok") is True
     st = load_epic_state(tmp_path)
     assert st.get("armed_decompose") == (
-        "memory-bank/back/plan/decompose-T-030-demo/index.yaml"
+        "memory-bank/back/plan/T-030-demo/yaml/decompose-index.yaml"
     )
 
 
@@ -712,13 +712,13 @@ def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
             "armed_step": "s01",
             "last_finished_step": "s01",
             "last_finished_epic": "T-TEST-001",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
         },
     )
 
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
     mb_dir.mkdir(parents=True, exist_ok=True)
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
@@ -730,7 +730,8 @@ def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
         "  next_phase: BACK IMPLEMENT\n",
         encoding="utf-8",
     )
-    (mb_dir / "s01-env.yaml").write_text(
+    (mb_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (mb_dir / "steps" / "s01-env.yaml").write_text(
         "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
         encoding="utf-8",
     )
@@ -740,7 +741,7 @@ def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
         "T-TEST-001",
         "IMPLEMENT",
         "back",
-        decompose_rel="memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        decompose_rel="memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
     )
 
     assert res.get("ok") is False

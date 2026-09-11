@@ -330,9 +330,9 @@ def test_iter_codex_collab_verdicts_requires_observed_spawn() -> None:
 
 def test_mirror_codex_collab_verdicts_updates_epic_state(tmp_path: Path) -> None:
     _ensure_gate_agents(tmp_path, "verify-implement", "gate-repair")
-    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-044"
+    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-044" / "yaml"
     decompose_dir.mkdir(parents=True, exist_ok=True)
-    (decompose_dir / "index.yaml").write_text(
+    (decompose_dir / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-HUB-044\n"
         "steps:\n"
@@ -341,7 +341,12 @@ def test_mirror_codex_collab_verdicts_updates_epic_state(tmp_path: Path) -> None
         "  status: in_progress\n",
         encoding="utf-8",
     )
-    implement_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-044"
+    (decompose_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decompose_dir / "steps" / "s05.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s05\n",
+        encoding="utf-8",
+    )
+    implement_dir = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-044"
     implement_dir.mkdir(parents=True, exist_ok=True)
     (implement_dir / "s05.yaml").write_text(
         "schema: epic-implement/v1\n"
@@ -378,7 +383,7 @@ def test_mirror_codex_collab_verdicts_updates_epic_state(tmp_path: Path) -> None
                 "session_id": "codex-test-session",
                 "armed_step": "s05",
                 "armed_epic": "T-HUB-044",
-                "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-044/index.yaml",
+                "armed_decompose": "memory-bank/back/plan/T-HUB-044/yaml/decompose-index.yaml",
                 "projection": {
                     "epic_id": "T-HUB-044",
                     "role": "BACK",

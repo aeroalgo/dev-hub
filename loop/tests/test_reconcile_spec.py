@@ -38,10 +38,15 @@ def _minimal_tasks(active_ids: list[str]) -> str:
 
 def _seed_epic(tmp_path: Path, *, plan_id: str, as_built_path: str, create_file: bool) -> None:
     plan_root = tmp_path / "memory-bank" / "back" / "plan"
-    dec_dir = plan_root / f"decompose-{plan_id}"
-    dec_dir.mkdir(parents=True)
+    epic_dir = plan_root / plan_id
+    yaml_dir = epic_dir / "yaml"
+    steps_dir = yaml_dir / "steps"
+    md_dir = epic_dir / "md"
+    yaml_dir.mkdir(parents=True, exist_ok=True)
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    md_dir.mkdir(parents=True, exist_ok=True)
     _write(
-        plan_root / f"plan-{plan_id}.md",
+        md_dir / "plan.md",
         f"# [{plan_id}] PLAN\n\n### Layout\n\n| Path | Action |\n|------|--------|\n"
         f"| `{as_built_path}` | Modify |\n",
     )
@@ -63,9 +68,9 @@ def _seed_epic(tmp_path: Path, *, plan_id: str, as_built_path: str, create_file:
             {"id": "cp2", "criterion": "c2", "verify": "rg bar"},
         ],
     }
-    _write(dec_dir / "s01-demo.yaml", yaml.safe_dump(shard, allow_unicode=True, sort_keys=False))
+    _write(steps_dir / "s01-demo.yaml", yaml.safe_dump(shard, allow_unicode=True, sort_keys=False))
     _write(
-        dec_dir / "index.yaml",
+        yaml_dir / "decompose-index.yaml",
         yaml.safe_dump(
             {
                 "schema": "epic-decompose-index/v1",
@@ -106,7 +111,7 @@ def test_resolve_epic_bundle_finds_decompose_index(tmp_path: Path) -> None:
     bundle = resolve_epic_bundle(tmp_path, "T-HUB-904")
     assert bundle is not None
     assert bundle.plan_id == plan_id
-    assert bundle.decompose_index.name == "index.yaml"
+    assert bundle.decompose_index.name == "decompose-index.yaml"
 
 
 def test_stale_as_built_gives_rc001_high(tmp_path: Path) -> None:
@@ -148,7 +153,7 @@ def test_read_only_does_not_mutate_plan(tmp_path: Path) -> None:
     rel = "src/keep.py"
     _write(tmp_path / "memory-bank/tasks.md", _minimal_tasks(["T-HUB-902"]))
     _seed_epic(tmp_path, plan_id=plan_id, as_built_path=rel, create_file=True)
-    plan_file = tmp_path / "memory-bank/back/plan" / f"plan-{plan_id}.md"
+    plan_file = tmp_path / "memory-bank/back/plan" / plan_id / "md" / "plan.md"
     before = plan_file.read_text(encoding="utf-8")
     run_reconcile_spec(tmp_path)
     after = plan_file.read_text(encoding="utf-8")

@@ -37,9 +37,9 @@ def test_e2e_arm_epic_decompose_sets_handoff_arm_decompose_handoff(tmp_path: Pat
     active_ctx = mb / "activeContext.md"
     active_ctx.write_text("## load_now\nold content\n", encoding="utf-8")
 
-    plan_dir = mb / "back/plan"
+    plan_dir = mb / "back/plan/T-HUB-TEST/md"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("# Plan T-HUB-TEST\n", encoding="utf-8")
+    (plan_dir / "plan.md").write_text("# Plan T-HUB-TEST\n", encoding="utf-8")
 
     res = arm_epic(
         cwd=tmp_path,
@@ -50,7 +50,7 @@ def test_e2e_arm_epic_decompose_sets_handoff_arm_decompose_handoff(tmp_path: Pat
     assert res["ok"] is True
     content = active_ctx.read_text(encoding="utf-8")
     assert "DECOMPOSE" in content
-    assert "plan-T-HUB-TEST.md" in content
+    assert "plan.md" in content
 
 
 def test_e2e_arm_epic_implement_sets_step(tmp_path: Path) -> None:
@@ -61,14 +61,14 @@ def test_e2e_arm_epic_implement_sets_step(tmp_path: Path) -> None:
     active_ctx = mb / "activeContext.md"
     active_ctx.write_text("## load_now\nold content\n", encoding="utf-8")
 
-    plan_dir = mb / "back/plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("# Plan T-HUB-TEST\n", encoding="utf-8")
+    plan_dir = mb / "back/plan/T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md/plan.md").write_text("# Plan T-HUB-TEST\n", encoding="utf-8")
 
-    index_dir = plan_dir / "decompose-T-HUB-TEST"
-    index_dir.mkdir(parents=True, exist_ok=True)
-    (index_dir / "index.md").write_text("# index md", encoding="utf-8")
-    (index_dir / "index.yaml").write_text(
+    index_dir = plan_dir / "yaml"
+    (index_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md/decompose-index.md").write_text("# index md", encoding="utf-8")
+    (index_dir / "decompose-index.yaml").write_text(
         yaml.safe_dump(
             {
                 "schema": "epic-decompose-index/v1",
@@ -82,7 +82,7 @@ def test_e2e_arm_epic_implement_sets_step(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
-    (index_dir / "s03.yaml").write_text("schema: epic-decompose/v1\ntitle: step 3\n", encoding="utf-8")
+    (index_dir / "steps/s03.yaml").write_text("schema: epic-decompose/v1\ntitle: step 3\n", encoding="utf-8")
 
     res = arm_epic(
         cwd=tmp_path,
@@ -109,15 +109,18 @@ def test_e2e_sync_roadmap_rank_column_running_backlog_roadmap_column(tmp_path: P
             {"id": "T-EPIC-2", "plan": "plan-T-EPIC-2.md", "deps": []},
         ],
     }
-    (tmp_path / "memory-bank/back/roadmap-back.queue.yaml").write_text(
+    (tmp_path / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(queue_data), encoding="utf-8"
     )
 
     for ep in ["T-EPIC-1", "T-EPIC-2"]:
-        (mb / f"plan-{ep}.md").write_text(f"# {ep}\n", encoding="utf-8")
-        idx = mb / f"decompose-{ep}/index.yaml"
-        idx.parent.mkdir(parents=True, exist_ok=True)
-        (idx.parent / "index.md").write_text("# index md", encoding="utf-8")
+        ep_dir = tmp_path / f"memory-bank/back/plan/{ep}"
+        (ep_dir / "md").mkdir(parents=True, exist_ok=True)
+        (ep_dir / "md/plan.md").write_text(f"# {ep}\n", encoding="utf-8")
+        (ep_dir / "yaml").mkdir(parents=True, exist_ok=True)
+        (ep_dir / "md/decompose-index.md").write_text("# index md", encoding="utf-8")
+        idx = ep_dir / "yaml/decompose-index.yaml"
         idx.write_text(
             yaml.safe_dump(
                 {
@@ -136,7 +139,7 @@ def test_e2e_sync_roadmap_rank_column_running_backlog_roadmap_column(tmp_path: P
         epic_id="T-EPIC-1",
         step_id="s01",
         status="pending",
-        decompose_rel="memory-bank/back/plan/decompose-T-EPIC-1/index.yaml",
+        decompose_rel="memory-bank/back/plan/T-EPIC-1/yaml/decompose-index.yaml",
         title="s01",
         workspace_ref=ref,
     )

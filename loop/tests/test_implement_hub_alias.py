@@ -57,7 +57,7 @@ def _implement_doc(*, step_id: str = "s03", status: str = "in_progress") -> str:
 def _index_pair(cwd: Path, *, status: str = "pending") -> None:
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/index.yaml",
+        "memory-bank/back/plan/T-004-tg-async-rps/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-004\n"
         "source_md: index.md\n"
@@ -71,7 +71,7 @@ def _index_pair(cwd: Path, *, status: str = "pending") -> None:
     )
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/index.md",
+        "memory-bank/back/plan/T-004-tg-async-rps/md/decompose-index.md",
         "**Plan ID:** T-004\n\n"
         "| step_id | title | next_phase | status |\n"
         "| :--- | :--- | :--- | :--- |\n"
@@ -84,13 +84,13 @@ def test_epic_id_from_decompose_path_reads_folder_not_shard_stem() -> None:
     from epic_paths import epic_id_from_decompose_path
 
     shard = (
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/"
+        "memory-bank/back/plan/T-004-tg-async-rps/yaml/steps/"
         "s01-llm-async.yaml"
     )
     assert epic_id_from_decompose_path(shard) == "T-004-tg-async-rps"
     assert (
         epic_id_from_decompose_path(
-            "memory-bank/back/plan/decompose-T-004-tg-async-rps/index.yaml"
+            "memory-bank/back/plan/T-004-tg-async-rps/yaml/decompose-index.yaml"
         )
         == "T-004-tg-async-rps"
     )
@@ -101,7 +101,7 @@ def test_seed_implement_uses_folder_epic_when_plan_id_differs(tmp_path: Path) ->
     from epic_yaml import seed_implement_from_decompose
 
     rel = (
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/"
+        "memory-bank/back/plan/T-004-tg-async-rps/yaml/steps/"
         "s01-llm-async.yaml"
     )
     _write(tmp_path, rel, _decompose_doc())
@@ -111,12 +111,12 @@ def test_seed_implement_uses_folder_epic_when_plan_id_differs(tmp_path: Path) ->
     assert result["ok"] is True
     assert (
         result["path"]
-        == "memory-bank/back/implement/implement-T-004-tg-async-rps/"
+        == "memory-bank/back/implement/T-004-tg-async-rps/"
         "s01-llm-async.yaml"
     )
     assert (tmp_path / result["path"]).is_file()
     assert not (
-        tmp_path / "memory-bank/back/implement/implement-T-004/s01-llm-async.yaml"
+        tmp_path / "memory-bank/back/implement/T-004/s01-llm-async.yaml"
     ).exists()
 
 
@@ -125,12 +125,12 @@ def test_seed_reuses_existing_plan_id_hub(tmp_path: Path) -> None:
     from epic_yaml import seed_implement_from_decompose
 
     rel = (
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/"
+        "memory-bank/back/plan/T-004-tg-async-rps/yaml/steps/"
         "s03-gg-interprocess-lock.yaml"
     )
     _write(tmp_path, rel, _decompose_doc(step_id="s03"))
     existing = (
-        "memory-bank/back/implement/implement-T-004/"
+        "memory-bank/back/implement/T-004-tg-async-rps/"
         "s03-gg-interprocess-lock.yaml"
     )
     _write(tmp_path, existing, _implement_doc())
@@ -147,7 +147,7 @@ def test_resolve_implement_path_falls_back_to_plan_id_hub(tmp_path: Path) -> Non
     from epic_yaml import resolve_implement_path
 
     rel = (
-        "memory-bank/back/implement/implement-T-004/"
+        "memory-bank/back/implement/T-004-tg-async-rps/"
         "s03-gg-interprocess-lock.yaml"
     )
     _write(tmp_path, rel, _implement_doc())
@@ -172,14 +172,14 @@ def test_mark_index_refuses_completed_when_implement_in_progress(
     _index_pair(tmp_path, status="pending")
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-T-004/"
+        "memory-bank/back/implement/T-004-tg-async-rps/"
         "s03-gg-interprocess-lock.yaml",
         _implement_doc(status="in_progress"),
     )
 
     result = epic_core.mark_index_step_status(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/index.md",
+        "memory-bank/back/plan/T-004-tg-async-rps/md/decompose-index.md",
         "s03",
         "completed",
     )
@@ -188,7 +188,7 @@ def test_mark_index_refuses_completed_when_implement_in_progress(
     assert result.get("diagnostic") == "index_implement_conflict"
     yaml_text = (
         tmp_path
-        / "memory-bank/back/plan/decompose-T-004-tg-async-rps/index.yaml"
+        / "memory-bank/back/plan/T-004-tg-async-rps/yaml/decompose-index.yaml"
     ).read_text(encoding="utf-8")
     assert "status: pending" in yaml_text
     assert "status: completed" not in yaml_text
@@ -202,7 +202,7 @@ def test_seed_implement_rejects_decompose_outside_cwd(tmp_path: Path) -> None:
     other = tmp_path / "other"
     product.mkdir()
     other.mkdir()
-    rel = "memory-bank/back/plan/decompose-T-004-tg-async-rps/s01-llm-async.yaml"
+    rel = "memory-bank/back/plan/T-004-tg-async-rps/yaml/steps/s01-llm-async.yaml"
     dec_path = _write(other, rel, _decompose_doc())
     abs_dec = str(dec_path.resolve())
 
@@ -218,7 +218,7 @@ def test_seed_implement_rejects_hub_epic_in_product_cwd(tmp_path: Path) -> None:
     from epic_yaml import seed_implement_from_decompose
 
     rel = (
-        "memory-bank/back/plan/decompose-T-HUB-002-canon-sync/"
+        "memory-bank/back/plan/T-HUB-002-canon-sync/yaml/steps/"
         "s05-graphify-hub-na-integ-plan.yaml"
     )
     _write(
@@ -234,7 +234,7 @@ def test_seed_implement_rejects_hub_epic_in_product_cwd(tmp_path: Path) -> None:
     assert "T-HUB" in result["error"]
     assert not (
         tmp_path
-        / "memory-bank/back/implement/implement-T-HUB-002-canon-sync/s05-graphify-hub-na-integ-plan.yaml"
+        / "memory-bank/back/implement/T-HUB-002-canon-sync/s05-graphify-hub-na-integ-plan.yaml"
     ).exists()
 
 
@@ -247,14 +247,14 @@ def test_validate_index_accepts_completed_implement_on_plan_id_hub(
     _index_pair(tmp_path, status="completed")
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-T-004/"
+        "memory-bank/back/implement/T-004-tg-async-rps/"
         "s03-gg-interprocess-lock.yaml",
         _implement_doc(status="completed"),
     )
 
     errors = epic_core.validate_index_vs_implement(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-004-tg-async-rps/index.md",
+        "memory-bank/back/plan/T-004-tg-async-rps/md/decompose-index.md",
     )
 
     assert errors == []

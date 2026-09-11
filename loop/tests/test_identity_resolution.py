@@ -32,20 +32,21 @@ def _state(cwd: Path, **extra: object) -> None:
         "active": True,
         "status": "armed",
         "armed_epic": "T-035-loop-state-prod-hardening",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/index.yaml",
+        "armed_decompose": "memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/decompose-index.yaml",
     }
     payload.update(extra)
     _write(cwd, ".claude/runtime/epic/state.json", json.dumps(payload))
 
 
 def _index(cwd: Path, *, role: str = "back", epic: str = "T-035-loop-state-prod-hardening") -> None:
-    base = f"memory-bank/{role}/plan/decompose-{epic}"
-    _write(cwd, f"{base}/index.md", "| step_id | title | status |\n| :--- | :--- | :--- |\n| **s11** | identity | pending |\n")
+    base = f"memory-bank/{role}/plan/{epic}"
+    _write(cwd, f"{base}/md/decompose-index.md", "| step_id | title | status |\n| :--- | :--- | :--- |\n| **s11** | identity | pending |\n")
     _write(
         cwd,
-        f"{base}/index.yaml",
-        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: index.md\nstatus_canon: index.yaml\nsteps:\n- id: s11\n  file: s11-identity-index-fail-closed.yaml\n  next_phase: {role.upper()} IMPLEMENT\n  title: identity\n  status: pending\n",
+        f"{base}/yaml/decompose-index.yaml",
+        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: decompose-index.md\nstatus_canon: decompose-index.yaml\nsteps:\n- id: s11\n  file: s11-identity-index-fail-closed.yaml\n  next_phase: {role.upper()} IMPLEMENT\n  title: identity\n  status: pending\n",
     )
+    _write(cwd, f"{base}/yaml/steps/s11-identity-index-fail-closed.yaml", "schema: epic-decompose/v1\nstep_id: s11\n")
 
 
 def test_identity_without_candidates_is_typed_not_found(tmp_path: Path) -> None:
@@ -64,8 +65,8 @@ def test_identity_with_two_role_candidates_is_ambiguous(tmp_path: Path) -> None:
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- memory-bank/back/plan/decompose-one/index.md\n"
-        "- memory-bank/front/plan/decompose-two/index.md\n",
+        "- memory-bank/back/plan/one/yaml/decompose-index.yaml\n"
+        "- memory-bank/front/plan/two/yaml/decompose-index.yaml\n",
     )
 
     result = lib.resolve_pipeline_identity(tmp_path)
@@ -83,8 +84,8 @@ def test_explicit_selector_resolves_stable_identity(tmp_path: Path) -> None:
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/s11-identity-index-fail-closed.yaml\n"
-        "- memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/index.yaml\n\n"
+        "- memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/steps/s11-identity-index-fail-closed.yaml\n"
+        "- memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/decompose-index.yaml\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT @s11`\n",
     )
@@ -113,20 +114,20 @@ def test_identity_mismatch_is_fail_closed(tmp_path: Path) -> None:
 def test_identity_resolves_by_plan_id_when_folder_slug_differs(tmp_path: Path) -> None:
     lib = _load_lib()
     epic = "T-050-partner-rules-alembic-port"
-    base = f"memory-bank/back/plan/decompose-T-050"
-    _write(tmp_path, f"{base}/index.md", "| step_id | title | status |\n| **s01** | demo | pending |\n")
+    base = "memory-bank/back/plan/T-050"
+    _write(tmp_path, f"{base}/md/decompose-index.md", "| step_id | title | status |\n| **s01** | demo | pending |\n")
     _write(
         tmp_path,
-        f"{base}/index.yaml",
-        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: index.md\nstatus_canon: index.yaml\nsteps:\n- id: s01\n  file: s01-demo.yaml\n  next_phase: BACK IMPLEMENT\n  title: demo\n  status: pending\n",
+        f"{base}/yaml/decompose-index.yaml",
+        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: decompose-index.md\nstatus_canon: decompose-index.yaml\nsteps:\n- id: s01\n  file: s01-demo.yaml\n  next_phase: BACK IMPLEMENT\n  title: demo\n  status: pending\n",
     )
-    _write(tmp_path, f"{base}/s01-demo.yaml", "schema: epic-decompose/v1\nrole: back\nstep_id: s01\ntitle: demo\ngoal: demo\nas_built: []\ndelta: []\ndeletes: []\ncheckpoints: []\n")
+    _write(tmp_path, f"{base}/yaml/steps/s01-demo.yaml", "schema: epic-decompose/v1\nrole: back\nstep_id: s01\ntitle: demo\ngoal: demo\nas_built: []\ndelta: []\ndeletes: []\ncheckpoints: []\n")
     _state(tmp_path, armed_epic=epic, armed_decompose=None)
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        f"- `memory-bank/back/plan/decompose-T-050/s01-demo.yaml`\n\n"
+        f"- `memory-bank/back/plan/T-050/yaml/steps/s01-demo.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Режим/шаг:** `BACK IMPLEMENT s01`\n",
     )
@@ -148,9 +149,9 @@ def test_find_decompose_index_by_plan_id(tmp_path: Path) -> None:
     from epic_paths import find_decompose_index_path
 
     epic = "T-050-partner-rules-alembic-port"
-    base = tmp_path / "memory-bank/back/plan/decompose-T-050"
+    base = tmp_path / "memory-bank/back/plan/T-050/yaml"
     base.mkdir(parents=True)
-    (base / "index.yaml").write_text(
+    (base / "decompose-index.yaml").write_text(
         f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsteps: []\n",
         encoding="utf-8",
     )
@@ -158,7 +159,7 @@ def test_find_decompose_index_by_plan_id(tmp_path: Path) -> None:
     found = find_decompose_index_path(tmp_path, "back", epic)
 
     assert found is not None
-    assert found.name == "index.yaml"
+    assert found.name == "decompose-index.yaml"
 
 
 def test_find_decompose_index_plan_slug_resolves_queue_prefix_folder(tmp_path: Path) -> None:
@@ -170,11 +171,11 @@ def test_find_decompose_index_plan_slug_resolves_queue_prefix_folder(tmp_path: P
     from epic_paths import find_decompose_index_path
 
     plan_dir = tmp_path / "memory-bank/back/plan"
-    plan_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-030-harness-runtime-wire.md").write_text("# plan\n", encoding="utf-8")
-    decomp = plan_dir / "decompose-T-HUB-030"
-    decomp.mkdir()
-    (decomp / "index.yaml").write_text(
+    decomp = plan_dir / "T-HUB-030" / "yaml"
+    decomp.mkdir(parents=True)
+    (plan_dir / "T-HUB-030-harness-runtime-wire" / "md").mkdir(parents=True)
+    (plan_dir / "T-HUB-030-harness-runtime-wire" / "md" / "plan.md").write_text("# plan\n", encoding="utf-8")
+    (decomp / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\nplan_id: T-HUB-030\nsteps: []\n",
         encoding="utf-8",
     )
@@ -184,7 +185,7 @@ def test_find_decompose_index_plan_slug_resolves_queue_prefix_folder(tmp_path: P
     )
 
     assert found is not None
-    assert found.parent.name == "decompose-T-HUB-030"
+    assert found.parent.parent.name == "T-HUB-030"
 
 
 def test_resolve_epic_next_action_plan_slug_finds_short_decompose(tmp_path: Path) -> None:
@@ -194,13 +195,15 @@ def test_resolve_epic_next_action_plan_slug_finds_short_decompose(tmp_path: Path
     from loop.board_sync.epic_resolver import resolve_epic_next_action
 
     plan_dir = tmp_path / "memory-bank/back/plan"
-    analyze_dir = tmp_path / "memory-bank/back/analyze/T-HUB-030"
+    analyze_dir = tmp_path / "memory-bank/back/analyze/T-HUB-030-harness-runtime-wire"
     plan_dir.mkdir(parents=True)
     analyze_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-030-harness-runtime-wire.md").write_text("# plan\n", encoding="utf-8")
-    decomp = plan_dir / "decompose-T-HUB-030"
-    decomp.mkdir()
-    (decomp / "index.yaml").write_text(
+    md_dir = plan_dir / "T-HUB-030-harness-runtime-wire" / "md"
+    md_dir.mkdir(parents=True)
+    (md_dir / "plan.md").write_text("# plan\n", encoding="utf-8")
+    decomp = plan_dir / "T-HUB-030" / "yaml"
+    decomp.mkdir(parents=True)
+    (decomp / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\nplan_id: T-HUB-030\nsteps:\n"
         "  - id: s01\n    status: pending\n",
         encoding="utf-8",
@@ -213,29 +216,29 @@ def test_resolve_epic_next_action_plan_slug_finds_short_decompose(tmp_path: Path
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-030-harness-runtime-wire")
 
     assert res.reason_code != "decompose_missing"
-    assert res.decompose_rel == "memory-bank/back/plan/decompose-T-HUB-030/index.yaml"
+    assert res.decompose_rel == "memory-bank/back/plan/T-HUB-030/yaml/decompose-index.yaml"
     assert res.phase == "IMPLEMENT"
 
 
 def test_role_from_decompose_integ_path() -> None:
     lib = _load_lib()
 
-    assert lib.role_from_decompose_path("memory-bank/integration/plan/decompose-x/") == "INTEG"
-    assert lib.role_from_decompose_path("/integration/plan/foo/") == "INTEG"
-    assert lib.role_from_decompose_path("memory-bank/back/plan/decompose-x/") == "BACK"
+    assert lib.role_from_decompose_path("memory-bank/integration/plan/x/yaml/decompose-index.yaml") == "INTEG"
+    assert lib.role_from_decompose_path("/integration/plan/foo/yaml/decompose-index.yaml") == "INTEG"
+    assert lib.role_from_decompose_path("memory-bank/back/plan/x/yaml/decompose-index.yaml") == "BACK"
 
 
 def test_unknown_role_is_invalid_not_integ_fallback(tmp_path: Path) -> None:
     lib = _load_lib()
     _write(
         tmp_path,
-        "memory-bank/unknown/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n| :--- | :--- | :--- |\n| **s01** | demo | pending |\n",
+        "memory-bank/unknown/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    status: pending\n",
     )
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n- memory-bank/unknown/plan/decompose-demo/index.md\n",
+        "## load_now\n- memory-bank/unknown/plan/demo/yaml/decompose-index.yaml\n",
     )
 
     result = lib.resolve_pipeline_identity(tmp_path)

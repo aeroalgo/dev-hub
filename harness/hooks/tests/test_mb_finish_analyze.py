@@ -75,14 +75,16 @@ def _write_plan_with_frs(tmp_path: Path, epic_id: str, fr_ids: list[str] | None 
 
 def test_finish_analyze_happy(tmp_path: Path):
     """cp1: finish_analyze happy path: analyze yaml + gate evidence → ok=True, mode=IMPLEMENT."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    (mb_dir / "steps").mkdir(parents=True, exist_ok=True)
+    md_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "md"
+    md_dir.mkdir(parents=True, exist_ok=True)
+    (md_dir / "plan.md").write_text("# plan\n", encoding="utf-8")
     mb_dir.mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank" / "back" / "plan").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "memory-bank" / "back" / "plan" / "plan-T-TEST-001.md").write_text(
-        "# plan\n", encoding="utf-8"
-    )
+    pass
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
@@ -94,7 +96,7 @@ def test_finish_analyze_happy(tmp_path: Path):
         "  next_phase: BACK IMPLEMENT\n",
         encoding="utf-8",
     )
-    (mb_dir / "s01-env.yaml").write_text(
+    (mb_dir / "steps" / "s01-env.yaml").write_text(
         "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
         encoding="utf-8",
     )
@@ -115,7 +117,7 @@ def test_finish_analyze_happy(tmp_path: Path):
             "armed_epic": "T-TEST-001",
             "armed_role": "BACK",
             "armed_step": "ANALYZE",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
             "session_id": "sess-test",
             "role": "BACK",
         },
@@ -143,7 +145,11 @@ def test_finish_analyze_happy(tmp_path: Path):
 
 def test_finish_analyze_no_evidence(tmp_path: Path):
     """cp2: finish_analyze без gate evidence → ok=False, no phase advance."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    (mb_dir / "steps").mkdir(parents=True, exist_ok=True)
+    md_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "md"
+    md_dir.mkdir(parents=True, exist_ok=True)
+    (md_dir / "plan.md").write_text("# plan\n", encoding="utf-8")
     mb_dir.mkdir(parents=True, exist_ok=True)
 
     save_epic_state(
@@ -152,7 +158,7 @@ def test_finish_analyze_no_evidence(tmp_path: Path):
             "armed_epic": "T-TEST-001",
             "armed_role": "BACK",
             "armed_step": "ANALYZE",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
         },
     )
 
@@ -170,9 +176,13 @@ def test_finish_analyze_no_evidence(tmp_path: Path):
 
 def test_finish_analyze_missing_artifact(tmp_path: Path):
     """finish_analyze without analyze yaml → ok=False, AC not advanced to IMPLEMENT."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    (mb_dir / "steps").mkdir(parents=True, exist_ok=True)
+    md_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "md"
+    md_dir.mkdir(parents=True, exist_ok=True)
+    (md_dir / "plan.md").write_text("# plan\n", encoding="utf-8")
     mb_dir.mkdir(parents=True, exist_ok=True)
-    (mb_dir / "index.yaml").write_text(
+    (mb_dir / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
         "steps:\n"
@@ -181,7 +191,7 @@ def test_finish_analyze_missing_artifact(tmp_path: Path):
         "  status: pending\n",
         encoding="utf-8",
     )
-    (mb_dir / "s01-env.yaml").write_text(
+    (mb_dir / "steps" / "s01-env.yaml").write_text(
         "schema: epic-decompose/v1\nstep_id: s01\n",
         encoding="utf-8",
     )
@@ -200,7 +210,7 @@ def test_finish_analyze_missing_artifact(tmp_path: Path):
             "armed_epic": "T-TEST-001",
             "armed_role": "BACK",
             "armed_step": "ANALYZE",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
             "session_id": "sess-test",
             "role": "BACK",
         },
@@ -421,14 +431,16 @@ def test_uniform_contract_matrix(tmp_path: Path, fn):
 
 def test_finish_analyze_next_typed_fields(tmp_path: Path):
     """cp1: MbFinishResult contains finished_step + next_step fields; on normal finish next_step != finished_step."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    (mb_dir / "steps").mkdir(parents=True, exist_ok=True)
+    md_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "md"
+    md_dir.mkdir(parents=True, exist_ok=True)
+    (md_dir / "plan.md").write_text("# plan\n", encoding="utf-8")
     mb_dir.mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank" / "back" / "plan").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "memory-bank" / "back" / "plan" / "plan-T-TEST-001.md").write_text(
-        "# plan\n", encoding="utf-8"
-    )
+    pass
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
@@ -440,7 +452,7 @@ def test_finish_analyze_next_typed_fields(tmp_path: Path):
         "  next_phase: BACK IMPLEMENT\n",
         encoding="utf-8",
     )
-    (mb_dir / "s01-env.yaml").write_text(
+    (mb_dir / "steps" / "s01-env.yaml").write_text(
         "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
         encoding="utf-8",
     )
@@ -461,7 +473,7 @@ def test_finish_analyze_next_typed_fields(tmp_path: Path):
             "armed_epic": "T-TEST-001",
             "armed_role": "BACK",
             "armed_step": "ANALYZE",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
             "session_id": "sess-test",
             "role": "BACK",
         },

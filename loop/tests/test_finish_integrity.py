@@ -145,15 +145,15 @@ def _write(cwd: Path, rel: str, body: str) -> None:
 
 def test_validate_finish_integrity_mark_index_missing(tmp_path: Path) -> None:
     lib = _load_lib()
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-a.yaml",
+        "memory-bank/back/implement/demo/s01-a.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nstatus: completed\nimplement_index: x\ndate: '2026-08-09'\n"
         "checkpoints: []\n",
@@ -181,12 +181,12 @@ def test_check_after_repairs_mark_index_missing(tmp_path: Path) -> None:
     assert spec.loader is not None
     spec.loader.exec_module(ctx)
 
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
-    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    impl = "memory-bank/back/implement/demo/s01-a.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: pending\n",
     )
     _write(
         tmp_path,
@@ -198,13 +198,13 @@ def test_check_after_repairs_mark_index_missing(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s01-a.yaml](back/plan/decompose-demo/s01-a.yaml)\n\n"
+        "## load_now\n1. [s01-a.yaml](back/plan/demo/yaml/steps/s01-a.yaml)\n\n"
         "## Handoff\n- **Следующий:** BACK IMPLEMENT s01\n",
     )
     _write(
         tmp_path,
         ".claude/runtime/epic/state.json",
-        '{"armed_decompose": "memory-bank/back/plan/decompose-demo/index.md"}\n',
+        '{"armed_decompose": "memory-bank/back/plan/demo/yaml/decompose-index.yaml"}\n',
     )
 
     result = ctx.check_after(tmp_path, fingerprint_before="stale-before")
@@ -217,11 +217,11 @@ def test_check_after_repairs_mark_index_missing(tmp_path: Path) -> None:
 
 def test_validate_finish_integrity_index_implement_conflict(tmp_path: Path) -> None:
     lib = _load_lib()
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | completed |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: completed\n",
     )
 
     result = lib.validate_finish_integrity(
@@ -234,11 +234,11 @@ def test_validate_finish_integrity_index_implement_conflict(tmp_path: Path) -> N
 
 def test_prepare_session_repairs_false_index_completed(tmp_path: Path) -> None:
     ctx = _load_ctx()
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | completed |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: completed\n",
     )
     _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n")
     _write(
@@ -281,15 +281,15 @@ def test_validate_finish_integrity_missing_index_uses_decompose_missing(
 def test_validate_finish_integrity_cli_returns_nonzero_on_conflict(
     tmp_path: Path,
 ) -> None:
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-a.yaml",
+        "memory-bank/back/implement/demo/s01-a.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nstatus: completed\nimplement_index: x\ndate: '2026-08-09'\n"
         "checkpoints: []\n",
@@ -317,11 +317,11 @@ def test_validate_finish_integrity_cli_returns_nonzero_on_conflict(
 
 
 def test_validate_finish_integrity_cli_is_detect_only(tmp_path: Path) -> None:
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | completed |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: completed\n",
     )
     before = (tmp_path / decompose).read_text(encoding="utf-8")
 
@@ -350,25 +350,22 @@ def test_validate_finish_integrity_cli_is_detect_only(tmp_path: Path) -> None:
 
 
 def test_finalize_step_requires_verify_pass(tmp_path: Path) -> None:
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "# Index\n"
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | [s01-a.yaml](s01-a.yaml) | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-a.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-a.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-a.yaml",
+        "memory-bank/back/implement/demo/s01-a.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nstatus: completed\nimplement_index: x\ndate: '2026-08-09'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  status: done\n"
@@ -415,33 +412,29 @@ def test_finalize_step_accepts_pass_when_session_id_cleared(
     tmp_path: Path,
 ) -> None:
     """Abort/rebuild may drop epic session_id; projection-bound PASS must finalize."""
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "# Index\n"
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | [s01-a.yaml](s01-a.yaml) | BACK IMPLEMENT | pending |\n"
-        "| **s02** | [s02-b.yaml](s02-b.yaml) | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n  - id: s02\n    file: s02-b.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-a.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-a.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo one\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s02-b.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s02-b.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s02\nplan_id: demo\n"
         "title: demo two\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-a.yaml",
+        "memory-bank/back/implement/demo/s01-a.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nstatus: in_progress\nimplement_index: x\ndate: '2026-08-09'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  status: done\n"
@@ -453,7 +446,7 @@ def test_finalize_step_accepts_pass_when_session_id_cleared(
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s01-a.yaml](back/plan/decompose-demo/s01-a.yaml)\n\n"
+        "## load_now\n1. [s01-a.yaml](back/plan/demo/yaml/steps/s01-a.yaml)\n\n"
         "## Handoff\n- **Следующий:** BACK IMPLEMENT s01\n",
     )
     evidence = {
@@ -522,7 +515,7 @@ def test_finalize_step_accepts_pass_when_session_id_cleared(
     assert payload["finalized"] is True
     assert payload["step_id"] == "s01"
     index_yaml = (
-        tmp_path / "memory-bank/back/plan/decompose-demo/index.yaml"
+        tmp_path / "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     ).read_text(encoding="utf-8")
     assert "status: completed" in index_yaml
     state = json.loads(
@@ -533,26 +526,22 @@ def test_finalize_step_accepts_pass_when_session_id_cleared(
 
 
 def test_finalize_step_rejects_pass_for_other_step(tmp_path: Path) -> None:
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "# Index\n"
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | [s01-a.yaml](s01-a.yaml) | BACK IMPLEMENT | completed |\n"
-        "| **s02** | [s02-b.yaml](s02-b.yaml) | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    next_phase: BACK IMPLEMENT\n    status: completed\n  - id: s02\n    file: s02-b.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s02-b.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s02-b.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s02\nplan_id: demo\n"
         "title: demo two\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s02-b.yaml",
+        "memory-bank/back/implement/demo/s02-b.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s02\nplan_id: demo\n"
         "title: demo\nstatus: in_progress\nimplement_index: x\ndate: '2026-08-09'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  status: done\n"
@@ -607,33 +596,29 @@ def test_finalize_step_rejects_pass_for_other_step(tmp_path: Path) -> None:
 
 
 def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
-        "# Index\n"
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | [s01-a.yaml](s01-a.yaml) | BACK IMPLEMENT | pending |\n"
-        "| **s02** | [s02-b.yaml](s02-b.yaml) | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n  - id: s02\n    file: s02-b.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-a.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-a.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo one\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s02-b.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s02-b.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s02\nplan_id: demo\n"
         "title: demo two\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-a.yaml",
+        "memory-bank/back/implement/demo/s01-a.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nstatus: completed\nimplement_index: x\ndate: '2026-08-09'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  status: done\n"
@@ -642,7 +627,7 @@ def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s01-a.yaml](back/plan/decompose-demo/s01-a.yaml)\n\n"
+        "## load_now\n1. [s01-a.yaml](back/plan/demo/yaml/steps/s01-a.yaml)\n\n"
         "## Handoff\n- **Следующий:** BACK IMPLEMENT s01\n",
     )
     _write(
@@ -713,7 +698,7 @@ def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
     assert payload["verify_diagnostic"] == "matched"
 
     index_yaml = (
-        tmp_path / "memory-bank/back/plan/decompose-demo/index.yaml"
+        tmp_path / "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     ).read_text(encoding="utf-8")
     assert "id: s01" in index_yaml
     assert "status: completed" in index_yaml
@@ -723,7 +708,7 @@ def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
     )
     assert "s02-b.yaml" in active_context
     assert "index.yaml" in active_context
-    assert "](back/plan/decompose-demo/index.md)" not in active_context
+    assert "back/plan/demo/yaml/decompose-index.yaml" in active_context
     log = tmp_path / "memory-bank/tasks/log" / f"{date.today():%Y-%m}.md"
     assert log.is_file()
     assert "BACK IMPLEMENT s01" in log.read_text(encoding="utf-8")
@@ -732,19 +717,16 @@ def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
 def test_finalize_step_from_in_progress_sets_implement_and_index(
     tmp_path: Path,
 ) -> None:
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
-    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    impl = "memory-bank/back/implement/demo/s01-a.yaml"
     _write(
         tmp_path,
         decompose,
-        "# Index\n"
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | [s01-a.yaml](s01-a.yaml) | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-a.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-a.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
@@ -763,7 +745,7 @@ def test_finalize_step_from_in_progress_sets_implement_and_index(
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s01-a.yaml](back/plan/decompose-demo/s01-a.yaml)\n\n"
+        "## load_now\n1. [s01-a.yaml](back/plan/demo/yaml/steps/s01-a.yaml)\n\n"
         "## Handoff\n- **Следующий:** BACK IMPLEMENT s01\n",
     )
     _write(
@@ -833,7 +815,7 @@ def test_finalize_step_from_in_progress_sets_implement_and_index(
     impl_text = (tmp_path / impl).read_text(encoding="utf-8")
     assert "status: completed" in impl_text
     index_yaml = (
-        tmp_path / "memory-bank/back/plan/decompose-demo/index.yaml"
+        tmp_path / "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     ).read_text(encoding="utf-8")
     assert "status: completed" in index_yaml
 
@@ -846,19 +828,16 @@ def test_finalize_step_rolls_back_implement_when_index_mark_fails(
         sys.path.insert(0, hooks)
     import epic_lib
 
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
-    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    impl = "memory-bank/back/implement/demo/s01-a.yaml"
     _write(
         tmp_path,
         decompose,
-        "# Index\n"
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | [s01-a.yaml](s01-a.yaml) | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    next_phase: BACK IMPLEMENT\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-a.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-a.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: demo\nnext_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  verify: pytest\n",
@@ -936,12 +915,12 @@ def test_finalize_step_rolls_back_implement_when_index_mark_fails(
 
 def test_prepare_session_repairs_mark_index_missing(tmp_path: Path) -> None:
     ctx = _load_ctx()
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
-    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    impl = "memory-bank/back/implement/demo/s01-a.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | pending |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: pending\n",
     )
     _write(
         tmp_path,
@@ -953,7 +932,7 @@ def test_prepare_session_repairs_mark_index_missing(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s01-a.yaml](back/plan/decompose-demo/s01-a.yaml)\n\n"
+        "## load_now\n1. [s01-a.yaml](back/plan/demo/yaml/steps/s01-a.yaml)\n\n"
         "## Handoff\n- **Следующий:** BACK IMPLEMENT s01\n",
     )
     _write(
@@ -984,8 +963,8 @@ def test_finalize_step_last_snn_calls_promote_if_ready(tmp_path: Path, monkeypat
         sys.path.insert(0, hooks)
     import epic.core as epic_core
 
-    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
-    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    impl = "memory-bank/back/implement/demo/s01-a.yaml"
     _write(
         tmp_path,
         decompose,
@@ -995,7 +974,7 @@ def test_finalize_step_last_snn_calls_promote_if_ready(tmp_path: Path, monkeypat
         tmp_path,
         impl,
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
-        "title: demo\nstatus: in_progress\nimplement_index: memory-bank/back/plan/decompose-demo/index.yaml\ndate: '2026-08-09'\n"
+        "title: demo\nstatus: in_progress\nimplement_index: memory-bank/back/plan/demo/yaml/decompose-index.yaml\ndate: '2026-08-09'\n"
         "checkpoints:\n- id: cp1\n  criterion: ok\n  status: done\n"
         "done:\n- did work\n"
         "files:\n- a.py\n"
@@ -1066,7 +1045,7 @@ def test_implement_verification_results_dict_coercion(tmp_path: Path) -> None:
         sys.path.insert(0, hooks)
     import epic_yaml as ey
 
-    impl = tmp_path / "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    impl = tmp_path / "memory-bank/back/implement/demo/s01-a.yaml"
     impl.parent.mkdir(parents=True)
     impl.write_text(
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
@@ -1086,12 +1065,12 @@ def test_implement_verification_results_dict_coercion(tmp_path: Path) -> None:
 
 def test_validate_finish_integrity_with_repair_false_index(tmp_path: Path) -> None:
     lib = _load_lib()
-    decompose = "memory-bank/back/plan/decompose-demo/index.md"
-    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    impl = "memory-bank/back/implement/demo/s01-a.yaml"
     _write(
         tmp_path,
         decompose,
-        "| **s01** | a | BACK IMPLEMENT | completed |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-a.yaml\n    status: completed\n",
     )
     _write(
         tmp_path,
@@ -1114,4 +1093,4 @@ def test_validate_finish_integrity_with_repair_false_index(tmp_path: Path) -> No
     assert repaired["ok"] is True
     assert repaired.get("repaired_false_index") == ["s01"]
     idx_text = (tmp_path / decompose).read_text(encoding="utf-8")
-    assert "| **s01** | a | BACK IMPLEMENT | pending |" in idx_text
+    assert "status: pending" in idx_text

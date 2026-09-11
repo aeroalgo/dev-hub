@@ -146,13 +146,15 @@ def test_stale_owner_repair_clear_lock(tmp_path: Path, monkeypatch: pytest.Monke
 def test_tier0_mark_index_missing_resolves_incident(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
     # Setup index and implement fixture
-    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-epic1"
-    decomp_dir.mkdir(parents=True)
-    decomp_path = decomp_dir / "s01-shard.yaml"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "epic1"
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    decomp_dir = plan_dir / "yaml"
+    decomp_path = plan_dir / "yaml" / "steps" / "s01-shard.yaml"
     (decomp_dir / "index.md").write_text("# Index\n")
     decomp_path.write_text("schema: epic-decompose/v1\nstep_id: s01\nplan_id: epic1\n")
 
-    index_yaml = decomp_dir / "index.yaml"
+    index_yaml = decomp_dir / "decompose-index.yaml"
     index_yaml.write_text("""schema: epic-index/v1
 epic_id: epic1
 plan_id: epic1
@@ -162,9 +164,9 @@ steps:
     status: active
 """)
 
-    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-epic1"
+    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "epic1"
     impl_dir.mkdir(parents=True)
-    impl_yaml = impl_dir / "s01.yaml"
+    impl_yaml = impl_dir / "s01-shard.yaml"
     impl_yaml.write_text("""schema: epic-implement/v1
 role: back
 step_id: s01

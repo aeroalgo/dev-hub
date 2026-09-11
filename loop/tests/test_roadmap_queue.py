@@ -77,14 +77,14 @@ def _minimal_queue(*ids: str) -> str:
 def _mark_epic_done(cwd: Path, epic_id: str) -> None:
     _write(
         cwd,
-        f"memory-bank/back/plan/decompose-{epic_id}/index.yaml",
+        f"memory-bank/back/plan/{epic_id}/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
         f"plan_id: {epic_id}\n"
         "steps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
-    _write(cwd, f"memory-bank/back/plan/decompose-{epic_id}/index.md", f"# {epic_id}\n")
-    _write(cwd, f"memory-bank/back/plan/decompose-{epic_id}/s01.yaml", "step_id: s01\n")
+    _write(cwd, f"memory-bank/back/plan/{epic_id}/md/decompose-index.md", f"# {epic_id}\n")
+    _write(cwd, f"memory-bank/back/plan/{epic_id}/yaml/steps/s01.yaml", "step_id: s01\n")
     _write(
         cwd,
         f"memory-bank/back/qa/{epic_id}/qa-20260815-pass.yaml",
@@ -132,7 +132,7 @@ def test_next_epic_skips_done_respects_hard_deps(tmp_path: Path) -> None:
     rq = _load_rq()
     _write_queue(tmp_path, _minimal_queue("T-A", "T-B", "T-C"))
     for epic in ("T-A", "T-B", "T-C"):
-        _write(tmp_path, f"memory-bank/back/plan/plan-{epic}.md", f"# {epic}\n")
+        _write(tmp_path, f"memory-bank/back/plan/{epic}/md/plan.md", f"# {epic}\n")
     _mark_epic_done(tmp_path, "T-A")
     out = rq.select_next_epic(tmp_path)
     assert out["ok"] is True
@@ -143,7 +143,7 @@ def test_next_epic_skips_done_respects_hard_deps(tmp_path: Path) -> None:
 
 def test_smart_entry_decompose_when_no_index(tmp_path: Path) -> None:
     rq = _load_rq()
-    _write(tmp_path, "memory-bank/back/plan/plan-T-X.md", "# plan\n")
+    _write(tmp_path, "memory-bank/back/plan/T-X/md/plan.md", "# plan\n")
     entry = rq.resolve_entry(
         tmp_path, role="back", epic_id="T-X", plan_name="plan-T-X.md"
     )
@@ -153,14 +153,14 @@ def test_smart_entry_decompose_when_no_index(tmp_path: Path) -> None:
 
 def test_smart_entry_implement_when_pending(tmp_path: Path) -> None:
     rq = _load_rq()
-    _write(tmp_path, "memory-bank/back/plan/plan-T-Y.md", "# plan\n")
+    _write(tmp_path, "memory-bank/back/plan/T-Y/md/plan.md", "# plan\n")
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/index.yaml",
+        "memory-bank/back/plan/T-Y/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
         "- id: s01\n  file: s01-one.yaml\n  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-T-Y/index.md", "# Y\n")
+    _write(tmp_path, "memory-bank/back/plan/T-Y/md/decompose-index.md", "# Y\n")
     _write(
         tmp_path,
         "memory-bank/back/analyze/T-Y/analyze-20260831-pass.yaml",
@@ -168,7 +168,7 @@ def test_smart_entry_implement_when_pending(tmp_path: Path) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/s01-one.yaml",
+        "memory-bank/back/plan/T-Y/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
     entry = rq.resolve_entry(
@@ -180,15 +180,15 @@ def test_smart_entry_implement_when_pending(tmp_path: Path) -> None:
 
 def test_smart_entry_qa_when_all_completed(tmp_path: Path) -> None:
     rq = _load_rq()
-    _write(tmp_path, "memory-bank/back/plan/plan-T-Z.md", "# plan\n")
+    _write(tmp_path, "memory-bank/back/plan/T-Z/md/plan.md", "# plan\n")
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Z/index.yaml",
+        "memory-bank/back/plan/T-Z/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-Z\nsteps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-T-Z/index.md", "# Z\n")
-    _write(tmp_path, "memory-bank/back/plan/decompose-T-Z/s01.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/T-Z/md/decompose-index.md", "# Z\n")
+    _write(tmp_path, "memory-bank/back/plan/T-Z/yaml/steps/s01.yaml", "step_id: s01\n")
     entry = rq.resolve_entry(
         tmp_path, role="back", epic_id="T-Z", plan_name="plan-T-Z.md"
     )
@@ -198,23 +198,23 @@ def test_smart_entry_qa_when_all_completed(tmp_path: Path) -> None:
 def test_roadmap_advance_arms_implement_via_arm_epic(tmp_path: Path) -> None:
     rq = _load_rq()
     _write_queue(tmp_path, _minimal_queue("T-IMP"))
-    _write(tmp_path, "memory-bank/back/plan/plan-T-IMP.md", "# plan\n")
+    _write(tmp_path, "memory-bank/back/plan/T-IMP/md/plan.md", "# plan\n")
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-IMP/index.yaml",
+        "memory-bank/back/plan/T-IMP/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-IMP\nsteps:\n"
         "- id: s01\n  file: s01-one.yaml\n  status: completed\n"
         "- id: s02\n  file: s02-two.yaml\n  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-T-IMP/index.md", "# imp\n")
+    _write(tmp_path, "memory-bank/back/plan/T-IMP/md/decompose-index.md", "# imp\n")
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-IMP/s01-one.yaml",
+        "memory-bank/back/plan/T-IMP/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-IMP/s02-two.yaml",
+        "memory-bank/back/plan/T-IMP/yaml/steps/s02-two.yaml",
         "schema: epic-decompose/v1\nstep_id: s02\n",
     )
     _write(
@@ -232,28 +232,28 @@ def test_roadmap_advance_arms_implement_via_arm_epic(tmp_path: Path) -> None:
     assert out["step_id"] == "s02"
     text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
     assert "s02" in text
-    assert "decompose-T-IMP" in text
+    assert "T-IMP" in text
 
 
 def test_roadmap_advance_arms_next_after_done(tmp_path: Path) -> None:
     rq = _load_rq()
     _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
-    _write(tmp_path, "memory-bank/back/plan/plan-T-005.md", "# 5\n")
-    _write(tmp_path, "memory-bank/back/plan/plan-T-013.md", "# 13\n")
+    _write(tmp_path, "memory-bank/back/plan/T-005/md/plan.md", "# 5\n")
+    _write(tmp_path, "memory-bank/back/plan/T-013/md/plan.md", "# 13\n")
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-005-docker-linux-runtime/index.yaml",
+        "memory-bank/back/plan/T-005-docker-linux-runtime/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-005-docker-linux-runtime\nsteps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-005-docker-linux-runtime/index.md",
+        "memory-bank/back/plan/T-005-docker-linux-runtime/md/decompose-index.md",
         "# T-005\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-005-docker-linux-runtime/s01.yaml",
+        "memory-bank/back/plan/T-005-docker-linux-runtime/yaml/steps/s01.yaml",
         "step_id: s01\n",
     )
     _write(
@@ -289,15 +289,15 @@ def test_roadmap_advance_arms_next_after_done(tmp_path: Path) -> None:
     text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
     assert "DECOMPOSE" in text
     assert "T-013" in text
-    assert "plan-T-013.md" in text
+    assert "T-013" in text
 
 
 def test_roadmap_advance_decompose_prepare_ok_without_index(tmp_path: Path) -> None:
     rq = _load_rq()
     ctx = _load_ctx()
     _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
-    _write(tmp_path, "memory-bank/back/plan/plan-T-005.md", "# 5\n")
-    _write(tmp_path, "memory-bank/back/plan/plan-T-013.md", "# 13\n")
+    _write(tmp_path, "memory-bank/back/plan/T-005/md/plan.md", "# 5\n")
+    _write(tmp_path, "memory-bank/back/plan/T-013/md/plan.md", "# 13\n")
     _mark_epic_done(tmp_path, "T-005")
     _write(
         tmp_path,
@@ -358,12 +358,12 @@ def test_degraded_prompt_truly_done_with_artifacts(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.yaml",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/index.md", "# demo\n")
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/md/decompose-index.md", "# demo\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01.yaml", "step_id: s01\n")
     _write(
         tmp_path,
         "memory-bank/back/qa/demo/qa-20260815-pass.yaml",
@@ -379,7 +379,7 @@ def test_degraded_prompt_truly_done_with_artifacts(tmp_path: Path) -> None:
         tmp_path,
         ".claude/runtime/epic/state.json",
         '{"armed_epic":"demo","armed_decompose":'
-        '"memory-bank/back/plan/decompose-demo/index.md","status":"complete"}\n',
+        '"memory-bank/back/plan/demo/md/decompose-index.md","status":"complete"}\n',
     )
     prompt = ctx.build_prompt(
         tmp_path,
@@ -394,7 +394,7 @@ def test_degraded_prompt_truly_done_with_artifacts(tmp_path: Path) -> None:
 def test_context_loop_roadmap_advance_cli(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write_queue(tmp_path, _minimal_queue("T-N"))
-    _write(tmp_path, "memory-bank/back/plan/plan-T-N.md", "# n\n")
+    _write(tmp_path, "memory-bank/back/plan/T-N/md/plan.md", "# n\n")
     _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. x\n\n## Handoff\n")
     rc = ctx.main(["--cwd", str(tmp_path), "roadmap-advance"])
     assert rc == 0
@@ -406,7 +406,7 @@ def test_context_loop_roadmap_advance_cli(tmp_path: Path) -> None:
 def test_roadmap_done_when_all_complete(tmp_path: Path) -> None:
     rq = _load_rq()
     _write_queue(tmp_path, _minimal_queue("T-ONLY"))
-    _write(tmp_path, "memory-bank/back/plan/plan-T-ONLY.md", "# only\n")
+    _write(tmp_path, "memory-bank/back/plan/T-ONLY/md/plan.md", "# only\n")
     _mark_epic_done(tmp_path, "T-ONLY")
     assert rq.is_epic_done(tmp_path, "back", "T-ONLY") is True
     out = rq.roadmap_advance(tmp_path)
@@ -435,14 +435,14 @@ def test_arm_roadmap_entry_promotes_analyze(tmp_path: Path, monkeypatch) -> None
         "role": "back",
         "entry": {"epic": "T-TEST", "queue_id": "T-TEST", "plan": "plan-T-TEST.md", "phase": "ANALYZE"},
     }
-    _write(tmp_path, "memory-bank/back/plan/plan-T-TEST.md", "# test plan\n")
+    _write(tmp_path, "memory-bank/back/plan/T-TEST/md/plan.md", "# test plan\n")
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-TEST/index.yaml",
+        "memory-bank/back/plan/T-TEST/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-TEST\nsteps:\n- id: s01\n  file: s01.yaml\n  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-T-TEST/index.md", "# test\n")
-    _write(tmp_path, "memory-bank/back/plan/decompose-T-TEST/s01.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/T-TEST/md/decompose-index.md", "# test\n")
+    _write(tmp_path, "memory-bank/back/plan/T-TEST/yaml/steps/s01.yaml", "step_id: s01\n")
 
     out = rq.arm_roadmap_entry(tmp_path, selection)
     assert out["ok"] is True
@@ -624,8 +624,8 @@ def test_roadmap_advance_qa_fail_blocks_advance(tmp_path: Path) -> None:
     """FR-013 / TM-003 / SC-003: roadmap_advance after QA fail blocks queue leave with qa_fail_blocks_advance."""
     rq = _load_rq()
     _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
-    _write(tmp_path, "memory-bank/back/plan/plan-T-005.md", "# 5\n")
-    _write(tmp_path, "memory-bank/back/plan/plan-T-013.md", "# 13\n")
+    _write(tmp_path, "memory-bank/back/plan/T-005/md/plan.md", "# 5\n")
+    _write(tmp_path, "memory-bank/back/plan/T-013/md/plan.md", "# 13\n")
 
     # Set up QA fail artifact for T-005
     _write(
@@ -723,7 +723,7 @@ def test_resolve_entry_decompose_uses_plan_stem(tmp_path: Path) -> None:
     rq = _load_rq()
     _write(
         tmp_path,
-        "memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md",
+        "memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/md/plan.md",
         "# plan\n",
     )
     entry = rq.resolve_entry(
@@ -753,7 +753,7 @@ def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md",
+        "memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/md/plan.md",
         "# plan\n",
     )
     sel = rq.select_next_epic(tmp_path)
@@ -841,7 +841,7 @@ def test_roadmap_advance_persists_done_before_next(tmp_path: Path) -> None:
     rq = _load_rq()
     _write_queue(tmp_path, _minimal_queue("T-A", "T-B"))
     for epic in ("T-A", "T-B"):
-        _write(tmp_path, f"memory-bank/back/plan/plan-{epic}.md", f"# {epic}\n")
+        _write(tmp_path, f"memory-bank/back/plan/{epic}/md/plan.md", f"# {epic}\n")
     _mark_epic_done(tmp_path, "T-A")
     if HOOKS not in sys.path:
         sys.path.insert(0, HOOKS)

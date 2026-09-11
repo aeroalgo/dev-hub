@@ -222,6 +222,10 @@ def canonical_epic_id_for_decompose(decompose: str | Path, *, index_path: Path |
         yaml_sibling = idx.with_name(idx.name.replace(".md", ".yaml"))
         if yaml_sibling.is_file():
             idx = yaml_sibling
+        elif idx.parent.name == "md":
+            yaml_v2 = idx.parent.parent / "yaml" / "decompose-index.yaml"
+            if yaml_v2.is_file():
+                idx = yaml_v2
     plan_id = plan_id_from_decompose_index(idx)
     if plan_id:
         return plan_id

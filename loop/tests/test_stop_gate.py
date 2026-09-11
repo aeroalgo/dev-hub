@@ -1195,7 +1195,7 @@ def test_mark_index_step_status_one_row(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
     idx = (
         tmp_path
-        / "memory-bank/integration/plan/decompose-demo/index.md"
+        / "memory-bank/integration/plan/demo/md/decompose-index.md"
     )
     idx.parent.mkdir(parents=True)
     idx.write_text(
@@ -1212,9 +1212,18 @@ def test_mark_index_step_status_one_row(tmp_path: Path) -> None:
         "- [ ] e14 — c\n",
         encoding="utf-8",
     )
+    ypath = tmp_path / "memory-bank/integration/plan/demo/yaml/decompose-index.yaml"
+    ypath.parent.mkdir(parents=True)
+    ypath.write_text(
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n"
+        "  - id: e12\n    file: steps/e12-a.yaml\n    status: completed\n"
+        "  - id: e13\n    file: steps/e13-b.yaml\n    status: pending\n"
+        "  - id: e14\n    file: steps/e14-c.yaml\n    status: pending\n",
+        encoding="utf-8",
+    )
     r = epic_lib.mark_index_step_status(
         tmp_path,
-        "memory-bank/integration/plan/decompose-demo/index.md",
+        "memory-bank/integration/plan/demo/yaml/decompose-index.yaml",
         "e13",
         "completed",
     )
@@ -1225,7 +1234,7 @@ def test_mark_index_step_status_one_row(tmp_path: Path) -> None:
     assert "| **e14** | [e14-c.yaml](e14-c.yaml) | INTEG IMPLEMENT | pending |" in text
     assert "- [x] e13 — b" in text
     assert "- [ ] e14 — c" in text
-    yml = (idx.parent / "index.yaml").read_text(encoding="utf-8")
+    yml = ypath.read_text(encoding="utf-8")
     assert "id: e13" in yml
     assert "status: completed" in yml
 
@@ -1272,12 +1281,13 @@ def test_sync_index_yaml_preserves_status(tmp_path: Path) -> None:
 
 def test_validate_index_vs_implement_false_completed(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
-    dec = "memory-bank/integration/plan/decompose-demo/index.md"
+    dec = "memory-bank/integration/plan/demo/yaml/decompose-index.yaml"
     idx = tmp_path / dec
     idx.parent.mkdir(parents=True)
     idx.write_text(
-        "| **e01** | a | INTEG IMPLEMENT | completed |\n"
-        "| **e02** | b | INTEG IMPLEMENT | completed |\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n"
+        "  - id: e01\n    file: steps/e01.yaml\n    status: completed\n"
+        "  - id: e02\n    file: steps/e02.yaml\n    status: completed\n",
         encoding="utf-8",
     )
     errs = epic_lib.validate_index_vs_implement(tmp_path, dec)

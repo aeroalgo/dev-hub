@@ -25,7 +25,7 @@ def _card(
 ) -> LaunchCard:
     return LaunchCard(
         project_root=str(tmp_path),
-        decompose_rel="memory-bank/back/plan/decompose-demo/index.yaml",
+        decompose_rel="memory-bank/back/plan/demo/yaml/decompose-index.yaml",
         step_id=step_id,
         gate_phase=gate_phase,
         workspace_id="ws-1",
@@ -35,7 +35,7 @@ def _card(
 
 
 def _seed_project(tmp_path: Path) -> None:
-    index = tmp_path / "memory-bank/back/plan/decompose-demo/index.yaml"
+    index = tmp_path / "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     index.parent.mkdir(parents=True)
     index.write_text(
         "schema: epic-decompose-index/v1\n"
@@ -54,7 +54,8 @@ def _seed_project(tmp_path: Path) -> None:
         "# Demo\n\n| s02 | s02-demo.yaml | Demo step | BACK IMPLEMENT | pending |\n",
         encoding="utf-8",
     )
-    (index.parent / "s02-demo.yaml").write_text(
+    (index.parent / "steps").mkdir(parents=True, exist_ok=True)
+    (index.parent / "steps" / "s02-demo.yaml").write_text(
         "schema: epic-decompose/v1\n"
         "role: back\n"
         "step_id: s02\n"

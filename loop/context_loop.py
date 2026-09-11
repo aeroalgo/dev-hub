@@ -4023,8 +4023,16 @@ def _node_status(cwd: Path, node: dict[str, Any]) -> str:
         return "pending"
 
     try:
-        from epic import epic_complete_allowed
-        return "done" if epic_complete_allowed(cwd).get("allowed") else "pending"
+        from epic import post_implement_phase
+        from epic_paths import epic_id_from_decompose_path
+        role_dir = {"BACK": "back", "FRONT": "front", "INTEG": "integration"}.get(
+            str(node.get("role") or "BACK").upper(), "back"
+        )
+        epic_id = str(node.get("epic") or node.get("epic_id") or node.get("id") or "")
+        if not epic_id or epic_id in {"back", "front", "integration", "integ"}:
+            epic_id = epic_id_from_decompose_path(decompose)
+        phase, _qa, _ = post_implement_phase(cwd, role_dir, epic_id)
+        return "done" if phase == "DONE" else "pending"
     except (OSError, TypeError, ValueError):
         return "pending"
 

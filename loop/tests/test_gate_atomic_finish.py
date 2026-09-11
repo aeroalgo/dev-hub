@@ -24,12 +24,14 @@ from loop.runtime_adapters import subagent_lifecycle as lifecycle
 
 def _setup_implement_desync(tmp_path: Path) -> Path:
     """implement yaml completed while index step still in_progress (s02 incident)."""
-    plan = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-GATE"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-GATE" / "yaml"
     plan.mkdir(parents=True)
-    impl = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-GATE"
+    steps = plan / "steps"
+    steps.mkdir(parents=True)
+    impl = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-GATE"
     impl.mkdir(parents=True)
 
-    (plan / "index.yaml").write_text(
+    (plan / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         "epic_id: T-HUB-GATE\n"
         "steps:\n"
@@ -38,7 +40,7 @@ def _setup_implement_desync(tmp_path: Path) -> Path:
         "    status: in_progress\n",
         encoding="utf-8",
     )
-    (plan / "s01-test.yaml").write_text(
+    (steps / "s01-test.yaml").write_text(
         "schema: epic-decompose/v1\n"
         "role: back\n"
         "step_id: s01\n"
@@ -57,8 +59,8 @@ def _setup_implement_desync(tmp_path: Path) -> Path:
         "plan_id: T-HUB-GATE\n"
         "title: test\n"
         "status: completed\n"
-        "date: \'2026-09-10\'\n"
-        "decompose_ref: memory-bank/back/plan/decompose-T-HUB-GATE/s01-test.yaml\n"
+        "date: '2026-09-10'\n"
+        "decompose_ref: memory-bank/back/plan/T-HUB-GATE/yaml/steps/s01-test.yaml\n"
         "skills_used: []\n"
         "discovery: []\n"
         "gaps:\n"
@@ -69,7 +71,7 @@ def _setup_implement_desync(tmp_path: Path) -> Path:
         "  - a.py\n"
         "deletes: []\n"
         "tests:\n"
-        "  - \'`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py`\'\n"
+        "  - '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py`'\n"
         "integration_check:\n"
         "  - ok\n"
         "grep_control: []\n"
@@ -90,7 +92,7 @@ def _setup_implement_desync(tmp_path: Path) -> Path:
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s01](back/plan/decompose-T-HUB-GATE/s01-test.yaml) — t.\n\n"
+        "1. [s01](back/plan/T-HUB-GATE/yaml/steps/s01-test.yaml) — t.\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Дальше:** t\n\n"
         "## done\n"
@@ -103,7 +105,7 @@ def _setup_implement_desync(tmp_path: Path) -> Path:
             "active": True,
             "status": "running",
             "armed_epic": "T-HUB-GATE",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-GATE/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-HUB-GATE/yaml/decompose-index.yaml",
             "armed_step": "s01",
             "armed_role": "BACK",
             "role": "BACK",
@@ -171,9 +173,9 @@ def test_finish_implement_repairs_mark_index_missing(tmp_path, monkeypatch) -> N
         )
     )
     assert res.ok, f"{res.diagnostic_codes} {res.shape_errors}"
-    index = (cwd / "memory-bank/back/plan/decompose-T-HUB-GATE/index.yaml").read_text()
+    index = (cwd / "memory-bank/back/plan/T-HUB-GATE/yaml/decompose-index.yaml").read_text()
     assert "status: completed" in index
-    impl = (cwd / "memory-bank/back/implement/implement-T-HUB-GATE/s01-test.yaml").read_text()
+    impl = (cwd / "memory-bank/back/implement/T-HUB-GATE/s01-test.yaml").read_text()
     assert "status: completed" in impl
 
 

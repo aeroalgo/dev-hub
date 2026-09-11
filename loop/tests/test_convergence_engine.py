@@ -46,17 +46,17 @@ def test_dedupe_findings():
 
 
 def test_run_convergence_smoke(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-TEST"
-    decomp_dir.mkdir(parents=True)
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
 
-    plan_file = plan_dir / "plan-T-HUB-TEST.md"
+    plan_file = plan_dir / "md" / "plan.md"
     plan_file.write_text("# Plan T-HUB-TEST\n| Path | Action |\n| `file.py` | Create |\nRequirement FR-001", encoding="utf-8")
 
-    index_file = decomp_dir / "index.yaml"
+    index_file = plan_dir / "yaml" / "decompose-index.yaml"
     index_file.write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
 
-    shard_file = decomp_dir / "s01.yaml"
+    shard_file = plan_dir / "yaml" / "steps" / "s01.yaml"
     shard_file.write_text("step_id: s01\nplan_refs: [FR-001]\n", encoding="utf-8")
 
     report = run_convergence_checks(tmp_path, "T-HUB-TEST")
@@ -66,11 +66,11 @@ def test_run_convergence_smoke(tmp_path: Path):
 
 
 def test_stale_handoff_category(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-TEST"
-    decomp_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("FR-001", encoding="utf-8")
-    (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-TEST\nsteps: []\n", encoding="utf-8")
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "yaml").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md" / "plan.md").write_text("FR-001", encoding="utf-8")
+    (plan_dir / "yaml" / "decompose-index.yaml").write_text("plan_id: T-HUB-TEST\nsteps: []\n", encoding="utf-8")
 
     mb_dir = tmp_path / "memory-bank"
     active_ctx = mb_dir / "activeContext.md"
@@ -83,13 +83,13 @@ def test_stale_handoff_category(tmp_path: Path):
 
 
 def test_orphan_req_wrapping(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-TEST"
-    decomp_dir.mkdir(parents=True)
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST"
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
 
-    (plan_dir / "plan-T-HUB-TEST.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
-    (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
+    (plan_dir / "md" / "plan.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
+    (plan_dir / "yaml" / "decompose-index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
+    (plan_dir / "yaml" / "steps" / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
 
     report = run_convergence_checks(tmp_path, "T-HUB-TEST")
     criticals = [f for f in report.findings if f.severity == "CRITICAL"]

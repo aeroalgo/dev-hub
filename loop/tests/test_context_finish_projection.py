@@ -36,12 +36,14 @@ from loop.mb_finish.schemas import (
 
 @pytest.fixture
 def epic_env(tmp_path: Path) -> Path:
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-078"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-078" / "yaml"
     mb_dir.mkdir(parents=True, exist_ok=True)
-    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-078"
+    steps_dir = mb_dir / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-078"
     impl_dir.mkdir(parents=True, exist_ok=True)
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "epic_id: T-HUB-078\n"
@@ -55,7 +57,7 @@ def epic_env(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
 
-    s04_decomp = mb_dir / "s04-test.yaml"
+    s04_decomp = steps_dir / "s04-test.yaml"
     s04_decomp.write_text(
         "schema: epic-decompose/v1\n"
         "role: back\n"
@@ -78,7 +80,7 @@ def epic_env(tmp_path: Path) -> Path:
         "title: finish telemetry\n"
         "status: in_progress\n"
         "date: '2026-09-07'\n"
-        "decompose_ref: memory-bank/back/plan/decompose-T-HUB-078/s04-test.yaml\n"
+        "decompose_ref: memory-bank/back/plan/T-HUB-078/yaml/steps/s04-test.yaml\n"
         "skills_used: []\n"
         "discovery: []\n"
         "gaps:\n"
@@ -111,7 +113,7 @@ def epic_env(tmp_path: Path) -> Path:
         "step_id: s04\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s04-test.yaml](back/plan/decompose-T-HUB-078/s04-test.yaml) — test.\n\n"
+        "1. [s04-test.yaml](back/plan/T-HUB-078/yaml/steps/s04-test.yaml) — test.\n\n"
         "## Handoff BACK IMPLEMENT — s04\n"
         "- **Дальше:** test\n\n"
         "## done\n"
@@ -125,7 +127,7 @@ def epic_env(tmp_path: Path) -> Path:
             "active": True,
             "status": "running",
             "armed_epic": "T-HUB-078",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-078/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-HUB-078/yaml/decompose-index.yaml",
             "armed_step": "s04",
             "armed_role": "BACK",
             "role": "BACK",

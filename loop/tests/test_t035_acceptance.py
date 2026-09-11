@@ -66,17 +66,21 @@ def _work_node(node_id: str, target: str, depends_on: list[str] | None = None) -
 def _seed_state_recovery(cwd: Path) -> None:
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **s01** | [s01-demo.yaml](s01-demo.yaml) | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: s01-demo.yaml\n"
+        "    title: demo\n"
+        "    status: pending\n",
     )
-    _write(cwd, "memory-bank/back/plan/decompose-demo/s01-demo.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(cwd, "memory-bank/back/plan/demo/yaml/steps/s01-demo.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
     _write(
         cwd,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-demo/index.md`\n\n"
+        "- `memory-bank/back/plan/demo/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT @s01`\n",
     )
@@ -91,7 +95,7 @@ def test_acceptance_matrix_rejects_invalid_dag_without_ready_path() -> None:
         "source": {"kind": "manifest", "artifacts": ["loop/dag/portal.yaml"]},
         "execution": {"autonomous": True},
         "nodes": [
-            _work_node("back", "memory-bank/back/plan/decompose-demo/index.md"),
+            _work_node("back", "memory-bank/back/plan/demo/yaml/decompose-index.yaml"),
             _work_node("front", "../escape/index.md", ["missing"]),
         ],
     }
@@ -113,8 +117,8 @@ def test_acceptance_gate_waits_for_close_completion_evidence(tmp_path: Path) -> 
         "loop/dag/portal.yaml",
         _manifest(
             [
-                _work_node("back", "memory-bank/back/plan/decompose-demo/index.md"),
-                _work_node("front", "memory-bank/front/plan/decompose-demo-front/index.md", ["back"]),
+                _work_node("back", "memory-bank/back/plan/demo/yaml/decompose-index.yaml"),
+                _work_node("front", "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml", ["back"]),
                 {
                     "id": "close",
                     "role": "INTEG",
@@ -129,12 +133,12 @@ def test_acceptance_gate_waits_for_close_completion_evidence(tmp_path: Path) -> 
     for role, epic in (("back", "demo"), ("front", "demo-front")):
         _write(
             tmp_path,
-            f"memory-bank/{role}/plan/decompose-{epic}/index.md",
-            "| step_id | title | status |\n|---|---|---|\n| **s01** | step | pending |\n",
+            f"memory-bank/{role}/plan/{epic}/yaml/decompose-index.yaml",
+            "schema: epic-decompose-index/v1\nplan_id: " + epic + "\nsteps:\n  - id: s01\n    file: s01-step.yaml\n    status: pending\n",
         )
         _write(
             tmp_path,
-            f"memory-bank/{role}/plan/decompose-{epic}/s01-step.yaml",
+            f"memory-bank/{role}/plan/{epic}/yaml/steps/s01-step.yaml",
             "schema: epic-decompose/v1\nstep_id: s01\n",
         )
 

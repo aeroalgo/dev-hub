@@ -18,9 +18,9 @@ def test_resolve_no_plan_returns_plan_command(tmp_path: Path):
     assert res.reason_code == "plan_missing"
 
 def test_resolve_plan_no_decompose_returns_decompose_command(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
     assert res.phase == "DECOMPOSE"
@@ -29,9 +29,9 @@ def test_resolve_plan_no_decompose_returns_decompose_command(tmp_path: Path):
 
 
 def test_resolve_short_queue_id_decompose_uses_plan_stem(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-023-hooks-llm-fallbacks.md").write_text("# Plan\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-023-hooks-llm-fallbacks" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan\n")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-023")
     assert res.phase == "DECOMPOSE"
@@ -40,17 +40,22 @@ def test_resolve_short_queue_id_decompose_uses_plan_stem(tmp_path: Path):
     assert res.reason_code == "decompose_missing"
 
 def test_resolver_stale_analyze_returns_arm_analyze(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: pending
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
     assert res.phase == "ANALYZE"
@@ -59,19 +64,26 @@ steps:
 
 
 def test_implement_next_step_returns_first_pending(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: completed
-  - step_id: s02
+  - id: s02
+    file: steps/s02.yaml
     status: pending
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
+    (decomp_dir / "steps" / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02\n")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
     assert res.phase == "IMPLEMENT"
@@ -154,7 +166,9 @@ def test_resolve_v2_pending_without_decompose_shard_restarts_decompose(tmp_path:
 def test_resolve_clarify_required(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n- [ ] CRITICAL: Need details\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n- [ ] CRITICAL: Need details\n")
 
     decomp_dir = plan_dir / "decompose-T-HUB-999"
     decomp_dir.mkdir(parents=True, exist_ok=True)
@@ -179,7 +193,8 @@ metrics:
 def test_resolve_override_valid_takes_precedence(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / "plan-T-HUB-999.md"
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan T-HUB-999\n")
 
     write_plan_next(plan_file, EpicNextOverride(epic_id="T-HUB-999", role="back", next_command="BACK DECOMPOSE T-HUB-999"))
@@ -192,7 +207,8 @@ def test_resolve_override_valid_takes_precedence(tmp_path: Path):
 def test_resolve_override_conflict_returns_diagnostic(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / "plan-T-HUB-999.md"
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan T-HUB-999\n")
 
     # IMPLEMENT override without decompose file existing -> conflict
@@ -204,17 +220,22 @@ def test_resolve_override_conflict_returns_diagnostic(tmp_path: Path):
     assert "decompose shard index does not exist" in res.diagnostic
 
 def test_post_implement_qa(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: completed
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
     _add_event(tmp_path, "T-HUB-999", "audit_done")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
@@ -223,17 +244,22 @@ steps:
     assert res.reason_code == "qa_required"
 
 def test_post_implement_epic_done(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: completed
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
     _add_event(tmp_path, "T-HUB-999", "audit_done")
     _add_event(tmp_path, "T-HUB-999", "qa_pass")
 
@@ -253,17 +279,22 @@ def test_validate_conflict_decompose_missing_plan():
     assert "plan file does not exist" in diag
 
 def test_resolve_post_implement_qa_pass_is_done(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: completed
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
     _add_event(tmp_path, "T-HUB-999", "audit_done")
     _add_event(tmp_path, "T-HUB-999", "qa_pass")
 
@@ -273,17 +304,22 @@ steps:
     assert res.reason_code == "epic_done"
 
 def test_resolve_post_implement_bugfix_active(tmp_path: Path):
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Plan T-HUB-999\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: completed
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
     _add_event(tmp_path, "T-HUB-999", "audit_done")
     _add_event(tmp_path, "T-HUB-999", "qa_fail")
 

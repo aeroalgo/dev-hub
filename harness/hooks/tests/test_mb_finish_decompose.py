@@ -14,10 +14,13 @@ from loop.mb_finish.schemas import MbFinishRequest
 
 def test_finish_decompose_arm(tmp_path: Path):
     """cp1: finish_decompose happy path: decompose tree valid -> promote_if_ready called with ANALYZE."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
+    (plan_root / "md").mkdir(parents=True, exist_ok=True)
+    (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
 
-    index_md = mb_dir / "index.md"
+    index_md = mb_dir / "md" / "decompose-index.md"
     index_md.write_text(
         "## Requirements coverage\n- REQ-01: covered\n\n"
         "## Stages coverage\n- s01: covered\n\n"
@@ -26,7 +29,7 @@ def test_finish_decompose_arm(tmp_path: Path):
         encoding="utf-8"
     )
 
-    s01_yaml = mb_dir / "s01-step.yaml"
+    s01_yaml = mb_dir / "yaml" / "steps" / "s01-step.yaml"
     s01_yaml.write_text(
         "schema: epic-decompose/v1\n"
         "step_id: s01\n"
@@ -44,7 +47,7 @@ def test_finish_decompose_arm(tmp_path: Path):
         encoding="utf-8",
     )
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "yaml" / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
@@ -61,7 +64,7 @@ def test_finish_decompose_arm(tmp_path: Path):
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
         "armed_step": "DECOMPOSE",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
         "last_verify_verdict": "PASS",
         "last_verify_evidence": {
             "agent_id": "verify-decompose",
@@ -88,14 +91,17 @@ def test_finish_decompose_arm(tmp_path: Path):
 
 def test_finish_decompose_critical(tmp_path: Path):
     """cp2: finish_decompose: CRITICAL errors in tree -> MbFinishResult(ok=False)."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
+    (plan_root / "md").mkdir(parents=True, exist_ok=True)
+    (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
 
     save_epic_state(tmp_path, {
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
         "armed_step": "DECOMPOSE",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
         "last_verify_verdict": "PASS",
         "last_verify_evidence": {
             "agent_id": "verify-decompose",
@@ -119,10 +125,13 @@ def test_finish_decompose_critical(tmp_path: Path):
 
 def test_finish_decompose_armed_step(tmp_path: Path):
     """cp3 / TM-007: armed_step = ANALYZE в epic state после finish_decompose."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
+    (plan_root / "md").mkdir(parents=True, exist_ok=True)
+    (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
 
-    index_md = mb_dir / "index.md"
+    index_md = mb_dir / "md" / "decompose-index.md"
     index_md.write_text(
         "## Requirements coverage\n- REQ-01: covered\n\n"
         "## Stages coverage\n- s01: covered\n\n"
@@ -131,7 +140,7 @@ def test_finish_decompose_armed_step(tmp_path: Path):
         encoding="utf-8"
     )
 
-    s01_yaml = mb_dir / "s01-step.yaml"
+    s01_yaml = mb_dir / "yaml" / "steps" / "s01-step.yaml"
     s01_yaml.write_text(
         "schema: epic-decompose/v1\n"
         "step_id: s01\n"
@@ -149,7 +158,7 @@ def test_finish_decompose_armed_step(tmp_path: Path):
         encoding="utf-8",
     )
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "yaml" / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
@@ -166,7 +175,7 @@ def test_finish_decompose_armed_step(tmp_path: Path):
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
         "armed_step": "DECOMPOSE",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
         "last_verify_verdict": "PASS",
         "last_verify_evidence": {
             "agent_id": "verify-decompose",
@@ -194,10 +203,13 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
     tmp_path: Path,
 ):
     """finish_decompose should succeed when armed_decompose is missing but activeContext load_now has decompose index."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
+    (plan_root / "md").mkdir(parents=True, exist_ok=True)
+    (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
 
-    index_md = mb_dir / "index.md"
+    index_md = mb_dir / "md" / "decompose-index.md"
     index_md.write_text(
         "## Requirements coverage\n- REQ-01: covered\n\n"
         "## Stages coverage\n- s01: covered\n\n"
@@ -206,7 +218,7 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
         encoding="utf-8",
     )
 
-    s01_yaml = mb_dir / "s01-step.yaml"
+    s01_yaml = mb_dir / "yaml" / "steps" / "s01-step.yaml"
     s01_yaml.write_text(
         "schema: epic-decompose/v1\n"
         "step_id: s01\n"
@@ -224,7 +236,7 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
         encoding="utf-8",
     )
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "yaml" / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-TEST-001\n"
@@ -247,7 +259,7 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
         "step_id: ANALYZE\n"
         "\n"
         "## load_now\n"
-        "- `back/plan/decompose-T-TEST-001/index.yaml`\n"
+        "- `back/plan/T-TEST-001/yaml/decompose-index.yaml`\n"
         "\n"
         "## Handoff ANALYZE\n"
         "- # epic_id: T-TEST-001\n"
@@ -285,15 +297,16 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
 
 def test_finish_plan_happy(tmp_path: Path):
     """cp4: finish_plan happy path."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
     mb_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = mb_dir / "plan-T-TEST-001.md"
+    (mb_dir / "md").mkdir(parents=True, exist_ok=True)
+    plan_file = mb_dir / "md" / "plan.md"
     plan_file.write_text("# Plan T-TEST-001\n", encoding="utf-8")
 
     save_epic_state(tmp_path, {
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
-        "armed_plan": "memory-bank/back/plan/plan-T-TEST-001.md"
+        "armed_plan": "memory-bank/back/plan/T-TEST-001/md/plan.md"
     })
 
     req = MbFinishRequest(

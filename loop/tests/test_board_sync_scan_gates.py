@@ -15,7 +15,7 @@ def _project(tmp_path: Path, epic: str = "T-DEMO") -> tuple[Path, WorkspaceRef]:
 
 
 def _index(project: Path, epic: str, statuses: list[str]) -> Path:
-    path = project / f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    path = project / f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         yaml.safe_dump(
@@ -52,7 +52,8 @@ def test_gate_analyze(tmp_path: Path) -> None:
     project, workspace = _project(tmp_path)
     _index(project, "T-DEMO", ["pending"])
     _queue(project, "T-DEMO")
-    (project / "memory-bank/back/plan/plan-T-DEMO.md").write_text("# plan\n", encoding="utf-8")
+    (project / "memory-bank/back/plan/T-DEMO/md").mkdir(parents=True, exist_ok=True)
+    (project / "memory-bank/back/plan/T-DEMO/md/plan.md").write_text("# plan\n", encoding="utf-8")
     gates = scan_gates([workspace], [])
 
     assert any(

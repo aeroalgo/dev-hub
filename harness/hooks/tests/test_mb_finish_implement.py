@@ -21,12 +21,14 @@ from loop.mb_finish.schemas import MbFinishRequest
 @pytest.fixture
 def setup_epic_env(tmp_path):
     """Set up mock epic environment with decompose, implement, and activeContext."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-TEST"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-TEST" / "yaml"
     mb_dir.mkdir(parents=True, exist_ok=True)
-    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-TEST"
+    steps_dir = mb_dir / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-TEST"
     impl_dir.mkdir(parents=True, exist_ok=True)
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "epic_id: T-HUB-TEST\n"
@@ -37,7 +39,7 @@ def setup_epic_env(tmp_path):
         encoding="utf-8",
     )
 
-    s01_decomp = mb_dir / "s01-test.yaml"
+    s01_decomp = steps_dir / "s01-test.yaml"
     s01_decomp.write_text(
         "schema: epic-decompose/v1\n"
         "role: back\n"
@@ -60,7 +62,7 @@ def setup_epic_env(tmp_path):
         "title: test step\n"
         "status: in_progress\n"
         "date: '2026-09-01'\n"
-        "decompose_ref: memory-bank/back/plan/decompose-T-HUB-TEST/s01-test.yaml\n"
+        "decompose_ref: memory-bank/back/plan/T-HUB-TEST/yaml/steps/s01-test.yaml\n"
         "skills_used: []\n"
         "discovery: []\n"
         "gaps:\n"
@@ -93,7 +95,7 @@ def setup_epic_env(tmp_path):
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s01-test.yaml](back/plan/decompose-T-HUB-TEST/s01-test.yaml) — test.\n\n"
+        "1. [s01-test.yaml](back/plan/T-HUB-TEST/yaml/steps/s01-test.yaml) — test.\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Дальше:** test\n\n"
         "## done\n"
@@ -107,7 +109,7 @@ def setup_epic_env(tmp_path):
             "active": True,
             "status": "running",
             "armed_epic": "T-HUB-TEST",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-TEST/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-HUB-TEST/yaml/decompose-index.yaml",
             "armed_step": "s01",
             "armed_role": "BACK",
             "role": "BACK",
@@ -161,7 +163,7 @@ def test_finish_implement_no_verify(setup_epic_env):
         assert "verify_pass_missing" in res.diagnostic_codes
 
         # Verify SC-001: 0 status mutations in index or implement
-        impl_content = (tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-TEST" / "s01-test.yaml").read_text(encoding="utf-8")
+        impl_content = (tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-TEST" / "s01-test.yaml").read_text(encoding="utf-8")
         assert "status: in_progress" in impl_content
 
 
@@ -288,9 +290,9 @@ def test_finish_implement_uses_armed_decompose_not_first_glob(setup_epic_env):
     """Regression: must not finalize the first decompose-* on disk (wrong epic)."""
     tmp_path = setup_epic_env
 
-    stale_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-STALE"
+    stale_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-STALE" / "yaml"
     stale_dir.mkdir(parents=True, exist_ok=True)
-    (stale_dir / "index.yaml").write_text(
+    (stale_dir / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: T-HUB-STALE\n"
         "steps:\n"
@@ -299,7 +301,8 @@ def test_finish_implement_uses_armed_decompose_not_first_glob(setup_epic_env):
         "    status: completed\n",
         encoding="utf-8",
     )
-    (stale_dir / "s01-stale.yaml").write_text(
+    (stale_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (stale_dir / "steps" / "s01-stale.yaml").write_text(
         "schema: epic-decompose/v1\nstep_id: s01\n",
         encoding="utf-8",
     )

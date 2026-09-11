@@ -1,0 +1,102 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-087
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+epic_id: T-HUB-087-epic-layout-v2-fallback-purge
+date: '2026-09-11'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: b8527b923101f670c2142f8d7cebbb54bdc6a09f4845e882863e696c989465d6
+verify_scope: full
+
+scope:
+  - "task: T-HUB-087"
+  - "epic: T-HUB-087-epic-layout-v2-fallback-purge"
+  - "steps: s01–s06"
+  - "files: harness/hooks/**, loop/**, memory-bank/**"
+
+ac_plus:
+  - "SC-001: 0 active v1 layout branches в перечисленных runtime-модулях"
+  - "SC-002: 0 live `implement/implement-*` directories в BACK tree"
+  - "SC-003: v2 arm/load/reconcile/index smoke green"
+  - "SC-004: legacy path invocation завершается ошибкой, а не v2 lookup"
+
+ac_minus:
+  - "Нет dual v1/v2 resolver path."
+  - "Нет `try new except legacy` для path resolution."
+  - "Нет production caller у `parse_steps_from_md`/`sync_yaml_from_md`."
+  - "Нет live `implement/implement-*` artifacts после migration gate."
+  - "Нет теста, который требует legacy layout для зелёного runtime."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL (suite_red)"
+
+issues:
+  - "Suite regression: full repository test suite execution reported test failures in loop and harness modules"
+
+blockers:
+  - "suite_red: loop/tests/test_epic_transition.py"
+  - "suite_red: loop/tests/test_roadmap_queue.py"
+  - "suite_red: loop/tests/test_convergence_categories.py"
+  - "suite_red: loop/tests/test_board_launch_arm.py"
+  - "suite_red: loop/tests/test_board_sync_cli.py"
+  - "suite_red: loop/tests/test_board_sync_scan_gates.py"
+  - "suite_red: loop/tests/test_implement_hub_alias.py"
+  - "suite_red: harness/hooks/tests/test_mb_finish_decompose.py"
+  - "suite_red: loop/tests/test_board_sync_epic_regression.py"
+  - "suite_red: loop/tests/test_incidents_tier0.py"
+  - "suite_red: loop/tests/test_reserved_role_epic_id.py"
+  - "suite_red: loop/tests/test_t035_invariants.py"
+  - "suite_red: loop/tests/test_convergence_cli.py"
+  - "suite_red: loop/tests/test_convergence_engine.py"
+  - "suite_red: loop/tests/test_finish_receipt_integrity.py"
+  - "suite_red: loop/tests/test_state_recovery.py"
+  - "suite_red: loop/tests/test_context_finish_projection.py"
+  - "suite_red: loop/tests/test_finalize_atomic_commit.py"
+  - "suite_red: harness/hooks/tests/test_mcp_load_parity.py"
+  - "suite_red: loop/tests/test_projection_identity.py"
+  - "suite_red: loop/tests/test_gate_atomic_finish.py"
+  - "suite_red: harness/hooks/tests/test_stop_gate_fingerprint.py"
+  - "suite_red: loop/tests/test_formula_integration.py"
+  - "suite_red: loop/tests/test_t035_acceptance.py"
+  - "suite_red: loop/tests/test_dag_journey.py"
+  - "suite_red: loop/tests/test_phase_epoch.py"
+
+fix_plan:
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_epic_transition.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_roadmap_queue.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_convergence_categories.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_board_launch_arm.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_board_sync_cli.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_board_sync_scan_gates.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_implement_hub_alias.py"
+  - "BACK BUGFIX Fix failing suite tests in harness/hooks/tests/test_mb_finish_decompose.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_board_sync_epic_regression.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_incidents_tier0.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_reserved_role_epic_id.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_t035_invariants.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_convergence_cli.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_convergence_engine.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_finish_receipt_integrity.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_state_recovery.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_context_finish_projection.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_finalize_atomic_commit.py"
+  - "BACK BUGFIX Fix failing suite tests in harness/hooks/tests/test_mcp_load_parity.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_projection_identity.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_gate_atomic_finish.py"
+  - "BACK BUGFIX Fix failing suite tests in harness/hooks/tests/test_stop_gate_fingerprint.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_formula_integration.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_t035_acceptance.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_dag_journey.py"
+  - "BACK BUGFIX Fix failing suite tests in loop/tests/test_phase_epoch.py"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

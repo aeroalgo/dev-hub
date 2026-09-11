@@ -9,8 +9,8 @@ def test_gap_back_front_close_journey_waits_for_close_evidence(tmp_path: Path) -
     ctx = _load_ctx()
     _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. old\n")
     nodes = [
-        _work_node("back", "memory-bank/back/plan/decompose-demo/index.md"),
-        _work_node("front", "memory-bank/front/plan/decompose-demo-front/index.md", ["back"]),
+        _work_node("back", "memory-bank/back/plan/demo/yaml/decompose-index.yaml"),
+        _work_node("front", "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml", ["back"]),
         {
             "id": "close",
             "role": "INTEG",
@@ -24,10 +24,10 @@ def test_gap_back_front_close_journey_waits_for_close_evidence(tmp_path: Path) -
     for role, epic in (("back", "demo"), ("front", "demo-front")):
         _write(
             tmp_path,
-            f"memory-bank/{role}/plan/decompose-{epic}/index.md",
-            "| step_id | title | status |\n|---|---|---|\n| **s01** | [s01-step.yaml](s01-step.yaml) | pending |\n",
+            f"memory-bank/{role}/plan/{epic}/yaml/decompose-index.yaml",
+            "schema: epic-decompose-index/v1\nplan_id: " + epic + "\nsteps:\n  - id: s01\n    file: s01-step.yaml\n    status: pending\n",
         )
-        _write(tmp_path, f"memory-bank/{role}/plan/decompose-{epic}/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+        _write(tmp_path, f"memory-bank/{role}/plan/{epic}/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
 
     out = ctx._arm_dag_next(tmp_path, "portal")
     assert out["node"] == "back"
@@ -58,20 +58,40 @@ def test_state_loss_rebuilds_cursor_from_completion_evidence(tmp_path: Path) -> 
         "loop/dag/portal.yaml",
         _manifest(
             [
-                _work_node("back", "memory-bank/back/plan/decompose-demo/index.md"),
-                _work_node("front", "memory-bank/front/plan/decompose-demo-front/index.md", ["back"]),
+                _work_node("back", "memory-bank/back/plan/demo/yaml/decompose-index.yaml"),
+                _work_node("front", "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml", ["back"]),
             ]
         ),
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n|---|---|---|\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01.yaml\n    status: completed\n",
     )
     _write(
         tmp_path,
-        "memory-bank/front/plan/decompose-demo-front/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| s01 | step | pending |\n",
+        "memory-bank/back/plan/demo/yaml/steps/s01.yaml",
+        "schema: epic-decompose/v1\nstep_id: s01\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/audit/demo/audit-20260901-test.yaml",
+        "verdict: PASS\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/qa/demo/qa-20260901-test.yaml",
+        "verdict: pass\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo-front\nsteps:\n  - id: s01\n    file: s01.yaml\n    status: pending\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/front/plan/demo-front/yaml/steps/s01.yaml",
+        "schema: epic-decompose/v1\nstep_id: s01\n",
     )
     state = ctx.load_epic_state(tmp_path)
     state["dag_done"] = []
@@ -80,6 +100,5 @@ def test_state_loss_rebuilds_cursor_from_completion_evidence(tmp_path: Path) -> 
     out = ctx._arm_dag_next(tmp_path, "portal")
 
     assert out["ok"] is True
-    assert out["complete"] is True
-    assert out["armed"] is False
-    assert out["dag_done"] == ["back", "front"]
+    assert out["armed"] is True
+    assert out["node"] == "front"

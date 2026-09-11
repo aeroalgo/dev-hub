@@ -28,12 +28,13 @@ from loop.mb_finish.schemas import MbFinishRequest
 @pytest.fixture
 def epic_finish_env(tmp_path: Path):
     """Set up an epic environment with decompose, implement, and activeContext."""
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-077"
-    mb_dir.mkdir(parents=True, exist_ok=True)
-    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-077"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-077"
+    (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-077"
     impl_dir.mkdir(parents=True, exist_ok=True)
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = plan_dir / "yaml" / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
         "epic_id: T-HUB-077\n"
@@ -44,7 +45,7 @@ def epic_finish_env(tmp_path: Path):
         encoding="utf-8",
     )
 
-    s01_decomp = mb_dir / "s01-test.yaml"
+    s01_decomp = plan_dir / "yaml" / "steps" / "s01-test.yaml"
     s01_decomp.write_text(
         "schema: epic-decompose/v1\n"
         "role: back\n"
@@ -67,7 +68,7 @@ def epic_finish_env(tmp_path: Path):
         "title: test step\n"
         "status: in_progress\n"
         "date: '2026-09-07'\n"
-        "decompose_ref: memory-bank/back/plan/decompose-T-HUB-077/s01-test.yaml\n"
+        "decompose_ref: memory-bank/back/plan/T-HUB-077/yaml/steps/s01-test.yaml\n"
         "skills_used: []\n"
         "discovery: []\n"
         "gaps:\n"
@@ -100,7 +101,7 @@ def epic_finish_env(tmp_path: Path):
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s01-test.yaml](back/plan/decompose-T-HUB-077/s01-test.yaml) — test.\n\n"
+        "1. [s01-test.yaml](back/plan/T-HUB-077/yaml/steps/s01-test.yaml) — test.\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Дальше:** test\n\n"
         "## done\n"
@@ -114,7 +115,7 @@ def epic_finish_env(tmp_path: Path):
     st["armed_epic"] = "T-HUB-077"
     st["armed_step"] = "s01"
     st["armed_role"] = "back"
-    st["armed_decompose"] = "memory-bank/back/plan/decompose-T-HUB-077/index.yaml"
+    st["armed_decompose"] = "memory-bank/back/plan/T-HUB-077/yaml/decompose-index.yaml"
     st["phase"] = "BACK IMPLEMENT"
     st["phase_epoch"] = "epoch-1"
     st["projection_hash"] = "proj-hash-1"
@@ -158,7 +159,7 @@ def test_finish_rejects_manual_authority_evidence(epic_finish_env: Path):
     # finalize_step direct call
     res = finalize_step(
         cwd=epic_finish_env,
-        decompose="memory-bank/back/plan/decompose-T-HUB-077/index.yaml",
+        decompose="memory-bank/back/plan/T-HUB-077/yaml/decompose-index.yaml",
         step_id="s01",
         require_verify=True,
     )
@@ -199,7 +200,7 @@ def test_finish_rejects_state_only_pass_without_receipt(epic_finish_env: Path):
 
     res = finalize_step(
         cwd=epic_finish_env,
-        decompose="memory-bank/back/plan/decompose-T-HUB-077/index.yaml",
+        decompose="memory-bank/back/plan/T-HUB-077/yaml/decompose-index.yaml",
         step_id="s01",
         require_verify=True,
     )
@@ -247,7 +248,7 @@ def test_finish_rejects_mutated_receipt_digest(epic_finish_env: Path):
 
     res = finalize_step(
         cwd=epic_finish_env,
-        decompose="memory-bank/back/plan/decompose-T-HUB-077/index.yaml",
+        decompose="memory-bank/back/plan/T-HUB-077/yaml/decompose-index.yaml",
         step_id="s01",
         require_verify=True,
     )
@@ -285,7 +286,7 @@ def test_finish_rejects_stale_epoch_or_identity_mismatch(epic_finish_env: Path):
 
     res = finalize_step(
         cwd=epic_finish_env,
-        decompose="memory-bank/back/plan/decompose-T-HUB-077/index.yaml",
+        decompose="memory-bank/back/plan/T-HUB-077/yaml/decompose-index.yaml",
         step_id="s01",
         require_verify=True,
     )

@@ -14,7 +14,7 @@ FIXTURES = Path(__file__).parent / "fixtures" / "board_sync"
 
 def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
     project = tmp_path / "project"
-    index = project / "memory-bank/back/plan/decompose-T-DEMO/index.yaml"
+    index = project / "memory-bank/back/plan/T-DEMO/yaml/decompose-index.yaml"
     index.parent.mkdir(parents=True)
     index.write_text(
         yaml.safe_dump(
@@ -30,7 +30,8 @@ def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
         ),
         encoding="utf-8",
     )
-    (project / "memory-bank/back/plan/plan-T-DEMO.md").write_text(
+    (project / "memory-bank/back/plan/T-DEMO/md").mkdir(parents=True, exist_ok=True)
+    (project / "memory-bank/back/plan/T-DEMO/md/plan.md").write_text(
         "# T-DEMO\n", encoding="utf-8"
     )
     (project / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True)
@@ -145,13 +146,13 @@ def test_status_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> N
 
 def test_roadmap_selection_failure_is_nonzero(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     dsh_home = _dsh_home(tmp_path)
-    index = tmp_path / "project/memory-bank/back/plan/decompose-T-DEMO/index.yaml"
+    index = tmp_path / "project/memory-bank/back/plan/T-DEMO/yaml/decompose-index.yaml"
     payload = yaml.safe_load(index.read_text(encoding="utf-8"))
     payload["steps"] = [
         {**step, "status": "completed"} for step in payload["steps"]
     ]
     index.write_text(yaml.safe_dump(payload), encoding="utf-8")
-    (index.parent.parent.parent / "roadmap" / "queue.yaml").unlink()
+    (index.parent.parent.parent.parent / "roadmap" / "queue.yaml").unlink()
 
     result = main(["sync", "--dsh-home", str(dsh_home)], client=FakeClient())
 

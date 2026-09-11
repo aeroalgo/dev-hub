@@ -28,21 +28,22 @@ def _write(cwd: Path, rel: str, body: str) -> None:
 def _seed(cwd: Path, *, phase: str = "BACK IMPLEMENT", status: str = "pending") -> None:
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        f"| **s08** | [s08-projection-phase-epoch.yaml](s08-projection-phase-epoch.yaml) | {status} |\n",
+        "memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-035-loop-state-prod-hardening\n"
+        "steps:\n"
+        f"  - id: s08\n    file: s08-projection-phase-epoch.yaml\n    title: epoch\n    status: {status}\n",
     )
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/s08-projection-phase-epoch.yaml",
+        "memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/steps/s08-projection-phase-epoch.yaml",
         "schema: epic-decompose/v1\nstep_id: s08\n",
     )
     _write(
         cwd,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/index.md`\n\n"
+        "- `memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
         f"- **Следующий:** `{phase} @s08`\n",
     )
@@ -57,7 +58,7 @@ def test_phase_epoch_changes_for_relevant_phase_source(tmp_path: Path) -> None:
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/index.md`\n\n"
+        "- `memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK QA\n"
         "- **Следующий:** `BACK QA @s08`\n",
     )

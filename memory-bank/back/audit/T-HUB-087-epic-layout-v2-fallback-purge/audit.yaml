@@ -1,0 +1,279 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-087-epic-layout-v2-fallback-purge
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+date: '2026-09-11'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Purge legacy layout v1 fallbacks, migrate live implement trees, and enforce
+    fail-closed v2 resolution across all runtime modules.
+  source: memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 4
+  layout_paths_total: 1
+  layout_paths_closed: 1
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Canonical v2 path resolvers in loop.paths.epic_layout and harness/hooks/epic_paths.py
+    resolve plan, decompose, and implement paths without dual v1 discovery branches.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: All 8 live legacy implement trees migrated to flat v2 implement directories
+    preserving step ids, statuses, checkpoints, and verification evidence without
+    data loss.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: Runtime index loading enforces fail-closed YAML-only loading via decompose-index.yaml
+    without falling back to Markdown parsing or legacy directory fixtures.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: All live plan, decompose, and implement call sites across harness hooks
+    and loop packages use canonical v2 path API and EpicLayoutKind.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: All 8 legacy implement/implement-* trees migrated with full parity validation
+    and zero active legacy implement directories remaining on disk.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: epic_paths.py find_decompose_index_path and find_plan_md_path removed
+    legacy glob-based search patterns for plan-* and decompose-*.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: epic_yaml.py, epic/core.py, reconcile.py, scan_mb.py, and mb_load/plan_section.py
+    operate exclusively on v2 layout without runtime v1/Markdown fallbacks.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: parse_steps_from_md and sync_yaml_from_md removed from runtime execution
+    paths and isolated to explicit migration tooling.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: Invalid or missing v2 layout artifacts produce explicit diagnostic error
+    codes (e.g. layout_v1_removed) rather than attempting fallback lookup.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Obsolete test fixtures and legacy path assertions rewritten to test canonical
+    v2 behavior and explicit layout denial.
+  remaining_work: ''
+- source_ref: SC-001
+  status: satisfied
+  evidence: Full codebase inventory scan confirms 0 active v1 layout fallback branches
+    across all runtime hook and loop modules.
+  remaining_work: ''
+- source_ref: SC-002
+  status: satisfied
+  evidence: Filesystem scan confirms 0 live implement/implement-* directories in the
+    memory-bank/ tree.
+  remaining_work: ''
+- source_ref: SC-003
+  status: satisfied
+  evidence: Targeted pytest suites for v2 path resolution, YAML-only index loading,
+    and reconcile contracts pass with full green status.
+  remaining_work: ''
+- source_ref: SC-004
+  status: satisfied
+  evidence: Negative integration fixtures assert that legacy path invocation fails
+    with explicit diagnostic code rather than degrading to v2 lookup.
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Dual v1/v2 resolver paths removed across epic_paths, epic_yaml, and loop
+    resolvers; only single canonical v2 resolution path remains.
+  remaining_work: ''
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Zero try-new-except-legacy constructs exist for path resolution across
+    harness and loop modules.
+  remaining_work: ''
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Zero production callers remain for parse_steps_from_md and sync_yaml_from_md
+    in runtime hot path.
+  remaining_work: ''
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Zero live implement/implement-* directory artifacts remain in memory-bank
+    after migration cutover.
+  remaining_work: ''
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Test suite updated so no test requires legacy v1 layout structure for
+    green runtime execution.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitution MUST section requirements reviewed and satisfied across epic
+    design and implementation.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: TDD-first methodology followed with red-green regression and denial tests
+    created before refactoring runtime paths.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: No silent fallbacks allowed; missing or invalid v2 artifacts produce immediate
+    diagnostic termination.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: Backend refactoring tests run in backend domain scope without coupling
+    to front parent-only tests.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: Lean load policy maintained using canonical v2 index pointers without
+    whole-tree scans.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: Fail-closed misconfiguration enforced for missing or invalid decompose
+    YAML index files.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: No-guess markers used for deterministic step resolution and implement
+    shard identification.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: Single handoff per step maintained across all completed implement steps
+    s01 through s06.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: Integration parity maintained between harness hooks and loop runtime layout
+    resolvers.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: Phase authority respected with sequential transitions from IMPLEMENT to
+    AUDIT and onward to QA.
+  remaining_work: ''
+- source_ref: layout:memory-bank/back/roadmap/queue.yaml
+  status: satisfied
+  evidence: Canonical roadmap queue contains T-HUB-087 batch and epic tracking with
+    active v2 status.
+  remaining_work: ''
+architecture_parity:
+- layout_path: memory-bank/back/roadmap/queue.yaml
+  status: satisfied
+  evidence: Canonical roadmap queue contains T-HUB-087 batch and epic tracking with
+    active v2 status.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-087-epic-layout-v2-fallback-purge/s01-contracts-and-seams.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-087-epic-layout-v2-fallback-purge/s02-migrate-legacy-implement-trees.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-087-epic-layout-v2-fallback-purge/s03-wire-runtime-v2-resolvers.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-087-epic-layout-v2-fallback-purge/s04-yaml-sot-and-fail-closed-loading.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-087-epic-layout-v2-fallback-purge/s05-obsolete-test-and-fixture-rewrite.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-087-epic-layout-v2-fallback-purge/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-11'
+  plan_ref: memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md#replacement--sunset
+  rows:
+  - symbol: v1 branches in epic_paths.py
+    kind: A
+    command: rg -n "decompose-" harness/hooks/epic_paths.py || true
+    result: pass
+    prod_callers: []
+    notes: v1 directory scanning removed in s03
+  - symbol: implement-* and leftover yaml/steps resolver branches
+    kind: A
+    command: rg -n "find_implement_dir" harness/hooks/epic_yaml.py || true
+    result: pass
+    prod_callers: []
+    notes: Resolver branches direct to canonical v2 flat implement paths
+  - symbol: Markdown runtime parsing
+    kind: A
+    command: rg -n "parse_steps_from_md" harness/hooks/epic/core.py || true
+    result: pass
+    prod_callers: []
+    notes: Core runtime uses YAML-only decompose loader
+  - symbol: legacy board/mb-load path candidates
+    kind: A
+    command: rg -n "decompose-*" loop/board_sync/scan_mb.py || true
+    result: pass
+    prod_callers: []
+    notes: board_sync and mb_load scan exclusively v2 paths
+  - symbol: runtime use of migration module
+    kind: A
+    command: rg -n "from loop.migrate" loop/mb_load/ loop/board_sync/ harness/hooks/epic/
+      || true
+    result: pass
+    prod_callers: []
+    notes: loop.migrate is only called via explicit mb-migrate CLI command
+  - symbol: --decompose/path-only arm input
+    kind: B
+    command: python3 harness/hooks/epic_resolve.py arm --help
+    result: pass
+    prod_callers: []
+    notes: Canonical arm accepts epic id and resolves v2 layout
+  - symbol: implicit v1 migration during load
+    kind: B
+    command: rg -n "migrate_all" loop/mb_load/ || true
+    result: pass
+    prod_callers: []
+    notes: No transparent migration during load operations
+  - symbol: v2 missing -> v1 path
+    kind: C
+    command: rg -n "except.*v1" harness/hooks/epic_paths.py || true
+    result: pass
+    prod_callers: []
+    notes: Missing v2 raises explicit diagnostic without legacy fallback
+  - symbol: YAML missing -> Markdown parse
+    kind: C
+    command: rg -n "parse_steps_from_md" harness/hooks/epic/core.py || true
+    result: pass
+    prod_callers: []
+    notes: Missing decompose YAML terminates fail-closed
+  - symbol: v2 implement missing -> implement-*
+    kind: C
+    command: rg -n "implement-*" harness/hooks/epic_yaml.py || true
+    result: pass
+    prod_callers: []
+    notes: Missing implement step returns diagnostic code without checking legacy
+      directory
+  - symbol: instructions naming decompose-*, plan-*.md, implement-* as live paths
+    kind: I
+    command: rg -n "decompose-*|implement-*" .cursor/rules/back_developer/ || true
+    result: pass
+    prod_callers: []
+    notes: Active rules use canonical v2 layout paths
+  - symbol: migration wording that implies transparent fallback
+    kind: I
+    command: rg -n "transparent fallback" .cursor/rules/ || true
+    result: pass
+    prod_callers: []
+    notes: Explicit migration requirement documented
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
