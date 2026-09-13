@@ -1,0 +1,112 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+- Full sunset inventory scan verified across Kind A, Kind B, Kind C, and Kind I surfaces.
+- Confirmed zero occurrences of _LEGACY_OVERLAYS, _print_result_legacy, _dispatch_legacy,
+  ABORT_PATTERNS alias, validate_shard_yaml alias, checkpoint_prompt_lines alias.
+- Confirmed canonical routing in board_sync CLI and typed runtime registry.
+- Confirmed operational fallbacks (which-codex, which-dsh) preserved and cleanly isolated.
+gaps:
+  status: none
+done:
+- 'Executed Kind A inventory check: 0 prod callers, 0 dead fallback functions, 0 live
+  imports of deleted symbols across harness/hooks/ and loop/.'
+- 'Executed Kind B entrypoint check: verified board CLI and runtime entrypoints use
+  canonical dispatch routes exclusively.'
+- 'Executed Kind C anti-fallback check: verified no blind dir(obj) scan and no hardcoded
+  fallback maps remain in production modules.'
+- 'Executed Kind I instruction check: verified .cursor/rules/, .claude/, and harness/
+  instructions are free of references to deleted symbols.'
+- 'Executed Obsolete test scan & rewrite check: all test suites pass with zero references
+  or imports of legacy shims.'
+- Executed Full epic regression suite (217 tests passing, 0 failures).
+files:
+- harness/hooks/agent_registry.py
+- loop/board_sync/cli.py
+- loop/runtime_adapters/common.py
+- harness/hooks/session_resilience.py
+- harness/hooks/epic_yaml.py
+deletes:
+- harness/hooks/agent_registry.py:_LEGACY_OVERLAYS
+- loop/board_sync/cli.py:_print_result_legacy
+- loop/board_sync/cli.py:_dispatch_legacy
+- loop/runtime_adapters/common.py:module attribute scan fallback
+- harness/hooks/session_resilience.py:ABORT_PATTERNS
+- harness/hooks/epic_yaml.py:validate_shard_yaml
+- harness/hooks/epic_yaml.py:checkpoint_prompt_lines
+- loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown
+wire_complete:
+  call_sites:
+  - harness/hooks/agent_registry.py:load_agent_definition
+  - loop/board_sync/cli.py:cli
+  - loop/runtime_adapters/common.py:get_adapter_for_runtime
+  - harness/hooks/session_resilience.py:_FATAL_ABORT_PATTERNS
+  - harness/hooks/epic_yaml.py:validate_shard_yaml_full
+  enforce_path: harness/hooks/agent_registry.py, loop/board_sync/cli.py, loop/runtime_adapters/common.py,
+    harness/hooks/session_resilience.py, harness/hooks/epic_yaml.py
+  dual_path_rg: rg -n "(_LEGACY_OVERLAYS|_print_result_legacy|_dispatch_legacy|^ABORT_PATTERNS\s*=|checkpoint_prompt_lines)"
+    harness/hooks/ loop/ -> 0 matches in prod
+  instruction_rg: rg -n "(_LEGACY_OVERLAYS|checkpoint_prompt_lines)" harness/instructions/
+    .cursor/rules/ -> 0 matches
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_agent_registry.py loop/tests/test_board_sync_cli.py loop/tests/test_codex_runtime_adapter.py
+  loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py -q
+- bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line -k 'agent_registry or board_sync
+  or codex_runtime or session_wrapper or epic_yaml'
+integration_check:
+- Managed agent overlays are resolved strictly from canonical YAML frontmatter metadata.
+- Board CLI routes all actions via the single canonical command dispatcher.
+- Runtime adapter resolution uses typed registry lookup without fallback module attribute
+  scans.
+- Session resilience and epic YAML validation use strictly canonical APIs without
+  obsolete compatibility aliases.
+grep_control:
+- back: rg -n "_LEGACY_OVERLAYS|_print_result_legacy|_dispatch_legacy|^ABORT_PATTERNS\s*=|checkpoint_prompt_lines"
+    harness/hooks/ loop/
+  front: n/a
+verification_results:
+- 'cp1: Kind A sunset scan -> 0 prod matches for deleted symbols (PASS)'
+- 'cp2: Kind B canonical entrypoint tests (24 passed) (PASS)'
+- 'cp3: Kind C anti-fallback scan -> 0 matches for dir(obj) or _LEGACY_OVERLAYS (PASS)'
+- 'cp4: Kind I instruction scan -> 0 matches in rules and instructions (PASS)'
+- 'cp5: Obsolete test rewrite validation (104 passed) (PASS)'
+- 'cp6: Epic regression suite (217 passed) (PASS)'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по каждой строке sunset_inventory kind=A: 0 prod callers,
+    0 dead fallback functions, 0 live imports of deleted symbols.'
+  status: done
+  done_at: '2026-09-12T03:38:00Z'
+- id: cp2
+  criterion: 'Kind B — entrypoint inventory: board CLI и runtime entrypoints используют
+    только канонические маршруты.'
+  status: done
+  done_at: '2026-09-12T03:38:10Z'
+- id: cp3
+  criterion: 'Kind C — anti-fallback rg: слепое сканирование модулей и fallback на
+    hardcoded map отсутствуют.'
+  status: done
+  done_at: '2026-09-12T03:38:20Z'
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: инструкции и правила не содержат ссылок
+    на удаленные алиасы и маршруты.'
+  status: done
+  done_at: '2026-09-12T03:38:30Z'
+- id: cp5
+  criterion: Obsolete tests на старый контракт удалены или переписаны; suite green
+    без restore legacy.
+  status: done
+  done_at: '2026-09-12T03:38:40Z'
+- id: cp6
+  criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+  status: done
+  done_at: '2026-09-12T03:38:50Z'
+resume_from: cp6

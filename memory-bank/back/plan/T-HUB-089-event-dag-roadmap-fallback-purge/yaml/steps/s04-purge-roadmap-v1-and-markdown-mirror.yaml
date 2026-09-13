@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: Purge legacy roadmap v1 queue support, legacy path probes, and markdown mirror rendering
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить `QUEUE_VERSION_V1`, `LEGACY_DEFAULT_QUEUE` и поиск устаревших путей из `loop/roadmap_queue.py`,
+  перевести генерацию и слияние roadmap исключительно на YAML `roadmap-queue/v2`, удалив `canon_md_rel` и `_render_merged_roadmap_md`.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - SC-001
+    - SC-002
+    - SC-003
+    - US-003
+  nouns:
+    - QUEUE_VERSION_V1
+    - LEGACY_DEFAULT_QUEUE
+    - roadmap-queue/v2
+    - canon_md_rel
+    - _render_merged_roadmap_md
+    - roadmap_merge
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s04-purge-roadmap-v1-and-markdown-mirror.yaml
+  ac_quotes:
+    - "Default roadmap parser never probes plan/roadmap-epics.queue.yaml."
+    - "No runtime code builds or writes a Markdown roadmap mirror."
+    - "Нет legacy queue fallback when v2 queue is missing."
+    - "Нет canon_md_rel/Markdown mirror production dependency."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:46-50"
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:86-101"
+
+context:
+  consumes:
+    - loop/roadmap_queue.py
+  produces:
+    - loop/roadmap_queue.py
+  plan_refs:
+    - FR-005
+    - FR-006
+    - SC-001
+    - SC-002
+    - SC-003
+    - US-003
+  files:
+    - loop/roadmap_queue.py
+
+as_built:
+  - "loop/roadmap_queue.py поддерживает QUEUE_VERSION_V1 наряду с QUEUE_VERSION"
+  - "resolve_queue_path проверяет LEGACY_DEFAULT_QUEUE при отсутствии канонической очереди"
+  - "roadmap_merge рендерит и пытается записать Markdown roadmap mirror через _render_merged_roadmap_md и canon_md_rel"
+
+delta:
+  - "Удалить константу QUEUE_VERSION_V1 и ветвление поддержки v1 в roadmap_queue.py"
+  - "Удалить LEGACY_DEFAULT_QUEUE и fallback-поиск в resolve_queue_path; завершаться ошибкой queue_missing"
+  - "Удалить функции canon_md_rel, _render_merged_roadmap_md и генерацию Markdown mirror из roadmap_merge"
+  - "Удалить legacy plan/decompose probes из resolve_epic_slug"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление legacy-тестов roadmap v1 (шаг s05)"
+  - "Full regression suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Roadmap queue parser и advance работают строго с roadmap-queue/v2 и падают с ошибкой при отсутствии v2 очереди
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q -k 'queue'"
+  - id: cp2
+    criterion: Roadmap merge производит только YAML queue.yaml без вызова Markdown mirror rendering
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q -k 'merge or advance'"
+
+verify: []
+tdd: []

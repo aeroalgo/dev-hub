@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: Enforce canonical overlay metadata in agent frontmatter and eliminate legacy overlay map fallback
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обеспечить, чтобы все managed agents имели полное canonical overlay metadata в своих markdown frontmatter,
+  после чего удалить словарь _LEGACY_OVERLAYS из harness/hooks/agent_registry.py и исключить fallback-мерджинг
+  из _legacy_or_default, сделав валидацию метаданных строгой и fail-closed.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - SC-001
+    - US-001
+    - AC+ #1
+    - AC− #1
+  nouns:
+    - harness.hooks.agent_registry._LEGACY_OVERLAYS
+    - harness.hooks.agent_registry._legacy_or_default
+    - harness.hooks.agent_registry.AgentOverlay
+    - harness.hooks.agent_registry.load_agent_registry
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s02-canonicalize-agent-overlay-metadata.yaml
+  ac_quotes:
+    - "Every managed agent has canonical overlay metadata before _LEGACY_OVERLAYS is removed."
+    - "Нет hardcoded legacy agent defaults for agents with metadata SOT."
+    - "_LEGACY_OVERLAYS is removed from managed agent resolution after metadata coverage is proven."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/md/plan.md:33-75"
+
+context:
+  consumes:
+    - plan §WHAT FR-001
+    - plan §Refactor inventory L90-01, L90-02
+  produces:
+    - обновленные frontmatter файлов managed agents (при необходимости)
+    - harness/hooks/agent_registry.py без _LEGACY_OVERLAYS и без legacy fallback merge
+  plan_refs:
+    - FR-001
+    - SC-001
+    - US-001
+  files:
+    - harness/hooks/agent_registry.py
+    - loop/tests/test_agent_registry.py
+    - loop/tests/test_agent_materializer.py
+
+as_built:
+  - "harness/hooks/agent_registry.py содержит _LEGACY_OVERLAYS с hardcoded overlay для explorer, sunset-inventory, verify, reviewer"
+  - "_legacy_or_default использует _LEGACY_OVERLAYS как fallback при metadata is None или для заполнения отсутствующих полей"
+
+delta:
+  - "Убедиться, что все markdown-файлы агентов в .claude/agents/, .codex/agents/ и harness/agents/ содержат полный typed overlay"
+  - "Удалить константу _LEGACY_OVERLAYS из harness/hooks/agent_registry.py"
+  - "Переписать _legacy_or_default (переименовав/упростив в _parse_overlay): парсить overlay строго из переданного metadata словаря, применяя dataclass defaults без hardcoded словарей"
+  - "Обновить тесты в loop/tests/test_agent_registry.py и test_agent_materializer.py на строгую валидацию frontmatter overlay"
+
+deletes:
+  - "harness/hooks/agent_registry.py:_LEGACY_OVERLAYS"
+  - "harness/hooks/agent_registry.py:_legacy_or_default legacy fallback merge logic"
+
+wire_complete_required: true
+
+out_of_scope:
+  - "Изменение структуры board sync CLI (шаг s03)"
+  - "Изменение runtime adapters (шаг s04)"
+  - "Удаление несвязанных public aliases (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "_LEGACY_OVERLAYS удален из agent_registry.py, overlay парсится строго из metadata"
+    verify: "python3 -c \"import subprocess, sys; out = subprocess.run(['rg', '-n', '_LEGACY_OVERLAYS', 'harness/hooks/agent_registry.py'], capture_output=True, text=True); sys.exit(1 if out.stdout else 0)\""
+  - id: cp2
+    criterion: "Загрузка всех managed agents и материализация конфигов завершается успешно без legacy overlay map"
+    verify: "bin/pytest loop/tests/test_agent_registry.py loop/tests/test_agent_materializer.py -q"
+
+verify: []
+tdd: []

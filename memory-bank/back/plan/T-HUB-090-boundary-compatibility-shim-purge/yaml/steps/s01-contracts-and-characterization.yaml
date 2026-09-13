@@ -1,0 +1,130 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: Characterize agent overlay completeness, board CLI canonical dispatcher, runtime registry adapter lookup, and dead alias inventory
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать контракты и baseline-поведение boundary-компонентов: проверить полноту frontmatter metadata
+  у всех managed agents, зафиксировать канонические сценарии board CLI, типизированного lookup runtime-адаптеров,
+  и провести reference scan для подтверждения отсутствия callers у кандидатов на удаление (ABORT_PATTERNS,
+  checkpoint_prompt_lines, validate_shard_yaml, _print_result_legacy).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+    - AC+ #1
+    - AC+ #2
+    - AC+ #3
+    - AC+ #4
+    - AC+ #5
+    - AC− #1
+    - AC− #2
+    - AC− #3
+    - AC− #4
+    - AC− #5
+  nouns:
+    - harness.hooks.agent_registry._LEGACY_OVERLAYS
+    - harness.hooks.agent_registry._legacy_or_default
+    - loop.board_sync.cli._dispatch_legacy
+    - loop.board_sync.cli._print_result_legacy
+    - loop.runtime_adapters.common.get_adapter_for_runtime
+    - loop.runtime_adapters.common._RUNTIME_ALIASES
+    - harness.hooks.session_resilience.ABORT_PATTERNS
+    - harness.hooks.epic_yaml.validate_shard_yaml
+    - harness.hooks.epic_yaml.checkpoint_prompt_lines
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s01-contracts-and-characterization.yaml
+  ac_quotes:
+    - "Every managed agent has canonical overlay metadata before _LEGACY_OVERLAYS is removed."
+    - "Board CLI canonical commands no longer route through an unused legacy printer/dispatcher."
+    - "Deleted aliases have zero production, test-support and configuration references, or are explicitly retained with owner and reason in the plan."
+    - "PATH/npx, LLM secondary model, runtime configuration failure and DSH alias behavior are not accidentally removed."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/md/plan.md:31-111"
+
+context:
+  consumes:
+    - plan §Refactor inventory
+    - plan §WHAT
+    - plan §Technology axiom
+  produces:
+    - тесты полноты agent metadata и overlay
+    - тесты board CLI canonical dispatch
+    - тесты runtime adapter lookup и отрицательные сценарии
+    - инвентарные тесты dead aliases и классификации operational fallbacks
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+  files:
+    - loop/tests/test_agent_registry.py
+    - loop/tests/test_board_sync_cli.py
+    - loop/tests/test_codex_runtime_adapter.py
+    - loop/tests/test_session_wrapper.py
+    - harness/hooks/tests/test_epic_yaml.py
+
+as_built:
+  - "harness/hooks/agent_registry.py содержит словарь _LEGACY_OVERLAYS и fallback merge в _legacy_or_default"
+  - "loop/board_sync/cli.py содержит _dispatch_legacy и неиспользуемую функцию _print_result_legacy"
+  - "loop/runtime_adapters/common.py содержит _RUNTIME_ALIASES и fallback-сканирование dir(obj) в get_adapter_for_runtime"
+  - "harness/hooks/session_resilience.py экспортирует константу ABORT_PATTERNS"
+  - "harness/hooks/epic_yaml.py содержит публичные aliases validate_shard_yaml и checkpoint_prompt_lines"
+
+delta:
+  - "Добавить тесты проверки полноты metadata frontmatter для всех managed agents"
+  - "Добавить тесты канонического dispatch для CLI команд hub-board (sync, status, arm, loop, arm-loop)"
+  - "Добавить тесты явного падения get_adapter_for_runtime при неизвестном runtime без обращения к слепому сканированию"
+  - "Добавить инвентарный тест на отсутствие production-импортов устаревших aliases (ABORT_PATTERNS, validate_shard_yaml, checkpoint_prompt_lines)"
+  - "Добавить тесты сохранения operational resilience (which-dsh, which-codex, LLM model fallbacks, board status unranked fallback)"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Модификация production-кода (выполняется последовательно на шагах s02-s06)"
+  - "Удаление DSH tool compatibility aliases (сохраняются согласно FR-006 / cut_list)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Тесты полноты canonical agent metadata frontmatter и overlay контракта добавлены и готовы к проверке"
+    verify: "bin/pytest loop/tests/test_agent_registry.py -k 'test_managed_agents_have_metadata or test_overlay' -q"
+  - id: cp2
+    criterion: "Тесты канонической диспетчеризации board sync CLI зафиксированы"
+    verify: "bin/pytest loop/tests/test_board_sync_cli.py -k 'test_main or test_dispatch' -q"
+  - id: cp3
+    criterion: "Тесты typed runtime adapter lookup и fail-closed поведения зафиксированы"
+    verify: "bin/pytest loop/tests/test_codex_runtime_adapter.py loop/tests/test_runtime_registry.py -q"
+  - id: cp4
+    criterion: "Инвентарные тесты dead aliases и operational fallback классификации добавлены"
+    verify: "bin/pytest loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py -q"
+
+verify: []
+tdd: []

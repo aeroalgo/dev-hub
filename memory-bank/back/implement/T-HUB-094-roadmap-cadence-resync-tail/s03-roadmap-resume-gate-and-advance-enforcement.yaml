@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s03 — Resume gate in roadmap advance and fail-closed HIGH drift blocking
+status: completed
+date: '2026-09-13'
+decompose_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/yaml/steps/s03-roadmap-resume-gate-and-advance-enforcement.yaml
+skills_used: []
+discovery:
+- 'Enforced resume gate in loop/roadmap_queue.py roadmap_advance: deny advancing to
+  next feature when high_count > 0 without valid resync_evidence'
+- Wired loop/context_loop.py cadence_status and format_cadence_status to expose structured
+  resync_evidence and resync_summary
+- Added unit tests in loop/tests/test_roadmap_cadence.py for blocked advance on raw
+  HIGH drift and success when no HIGH or resynced
+gaps:
+  status: none
+done:
+- 'Enforce resync gate in roadmap_advance: deny advancing to next feature when high_count
+  > 0 without valid resync_evidence'
+- Wire context_loop to surface resync blockers when attempting advance
+- Add tests in loop/tests/test_roadmap_cadence.py verifying advance is blocked on
+  raw HIGH drift and allowed when no HIGH or resynced
+files:
+- loop/roadmap_queue.py
+- loop/context_loop.py
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_blocked_resync -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+integration_check:
+- loop.roadmap_queue.roadmap_advance denies feature advance when cadence phase is
+  resync without resync_evidence
+- loop.roadmap_queue.roadmap_advance allows feature advance when high_count == 0 or
+  resync_evidence is present
+- loop.context_loop.cadence_status exposes structured resync evidence details
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_roadmap_cadence.py -> 24 passed
+checkpoints:
+- id: cp1
+  criterion: advance is blocked when phase=resync and high_count > 0 without resync_evidence
+  status: done
+- id: cp2
+  criterion: advance succeeds when high_count == 0 or resync_evidence is present
+  status: done

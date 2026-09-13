@@ -142,8 +142,6 @@ _TRANSIENT_ABORT_PATTERNS = (
     re.compile(r"(?i)log truncated.*session output exceeded cap"),
 )
 
-# Back-compat alias used by older tests / imports
-ABORT_PATTERNS = _FATAL_ABORT_PATTERNS + _TRANSIENT_ABORT_PATTERNS
 
 LAST_SESSION_NAME = "last-session.json"
 DEFAULT_TRANSIENT_RETRY_MAX = 3

@@ -9,13 +9,11 @@ Public contract:
   get_phase_config(phase: str, *, pack_id=None, cwd=None) -> dict
   get_verify_agent(phase: str, *, pack_id=None, cwd=None) -> str | None
   get_dsh_preset(phase: str, *, pack_id=None, cwd=None) -> str | None
-  _legacy_warn(caller_name) -> None
 """
 from __future__ import annotations
 import os
 import re
 import sys
-import warnings
 from pathlib import Path
 from typing import Any
 import yaml
@@ -71,40 +69,37 @@ def normalize_registry_phase(phase: str, pack: Any = None) -> str:
         prefixes = [p.rstrip().upper() + " " for p in pack.command_prefixes]
     else:
         try:
-            from loop.workflow.registry import load_registry, get_pack
-            reg = load_registry()
-            default_pack = get_pack(reg, reg.default)
-            prefixes = [p.rstrip().upper() + " " for p in default_pack.command_prefixes] if default_pack else []
+            from loop.workflow.resolve import full_resolve
+            pack_resolved = full_resolve().pack
+            prefixes = [p.rstrip().upper() + " " for p in pack_resolved.command_prefixes]
         except Exception:
-            prefixes = []
+            prefixes = ["BACK ", "FRONT ", "INTEG ", "INTEGRATION "]
 
     for prefix in prefixes:
         if normalized.startswith(prefix):
-            normalized = normalized[len(prefix) :].strip()
+            normalized = normalized[len(prefix):].strip()
             break
-    return _COMPOSITE_PHASE_BASES.get(normalized, normalized)
+
+    if normalized in _COMPOSITE_PHASE_BASES:
+        return _COMPOSITE_PHASE_BASES[normalized]
+
+    return normalized
 
 
-def load_phase_registry(
-    *,
-    pack_id: str | None = None,
-    cwd: Path | str | None = None,
-) -> dict[str, Any]:
-    """Load canonical phase registry yaml and cache in module state."""
-    global _PHASE_REGISTRY_CACHE
-
+def load_phase_registry(*, pack_id: str | None = None, cwd: Path | str | None = None) -> dict[str, Any]:
+    """Load and validate phase registry yaml for a pack. Fail-closed on missing file or invalid schema."""
     if pack_id is None:
         raise TypeError("load_phase_registry requires pack_id: fail-closed")
 
-    cache_key = f"pack:{pack_id}"
     from loop.workflow.registry import load_registry, get_pack
+
+    reg_obj = load_registry()
     try:
-        reg = load_registry()
-        pack = get_pack(reg, pack_id)
+        pack = get_pack(reg_obj, pack_id)
     except Exception as err:
         raise ValueError(f"Failed to resolve pack {pack_id!r}: {err}") from err
 
-    if pack is None:
+    if pack is None or not hasattr(pack, "phase_registry") or not pack.phase_registry:
         raise ValueError(f"Workflow pack not found: {pack_id!r} (pack_path_missing)")
 
     cwd_path = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
@@ -185,9 +180,33 @@ def get_dsh_preset(
     return cfg.get("dsh_preset")
 
 
-def resolve_next(cwd: Path | str, epic_id: str, role: str) -> EpicNextAction:
-    """Delegate to resolve_epic_next_action — single entry point for next-action lookup."""
+def resolve_next(
+    cwd: Path | str,
+    epic_id: str,
+    role: str,
+) -> EpicNextAction:
+    """Delegate resolve_next to epic_resolver for T-HUB-029 contract."""
     return resolve_epic_next_action(cwd, role, epic_id)
+
+
+def _legacy_mock_intercept(func_name: str, *args: Any, **kwargs: Any) -> tuple[bool, Any]:
+    """Honor mock if a test replaced a symbol on epic.core or epic."""
+    try:
+        import unittest.mock
+        for mod_name in ("epic.core", "epic", "harness.hooks.epic.core", "harness.hooks.epic"):
+            mod = sys.modules.get(mod_name)
+            if mod is not None:
+                fn = getattr(mod, func_name, None)
+                if fn is not None and (
+                    isinstance(fn, (unittest.mock.Mock, unittest.mock.MagicMock))
+                    or getattr(fn, "__module__", "") not in ("epic.core", "epic", "harness.hooks.epic.core", "harness.hooks.epic", "loop.epic_transition", "epic_transition")
+                    or getattr(fn, "__name__", "") != func_name
+                ):
+                    return True, fn(*args, **kwargs)
+    except Exception as exc:
+        raise exc
+    return False, None
+
 
 def _arm_post_implement(
     cwd: str | Path,
@@ -308,6 +327,13 @@ def _arm_from_decompose(
     cwd: str | Path,
     decompose: str,
 ) -> dict[str, Any]:
+    """Overwrite activeContext from decompose index — ignore prior epic cursor.
+
+    Used when human launches ``./loop/loop.sh decompose …`` so the model
+    starts on the chosen epic's next pending/active step even if activeContext
+    still points at another epic or carries BLOCKED/NEED_HUMAN from it.
+    """
+
     from epic.core import (
         _decompose_index_path,
         _decompose_step_shards_dir,
@@ -330,12 +356,6 @@ def _arm_from_decompose(
         save_epic_state,
     )
     from epic_paths import epic_id_from_decompose_path
-    """Overwrite activeContext from decompose index — ignore prior epic cursor.
-
-    Used when human launches ``./loop/loop.sh decompose-<epic> …`` so the model
-    starts on the chosen epic's next pending/active step even if activeContext
-    still points at another epic or carries BLOCKED/NEED_HUMAN from it.
-    """
 
     if decompose is None or not isinstance(decompose, (str, Path)):
         return {
@@ -580,7 +600,6 @@ def _arm_from_decompose(
         "checkpoint_cleared": True,
     }
 
-
 def _arm_pre_implement(
     cwd: str | Path,
     *,
@@ -591,6 +610,7 @@ def _arm_pre_implement(
     decompose_rel: str | None = None,
 ) -> dict[str, Any]:
     """Arm activeContext for pre-implement phases (PLAN, DECOMPOSE, CLARIFY, ANALYZE)."""
+
     from epic.core import (
         _LOOP_HANDOFF_SCHEMA_LINE,
         _write_active_context_or_lock,
@@ -599,7 +619,6 @@ def _arm_pre_implement(
         load_epic_state,
         save_epic_state,
     )
-
     cwd_p = Path(cwd)
     role_key = str(role or "back").lower()
     from epic_paths import epic_id_from_plan_path, find_plan_md_path
@@ -725,25 +744,6 @@ def _arm_pre_implement(
     }
 
 
-def _legacy_mock_intercept(func_name: str, *args: Any, **kwargs: Any) -> tuple[bool, Any]:
-    """Honor mock if a legacy test replaced a symbol on epic.core or epic."""
-    try:
-        import unittest.mock
-        for mod_name in ("epic.core", "epic"):
-            mod = sys.modules.get(mod_name)
-            if mod is not None:
-                fn = getattr(mod, func_name, None)
-                if fn is not None and (
-                    isinstance(fn, (unittest.mock.Mock, unittest.mock.MagicMock))
-                    or getattr(fn, "__module__", "") not in ("epic.core", "epic", "harness.hooks.epic.core")
-                    or getattr(fn, "__name__", "") != func_name
-                ):
-                    return True, fn(*args, **kwargs)
-    except Exception as exc:
-        raise exc
-    return False, None
-
-
 def arm_epic(
     cwd: str | Path,
     epic_id: str,
@@ -770,8 +770,10 @@ def arm_epic(
     action = resolve_epic_next_action(cwd_p, role, epic_id, require_plan=require_plan)
     phase = (action.phase or "").upper()
     if phase == "DONE":
+        # Never re-arm IMPLEMENT for a finished epic: that left CLI `--epic DONE`
+        # able to fall through into a foreign live cursor (e.g. arm 086 → still 088).
         if action.decompose_rel:
-            return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
+            return arm_phase(cwd_p, epic_id, "DONE", role, decompose_rel=action.decompose_rel)
         return {
             "ok": True,
             "complete": True,
@@ -814,6 +816,8 @@ def arm_epic(
         "ok": False,
         "error": f"unhandled phase {phase} for epic {epic_id}",
     }
+
+
 
 def arm_phase(
     cwd: Path | str,
@@ -881,19 +885,19 @@ def arm_phase(
                 }
 
     try:
-        # Legacy test mock intercept
         if lifecycle_phase_u in ("PLAN", "CLARIFY", "ANALYZE", "CREATIVE"):
-            is_mock, mock_val = _legacy_mock_intercept(
-                "arm_pre_implement_context",
+            target_rel = kwargs.get("target_rel") or kwargs.get("plan_rel")
+            res = _arm_pre_implement(
                 cwd_p,
                 epic_id=epic_id,
                 role=role,
                 phase=lifecycle_phase_u,
-                target_rel=kwargs.get("target_rel") or kwargs.get("plan_rel"),
+                target_rel=target_rel,
                 decompose_rel=decompose_rel,
             )
-            if is_mock:
-                res = mock_val
+        elif lifecycle_phase_u == "DECOMPOSE":
+            if decompose_rel:
+                res = _arm_from_decompose(cwd_p, decompose_rel)
             else:
                 target_rel = kwargs.get("target_rel") or kwargs.get("plan_rel")
                 res = _arm_pre_implement(
@@ -904,57 +908,14 @@ def arm_phase(
                     target_rel=target_rel,
                     decompose_rel=decompose_rel,
                 )
-        elif lifecycle_phase_u == "DECOMPOSE":
-            if decompose_rel:
-                is_mock, mock_val = _legacy_mock_intercept(
-                    "arm_active_context_from_decompose", cwd_p, decompose_rel
-                )
-                if is_mock:
-                    res = mock_val
-                else:
-                    res = _arm_from_decompose(cwd_p, decompose_rel)
-            else:
-                is_mock, mock_val = _legacy_mock_intercept(
-                    "arm_pre_implement_context",
-                    cwd_p,
-                    epic_id=epic_id,
-                    role=role,
-                    phase=lifecycle_phase_u,
-                    target_rel=kwargs.get("target_rel") or kwargs.get("plan_rel"),
-                    decompose_rel=decompose_rel,
-                )
-                if is_mock:
-                    res = mock_val
-                else:
-                    target_rel = kwargs.get("target_rel") or kwargs.get("plan_rel")
-                    res = _arm_pre_implement(
-                        cwd_p,
-                        epic_id=epic_id,
-                        role=role,
-                        phase=lifecycle_phase_u,
-                        target_rel=target_rel,
-                        decompose_rel=decompose_rel,
-                    )
         elif lifecycle_phase_u in ("IMPLEMENT", "TASK", "REFACTOR"):
             if decompose_rel:
-                is_mock, mock_val = _legacy_mock_intercept(
-                    "arm_active_context_from_decompose", cwd_p, decompose_rel
-                )
-                if is_mock:
-                    res = mock_val
-                else:
-                    res = _arm_from_decompose(cwd_p, decompose_rel)
+                res = _arm_from_decompose(cwd_p, decompose_rel)
             else:
                 res = arm_epic(cwd_p, epic_id, role=role, **_arm_epic_kwargs(kwargs))
         elif lifecycle_phase_u in ("AUDIT", "QA", "BUGFIX"):
             if decompose_rel:
-                is_mock, mock_val = _legacy_mock_intercept(
-                    "arm_active_context_from_decompose", cwd_p, decompose_rel
-                )
-                if is_mock:
-                    res = mock_val
-                else:
-                    res = _arm_from_decompose(cwd_p, decompose_rel)
+                res = _arm_from_decompose(cwd_p, decompose_rel)
             else:
                 res = _arm_post_implement(
                     cwd_p,
@@ -973,11 +934,7 @@ def arm_phase(
                     dsh_preset=kwargs.get("dsh_preset"),
                 )
         else:
-            is_mock, mock_val = _legacy_mock_intercept("arm_epic", cwd_p, epic_id, role=role, **_arm_epic_kwargs(kwargs))
-            if is_mock:
-                res = mock_val
-            else:
-                res = arm_epic(cwd_p, epic_id, role=role, **_arm_epic_kwargs(kwargs))
+            res = arm_epic(cwd_p, epic_id, role=role, **_arm_epic_kwargs(kwargs))
     except ActiveContextLocked as exc:
         return {
             "ok": False,
@@ -1035,6 +992,7 @@ def arm_phase(
                 st_after["armed_after_finish"] = None
                 _save(cwd_p, st_after)
     return res
+
 
 def promote_if_ready(
     cwd: Path | str,
@@ -1267,12 +1225,3 @@ def promote_if_ready(
         return res if isinstance(res, dict) and res.get("ok") else None
 
     return None
-
-
-def _legacy_warn(caller_name: str) -> None:
-    """Emit DeprecationWarning for legacy callers replaced by Transition Engine."""
-    warnings.warn(
-        f"{caller_name!r} is deprecated — use loop.epic_transition instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )

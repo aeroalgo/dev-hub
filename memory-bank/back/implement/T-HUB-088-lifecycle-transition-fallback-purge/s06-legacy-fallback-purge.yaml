@@ -1,0 +1,107 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: s06 — s06 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Removed the obsolete activeContext arming shims and legacy transition warning/intercept
+  paths.
+- Rewired affected callers and regression tests to the canonical transition API.
+- Rewrote stale characterization coverage to assert fail-closed verifier and BUGFIX
+  finish behavior.
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/epic/__init__.py
+- harness/hooks/epic_lib.py
+- loop/WORKFLOW.md
+- loop/epic_transition.py
+- harness/hooks/tests/test_mb_finish_qa.py
+- loop/tests/test_arm_phase_smoke.py
+- loop/tests/test_active_context_lock.py
+- loop/tests/test_epic_transition.py
+- loop/tests/test_handoff_strict_flag.py
+- loop/tests/test_index_fail_closed.py
+- loop/tests/test_reserved_role_epic_id.py
+- loop/tests/test_v2_path_resolution_regressions.py
+deletes:
+- harness/hooks/epic/core.py:arm_active_context_from_decompose
+- harness/hooks/epic/core.py:arm_pre_implement_context
+- loop/epic_transition.py:_legacy_warn
+- all dead legacy transition fallback branches across runtime modules
+tests:
+- '`bin/pytest loop/tests/test_epic_transition.py loop/tests/test_arm_phase_smoke.py
+  loop/tests/test_finish_bugfix.py loop/tests/test_index_fail_closed.py loop/tests/test_reserved_role_epic_id.py
+  loop/tests/test_active_context_lock.py loop/tests/test_v2_path_resolution_regressions.py
+  -q --tb=line`'
+- '`bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line -k "epic_transition or
+  handoff or finish_bugfix or receipt"`'
+integration_check:
+- Canonical `loop.epic_transition.arm_phase` is the only phase-arming route after
+  legacy shim deletion.
+- Legacy arm symbols and `_legacy_warn` are absent from runtime callers, imports,
+  and instruction surfaces.
+- Legacy characterization tests now assert fail-closed manual evidence and active
+  BUGFIX receipt requirements.
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '{''id'': ''legacy-inventory'', ''command'': ''rg legacy symbol controls inv-a-01..inv-i-01'',
+  ''status'': ''pass''}'
+- '{''id'': ''targeted-regression'', ''command'': ''bin/pytest loop/tests/test_epic_transition.py
+  loop/tests/test_arm_phase_smoke.py loop/tests/test_finish_bugfix.py loop/tests/test_index_fail_closed.py
+  loop/tests/test_reserved_role_epic_id.py loop/tests/test_active_context_lock.py
+  loop/tests/test_v2_path_resolution_regressions.py -q --tb=line'', ''status'': ''pass''}'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по каждой строке sunset_inventory kind=A:
+
+    0 prod callers, 0 dead fallback functions, 0 live imports of deleted arm symbols.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'Kind B — entrypoint inventory: нет обращения к устаревшим arm-функциям
+    из CLI или finish-модулей.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'Kind C — anti-fallback rg: dual-path / soft default / manual authority
+    fallback отсутствуют в core.
+
+    '
+  status: done
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: инструкции не содержат ссылок на удаленные
+    arm-функции.
+
+    '
+  status: done
+- id: cp5
+  criterion: 'Obsolete tests на старый контракт удалены или переписаны; suite green
+    без restore legacy.
+
+    '
+  status: done
+- id: cp6
+  criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+  status: done
+resume_from: cp1

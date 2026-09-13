@@ -280,7 +280,7 @@ def test_validate_handoff_frontmatter_diagnostics_characterization() -> None:
 
 
 def test_match_gate_evidence_characterization() -> None:
-    """Characterize match_gate_evidence behavior for manual and receipt evidence."""
+    """Characterize fail-closed matching for manual and receipt evidence."""
     from _lib import match_gate_evidence
 
     # Non-dict evidence is rejected
@@ -293,10 +293,10 @@ def test_match_gate_evidence_characterization() -> None:
     assert ok is False
     assert code == "verdict_evidence_missing"
 
-    # Manual authority is accepted with non-authoritative fallback
+    # Manual authority is rejected; only autonomous verifier evidence is valid.
     ok, code = match_gate_evidence({"authority": "manual"}, {})
-    assert ok is True
-    assert code == "manual_fallback_non_authoritative"
+    assert ok is False
+    assert code == "manual_authority_rejected"
 
     # Missing identity fields in evidence
     ok, code = match_gate_evidence({"step": "s01"}, {"step": "s01", "projection_hash": "h1", "phase_epoch": "e1"})

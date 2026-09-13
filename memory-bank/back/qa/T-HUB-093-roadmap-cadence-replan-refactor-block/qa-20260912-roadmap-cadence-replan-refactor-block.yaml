@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: c052811c9c2495af9114786a0c6fa5d0a9c92c7630b355c9d3c711e18246c674
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "epic: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "steps: s01–s06"
+  - "files: loop/roadmap_cadence.py, loop/roadmap_queue.py, .cursor/rules/back_developer/workflow-replan.mdc, .cursor/rules/back_developer/workflow-plan-refactor.mdc"
+
+ac_plus:
+  - "cannot arm refactor in replan; after pair skip/complete -> refactor or noop; tests enforce order; rules state REPLAN->Refactor."
+
+ac_minus:
+  - "no refactor-before-replan path; no replan-of-replan; no carry FR steps; no implementing from-queue resync here (094)."
+
+section_011:
+  - "no regressions in full test suite (2873 tests pass); clean cutover from legacy replan/refactor patterns."
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2873 passed, 3 skipped in 95.91s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS (0 eligible blockers)"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 2873 passed, 3 skipped"

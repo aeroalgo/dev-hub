@@ -130,7 +130,11 @@ def test_registry_active_agents_respects_context_scope(tmp_path: Path, monkeypat
 
 def test_active_overlay_contains_protocol(tmp_path: Path, monkeypatch) -> None:
     lib = _load()
-    _agent(tmp_path, "verify.md", "name: verify")
+    _agent(
+        tmp_path,
+        "verify.md",
+        "name: verify\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  verdict: pass-fail",
+    )
     (tmp_path / ".claude" / "project.env").write_text(
         "PROJECT_AGENT_VERIFY_MODEL=sonnet\n",
         encoding="utf-8",
@@ -249,9 +253,21 @@ def test_codex_runtime_uses_native_child_model_config(tmp_path: Path, monkeypatc
 
 def test_spawn_map_legacy_agents_preserves_text(tmp_path: Path, monkeypatch) -> None:
     lib = _load()
-    _agent(tmp_path, "verify.md", "name: verify")
-    _agent(tmp_path, "reviewer.md", "name: reviewer")
-    _agent(tmp_path, "explorer.md", "name: explorer")
+    _agent(
+        tmp_path,
+        "verify.md",
+        "name: verify\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  verdict: pass-fail",
+    )
+    _agent(
+        tmp_path,
+        "reviewer.md",
+        "name: reviewer\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  verdict: pass-blocked-fail",
+    )
+    _agent(
+        tmp_path,
+        "explorer.md",
+        "name: explorer\noverlay:\n  managed: true\n  mode: search\n  requires_model: false\n  default_loop: true",
+    )
     (tmp_path / ".claude" / "project.env").write_text(
         "PROJECT_AGENT_VERIFY_MODEL=sonnet\n"
         "PROJECT_AGENT_REVIEWER_MODEL=sonnet\n"

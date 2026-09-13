@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s02 — Cadence resync phase, evidence schema and plan stale helper
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Определить структурированную модель `ResyncEvidence` на SoT `cadence.yaml`,
+  реализовать
+
+  выполнение и оркестрацию resync-фазы: запустить `reconcile_queue_epics` по очереди,
+
+  сохранить агрегированный summary на SoT `cadence.yaml`, а также реализовать
+
+  `record_resync_evidence` и хелпер `mark_plan_stale` для инвалидации HOW без мутации
+  prompt §Epic.
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-002
+  - FR-005
+  - FR-007
+  nouns:
+  - loop/roadmap_cadence.py
+  - loop/tests/test_roadmap_cadence.py
+  - ResyncEvidence
+  - CadencePhase.RESYNC
+  - cadence.yaml
+  - reconcile_queue_epics
+  - record_resync_evidence
+  - mark_plan_stale
+  layout_paths:
+  - loop/roadmap_cadence.py
+  - loop/tests/test_roadmap_cadence.py
+  - memory-bank/back/roadmap/cadence.yaml
+  ac_quotes:
+  - 'Cadence phase resync: run reconcile; persist summary on SoT'
+  - 'Resync record: require structured evidence on cadence SoT; never soft-ignore
+    HIGH; block resume when high_count > 0 without evidence'
+  - 'Resync policy: invalidate/mark stale HOW and/or rewrite plan layout paths; never
+    mutate prompt §Epic'
+  plan_jumps:
+  - back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:48-66
+context:
+  consumes:
+  - loop/roadmap_cadence.py
+  - harness/hooks/epic/reconcile.py
+  produces:
+  - loop/roadmap_cadence.py
+  - loop/schemas/roadmap_cadence.py
+  - loop/schemas/__init__.py
+  - loop/tests/test_roadmap_cadence.py
+  - memory-bank/back/roadmap/cadence.yaml
+  plan_refs:
+  - FR-002
+  - FR-005
+  - FR-007
+  files:
+  - loop/roadmap_cadence.py
+  - loop/schemas/roadmap_cadence.py
+  - loop/schemas/__init__.py
+  - loop/tests/test_roadmap_cadence.py
+  - memory-bank/back/roadmap/cadence.yaml
+as_built:
+- loop/roadmap_cadence.py defines CADENCE_PHASES with 'idle', 'replan', 'refactor',
+  'resync'
+delta:
+- Add ResyncEvidence dataclass / schema tracking high_count, resync_action, stale_epics,
+  timestamp in loop/schemas/roadmap_cadence.py and export in loop/schemas/__init__.py
+- 'Add resync-phase execution and orchestration in loop/roadmap_cadence.py: invoke
+  reconcile_queue_epics for queue epics and persist the aggregated summary to cadence.yaml'
+- Add record_resync_evidence and mark_plan_stale functions in loop/roadmap_cadence.py
+- Add tests in loop/tests/test_roadmap_cadence.py for resync evidence serialization
+  and stale plan marking
+deletes: []
+wire_complete_required: false
+out_of_scope:
+- advance gate enforcement in loop/roadmap_queue.py (handled in s03)
+- reset to idle logic (handled in s04)
+skills:
+  code_surface: api
+  impl: []
+checkpoints:
+- id: cp1
+  criterion: record_resync_evidence saves valid structured evidence to cadence.yaml
+  verify: bin/pytest loop/tests/test_roadmap_cadence.py -k test_resync_evidence -q
+- id: cp2
+  criterion: mark_plan_stale helper updates plan status/note without mutating §Epic
+  verify: bin/pytest loop/tests/test_roadmap_cadence.py -q
+verify: []
+tdd: []

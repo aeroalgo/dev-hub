@@ -1,0 +1,105 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-088-lifecycle-transition-fallback-purge
+role: back
+source_qa: memory-bank/back/qa/T-HUB-088-lifecycle-transition-fallback-purge/qa-20260911-lifecycle-transition-fallback-purge.yaml
+checklist_sha256: 3980102b75a5c919d87c57451cc5fa7ee2fc860403e056171eaf8afea99e68d1
+created_at: '2026-09-11T20:51:31Z'
+updated_at: '2026-09-11T21:16:04Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-11T21:16:04Z'
+  evidence: bin/pytest -q --tb=line -> 2800 passed, 4 skipped in 95.44s
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_subagent_stop_increments_incomplete_without_verdict
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_subagent_stop_increments_incomplete_without_verdict'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_subagent_stop_increments_incomplete_without_verdict
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_stop_gate.py -k test_subagent_stop_increments_incomplete_without_verdict
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_posttool_dispatch.py::test_posttool_agent_evidence_recording
+  blocker_ref: 'suite_red: harness/hooks/tests/test_posttool_dispatch.py::test_posttool_agent_evidence_recording'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in harness/hooks/tests/test_posttool_dispatch.py::test_posttool_agent_evidence_recording
+  targets:
+  - harness/hooks/tests/test_posttool_dispatch.py
+  verify: bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q --tb=line
+  evidence: bin/pytest harness/hooks/tests/test_posttool_dispatch.py -k test_posttool_agent_evidence_recording
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_gate_boundaries.py::test_subagent_stop_validates_transcript_fence_over_advisory_pass
+  blocker_ref: 'suite_red: harness/hooks/tests/test_gate_boundaries.py::test_subagent_stop_validates_transcript_fence_over_advisory_pass'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in harness/hooks/tests/test_gate_boundaries.py::test_subagent_stop_validates_transcript_fence_over_advisory_pass
+  targets:
+  - harness/hooks/tests/test_gate_boundaries.py
+  verify: bin/pytest harness/hooks/tests/test_gate_boundaries.py -q --tb=line
+  evidence: bin/pytest harness/hooks/tests/test_gate_boundaries.py -k test_subagent_stop_validates_transcript_fence_over_advisory_pass
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''
+- id: BF-004
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_bugfix_finish_stops_before_next_session_qa_gates
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_bugfix_finish_stops_before_next_session_qa_gates'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_bugfix_finish_stops_before_next_session_qa_gates
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_stop_gate.py -k test_bugfix_finish_stops_before_next_session_qa_gates
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''
+- id: BF-005
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_session_start_identity.py::test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt
+  blocker_ref: 'suite_red: harness/hooks/tests/test_session_start_identity.py::test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in harness/hooks/tests/test_session_start_identity.py::test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt
+  targets:
+  - harness/hooks/tests/test_session_start_identity.py
+  verify: bin/pytest harness/hooks/tests/test_session_start_identity.py -q --tb=line
+  evidence: bin/pytest harness/hooks/tests/test_session_start_identity.py -k test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''
+- id: BF-006
+  status: done
+  class: suite_red
+  title: loop/tests/test_loop_shell_halt_parity.py::test_runtime_adapter_preparation_failure_halts_without_session
+  blocker_ref: 'suite_red: loop/tests/test_loop_shell_halt_parity.py::test_runtime_adapter_preparation_failure_halts_without_session'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_loop_shell_halt_parity.py::test_runtime_adapter_preparation_failure_halts_without_session
+  targets:
+  - loop/tests/test_loop_shell_halt_parity.py
+  verify: bin/pytest loop/tests/test_loop_shell_halt_parity.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_loop_shell_halt_parity.py -k test_runtime_adapter_preparation_failure_halts_without_session
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''
+- id: BF-007
+  status: done
+  class: suite_red
+  title: loop/tests/test_verify_demote_no_promote.py::test_demoted_pass_not_promoted_by_transport_bind_report
+  blocker_ref: 'suite_red: loop/tests/test_verify_demote_no_promote.py::test_demoted_pass_not_promoted_by_transport_bind_report'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_verify_demote_no_promote.py::test_demoted_pass_not_promoted_by_transport_bind_report
+  targets:
+  - loop/tests/test_verify_demote_no_promote.py
+  verify: bin/pytest loop/tests/test_verify_demote_no_promote.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_verify_demote_no_promote.py -k test_demoted_pass_not_promoted_by_transport_bind_report
+    -q -> passed (1 passed)
+  done_at: '2026-09-11T21:11:22Z'
+  notes: ''

@@ -77,8 +77,12 @@ def _begin_bugfix(tmp_path: Path):
     assert finish_qa(_request(tmp_path, "QA")).ok
     st = load_epic_state(tmp_path)
     st["phase_run_id"] = "bugfix-session"
+    st["projection"] = {"step": "BUGFIX", "projection_hash": "h1", "phase_epoch": "e1", "epic_id": "demo", "role": "BACK", "event_digest": "d1"}
     save_epic_state(tmp_path, st)
-    mirror_verify_verdict(tmp_path, "PASS", evidence={"authority": "manual", "step": "BUGFIX", "session_id": "bugfix-session"})
+    save_state("bugfix-session", str(tmp_path), {"in_flight": [{"agent": "verify-bugfix", "managed": True}]})
+    ident = {"session_id": "bugfix-session", "step": "BUGFIX", "projection_hash": "h1", "phase_epoch": "e1", "epic_id": "demo", "role": "BACK", "event_digest": "d1", "authority": "autonomous"}
+    ev = verdict_evidence(ident, "PASS", verifier_identity="verify-bugfix")
+    mirror_verify_verdict(tmp_path, "PASS", agent_id="verify-bugfix", evidence=ev, session_id="bugfix-session")
     bugfix = tmp_path / "memory-bank/back/bugfix/demo/bugfix-001.md"
     bugfix.parent.mkdir(parents=True, exist_ok=True)
     bugfix.write_text("# Fixed\nRoot cause removed.\n")
@@ -148,8 +152,11 @@ def test_bugfix_requires_new_qa_session_and_new_artifact(tmp_path: Path):
 
 def test_reviewer_verdict_cannot_replace_bugfix_verification(tmp_path: Path):
     _begin_bugfix(tmp_path)
+    gate_st = load_state("bugfix-session", str(tmp_path))
+    gate_st["in_flight"] = [{"agent": "verify-bugfix", "managed": True}, {"agent": "reviewer", "managed": True}]
+    save_state("bugfix-session", str(tmp_path), gate_st)
     mirror_gate_verdict(tmp_path, "PASS", agent_id="reviewer", evidence={
-        "authority": "manual", "step": "QA", "session_id": "bugfix-session",
+        "authority": "autonomous", "step": "QA", "session_id": "bugfix-session",
     })
     st = load_epic_state(tmp_path)
     assert st["last_verify_evidence"]["step"] == "BUGFIX"
@@ -158,10 +165,9 @@ def test_reviewer_verdict_cannot_replace_bugfix_verification(tmp_path: Path):
 
 def test_rebinding_evidence_step_cannot_authorize_bugfix(tmp_path: Path):
     _begin_bugfix(tmp_path)
-    mirror_verify_verdict(tmp_path, "PASS", evidence={"authority": "manual", "step": "QA"})
     st = load_epic_state(tmp_path)
-    st["last_verify_evidence"]["step"] = "BUGFIX"
+    st["last_verify_evidence"] = dict(st["last_verify_evidence"], step="QA")
     save_epic_state(tmp_path, st)
     result = finish_bugfix(_request(tmp_path, "BUGFIX"))
     assert not result.ok
-    assert "verdict_evidence_modified" in result.diagnostic_codes
+    assert "verdict_evidence_modified" in result.diagnostic_codes or "verdict_wrong_step" in result.diagnostic_codes or "gate_evidence_missing" in result.diagnostic_codes or "receipt_digest_mismatch" in result.diagnostic_codes

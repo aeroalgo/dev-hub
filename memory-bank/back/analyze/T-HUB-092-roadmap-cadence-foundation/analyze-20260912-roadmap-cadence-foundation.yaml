@@ -1,0 +1,141 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-092-roadmap-cadence-foundation
+slug: roadmap-cadence-foundation
+date: '2026-09-12'
+status: complete
+index_fingerprint: sha256:da0b2987892fd28602f0a6caddc691aa1cc538ca60976db71c00be9ecbb5d722
+findings: []
+coverage:
+  - requirement_id: US-001
+    step_ids:
+      - s01
+      - s06
+    status: covered
+    plan_text_verbatim: "Typed cadence load/save (P0) — bad YAML fail-closed"
+  - requirement_id: US-002
+    step_ids:
+      - s02
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "feature ++ / refactor no ++ (P0) — mark_done matrix"
+  - requirement_id: US-003
+    step_ids:
+      - s02
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "2 done → phase replan, pair len 2 (P0) — state after two marks"
+  - requirement_id: US-004
+    step_ids:
+      - s04
+      - s06
+    status: covered
+    plan_text_verbatim: "mid-block no new feature arm (P0) — advance ≠ third feature"
+  - requirement_id: FR-001
+    step_ids:
+      - s01
+      - s06
+    status: covered
+    plan_text_verbatim: "Schema + path cadence.yaml"
+  - requirement_id: FR-002
+    step_ids:
+      - s01
+      - s02
+      - s06
+    status: covered
+    plan_text_verbatim: "API load/save/on_feature_done/on_non_feature_done"
+  - requirement_id: FR-003
+    step_ids:
+      - s02
+      - s06
+    status: covered
+    plan_text_verbatim: "kind on queue; default feature"
+  - requirement_id: FR-004
+    step_ids:
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "Wire mark_done → cadence hook"
+  - requirement_id: FR-005
+    step_ids:
+      - s04
+      - s06
+    status: covered
+    plan_text_verbatim: "Wire advance: block feature select if phase≠idle"
+  - requirement_id: FR-006
+    step_ids:
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "Tests + cadence-status CLI"
+  - requirement_id: FR-007
+    step_ids:
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "Stub hooks/docs pointer: full block in 093/094 (не implement их)"
+  - requirement_id: NFR-001
+    step_ids:
+      - s01
+      - s06
+    status: covered
+    plan_text_verbatim: "Fail-closed corrupt SoT"
+  - requirement_id: NFR-002
+    step_ids:
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "Idempotent mark"
+  - requirement_id: "AC+ #1"
+    step_ids:
+      - s01
+      - s02
+      - s03
+      - s04
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "2 feature done → phase=replan; advance не армает feature; refactor done не ++ counter; tests green targeted."
+  - requirement_id: "AC- #1"
+    step_ids:
+      - s01
+      - s04
+      - s06
+    status: covered
+    plan_text_verbatim: "нет dual-path optional cadence; нет silent old advance; нет реализации REPLAN/Refactor/resync как done этого эпика."
+  - requirement_id: TM-01
+    step_ids:
+      - s02
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "2 feature done → phase replan"
+  - requirement_id: TM-02
+    step_ids:
+      - s04
+      - s06
+    status: covered
+    plan_text_verbatim: "third feature not armed"
+  - requirement_id: TM-03
+    step_ids:
+      - s02
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "refactor kind no counter bump"
+  - requirement_id: TM-04
+    step_ids:
+      - s01
+      - s06
+    status: covered
+    plan_text_verbatim: "corrupt cadence fail-closed"
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

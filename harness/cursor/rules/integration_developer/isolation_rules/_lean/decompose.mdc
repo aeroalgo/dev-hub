@@ -6,6 +6,7 @@ alwaysApply: false
 
 **Артефакт:** `memory-bank/integration/plan/<plan_id>/yaml/decompose-index.yaml` + `yaml/steps/eNN-*.yaml`  
 **`<plan_id>` HARD:** stem plan **со descriptive slug** (`plan/<plan_id>/md/plan.md`). См. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — contract/SoT eNN → wire→enforce→purge; `wire_complete_required: true` на boundary
 
 ## Gates
 

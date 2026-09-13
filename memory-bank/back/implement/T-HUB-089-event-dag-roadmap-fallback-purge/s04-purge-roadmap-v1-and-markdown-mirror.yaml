@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s04 — Purge legacy roadmap v1 queue support, legacy path probes, and markdown
+  mirror rendering IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s04-purge-roadmap-v1-and-markdown-mirror.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалена константа QUEUE_VERSION_V1 и ветвление поддержки v1 в loop/roadmap_queue.py
+- Удалена константа LEGACY_DEFAULT_QUEUE и fallback-поиск legacy очереди в parse_roadmap_queue
+- Удалены функции canon_md_rel, _render_merged_roadmap_md, константа CANON_MD_BASENAME
+  и генерация Markdown mirror из roadmap_merge
+- Удалены legacy flat plan/decompose probes из resolve_epic_slug
+files:
+- loop/roadmap_queue.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_roadmap_queue.py -q -k "queue"`'
+- '`bin/pytest loop/tests/test_roadmap_queue.py -q -k "merge or advance"`'
+integration_check:
+- '`bin/pytest loop/tests/test_roadmap_queue.py -q`'
+grep_control: []
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Roadmap queue parser и advance работают строго с roadmap-queue/v2 и падают
+    с ошибкой при отсутствии v2 очереди
+  status: done
+- id: cp2
+  criterion: Roadmap merge производит только YAML queue.yaml без вызова Markdown mirror
+    rendering
+  status: done

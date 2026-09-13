@@ -1,0 +1,36 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-094-roadmap-cadence-resync-tail
+role: back
+source_qa: memory-bank/back/qa/T-HUB-094-roadmap-cadence-resync-tail/qa-20260913-roadmap-cadence-resync-tail.yaml
+checklist_sha256: 10110bef937b87d91353c942081a3377644cb1fbb0734ec61540a17477f5664e
+created_at: '2026-09-12T22:50:00Z'
+updated_at: '2026-09-13T00:08:47Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-13T00:08:47Z'
+  evidence: 2885 passed, 4 skipped in 98.14s
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: HIGH может обходить resume gate · loop/roadmap_cadence.py:747, loop/roadmap_queue.py:1046
+    · исправить трактовку stale_epics как подтверждения обработанного drift.
+  blocker_ref: 'ac_gap: HIGH может обходить resume gate · loop/roadmap_cadence.py:747,
+    loop/roadmap_queue.py:1046 · исправить трактовку stale_epics как подтверждения
+    обработанного drift.'
+  fix_plan_ref: BACK BUGFIX исправить трактовку stale_epics как подтверждения обработанного
+    drift в loop/roadmap_cadence.py и loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_cadence.py
+    -q --tb=line
+  targets:
+  - loop/roadmap_cadence.py
+  - loop/roadmap_queue.py
+  - loop/tests/test_roadmap_cadence.py
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py
+    -q
+  evidence: 77 passed, 4 warnings in 1.90s
+  done_at: '2026-09-12T23:37:42Z'
+  notes: Fixed resume gate in roadmap_queue.py by removing stale_epics presence check
+    from is_resynced; stale_epics is diagnostic finding, not proof of resolved drift.

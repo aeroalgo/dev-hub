@@ -19,7 +19,7 @@ alwaysApply: false
 3a. **Skills:** Read **целиком** каждый путь из `skills.impl` текущего decompose-step до production-кода; `impl: []` / docs-only → skip. Не угадывать skills. Pre-FINISH skills **не** грузить.
 4. §0.11; mock убран из prod path; **`deletes`** из eNN выполнены (legacy/mock client не висит)
 4a. Purge eNN: evidence `rg`/inventory/Kind I при slug `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §3)
-4b. **`wire_complete`:** contract/SoT boundary eNN → блок green до `completed` (shared/workflow-behavior-first.mdc §9)
+4b. **`wire_complete` (HARD):** `wire_complete_required: true` / contract SoT → блок + `deny_old_proven: true` до `completed`; machine validate-step/FINISH. @.cursor/rules/shared/_lean/anti-minimal-done.mdc · behavior-first §9
 5. TDD targeted: Hub (dev-hub self-test) — targeted `bin/pytest` из корня; Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence → полный suite / full capability checks в QA
 6. **Scenario:** user-visible → parent-only Playwright **или** Hub `bin/pytest` HTTP outcome (managed: declared HTTP/API capability evidence); путь в step
 7. Step yaml; `gaps`; INTEG — `epic-step.yaml` (`role: integ`); implement `deletes:` = факт удаления

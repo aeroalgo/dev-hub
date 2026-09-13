@@ -210,7 +210,50 @@ def test_finish_bugfix_happy(tmp_path: Path):
         {
             "armed_epic": "T-HUB-040",
             "armed_role": "BACK",
+            "armed_step": "BUGFIX",
+            "phase": "BUGFIX",
+            "active": True,
+            "status": "running",
+            "session_id": "test",
         },
+    )
+
+    from harness.hooks._lib import current_gate_identity, mark_in_flight, save_state
+    from harness.hooks.epic.core import (
+        load_epic_state,
+        mirror_gate_verdict,
+        rebuild_epic_projection,
+    )
+    from harness.hooks.gate_receipt import issue_verifier_receipt
+
+    rebuild_epic_projection(tmp_path)
+    state = load_epic_state(tmp_path)
+    mark_in_flight(
+        state,
+        agent="verify-bugfix",
+        model="test-model",
+        managed=True,
+        tool_use_id="test-tool",
+    )
+    save_epic_state(tmp_path, state)
+    identity = current_gate_identity(str(tmp_path), "test")
+    identity["authority"] = "autonomous"
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-bugfix")
+    gate_state = {}
+    mark_in_flight(
+        gate_state,
+        agent="verify-bugfix",
+        model="test-model",
+        managed=True,
+        tool_use_id="test-tool",
+    )
+    save_state("test", str(tmp_path), gate_state)
+    mirror_gate_verdict(
+        tmp_path,
+        "PASS",
+        agent_id="verify-bugfix",
+        evidence=receipt,
+        session_id="test",
     )
 
     req = MbFinishRequest(

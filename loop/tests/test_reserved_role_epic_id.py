@@ -65,8 +65,14 @@ def test_arm_rejects_decompose_back(tmp_path: Path) -> None:
         "memory-bank/back/plan/back/yaml/steps/s01.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
-    out = epic.arm_active_context_from_decompose(
-        tmp_path, "memory-bank/back/plan/back/yaml/decompose-index.yaml"
+    from loop.epic_transition import arm_phase
+
+    out = arm_phase(
+        tmp_path,
+        "back",
+        "IMPLEMENT",
+        "back",
+        decompose_rel="memory-bank/back/plan/back/yaml/decompose-index.yaml",
     )
     assert out["ok"] is False
     assert out["diagnostic_code"] == "epic_id_reserved"

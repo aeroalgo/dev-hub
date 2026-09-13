@@ -237,11 +237,13 @@ wire_complete:
   enforce_path: ""        # hook/CLI/test: DENY/HALT старого
   dual_path_rg: ""        # command; expect 0 hits old SoT в prod scope
   instruction_rg: ""      # command; expect 0 hits старых инструкций (Kind I scope)
+  deny_old_proven: true   # HARD — иначе validate-step / mb-finish FAIL
 ```
 
-Нет блока / rg не green → шаг **не** completed (как scope-lock / deletes gate).  
-Канон lean: role `isolation_rules/_lean/implement.mdc`.
-
+Нет блока / поля не green / `deny_old_proven` ≠ true → шаг **не** completed (как scope-lock / deletes gate).  
+Decompose boundary sNN: `wire_complete_required: true` + negative verify.  
+Канон lean: role `isolation_rules/_lean/implement.mdc` · stub `shared/_lean/anti-minimal-done.mdc`.
+Machine: `harness/hooks/epic_yaml.py` (`validate_implement_yaml` / `implement_load_state`).
 ---
 
 ## 10. Одной фразой

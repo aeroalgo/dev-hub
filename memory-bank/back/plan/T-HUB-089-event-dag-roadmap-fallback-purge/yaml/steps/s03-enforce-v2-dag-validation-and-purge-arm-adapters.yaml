@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: Enforce strict v2 DAG manifest validation in _arm_dag_next and purge implicit DAG adaptation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перевести `loop/context_loop._arm_dag_next` и `loop/dag.py` на строгую валидацию `loop-dag/v2`,
+  удалить неявный вызов `adapt_manifest` при arm и гарантировать fail-closed отказ при попытке arm манифеста v1.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - SC-001
+    - SC-003
+    - US-002
+  nouns:
+    - _arm_dag_next
+    - adapt_manifest
+    - migrate_manifest
+    - validate_manifest
+    - loop-dag/v2
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s03-enforce-v2-dag-validation-and-purge-arm-adapters.yaml
+  ac_quotes:
+    - "Live DAG arm never calls adapt_manifest for v1."
+    - "v2 arm succeeds; v1 manifest fails before execution."
+    - "Нет v1 adapter invocation from live DAG call sites."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:44-50"
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:86-101"
+
+context:
+  consumes:
+    - loop/dag.py
+    - loop/context_loop.py
+  produces:
+    - loop/dag.py
+    - loop/context_loop.py
+  plan_refs:
+    - FR-004
+    - SC-001
+    - SC-003
+    - US-002
+  files:
+    - loop/dag.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/context_loop.py:_arm_dag_next импортирует adapt_manifest и пытается адаптировать невалидный DAG"
+  - "loop/dag.py содержит migrate_manifest и adapt_manifest с fallback-логикой"
+
+delta:
+  - "Удалить импорт и вызов adapt_manifest в loop/context_loop.py:_arm_dag_next; требовать валидный loop-dag/v2 manifest"
+  - "Обновить loop/dag.py:_arm_dag_next для строгой проверки manifest до перехода и возврата ошибки при v1"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление устаревших DAG тестов, требующих авто-адаптацию (шаг s05)"
+  - "Удаление legacy-структур roadmap (шаг s04)"
+  - "Full regression suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: _arm_dag_next отклоняет v1 DAG манифесты без вызова adapt_manifest и останавливает arm
+    verify: "bin/pytest loop/tests/test_dag_manifest.py loop/tests/test_dag_transition.py -q"
+  - id: cp2
+    criterion: Валидный v2 DAG manifest успешно проходит arm и планирование фаз
+    verify: "bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_dag_journey.py -q"
+
+verify: []
+tdd: []

@@ -395,6 +395,52 @@ def test_action_decisions(dummy_config: RunnerConfig) -> None:
         assert outcome3.action == RunAction.HALT
         assert outcome3.exit_code == 130
 
+        # 3b. unsupported-tool exit 126 with interrupted=True must retry, not fake Ctrl+C
+        ctx126 = MockContextPort()
+        ctx126.record_abort_responses = [
+            {
+                "ok": False,
+                "retryable": True,
+                "backoff_sec": 0,
+                "reason": "unsupported_tool_call: malformed_tool_call",
+            },
+            {"ok": True, "exit_code": 0},
+        ]
+        ctx126.check_after_responses = [
+            {"ok": True, "stop": "EPIC_DONE", "complete": True},
+        ]
+        invoker126 = MockSessionInvoker()
+        invoker126.results = [
+            SessionResult(
+                exit_code=126,
+                runtime_id="codex",
+                log_file=dummy_config.state_dir / "session-1.log",
+                interrupted=True,
+            ),
+            SessionResult(
+                exit_code=0,
+                runtime_id="codex",
+                log_file=dummy_config.state_dir / "session-1-t2.log",
+                interrupted=False,
+            ),
+        ]
+        err126: list[str] = []
+        runner126 = LoopRunner(
+            dummy_config,
+            context_port=ctx126,
+            session_invoker=invoker126,
+            incident_tracker=mock_tracker,
+            stdout=lambda s: None,
+            stderr=err126.append,
+            sleeper=lambda s: None,
+        )
+        outcome126 = runner126.run()
+        assert outcome126.action == RunAction.COMPLETE
+        assert outcome126.reason != "user_interrupt"
+        assert not any("user interrupt" in line for line in err126)
+        assert len(invoker126.invocations) == 2
+        assert any(c[0] == "record_abort" for c in ctx126.calls)
+
         # 4. Model required missing produces 2
         ctx4 = MockContextPort()
         ctx4.prepare_responses = [

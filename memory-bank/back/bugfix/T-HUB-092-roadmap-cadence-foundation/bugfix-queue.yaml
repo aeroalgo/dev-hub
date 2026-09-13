@@ -1,0 +1,45 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-092-roadmap-cadence-foundation
+role: back
+source_qa: memory-bank/back/qa/T-HUB-092-roadmap-cadence-foundation/qa-20260912-roadmap-cadence-foundation.yaml
+checklist_sha256: 2acd9476c49e69254a59f106b67a8dc992f355d2704ed252117d62c8b889d27e
+created_at: '2026-09-12T16:14:20Z'
+updated_at: '2026-09-12T16:26:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-12T16:26:00Z'
+  evidence: 2853 passed, 4 skipped in 94.73s (bin/pytest -q --tb=line)
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: optional cadence fallback when cadence.yaml missing in loop/roadmap_queue.py
+  blocker_ref: 'ac_gap: optional cadence fallback when cadence.yaml missing in loop/roadmap_queue.py'
+  fix_plan_ref: BACK BUGFIX make cadence loading fail-closed on missing cadence.yaml
+    in mark_queue_epic_done in loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py
+    -q --tb=line
+  targets:
+  - loop/roadmap_queue.py
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+  evidence: 1 passed in test_mark_queue_epic_done_missing_cadence_fail_closed
+  done_at: '2026-09-12T16:25:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: ac_gap
+  title: roadmap_advance skips cadence gate when cadence.yaml missing in loop/roadmap_queue.py
+  blocker_ref: 'ac_gap: roadmap_advance skips cadence gate when cadence.yaml missing
+    in loop/roadmap_queue.py'
+  fix_plan_ref: BACK BUGFIX ensure roadmap_advance enforces cadence gate without silent
+    bypass in loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py -q
+    --tb=line
+  targets:
+  - loop/roadmap_queue.py
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+  evidence: 1 passed in test_roadmap_advance_missing_cadence_fail_closed
+  done_at: '2026-09-12T16:25:00Z'
+  notes: ''

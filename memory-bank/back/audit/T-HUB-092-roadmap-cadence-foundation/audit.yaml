@@ -1,0 +1,250 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-092-roadmap-cadence-foundation
+plan_id: T-HUB-092-roadmap-cadence-foundation
+date: '2026-09-12'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Establish typed roadmap cadence SoT, feature-epic completion counter,
+    and advance-pause gating when cadence is active.
+  source: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 0
+  layout_paths_total: 8
+  layout_paths_closed: 8
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Typed roadmap-cadence/v1 schema enforces strict phase validation, atomic
+    save, and fail-closed load behavior upon missing or corrupt YAML.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: mark_queue_epic_done increments counter for feature epics via on_feature_done
+    while leaving counter unchanged for refactor or other non-feature epics via on_non_feature_done.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: Completing two feature epics transitions cadence phase from idle to replan
+    and populates pair_ids with exactly the two completed feature epic IDs.
+  remaining_work: ''
+- source_ref: US-004
+  status: satisfied
+  evidence: roadmap_advance evaluates cadence phase and returns cadence_blocked when
+    phase != idle, preventing selection or arming of a third feature epic.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: Pydantic RoadmapCadenceState schema created in loop/schemas/roadmap_cadence.py
+    and canonical memory-bank/back/roadmap/cadence.yaml file maintained.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: API methods load_cadence, save_cadence, on_feature_done, and on_non_feature_done
+    implemented with fail-closed semantics in loop/roadmap_cadence.py.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: Roadmap queue rows normalize kind attribute defaulting to feature, preserving
+    custom kinds such as refactor or reconcile.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: mark_queue_epic_done dispatches to cadence hooks and maintains strict
+    idempotency when handling already-done epics.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: roadmap_advance checks cadence state and blocks feature epic selection
+    whenever phase is not idle.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: cadence-status CLI subcommand and format_cadence_status function added
+    to loop/context_loop.py with JSON and text output support.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Foundation scope preserved without premature implementation of downstream
+    REPLAN/Refactor executors reserved for T-HUB-093 and T-HUB-094.
+  remaining_work: ''
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Corrupt or unparseable cadence.yaml raises explicit ValueError/FileNotFoundError
+    preventing execution on invalid state.
+  remaining_work: ''
+- source_ref: NFR-002
+  status: satisfied
+  evidence: Idempotent invocation of mark_done for already completed epics skips cadence
+    counter increment.
+  remaining_work: ''
+- source_ref: layout:loop/schemas/roadmap_cadence.py
+  status: satisfied
+  evidence: Defines RoadmapCadenceState and CadencePhase models with validation in
+    loop/schemas/roadmap_cadence.py.
+  remaining_work: ''
+- source_ref: layout:loop/schemas/__init__.py
+  status: satisfied
+  evidence: Re-exports RoadmapCadenceState and CadencePhase in loop/schemas/__init__.py.
+  remaining_work: ''
+- source_ref: layout:loop/roadmap_cadence.py
+  status: satisfied
+  evidence: Implements core cadence storage operations load_cadence, save_cadence,
+    on_feature_done, on_non_feature_done.
+  remaining_work: ''
+- source_ref: layout:loop/roadmap_queue.py
+  status: satisfied
+  evidence: Integrates kind normalization, cadence hooks on mark_done, and advance
+    pause gating.
+  remaining_work: ''
+- source_ref: layout:loop/context_loop.py
+  status: satisfied
+  evidence: Integrates CLI cadence-status subcommand and cadence status inspection
+    payload.
+  remaining_work: ''
+- source_ref: layout:memory-bank/back/roadmap/cadence.yaml
+  status: satisfied
+  evidence: Canonical cadence SoT initialized with schema roadmap-cadence/v1 at memory-bank/back/roadmap/cadence.yaml.
+  remaining_work: ''
+- source_ref: layout:loop/tests/test_roadmap_cadence.py
+  status: satisfied
+  evidence: Unit tests covering schema validation, fail-closed mechanics, and CLI
+    cadence status commands.
+  remaining_work: ''
+- source_ref: layout:loop/tests/test_roadmap_queue.py
+  status: satisfied
+  evidence: Integration tests covering kind parsing, cadence hooks in mark_done, idempotency,
+    and advance pause gate.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST principles from constitution audited and verified across implementation
+    steps.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed with comprehensive unit and characterization
+    tests for all cadence capabilities.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback respected with explicit fail-closed exceptions
+    for corrupt cadence SoT.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 Backend-only cadence foundation; no unauthorized frontend test
+    execution.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution across all implementation
+    shards.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration verified; invalid phase or corrupt
+    YAML fails explicitly.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; unambiguous error codes and diagnostics
+    emitted.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema
+    validation.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority verified; roadmap advance gates act as authoritative
+    boundaries.
+  remaining_work: ''
+architecture_parity:
+- layout_path: loop/schemas/roadmap_cadence.py
+  status: present
+  evidence: Defines RoadmapCadenceState and CadencePhase with strict validation
+- layout_path: loop/schemas/__init__.py
+  status: present
+  evidence: Exports RoadmapCadenceState model
+- layout_path: loop/roadmap_cadence.py
+  status: present
+  evidence: Implements canon_cadence_path, load_cadence, save_cadence, on_feature_done,
+    on_non_feature_done
+- layout_path: loop/roadmap_queue.py
+  status: present
+  evidence: Integrates kind parsing, cadence hooks in mark_done, and advance gating
+- layout_path: loop/context_loop.py
+  status: present
+  evidence: Integrates cadence status CLI subcommand, formatting, and EPIC_DONE cadence
+    reporting
+- layout_path: memory-bank/back/roadmap/cadence.yaml
+  status: present
+  evidence: Canonical cadence SoT initialized with schema roadmap-cadence/v1
+- layout_path: loop/tests/test_roadmap_cadence.py
+  status: present
+  evidence: Comprehensive unit tests for schema, state machine, fail-closed handling,
+    and CLI
+- layout_path: loop/tests/test_roadmap_queue.py
+  status: present
+  evidence: Integration tests for kind parsing, cadence hook wire, idempotency, and
+    advance gate
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-092-roadmap-cadence-foundation/s01-cadence-schema-and-sot-api.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-092-roadmap-cadence-foundation/s02-queue-item-kind-and-counter-logic.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-092-roadmap-cadence-foundation/s03-mark-done-cadence-wire-and-idempotency.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-092-roadmap-cadence-foundation/s04-roadmap-advance-gate-and-pause.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-092-roadmap-cadence-foundation/s05-cadence-status-cli-and-instruction-surfaces.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-092-roadmap-cadence-foundation/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-12'
+  plan_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md#replacement--sunset
+  rows:
+  - symbol: loop/roadmap_queue.py:Always advance feature after done
+    kind: A
+    command: rg -n "phase != \"idle\"" loop/roadmap_queue.py || true
+    result: pass
+    prod_callers: []
+    notes: roadmap_advance blocks selecting next feature when cadence is active (phase
+      != idle)
+  - symbol: loop/roadmap_queue.py:No kind on rows
+    kind: A
+    command: rg -n "kind" loop/roadmap_queue.py || true
+    result: pass
+    prod_callers: []
+    notes: queue items normalize kind attribute with default feature
+  - symbol: loop/roadmap_cadence.py:Optional cadence
+    kind: C
+    command: rg -n "load_cadence" loop/roadmap_queue.py || true
+    result: pass
+    prod_callers: []
+    notes: fail-closed cadence validation with zero optional bypass flags
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

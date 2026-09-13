@@ -102,7 +102,7 @@ def test_e2e_sync_roadmap_rank_column_running_backlog_roadmap_column(tmp_path: P
     mb.mkdir(parents=True, exist_ok=True)
 
     queue_data = {
-        "version": "roadmap-queue/v1",
+        "version": "roadmap-queue/v2",
         "role": "back",
         "queue": [
             {"id": "T-EPIC-1", "plan": "plan-T-EPIC-1.md", "deps": []},

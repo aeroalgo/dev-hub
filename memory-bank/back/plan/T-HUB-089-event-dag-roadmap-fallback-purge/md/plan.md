@@ -5,6 +5,7 @@
 **Уровень:** L4  
 **Статус:** draft  
 **Clarify:** Phase 0 skipped — event, DAG and roadmap canonical formats are already defined; this plan only removes their historical adapters after inventory.  
+**CREATIVE need:** нет.
 **Prompt:** [md/prompt.md](prompt.md)  
 **Roadmap:** `memory-bank/back/roadmap/queue.yaml` · batch `legacy-fallback-purge-20260908`  
 **Deps:** hard T-HUB-087, T-HUB-072 and T-HUB-084; T-HUB-060 is a historical reference, not a queue dependency because it is not in the current merge set.  
@@ -172,6 +173,10 @@ legacy archive input -> explicit offline migration only
 |---|---|---|
 | roadmap docs naming Markdown mirror as SoT | v2 queue YAML | delete/rewrite in-epic |
 | runbook suggesting v1 DAG/event input | v2 schemas + explicit migration | delete/rewrite in-epic |
+
+### CREATIVE need
+
+**нет**
 
 ## До DECOMPOSE (черновик нарезки)
 

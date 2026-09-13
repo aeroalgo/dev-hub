@@ -393,3 +393,77 @@ def test_finish_bugfix_fails_when_artifact_already_done_before_latest_qa_fail(
     assert "bugfix_event_stale_vs_qa_fail" in (out.diagnostic_codes or [])
     st = load_epic_state(tmp_path)
     assert st.get("armed_step") == "BUGFIX"
+
+
+def test_finish_bugfix_rejects_missing_verifier_receipt(tmp_path: Path) -> None:
+    from loop.mb_finish.impl import finish_bugfix
+    from loop.mb_finish.schemas import MbFinishRequest
+    from loop.bugfix_queue import update_bugfix_item, set_bugfix_verification
+
+    epic = "T-bugfix-no-receipt"
+    _seed_epic(tmp_path, epic)
+    _write(tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260905-fix.md", "# root cause\nfixed\n")
+    queue_path = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-queue.yaml"
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="targeted green")
+
+    out = finish_bugfix(MbFinishRequest(cwd=str(tmp_path), phase="BUGFIX", step_id="BUGFIX", done_summary=""))
+    assert not out.ok
+    assert any(d in out.diagnostic_codes for d in ("verify_pass_missing", "verifier_receipt_missing"))
+
+
+def test_finish_bugfix_rejects_manual_authority(tmp_path: Path) -> None:
+    from loop.mb_finish.impl import finish_bugfix
+    from loop.mb_finish.schemas import MbFinishRequest
+    from harness.hooks.epic.core import rebuild_epic_projection, load_epic_state, save_epic_state
+    from harness.hooks._lib import current_gate_identity
+    from gate_receipt import issue_verifier_receipt
+    from loop.bugfix_queue import update_bugfix_item, set_bugfix_verification
+
+    epic = "T-bugfix-manual-auth"
+    _seed_epic(tmp_path, epic)
+    _write(tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260905-fix.md", "# root cause\nfixed\n")
+    queue_path = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-queue.yaml"
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="targeted green")
+
+    rebuild_epic_projection(tmp_path)
+    ident = current_gate_identity(str(tmp_path), "test")
+    ident["authority"] = "manual"
+    receipt = issue_verifier_receipt(ident, "PASS", "verify-bugfix")
+    receipt["authority"] = "manual"
+
+    state = load_epic_state(tmp_path)
+    state["last_verify_verdict"] = "PASS"
+    state["last_verify_evidence"] = receipt
+    save_epic_state(tmp_path, state)
+
+    out = finish_bugfix(MbFinishRequest(cwd=str(tmp_path), phase="BUGFIX", step_id="BUGFIX", done_summary=""))
+    assert not out.ok
+    assert "manual_authority_rejected" in out.diagnostic_codes
+
+
+def test_finish_bugfix_rejects_inactive_phase(tmp_path: Path) -> None:
+    from loop.mb_finish.impl import finish_bugfix
+    from loop.mb_finish.schemas import MbFinishRequest
+    from harness.hooks.epic.core import load_epic_state, save_epic_state
+    from loop.bugfix_queue import update_bugfix_item, set_bugfix_verification
+
+    epic = "T-bugfix-inactive"
+    _seed_epic(tmp_path, epic)
+    _write(tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260905-fix.md", "# root cause\nfixed\n")
+    queue_path = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-queue.yaml"
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="targeted green")
+
+    state = load_epic_state(tmp_path)
+    state["phase"] = "IMPLEMENT"
+    state["armed_step"] = "s01"
+    save_epic_state(tmp_path, state)
+
+    out = finish_bugfix(MbFinishRequest(cwd=str(tmp_path), phase="IMPLEMENT", step_id="s01", done_summary=""))
+    assert not out.ok
+    assert "bugfix_phase_inactive" in out.diagnostic_codes

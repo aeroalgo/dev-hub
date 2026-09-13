@@ -73,3 +73,23 @@ def test_legacy_links_are_compatible_but_cannot_arm_autonomous_fanout() -> None:
     assert result["ok"] is True
     assert result["autonomous"] is False
     assert any(item["code"] == "legacy_gap_inference" for item in result["diagnostics"])
+
+
+def test_validate_manifest_rejects_v1_legacy_manifest() -> None:
+    from loop.dag import validate_manifest
+    result = validate_manifest(
+        {
+            "schema": "loop-dag/v1",
+            "pipeline_id": "portal",
+            "nodes": [
+                {
+                    "id": "back",
+                    "role_dir": "back",
+                    "decompose": "memory-bank/back/plan/decompose-demo/index.md",
+                    "depends_on": [],
+                },
+            ],
+        }
+    )
+    assert result["ok"] is False
+    assert any(item["code"] == "schema_invalid" for item in result["diagnostics"])

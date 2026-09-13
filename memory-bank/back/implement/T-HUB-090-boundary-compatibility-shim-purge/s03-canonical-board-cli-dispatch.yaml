@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s03 — Consolidate board sync CLI into single canonical command dispatcher and
+  delete legacy printers and handlers IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s03-canonical-board-cli-dispatch.yaml
+skills_used: []
+discovery:
+- Confirmed _print_result_legacy was unused dead code and safe to remove.
+- Unified _status_or_launch and _dispatch_legacy into single canonical _dispatch dispatcher.
+- Verified fail-closed behavior for unsupported subcommands in _dispatch.
+gaps:
+  status: none
+done:
+- Deleted _print_result_legacy and integrated PipelineResult handling into canonical
+  _print_result in loop/board_sync/cli.py.
+- Deleted _dispatch_legacy and _status_or_launch, introducing unified canonical _dispatch
+  dispatcher in loop/board_sync/cli.py.
+- Added unit tests verifying _print_result_legacy and _dispatch_legacy purge and unsupported
+  command error handling in loop/tests/test_board_sync_cli.py.
+files:
+- loop/board_sync/cli.py
+- loop/tests/test_board_sync_cli.py
+deletes:
+- loop/board_sync/cli.py:_print_result_legacy
+- loop/board_sync/cli.py:_dispatch_legacy
+wire_complete:
+  call_sites:
+  - loop/board_sync/cli.py:main
+  enforce_path: loop/board_sync/cli.py
+  dual_path_rg: rg -n "_print_result_legacy|_dispatch_legacy" loop/board_sync/cli.py
+    -> 0 matches
+  instruction_rg: test_legacy_dispatch_and_printer_symbols_purged in loop/tests/test_board_sync_cli.py
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_board_sync_cli.py -q
+integration_check:
+- Board CLI dispatch routes all supported commands (sync, status, arm, loop, arm-loop)
+  directly without legacy routing shims.
+- Unsupported commands fail closed with clear error messaging.
+grep_control:
+- back: rg -n "_print_result_legacy|_dispatch_legacy" loop/board_sync/cli.py
+  front: n/a
+verification_results:
+- 'cp1: _print_result_legacy and _dispatch_legacy absent from loop/board_sync/cli.py
+  -> PASS'
+- 'cp2: bin/pytest loop/tests/test_board_sync_cli.py -q passed (12 passed).'
+checkpoints:
+- id: cp1
+  criterion: _print_result_legacy и _dispatch_legacy удалены из loop/board_sync/cli.py
+  status: done
+  done_at: '2026-09-12T03:00:00Z'
+- id: cp2
+  criterion: Все команды CLI board sync (sync, status, arm, loop, arm-loop) выполняются
+    успешно через канонический dispatcher
+  status: done
+  done_at: '2026-09-12T03:00:10Z'
+resume_from: cp2

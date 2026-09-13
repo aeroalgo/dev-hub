@@ -281,17 +281,17 @@ def test_arm_pre_implement_blocked_when_loop_owns_cursor(
     monkeypatch.delenv("EPIC_LOOP", raising=False)
     _write_live_owner(tmp_path, lib, epic_id="T-HUB-049", phase="QA")
 
-    from harness.hooks.epic.core import arm_pre_implement_context
+    from loop.epic_transition import arm_phase
 
     (tmp_path / "memory-bank" / "back" / "plan").mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank" / "back" / "plan" / "plan-T-HUB-061.md").write_text(
         "# plan\n", encoding="utf-8"
     )
-    res = arm_pre_implement_context(
+    res = arm_phase(
         tmp_path,
-        epic_id="T-HUB-061",
-        role="back",
-        phase="PLAN",
+        "T-HUB-061",
+        "PLAN",
+        "back",
         target_rel="memory-bank/back/plan/plan-T-HUB-061.md",
     )
     assert res.get("ok") is False
@@ -399,4 +399,3 @@ def test_read_active_context_video_pack(tmp_path: Path, monkeypatch: pytest.Monk
         (tmp_path / "memory-bank" / "video" / "activeContext.md").write_text("## Handoff SCRIPT\nvideo content\n", encoding="utf-8")
         content = read_active_context(tmp_path)
         assert "video content" in content
-

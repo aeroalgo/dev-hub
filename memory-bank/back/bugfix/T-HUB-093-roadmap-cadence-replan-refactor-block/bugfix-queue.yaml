@@ -1,0 +1,65 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+role: back
+source_qa: memory-bank/back/qa/T-HUB-093-roadmap-cadence-replan-refactor-block/qa-20260912-roadmap-cadence-replan-refactor-block.yaml
+checklist_sha256: c052811c9c2495af9114786a0c6fa5d0a9c92c7630b355c9d3c711e18246c674
+created_at: '2026-09-12T19:11:09Z'
+updated_at: '2026-09-12T22:25:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-12T22:30:00Z'
+  evidence: 2873 passed, 3 skipped in 94.19s
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: повторный REPLAN того же pair_id разрешён · loop/roadmap_cadence.py:300,
+    loop/roadmap_cadence.py:386 · отклонять уже terminal outcome.
+  blocker_ref: 'ac_gap: повторный REPLAN того же pair_id разрешён · loop/roadmap_cadence.py:300,
+    loop/roadmap_cadence.py:386 · отклонять уже terminal outcome.'
+  fix_plan_ref: BACK BUGFIX отклонять повторный REPLAN для pair_id с уже зафиксированным
+    terminal outcome в loop/roadmap_cadence.py bin/pytest loop/tests/test_roadmap_cadence.py
+    -q --tb=line
+  targets:
+  - loop/roadmap_cadence.py
+  - loop/tests/test_roadmap_cadence.py
+  verify: bin/pytest loop/tests/test_roadmap_cadence.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_roadmap_cadence.py -q --tb=line (20 passed)
+  done_at: '2026-09-12T22:20:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: ac_gap
+  title: resync пропускает non-feature из queue к arm · loop/roadmap_queue.py:1025,
+    loop/roadmap_queue.py:1047 · fail-closed для всей фазы.
+  blocker_ref: 'ac_gap: resync пропускает non-feature из queue к arm · loop/roadmap_queue.py:1025,
+    loop/roadmap_queue.py:1047 · fail-closed для всей фазы.'
+  fix_plan_ref: BACK BUGFIX обеспечить fail-closed поведение фазы resync в roadmap_advance
+    для non-feature в loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py
+    -q --tb=line
+  targets:
+  - loop/roadmap_queue.py
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line (50 passed)
+  done_at: '2026-09-12T22:25:00Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: ac_gap
+  title: 'idle-путь не запрещает kind: refactor до cadence refactor · loop/roadmap_queue.py:1047
+    · добавить проверку kind/phase.'
+  blocker_ref: 'ac_gap: idle-путь не запрещает kind: refactor до cadence refactor
+    · loop/roadmap_queue.py:1047 · добавить проверку kind/phase.'
+  fix_plan_ref: 'BACK BUGFIX запретить arm kind: refactor в idle-пути до перехода
+    в фазу cadence refactor в loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py
+    -q --tb=line'
+  targets:
+  - loop/roadmap_queue.py
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+  evidence: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line (50 passed)
+  done_at: '2026-09-12T22:25:00Z'
+  notes: ''

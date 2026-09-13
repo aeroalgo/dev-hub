@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s05 — Extend cadence-status CLI and end-to-end cadence block progression tests
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить CLI-команду cadence-status подробным выводом прогресса pair_ids в фазе replan
+  и состояния refactor, а также добавить сквозные тесты полного цикла исполнения cadence-блока
+  (2 features -> replan pair -> refactor/noop -> resync).
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - TM-01
+    - TM-02
+    - TM-03
+  nouns:
+    - cadence-status
+    - context_loop.py
+    - test_roadmap_cadence.py
+    - e2e block tests
+  layout_paths:
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+  ac_quotes:
+    - "FR-006: Tests order + skip evidence"
+    - "TM-01: refactor before replan done -> fail"
+    - "TM-02: both skipped -> noop refactor allowed"
+    - "TM-03: refactor kind not counted as feature (092 invariant holds)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md:50-155"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+  produces:
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr
+    - plan.md#qa-consumes-draft
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "context_loop.py содержит базовую команду cadence-status, выводящую фазу, счётчик и pair_ids"
+  - "test_roadmap_cadence.py содержит тесты базовых переходов"
+
+delta:
+  - "Расширить форматирование вывода cadence-status в loop/context_loop.py: отображать детализацию статуса каждого pair_id (completed / skipped с причиной) и статус refactor"
+  - "Добавить сквозные e2e тесты в loop/tests/test_roadmap_cadence.py для полного сценария: завершение 2 фич -> переход в replan -> advance_replan первого id -> advance_replan второго id -> переход в refactor -> upsert refactor epic или noop -> переход в resync"
+  - "Добавить негативные тесты: попытка входа в refactor до закрытия replan, отсутствие evidence при skip, проверка неизменности feature counter при refactor"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Resync tail и reconcile from-queue в 094 -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "cadence-status отображает детальный прогресс pair_ids и состояние фазы refactor"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_status_output_details -q"
+  - id: cp2
+    criterion: "Сквозные тесты подтверждают корректное прохождение всего cadence-блока (TM-01, TM-02, TM-03)"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_block_e2e_progression -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+tdd: []

@@ -1,0 +1,97 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: Purge dead public aliases, rewrite obsolete test suites, and clean up instruction surfaces
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить подтвержденно мертвые публичные алиасы ABORT_PATTERNS из harness/hooks/session_resilience.py,
+  validate_shard_yaml и checkpoint_prompt_lines из harness/hooks/epic_yaml.py, переписать или удалить
+  устаревшие тесты, импортирующие удаленные символы, и обновить инструкции (Kind I), устранив упоминания
+  старых алиасов.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - FR-007
+    - SC-002
+    - US-003
+    - AC+ #3
+    - AC+ #5
+    - AC− #2
+    - AC− #5
+  nouns:
+    - harness.hooks.session_resilience.ABORT_PATTERNS
+    - harness.hooks.epic_yaml.validate_shard_yaml
+    - harness.hooks.epic_yaml.checkpoint_prompt_lines
+    - harness.hooks.epic_yaml.validate_shard_yaml_full
+    - harness.hooks.epic_yaml.step_context_prompt_lines
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s05-dead-alias-purge-and-obsolete-test-rewrite.yaml
+  ac_quotes:
+    - "Dead aliases ABORT_PATTERNS, _handoff_mode_from_legacy_markdown, checkpoint_prompt_lines and validate_shard_yaml are removed after external-import scan."
+    - "Tests for deleted symbols/legacy handlers are removed or rewritten to canonical behavior; operational fallback tests remain."
+    - "Нет dead public alias definitions without caller proof."
+    - "Нет obsolete tests importing deleted symbols."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/md/plan.md:33-177"
+
+context:
+  consumes:
+    - plan §WHAT FR-004, FR-007
+    - plan §Refactor inventory L90-07, L90-08, L90-09, L90-10
+    - plan §Test refactor
+  produces:
+    - очищенные session_resilience.py и epic_yaml.py без dead aliases
+    - обновленные тесты test_session_wrapper.py и test_epic_yaml.py
+  plan_refs:
+    - FR-004
+    - FR-005
+    - FR-007
+    - SC-002
+    - US-003
+  files:
+    - harness/hooks/session_resilience.py
+    - harness/hooks/epic_yaml.py
+    - loop/schemas/active_context.py
+    - loop/tests/test_session_wrapper.py
+    - harness/hooks/tests/test_epic_yaml.py
+
+as_built:
+  - "harness/hooks/session_resilience.py определяет ABORT_PATTERNS = _FATAL_ABORT_PATTERNS + _TRANSIENT_ABORT_PATTERNS"
+  - "harness/hooks/epic_yaml.py определяет validate_shard_yaml (обертка над validate_shard_yaml_full) и checkpoint_prompt_lines"
+
+delta:
+  - "Удалить ABORT_PATTERNS из harness/hooks/session_resilience.py (сохранить _FATAL_ABORT_PATTERNS и _TRANSIENT_ABORT_PATTERNS)"
+  - "Удалить validate_shard_yaml и checkpoint_prompt_lines из harness/hooks/epic_yaml.py (все вызовы используют validate_shard_yaml_full и step_context_prompt_lines)"
+  - "Удалить/переписать тесты, импортирующие или проверяющие удаленные алиасы"
+  - "Проверить и обновить инструкции на отсутствие ссылок на удаленные алиасы"
+
+deletes:
+  - "harness/hooks/session_resilience.py:ABORT_PATTERNS"
+  - "harness/hooks/epic_yaml.py:validate_shard_yaml"
+  - "harness/hooks/epic_yaml.py:checkpoint_prompt_lines"
+  - "loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown"
+
+wire_complete_required: true
+
+out_of_scope:
+  - "Финальный аудит и зачистка всех оставшихся fallback-веток (шаг s06)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Устаревшие алиасы ABORT_PATTERNS, validate_shard_yaml, checkpoint_prompt_lines удалены из исходного кода"
+    verify: "python3 -c \"import subprocess, sys; out = subprocess.run(['rg', '-n', '\\b(ABORT_PATTERNS|validate_shard_yaml|checkpoint_prompt_lines)\\b', 'harness/hooks/session_resilience.py', 'harness/hooks/epic_yaml.py'], capture_output=True, text=True); sys.exit(1 if out.stdout else 0)\""
+  - id: cp2
+    criterion: "Тесты resilience и epic_yaml проходят без импорта удаленных алиасов"
+    verify: "bin/pytest loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py -q"
+
+verify: []
+tdd: []

@@ -166,6 +166,19 @@ def test_subagent_stop_rejects_malformed_fence(tmp_path: Path) -> None:
 def test_subagent_stop_validates_transcript_fence_over_advisory_pass(tmp_path: Path) -> None:
     """CP2 / FR-006: External transcript validation is authoritative over advisory self-check."""
     session_id = "sess-advisory-01"
+    from epic.core import default_state, save_epic_state
+    epic_st = default_state()
+    epic_st.update({
+        "active": True,
+        "armed_epic": "T-HUB-085",
+        "armed_step": "s05",
+        "armed_role": "BACK",
+        "session_id": session_id,
+        "projection_hash": "hash-adv-01",
+        "phase_epoch": 1,
+        "authority": "autonomous",
+    })
+    save_epic_state(tmp_path, epic_st)
     st = {
         "active": True,
         "role": "BACK",

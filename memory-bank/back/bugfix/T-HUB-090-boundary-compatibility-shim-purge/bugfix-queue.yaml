@@ -1,0 +1,110 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-090-boundary-compatibility-shim-purge
+role: back
+source_qa: memory-bank/back/qa/T-HUB-090-boundary-compatibility-shim-purge/qa-20260912-boundary-compatibility-shim-purge.yaml
+checklist_sha256: ac06192a8c336c548b42b727259a8d6fed5e0d32774acf1c499ca842a34da0c8
+created_at: '2026-09-12T02:15:00Z'
+updated_at: '2026-09-12T03:50:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-12T03:50:00Z'
+  evidence: 'bin/pytest -q --tb=line -> 2834 passed, 4 skipped (PASS)'
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: loop/tests/test_context_loop.py::test_status_agent_policy_active_loop_agents
+  blocker_ref: 'suite_red: loop/tests/test_context_loop.py::test_status_agent_policy_active_loop_agents'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_context_loop.py::test_status_agent_policy_active_loop_agents
+  targets:
+  - loop/tests/test_context_loop.py
+  verify: bin/pytest loop/tests/test_context_loop.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_context_loop.py -q --tb=line -> 0 exit (PASS)'
+  done_at: '2026-09-12T03:45:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: suite_red
+  title: loop/tests/test_agent_hooks.py::test_active_overlay_contains_protocol
+  blocker_ref: 'suite_red: loop/tests/test_agent_hooks.py::test_active_overlay_contains_protocol'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_agent_hooks.py::test_active_overlay_contains_protocol
+  targets:
+  - loop/tests/test_agent_hooks.py
+  verify: bin/pytest loop/tests/test_agent_hooks.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_agent_hooks.py -k test_active_overlay_contains_protocol -> 1 passed (PASS)'
+  done_at: '2026-09-12T03:46:00Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: suite_red
+  title: loop/tests/test_agent_hooks.py::test_spawn_map_legacy_agents_preserves_text
+  blocker_ref: 'suite_red: loop/tests/test_agent_hooks.py::test_spawn_map_legacy_agents_preserves_text'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_agent_hooks.py::test_spawn_map_legacy_agents_preserves_text
+  targets:
+  - loop/tests/test_agent_hooks.py
+  verify: bin/pytest loop/tests/test_agent_hooks.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_agent_hooks.py -> 29 passed (PASS)'
+  done_at: '2026-09-12T03:47:00Z'
+  notes: ''
+- id: BF-004
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_chat
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_chat'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_chat
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_stop_gate.py -k test_stop_gate_gate_bypass_chat -> 1 passed (PASS)'
+  done_at: '2026-09-12T03:48:00Z'
+  notes: ''
+- id: BF-005
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_explicit
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_explicit'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_explicit
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_stop_gate.py -k test_stop_gate_gate_bypass_explicit -> 1 passed (PASS)'
+  done_at: '2026-09-12T03:48:10Z'
+  notes: ''
+- id: BF-006
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_stop_gate_gate_fail_closed
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_stop_gate_gate_fail_closed'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_gate_fail_closed
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_stop_gate.py -k test_stop_gate_gate_fail_closed -> 1 passed (PASS)'
+  done_at: '2026-09-12T03:48:20Z'
+  notes: ''
+- id: BF-007
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_stop_gate_optional_no_gate
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_stop_gate_optional_no_gate'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_optional_no_gate
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_stop_gate.py -k test_stop_gate_optional_no_gate -> 1 passed (PASS)'
+  done_at: '2026-09-12T03:48:30Z'
+  notes: ''
+- id: BF-008
+  status: done
+  class: suite_red
+  title: loop/tests/test_stop_gate.py::test_stop_gate_decompose_finish_blocked_without_verify_pass
+  blocker_ref: 'suite_red: loop/tests/test_stop_gate.py::test_stop_gate_decompose_finish_blocked_without_verify_pass'
+  fix_plan_ref: BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_decompose_finish_blocked_without_verify_pass
+  targets:
+  - loop/tests/test_stop_gate.py
+  verify: bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+  evidence: 'bin/pytest loop/tests/test_stop_gate.py -k test_stop_gate_decompose_finish_blocked_without_verify_pass -> 1 passed (PASS)'
+  done_at: '2026-09-12T03:48:40Z'
+  notes: ''

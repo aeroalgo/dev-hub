@@ -125,12 +125,13 @@ def test_incomplete_md_queue_agrees_on_overlap_loads_yaml(tmp_path: Path) -> Non
 
 
 def test_arm_rejects_invalid_index_without_writing_active_context(tmp_path: Path) -> None:
-    lib = _load_lib()
+    from loop.epic_transition import arm_phase
+
     decompose = _index(tmp_path, yaml_body="steps: [\n  - invalid")
     active = tmp_path / "memory-bank/activeContext.md"
     active.write_text("original\n", encoding="utf-8")
 
-    result = lib.arm_active_context_from_decompose(tmp_path, decompose)
+    result = arm_phase(tmp_path, "demo", "IMPLEMENT", "back", decompose_rel=decompose)
 
     assert result["ok"] is False
     assert result["diagnostic_code"] == "index_invalid"
@@ -192,23 +193,9 @@ def test_index_mutators_reject_non_path_decompose(tmp_path: Path) -> None:
     assert validated == ["invalid_arg: expected str/Path, got int"]
 
 
-def test_arm_decompose_rejects_none_without_touching_context(tmp_path: Path) -> None:
-    lib = _load_lib()
-    active = tmp_path / "memory-bank" / "activeContext.md"
-    active.parent.mkdir(parents=True)
-    active.write_text("original\n", encoding="utf-8")
-
-    result = lib.arm_active_context_from_decompose(tmp_path, None)
-
-    assert result == {
-        "ok": False,
-        "error": "invalid_arg: expected str/Path, got NoneType",
-    }
-    assert active.read_text(encoding="utf-8") == "original\n"
-
-
 def test_arm_writes_loop_handoff_frontmatter(tmp_path: Path) -> None:
-    lib = _load_lib()
+    from loop.epic_transition import arm_phase
+
     decompose = _index(
         tmp_path,
         yaml_body=(
@@ -228,13 +215,13 @@ def test_arm_writes_loop_handoff_frontmatter(tmp_path: Path) -> None:
     active.parent.mkdir(parents=True, exist_ok=True)
     active.write_text("## load_now\n1. x\n\n## Handoff BACK IMPLEMENT\n", encoding="utf-8")
 
-    result = lib.arm_active_context_from_decompose(tmp_path, decompose)
+    result = arm_phase(tmp_path, "demo", "IMPLEMENT", "back", decompose_rel=decompose)
 
     assert result["ok"] is True
     assert result["step_id"] == "s01"
     text = active.read_text(encoding="utf-8")
     assert "schema: loop-handoff/v1" in text
-    assert lib.validate_active_context_shape(text) == []
+    assert _load_lib().validate_active_context_shape(text) == []
 
 
 def test_epic_resolve_sync_rejects_malformed_path_result(tmp_path: Path) -> None:

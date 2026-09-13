@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s06 — s06 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Проведён аудит loop/roadmap_cadence.py, loop/roadmap_queue.py и loop/context_loop.py:
+  подтверждено полное отсутствие несанкционированных вызовов и обходных путей запуска
+  refactor до закрытия фазы replan'
+- 'Проверена fail-closed блокировка: вызов start_refactor_phase строго блокируется
+  при phase != refactor (Kind A/B)'
+- Проверено отсутствие инструкций о скользящих окнах (sliding window) и переносе шагов
+  (carry-to-neighbor) в .cursor/rules/ (Kind I)
+- Верифицирован полный набор тестов cadence и очереди задач (68 тестов в test_roadmap_cadence.py
+  и test_roadmap_queue.py проходят успешно)
+files:
+- loop/roadmap_cadence.py
+- loop/roadmap_queue.py
+- loop/context_loop.py
+- loop/tests/test_roadmap_cadence.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+wire_complete:
+  call_sites:
+  - loop.roadmap_cadence.advance_replan
+  - loop.roadmap_cadence.start_refactor_phase
+  - loop.roadmap_queue.upsert_refactor_epic
+  - loop.tests.test_roadmap_cadence.test_start_refactor_phase_blocked_in_replan
+  - loop.tests.test_roadmap_cadence.test_rules_anti_carry_policy
+  - loop.tests.test_roadmap_cadence.test_cadence_block_e2e_progression
+  enforce_path: bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan
+    -q
+  dual_path_rg: rg "allow_refactor_early|replan_without_cadence" loop/
+  instruction_rg: rg "carry.*neighbor|sliding.*window" .cursor/rules/
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_anti_carry_policy -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_block_e2e_progression
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+integration_check:
+- Fail-closed проверка в start_refactor_phase предотвращает ранний старт refactor
+  при активной фазе replan
+- Инструкции воркфлоу строго фиксируют anti-carry и запрет скользящих окон
+- Все компоненты cadence блока и очереди согласованы и покрыты тестами
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_anti_carry_policy -q
+  -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_block_e2e_progression
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+  -> PASS (68 passed)
+checkpoints:
+- id: cp1
+  criterion: Kind A/B — refactor строго запрещён (deny / fail-closed) до завершения
+    всех pair_ids в фазе replan.
+  status: done
+- id: cp2
+  criterion: Kind I — правила воркфлоу строго запрещают sliding window и перенос незакрытых
+    шагов (rg проверка).
+  status: done
+- id: cp3
+  criterion: Полный набор тестов cadence и очереди проходит успешно (rg / audit control).
+  status: done

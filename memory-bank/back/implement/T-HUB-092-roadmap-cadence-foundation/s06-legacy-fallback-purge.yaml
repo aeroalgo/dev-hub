@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Проведен аудит кодовой базы и sunset_inventory: roadmap_advance выполняет проверку
+  фазы cadence'
+- Подтверждено отсутствие dual-path обхода cadence и опциональных флагов bypass (fail-closed)
+- Проверена полная интеграция и отсутствие устаревших инструкций или тестов
+- Все тесты cadence и roadmap queue проходят успешно
+files:
+- loop/roadmap_cadence.py
+- loop/roadmap_queue.py
+- loop/context_loop.py
+- loop/tests/test_roadmap_cadence.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_fail_closed -q
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'cp1: pass — Kind A: roadmap_advance гарантированно выполняет проверку фазы cadence'
+- 'cp2: pass — Kind C: fail-closed поведение при повреждённом/отсутствующем cadence.yaml
+  без bypass'
+- 'cp3: pass — Все 34 targeted теста в test_roadmap_cadence.py и test_roadmap_queue.py
+  успешно пройдены'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по строкам sunset_inventory: roadmap_advance гарантированно
+    выполняет проверку фазы cadence.
+
+    '
+  status: done
+  done_at: '2026-09-12T13:52:00Z'
+- id: cp2
+  criterion: 'Kind C — отсутствие silent fallback или optional bypass при повреждённом/отсутствующем
+    cadence.yaml.
+
+    '
+  status: done
+  done_at: '2026-09-12T13:52:00Z'
+- id: cp3
+  criterion: 'Все тесты cadence и roadmap queue проходят успешно.
+
+    '
+  status: done
+  done_at: '2026-09-12T13:52:00Z'
+resume_from: cp1

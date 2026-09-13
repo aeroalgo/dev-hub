@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: Purge live event reader fallbacks, isolate event v1 adapter, and enforce fail-closed v2 event log validation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить авто-адаптацию v1 событий из live reader `read_event_log_result` в `harness/hooks/epic_events.py`,
+  изолировать `migrate_event_log`/`adapt_v1_event` только для явной offline-миграции и сохранить безопасное игнорирование исторического `reflection_done`.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - SC-001
+    - SC-003
+    - SC-004
+    - US-001
+  nouns:
+    - read_event_log_result
+    - adapt_v1_event
+    - migrate_event_log
+    - reflection_done
+    - LEGACY_DEAD_EVENT_KINDS
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s02-purge-live-event-fallbacks.yaml
+  ac_quotes:
+    - "Live reducer never calls adapt_v1_event."
+    - "Archived reflection_done remains non-semantic and does not alter lifecycle."
+    - "Нет v1 adapter invocation from live event call sites."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:41-50"
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:86-101"
+
+context:
+  consumes:
+    - harness/hooks/epic_events.py
+    - loop/schemas/event.py
+    - loop/incidents/events.py
+    - loop/context_loop.py
+  produces:
+    - harness/hooks/epic_events.py
+    - loop/schemas/event.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - SC-001
+    - SC-003
+    - SC-004
+    - US-001
+  files:
+    - harness/hooks/epic_events.py
+    - loop/schemas/event.py
+
+as_built:
+  - "harness/hooks/epic_events.py:read_event_log_result вызывает adapt_v1_event при обнаружении non-v2 структуры"
+  - "migrate_event_log перезаписывает исторические файлы через adapt_v1_event"
+  - "reflection_done входит в LEGACY_DEAD_EVENT_KINDS и игнорируется в live event reducer"
+
+delta:
+  - "Исключить вызов adapt_v1_event из live path в read_event_log_result; возвращать explicit diagnostic при обнаружении non-v2 записей"
+  - "Ограничить область применения migrate_event_log/adapt_v1_event автономным offline-использованием"
+  - "Сохранить LEGACY_DEAD_EVENT_KINDS={'reflection_done'} только для валидации структуры без влияния на логику фаз"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление adapt_manifest из DAG runner (шаг s03)"
+  - "Удаление QUEUE_VERSION_V1 из roadmap (шаг s04)"
+  - "Full regression suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: read_event_log_result отклоняет v1 event logs с fail-closed diagnostic и не вызывает adapt_v1_event
+    verify: "bin/pytest loop/tests/test_event_stream.py loop/tests/test_event_schema.py -q"
+  - id: cp2
+    criterion: Исторический reflection_done безопасно распознаётся как dead kind и не ломает v2 replay
+    verify: "bin/pytest loop/tests/test_schemas_event.py loop/tests/test_reducer_qa_bugfix.py -q"
+
+verify: []
+tdd: []

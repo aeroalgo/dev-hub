@@ -1,376 +1,452 @@
 version: roadmap-queue/v2
 role: back
-queue:
-- id: T-HUB-088
-  epic_id: T-HUB-088-lifecycle-transition-fallback-purge
-  plan: plan-T-HUB-088-lifecycle-transition-fallback-purge.md
-  deps: []
-  batch: legacy-fallback-purge-20260908
-- id: T-HUB-089
-  epic_id: T-HUB-089-event-dag-roadmap-fallback-purge
-  plan: plan-T-HUB-089-event-dag-roadmap-fallback-purge.md
-  deps: []
-  batch: legacy-fallback-purge-20260908
-- id: T-HUB-090
-  epic_id: T-HUB-090-boundary-compatibility-shim-purge
-  plan: plan-T-HUB-090-boundary-compatibility-shim-purge.md
-  deps: []
-  batch: legacy-fallback-purge-20260908
-- id: plan
-  epic_id: T-HUB-076-stack-profile-capability-execution
-  plan: plan.md
-  deps: []
-  batch: chat-plan
-- id: T-HUB-092
-  epic_id: T-HUB-092-roadmap-cadence-foundation
-  plan: plan-T-HUB-092-roadmap-cadence-foundation.md
-  deps: []
-  batch: roadmap-cadence-20260911
-- id: T-HUB-093
-  epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
-  plan: plan-T-HUB-093-roadmap-cadence-replan-refactor-block.md
-  deps:
-  - T-HUB-092
-  batch: roadmap-cadence-20260911
-- id: T-HUB-094
-  epic_id: T-HUB-094-roadmap-cadence-resync-tail
-  plan: plan-T-HUB-094-roadmap-cadence-resync-tail.md
-  deps:
-  - T-HUB-093
-  batch: roadmap-cadence-20260911
+queue: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
+  kind: feature
   plan: plan-T-HUB-002-canon-sync.md
   batch: workflow-loop-hardening
 - id: T-HUB-003
   epic_id: T-HUB-003-loop-halt
+  kind: feature
   plan: plan-T-HUB-003-loop-halt.md
   batch: workflow-loop-hardening
 - id: T-HUB-004
   epic_id: T-HUB-004-hooks-hygiene
+  kind: feature
   plan: plan-T-HUB-004-hooks-hygiene.md
   batch: workflow-loop-hardening
 - id: T-HUB-005
   epic_id: T-HUB-005-simplify-docs
+  kind: feature
   plan: plan-T-HUB-005-simplify-docs.md
   batch: workflow-loop-hardening
 - id: T-HUB-006
   epic_id: T-HUB-006-dsh-loop-runtime-adapter
+  kind: feature
   plan: plan-T-HUB-006-dsh-loop-runtime-adapter.md
   batch: dsh-loop-backend
 - id: T-HUB-007
   epic_id: T-HUB-007-dsh-profiles-presets
+  kind: feature
   plan: plan-T-HUB-007-dsh-profiles-presets.md
   batch: dsh-loop-backend
 - id: T-HUB-008
   epic_id: T-HUB-008-dsh-epic-gate-plugin
+  kind: feature
   plan: plan-T-HUB-008-dsh-epic-gate-plugin.md
   batch: dsh-loop-backend
 - id: T-HUB-009
   epic_id: T-HUB-009-dsh-rollout-docs
+  kind: feature
   plan: plan-T-HUB-009-dsh-rollout-docs.md
   batch: dsh-loop-backend
 - id: T-HUB-010
   epic_id: T-HUB-010-clarify-spec-quality
+  kind: feature
   plan: plan-T-HUB-010-clarify-spec-quality.md
   batch: speckit-workflow-boost
 - id: T-HUB-011
   epic_id: T-HUB-011-analyze-pre-implement
+  kind: feature
   plan: plan-T-HUB-011-analyze-pre-implement.md
   batch: speckit-workflow-boost
 - id: T-HUB-012
   epic_id: T-HUB-012-audit-converge
+  kind: feature
   plan: plan-T-HUB-012-audit-converge.md
   batch: speckit-workflow-boost
 - id: T-HUB-013
   epic_id: T-HUB-013-idea-decide-constitution
+  kind: feature
   plan: plan-T-HUB-013-idea-decide-constitution.md
   batch: speckit-workflow-boost
 - id: T-HUB-014
   epic_id: T-HUB-014-dsh-mb-board-sync
+  kind: feature
   plan: plan-T-HUB-014-dsh-mb-board-sync.md
   batch: dsh-mb-board
 - id: T-HUB-015
   epic_id: T-HUB-015-dsh-board-arm-loop
+  kind: feature
   plan: plan-T-HUB-015-dsh-board-arm-loop.md
   batch: dsh-mb-board
 - id: T-HUB-016
   epic_id: T-HUB-016-dsh-cc-hooks-bridge
+  kind: feature
   plan: plan-T-HUB-016-dsh-cc-hooks-bridge.md
   batch: dsh-loop-backend
 - id: T-HUB-017
   epic_id: T-HUB-017-loop-observability-foundation
+  kind: feature
   plan: plan-T-HUB-017-loop-observability-foundation.md
   batch: loop-observability
 - id: T-HUB-018
   epic_id: T-HUB-018-loop-incident-autopilot
+  kind: feature
   plan: plan-T-HUB-018-loop-incident-autopilot.md
   batch: loop-observability
 - id: T-HUB-019
   epic_id: T-HUB-019-dsh-board-sync-enrichments
+  kind: feature
   plan: plan-T-HUB-019-dsh-board-sync-enrichments.md
   batch: dsh-mb-board
 - id: T-HUB-020
   epic_id: T-HUB-020-dsh-board-epic-loop
+  kind: feature
   plan: plan-T-HUB-020-dsh-board-epic-loop.md
   batch: dsh-mb-board
 - id: T-HUB-023
   epic_id: T-HUB-023-hooks-llm-fallbacks
+  kind: feature
   plan: plan-T-HUB-023-hooks-llm-fallbacks.md
   batch: pydantic-reliability
 - id: T-HUB-024
   epic_id: T-HUB-024-validate-traceability
+  kind: feature
   plan: plan-T-HUB-024-validate-traceability.md
   batch: spec-maturity
 - id: T-HUB-025
   epic_id: T-HUB-025-product-constitution-bootstrap
+  kind: feature
   plan: plan-T-HUB-025-product-constitution-bootstrap.md
   batch: spec-maturity
 - id: T-HUB-026
   epic_id: T-HUB-026-spec-reconcile-workflow
+  kind: feature
   plan: plan-T-HUB-026-spec-reconcile-workflow.md
   batch: spec-maturity
 - id: T-HUB-027
   epic_id: T-HUB-027-back-plan-gstack-adapt
+  kind: feature
   plan: plan-T-HUB-027-back-plan-gstack-adapt.md
   batch: back-plan-gstack-adapt
 - id: T-HUB-029
   epic_id: T-HUB-029-epic-phase-transition-engine
+  kind: feature
   plan: plan-T-HUB-029-epic-phase-transition-engine.md
   batch: epic-transition-engine
 - id: T-HUB-030
   epic_id: T-HUB-030-harness-runtime-wire
+  kind: feature
   plan: plan-T-HUB-030-harness-runtime-wire.md
   batch: harness-maturity-borrowings
 - id: T-HUB-031
   epic_id: T-HUB-031-harness-episode-packages
+  kind: feature
   plan: plan-T-HUB-031-harness-episode-packages.md
   batch: harness-maturity-borrowings
 - id: T-HUB-032
   epic_id: T-HUB-032-harness-analyze-convergence
+  kind: feature
   plan: plan-T-HUB-032-harness-analyze-convergence.md
   batch: harness-maturity-borrowings
 - id: T-HUB-033
   epic_id: T-HUB-033-harness-execution-discipline
+  kind: feature
   plan: plan-T-HUB-033-harness-execution-discipline.md
   batch: harness-maturity-borrowings
 - id: T-HUB-034
   epic_id: T-HUB-034-harness-janitor-gc
+  kind: feature
   plan: plan-T-HUB-034-harness-janitor-gc.md
   batch: harness-maturity-borrowings
 - id: T-HUB-035
   epic_id: T-HUB-035-harness-architecture-boundaries
+  kind: feature
   plan: plan-T-HUB-035-harness-architecture-boundaries.md
   batch: harness-maturity-borrowings
 - id: T-HUB-036
   epic_id: T-HUB-036-harness-decompose-formulas
+  kind: feature
   plan: plan-T-HUB-036-harness-decompose-formulas.md
   batch: harness-maturity-borrowings
 - id: T-HUB-037
   epic_id: T-HUB-037-harness-parallel-snn
+  kind: feature
   plan: plan-T-HUB-037-harness-parallel-snn.md
   batch: harness-maturity-borrowings
 - id: T-HUB-038
   epic_id: T-HUB-038-harness-metrics-dashboard
+  kind: feature
   plan: plan-T-HUB-038-harness-metrics-dashboard.md
   batch: harness-maturity-borrowings
 - id: T-HUB-039
   epic_id: T-HUB-039-phase-verify-agents-runtime
+  kind: feature
   plan: plan-T-HUB-039-phase-verify-agents-runtime.md
   batch: phase-verify-agents-runtime
 - id: T-HUB-040
   epic_id: T-HUB-040-harness-workflow-finish-api
+  kind: feature
   plan: plan-T-HUB-040-harness-workflow-finish-api.md
   batch: harness-maturity-borrowings
 - id: T-HUB-041
   epic_id: T-HUB-041-harness-canonical-extract
+  kind: feature
   plan: plan-T-HUB-041-harness-canonical-extract.md
   batch: harness-universal-runtime
 - id: T-HUB-042
   epic_id: T-HUB-042-runtime-adapter-framework
+  kind: feature
   plan: plan-T-HUB-042-runtime-adapter-framework.md
   batch: harness-universal-runtime
 - id: T-HUB-043
   epic_id: T-HUB-043-runtime-bridge-codex
+  kind: feature
   plan: plan-T-HUB-043-runtime-bridge-codex.md
   batch: harness-universal-runtime
 - id: T-HUB-044
   epic_id: T-HUB-044-runtime-sync-doctor-docs
+  kind: feature
   plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
   batch: harness-universal-runtime
 - id: T-HUB-045
   epic_id: T-HUB-045-harness-workflow-session-load-api
+  kind: feature
   plan: plan-T-HUB-045-harness-workflow-session-load-api.md
   batch: harness-maturity-borrowings
 - id: T-HUB-046
   epic_id: T-HUB-046-harness-alongside-install
+  kind: feature
   plan: plan-T-HUB-046-harness-alongside-install.md
   batch: harness-universal-runtime
 - id: T-HUB-047
   epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
+  kind: feature
   plan: plan-T-HUB-047-harness-mb-scaffold-epic-layout.md
   batch: harness-maturity-borrowings
 - id: T-HUB-048
   epic_id: T-HUB-048-workflow-pack-registry
+  kind: feature
   plan: plan-T-HUB-048-workflow-pack-registry.md
   batch: workflow-pack-framework
 - id: T-HUB-049
   epic_id: T-HUB-049-workflow-pack-phase-router
+  kind: feature
   plan: plan-T-HUB-049-workflow-pack-phase-router.md
   batch: workflow-pack-framework
 - id: T-HUB-050
   epic_id: T-HUB-050-workflow-pack-memory-bank-paths
+  kind: feature
   plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
   batch: workflow-pack-framework
 - id: T-HUB-051
   epic_id: T-HUB-051-workflow-pack-reference-video
+  kind: feature
   plan: plan-T-HUB-051-workflow-pack-reference-video.md
   batch: workflow-pack-framework
 - id: T-HUB-052
   epic_id: T-HUB-052-workflow-pack-adoption-docs
+  kind: feature
   plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
   batch: workflow-pack-framework
 - id: T-HUB-053
   epic_id: T-HUB-053-codex-claude-hooks-parity
+  kind: feature
   plan: plan-T-HUB-053-codex-claude-hooks-parity.md
   batch: harness-universal-runtime
 - id: T-HUB-054
   epic_id: T-HUB-054-suite-hygiene-runner-gate
+  kind: feature
   plan: plan-T-HUB-054-suite-hygiene-runner-gate.md
   batch: suite-hygiene
 - id: T-HUB-055
   epic_id: T-HUB-055-suite-green-board-sync
+  kind: feature
   plan: plan-T-HUB-055-suite-green-board-sync.md
   batch: suite-hygiene
 - id: T-HUB-056
   epic_id: T-HUB-056-suite-green-loop-identity
+  kind: feature
   plan: plan-T-HUB-056-suite-green-loop-identity.md
   batch: suite-hygiene
 - id: T-HUB-057
   epic_id: T-HUB-057-loop-session-json-contract
+  kind: feature
   plan: plan-T-HUB-057-loop-session-json-contract.md
   batch: loop-session-contract
 - id: T-HUB-058
   epic_id: T-HUB-058-sunset-inventory-agent
+  kind: feature
   plan: plan-T-HUB-058-sunset-inventory-agent.md
   batch: loop-session-contract
 - id: T-HUB-059
   epic_id: T-HUB-059-harness-claude-agents-sot-complete
+  kind: feature
   plan: plan-T-HUB-059-harness-claude-agents-sot-complete.md
   batch: harness-universal-runtime
 - id: T-HUB-061
   epic_id: T-HUB-061-boundary-cli-doctor-hygiene
+  kind: feature
   plan: plan-T-HUB-061-boundary-cli-doctor-hygiene.md
   batch: harness-ops-hygiene
 - id: T-HUB-062
   epic_id: T-HUB-062-skill-topology-canonical-paths
+  kind: feature
   plan: plan-T-HUB-062-skill-topology-canonical-paths.md
   batch: workflow-loop-20260905
 - id: T-HUB-063
   epic_id: T-HUB-063-sunset-boundary-stop-pipeline
+  kind: feature
   plan: plan-T-HUB-063-sunset-boundary-stop-pipeline.md
   batch: workflow-loop-20260905
 - id: T-HUB-064
   epic_id: T-HUB-064-video-pack-route-verify-parity
+  kind: feature
   plan: plan-T-HUB-064-video-pack-route-verify-parity.md
   batch: workflow-loop-20260905
 - id: T-HUB-065
   epic_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+  kind: feature
   plan: plan-T-HUB-065-duplicate-hooks-runtime-entrypoint.md
   batch: workflow-loop-20260905
 - id: T-HUB-066
   epic_id: T-HUB-066-boundary-schema-ownership-strict
+  kind: feature
   plan: plan-T-HUB-066-boundary-schema-ownership-strict.md
   batch: workflow-loop-20260905
 - id: T-HUB-067
   epic_id: T-HUB-067-pack-doctor-executable-graph
+  kind: feature
   plan: plan-T-HUB-067-pack-doctor-executable-graph.md
   batch: workflow-loop-20260905
 - id: T-HUB-068
   epic_id: T-HUB-068-start-finish-transaction-boundary
+  kind: feature
   plan: plan-T-HUB-068-start-finish-transaction-boundary.md
   batch: workflow-loop-20260905
 - id: T-HUB-069
   epic_id: T-HUB-069-agent-contract-registry-codex-policy
+  kind: feature
   plan: plan-T-HUB-069-agent-contract-registry-codex-policy.md
   batch: workflow-loop-20260905
 - id: T-HUB-070
   epic_id: T-HUB-070-phase-policy-overlay-sole-sot
+  kind: feature
   plan: plan-T-HUB-070-phase-policy-overlay-sole-sot.md
   batch: loop-session-architecture-20260906
 - id: T-HUB-071
   epic_id: T-HUB-071-session-identity-lock
+  kind: feature
   plan: plan-T-HUB-071-session-identity-lock.md
   batch: loop-session-architecture-20260906
 - id: T-HUB-072
   epic_id: T-HUB-072-context-bundle-fail-closed
+  kind: feature
   plan: plan-T-HUB-072-context-bundle-fail-closed.md
   batch: loop-session-architecture-20260906
 - id: T-HUB-073
   epic_id: T-HUB-073-abort-classifier-dirty-halt
+  kind: feature
   plan: plan-T-HUB-073-abort-classifier-dirty-halt.md
   batch: loop-session-architecture-20260906
 - id: T-HUB-074
   epic_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+  kind: feature
   plan: plan-T-HUB-074-qa-bugfix-lifecycle-rearm.md
   batch: loop-session-architecture-20260906
 - id: T-HUB-075
   epic_id: T-HUB-075-stack-profiles-rust-python-js
+  kind: feature
   plan: plan-T-HUB-075-stack-profiles-rust-python-js.md
   batch: stack-profiles
 - id: T-HUB-076
   epic_id: T-HUB-076-stack-profile-capability-execution
+  kind: feature
   plan: plan-T-HUB-076-stack-profile-capability-execution.md
   batch: stack-profiles
 - id: T-HUB-077
   epic_id: T-HUB-077-gate-evidence-integrity
+  kind: feature
   plan: plan-T-HUB-077-gate-evidence-integrity.md
   batch: claude-session-audit-20260907
 - id: T-HUB-078
   epic_id: T-HUB-078-context-budget-enforcement
+  kind: feature
   plan: plan-T-HUB-078-context-budget-enforcement.md
   batch: claude-session-audit-20260907
 - id: T-HUB-079
   epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+  kind: feature
   plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
   batch: claude-session-audit-20260907
 - id: T-HUB-080
   epic_id: T-HUB-080-workflow-capability-instruction-parity
+  kind: feature
   plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
   batch: claude-session-audit-20260907
 - id: T-HUB-081
   epic_id: T-HUB-081-workflow-hot-path-consolidation
+  kind: feature
   plan: plan-T-HUB-081-workflow-hot-path-consolidation.md
   batch: workflow-read-chain-20260907
 - id: T-HUB-082
   epic_id: T-HUB-082-shared-lean-gate-topology
+  kind: feature
   plan: plan-T-HUB-082-shared-lean-gate-topology.md
   batch: workflow-read-chain-20260907
 - id: T-HUB-083
   epic_id: T-HUB-083-role-core-shared-contract
+  kind: feature
   plan: plan-T-HUB-083-role-core-shared-contract.md
   batch: workflow-read-chain-20260907
 - id: T-HUB-084
   epic_id: T-HUB-084-workflow-reference-graph-hygiene
+  kind: feature
   plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
   batch: workflow-read-chain-20260907
 - id: T-HUB-085
   epic_id: T-HUB-085-hook-event-dispatcher-consolidation
+  kind: feature
   plan: plan-T-HUB-085-hook-event-dispatcher-consolidation.md
   batch: hook-runtime-optimization-20260907
 - id: T-HUB-086
   epic_id: T-HUB-086-python-loop-supervisor-cutover
+  kind: feature
   plan: plan-T-HUB-086-python-loop-supervisor-cutover.md
   batch: loop-runner-python-20260908
 - id: T-HUB-087
   epic_id: T-HUB-087-epic-layout-v2-fallback-purge
+  kind: feature
   plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
   batch: legacy-fallback-purge-20260908
 - id: T-HUB-091
   epic_id: T-HUB-091-gate-identity-sot-consolidation
+  kind: feature
   plan: plan-T-HUB-091-gate-identity-sot-consolidation.md
   batch: gate-identity-sot-20260910
+- id: T-HUB-088
+  epic_id: T-HUB-088-lifecycle-transition-fallback-purge
+  kind: feature
+  plan: plan-T-HUB-088-lifecycle-transition-fallback-purge.md
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-089
+  epic_id: T-HUB-089-event-dag-roadmap-fallback-purge
+  kind: feature
+  plan: plan-T-HUB-089-event-dag-roadmap-fallback-purge.md
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-090
+  epic_id: T-HUB-090-boundary-compatibility-shim-purge
+  kind: feature
+  plan: plan-T-HUB-090-boundary-compatibility-shim-purge.md
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-092
+  epic_id: T-HUB-092-roadmap-cadence-foundation
+  kind: feature
+  plan: plan-T-HUB-092-roadmap-cadence-foundation.md
+  batch: roadmap-cadence-20260911
+- id: T-HUB-093
+  epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+  kind: feature
+  plan: plan-T-HUB-093-roadmap-cadence-replan-refactor-block.md
+  batch: roadmap-cadence-20260911
+- id: T-HUB-094
+  epic_id: T-HUB-094-roadmap-cadence-resync-tail
+  kind: feature
+  plan: plan-T-HUB-094-roadmap-cadence-resync-tail.md
+  batch: roadmap-cadence-20260911
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

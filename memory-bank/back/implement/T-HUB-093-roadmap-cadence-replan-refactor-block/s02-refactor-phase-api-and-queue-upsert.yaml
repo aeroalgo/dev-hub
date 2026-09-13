@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s02 — Refactor phase API, queue upsert with kind refactor and noop transition
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/yaml/steps/s02-refactor-phase-api-and-queue-upsert.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Реализованы функции start_refactor_phase и upsert_refactor_epic в loop/roadmap_cadence.py
+  и loop/roadmap_queue.py для вставки refactor-эпика (kind: refactor) в начало очереди
+  с fail-closed проверкой phase == refactor'
+- Реализована функция record_refactor_noop в loop/roadmap_cadence.py для фиксации
+  noop evidence и перевода фазы в resync без инкремента feature counter
+- Реализована функция on_refactor_done в loop/roadmap_cadence.py и обновлен mark_queue_epic_done
+  в loop/roadmap_queue.py для перевода фазы в resync при завершении refactor-эпика
+- Добавлены юнит-тесты test_start_refactor_phase_blocked_in_replan и test_refactor_noop_and_done_transition_resync
+  в loop/tests/test_roadmap_cadence.py
+- Добавлен юнит-тест test_upsert_refactor_epic в loop/tests/test_roadmap_queue.py
+files:
+- loop/roadmap_cadence.py
+- loop/roadmap_queue.py
+- loop/tests/test_roadmap_cadence.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+wire_complete:
+  call_sites:
+  - loop.roadmap_cadence.start_refactor_phase
+  - loop.roadmap_cadence.record_refactor_noop
+  - loop.roadmap_cadence.on_refactor_done
+  - loop.roadmap_queue.upsert_refactor_epic
+  - loop.roadmap_queue.mark_queue_epic_done
+  enforce_path: bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py
+    -q
+  dual_path_rg: rg start_refactor_phase loop/
+  instruction_rg: rg start_refactor_phase memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_upsert_refactor_epic -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_refactor_noop_and_done_transition_resync
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+integration_check:
+- start_refactor_phase blocks early when phase == replan (fail-closed)
+- 'upsert_refactor_epic inserts at queue[0] with kind: refactor'
+- mark_queue_epic_done invokes on_refactor_done transitioning to resync without incrementing
+  feature counter
+- record_refactor_noop transitions to resync without incrementing feature counter
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_upsert_refactor_epic -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_refactor_noop_and_done_transition_resync
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+  -> PASS
+checkpoints:
+- id: cp1
+  criterion: start_refactor_phase падает с ошибкой (fail-closed / deny), если phase
+    != refactor (например phase == replan)
+  status: done
+- id: cp2
+  criterion: 'start_refactor_phase успешно добавляет refactor-эпик (kind: refactor)
+    в queue.yaml'
+  status: done
+- id: cp3
+  criterion: record_refactor_noop и on_refactor_done переводят phase в resync и не
+    увеличивают feature counter
+  status: done

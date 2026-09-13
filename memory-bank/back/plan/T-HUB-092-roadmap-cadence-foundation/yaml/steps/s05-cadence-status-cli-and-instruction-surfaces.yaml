@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s05 — cadence-status CLI subcommand and Kind I instruction surfaces alignment
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить CLI-команду cadence-status в loop/context_loop.py для отображения текущего
+  состояния ритма (phase, counter, every_n, pair_ids) и актуализировать инструкции
+  и документацию (Kind I) в loop/WORKFLOW.md с указанием на фундамент cadence
+  и follow-up эпики (T-HUB-093, T-HUB-094).
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-007
+  nouns:
+    - loop/context_loop.py
+    - loop/WORKFLOW.md
+    - cadence-status
+    - CLI
+    - Kind I
+  layout_paths:
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+  ac_quotes:
+    - "FR-006: Tests + cadence-status CLI"
+    - "FR-007: Stub hooks/docs pointer: full block in 093/094 (не implement их)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md:60-125"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/context_loop.py
+  produces:
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#fr--nfr
+    - plan.md#target-layout
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "loop/context_loop.py содержит CLI-команды status, advance, audit, etc."
+  - "Документация roadmap advance не содержит описания cadence-статуса и фаз"
+
+delta:
+  - "Добавить CLI-подкоманду cadence-status (или флаг в context_loop.py / CLI entrypoint) для вывода JSON/текстового отчёта состояния cadence"
+  - "Добавить тесты вызова CLI cadence-status в loop/tests/test_roadmap_cadence.py"
+  - "Выверить формулировки и документационные указатели (Kind I) для roadmap-ритма с фиксацией перехода к T-HUB-093/T-HUB-094"
+
+deletes: []
+
+out_of_scope:
+  - "Реализация REPLAN армирования -> follow_up: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "Реализация Resync хвоста -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "CLI команда cadence-status выводит валидную информацию о текущей фазе, счётчике и паре эпиков"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cli_cadence_status -q"
+  - id: cp2
+    criterion: "Kind I документация и подсказки корректно отражают статус паузы при активном cadence-блоке"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_status_output_formatting -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+tdd: []

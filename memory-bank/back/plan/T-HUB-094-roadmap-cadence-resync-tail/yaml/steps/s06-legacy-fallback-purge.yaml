@@ -1,0 +1,161 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s06 — legacy-fallback-purge — sunset inventory scan, cleanup and full cadence E2E
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести sunset inventory scan по категориям A+B+C+I, удалить
+  устаревшие post-hygiene допущения (tasks.md-only как единственный exit), проверить отсутствие
+  обхода resume gate при HIGH drift и выполнить сквозной E2E тест полного жизненного цикла cadence.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+    - TM-01
+    - TM-02
+    - TM-03
+    - TM-04
+  nouns:
+    - loop/roadmap_cadence.py
+    - harness/hooks/epic/reconcile.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_reconcile_spec.py
+    - sunset_inventory
+    - grep_control
+  layout_paths:
+    - loop/roadmap_cadence.py
+    - harness/hooks/epic/reconcile.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_reconcile_spec.py
+  ac_quotes:
+    - "AC+: from-queue works; HIGH blocks; reset restores feature lane; rules document cadence without window."
+    - "AC−: no resume on raw HIGH; no §Epic mutation; no reintroduce window; no re-implement 092/093 executors."
+    - "E2E: block_done -> HIGH -> block -> resync -> feature"
+  plan_jumps:
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:115-150"
+
+context:
+  consumes:
+    - plan §Replacement / sunset
+    - decompose index §Replacement cleanup
+  produces:
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#ac--ac-
+    - plan.md#qa-consumes-draft
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+  files:
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "s01..s05 реализовали reconcile --from-queue, resync evidence schema, resume gate, reset idle API и документацию"
+
+delta:
+  - "Провести sunset inventory audit на отсутствие fallback путей в обход resume gate"
+  - "Проверить полное покрытие очереди проверкой reconcile_queue_epics"
+  - "Реализовать комплексный E2E тест полного жизненного цикла cadence: 2 features -> replan -> refactor -> resync (HIGH) -> block -> resync -> reset idle -> next feature"
+
+sunset_inventory:
+  - symbol: post-hygiene resume without tail check
+    kind: A
+    replacement: reconcile from-queue mandatory audit before cadence completion
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero bypasses allowing cadence finish without tail audit
+  - symbol: resume on unmitigated HIGH drift
+    kind: B
+    replacement: fail-closed resume gate requiring resync evidence
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: feature advance denied on raw HIGH
+  - symbol: tasks.md-only sweep as cadence exit
+    kind: C
+    replacement: from-queue reconcile iteration over all queue epics
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/
+    expect: queue tail verified along with active tasks
+  - symbol: sliding window assumptions in documentation
+    kind: I
+    replacement: strict cadence cycle without sliding window
+    policy: delete in-epic
+    rg_scope: .cursor/rules/
+    expect: zero sliding window references
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Future roadmap epics beyond T-HUB-094"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: resume without reconcile
+    command: 'rg -n "allow_resume_unverified" loop/ || true'
+    expect: zero unverified resume callers
+  - id: inv-b-01
+    kind: B
+    symbol: raw high resume bypass
+    command: 'rg -n "ignore_high_drift" loop/ || true'
+    expect: zero bypasses ignoring high drift
+  - id: inv-c-01
+    kind: C
+    symbol: tasks only exit
+    command: 'rg -n "only_active_tasks_exit" harness/hooks/epic/ || true'
+    expect: no tasks-only exit shims
+  - id: inv-i-01
+    kind: I
+    symbol: sliding window rules
+    command: 'rg -n "sliding.*window" .cursor/rules/ loop/ || true'
+    expect: zero sliding window references
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A/B — feature advance строго блокируется при наличии HIGH drift без resync evidence.
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_blocked_resync -q
+  - id: cp2
+    criterion: |
+      Kind C — reconcile from-queue валидирует всю очередь roadmap.
+    verify: |
+      bin/pytest loop/tests/test_reconcile_spec.py -q
+  - id: cp3
+    criterion: |
+      Kind I / E2E — сквозной тест полного цикла: block_done -> HIGH -> block -> resync -> feature advance.
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py -k test_full_cadence_lifecycle_e2e -q
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_reconcile_spec.py -q"
+tdd: []

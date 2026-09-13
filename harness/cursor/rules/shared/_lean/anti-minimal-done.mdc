@@ -1,0 +1,19 @@
+---
+description: "Anti-minimal done stub — sole path / DENY old / wire_complete (shared BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# Anti-minimal done (shared stub)
+
+**Done (boundary / SoT / cutover)** = sole runtime path · DENY/HALT old · `dual_path_rg` expect 0 · Kind I clean · implement `wire_complete` green.
+
+| Mode | Minimum |
+|------|---------|
+| PLAN | L3+: `Done when` + `Forbidden after` + Independent Test = behavior; boundary FR names enforce entrypoint |
+| DECOMPOSE | sole-path FR → ladder wire→enforce→purge; `wire_complete_required: true` on boundary sNN/eNN; negative verify |
+| IMPLEMENT | `wire_complete` + `deny_old_proven: true` before `completed` / FINISH (machine: `validate-step` / mb-finish) |
+| QA | suite green ≠ PASS if dual path / fail `sot_enforce_scan` / no behavior smoke on gate FR |
+| BUGFIX | local partial OK; contract/SoT regression → same DENY-old / `wire_complete` bar |
+
+**FORBIDDEN as done:** module-exists · optional SoT · soft flag default off · add without enforce · dual path «чтобы green».
+
+Канон: `shared/workflow-behavior-first.mdc` §3 · §9 · `spec-first-replace-hard.mdc` · `workflow-legacy-fallback-cleanup.mdc`.

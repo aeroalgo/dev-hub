@@ -1639,7 +1639,19 @@ def validate_active_context_shape(text: str) -> list[str]:
             r"(?:`|\()((?:memory-bank/)?(?:back|front|integration)/[^)`\s]+)",
             load_body,
         )
-        if re.search(r"(?im)\b(?:completed|done|status\s*:\s*(?:completed|done))\b", load_body):
+        # Paths/links may contain hyphen tokens like "mark-done"; only prose
+        # status annotations in load_now descriptions may flag completed/done.
+        load_prose = re.sub(r"`[^`]+`", "", load_body)
+        load_prose = re.sub(r"\[[^\]]*\]\([^)]*\)", "", load_prose)
+        load_prose = re.sub(
+            r"(?:memory-bank/)?(?:back|front|integration)/[^\s)]+",
+            "",
+            load_prose,
+        )
+        if re.search(
+            r"(?im)\b(?:completed|done|status\s*:\s*(?:completed|done))\b",
+            load_prose,
+        ):
             errors.append("completed_in_load_now")
         seen_implement = False
         for path in load_paths:
@@ -1936,12 +1948,15 @@ def mirror_verify_verdict(
         return
     sid = session_id or evidence_map.get("session_id")
     step_for_gate = evidence_step or armed
-    # IMPLEMENT/sNN verify must never poison SoT with authority=manual PASS:
+    # IMPLEMENT/sNN/BUGFIX verify must never poison SoT with authority=manual PASS:
     # mirror would skip spawn checks, then mb-finish rejects manual → dead end.
     if (
         str(verdict).upper() == "PASS"
         and manual_auth
-        and re.match(r"^[sera]\d{2}$", str(step_for_gate or ""), re.I)
+        and (
+            re.match(r"^[sera]\d{2}$", str(step_for_gate or ""), re.I)
+            or str(step_for_gate or "").strip().lower() == "bugfix"
+        )
         and str(agent_id or "").strip().lower()
         in {"verify", "verify-implement", "verify-bugfix", "verify-decompose"}
     ):
@@ -2460,14 +2475,12 @@ def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]
     sid = step_id.strip().lower()
     # Validate receipt digest & schema integrity
     if evidence.get("authority") == "manual":
-        # Allow legacy manual authority for BUGFIX until purged in s05
-        if sid != "bugfix":
-            return {
-                "ok": False,
-                "error": "manual authority evidence rejected",
-                "diagnostic": "manual_authority_rejected",
-                "verdict": verdict,
-            }
+        return {
+            "ok": False,
+            "error": "manual authority evidence rejected",
+            "diagnostic": "manual_authority_rejected",
+            "verdict": verdict,
+        }
     if evidence.get("schema") == "loop-verifier-receipt/v1":
         try:
             from gate_receipt import validate_verifier_receipt
@@ -2875,6 +2888,20 @@ def _implement_files_on_disk(cwd: Path, files: list[Any]) -> tuple[bool, list[st
     return (not missing), missing
 
 
+def _arm_from_decompose_via_transition(cwd: Path, decompose: str) -> dict[str, Any]:
+    from loop.epic_transition import arm_phase
+
+    role = role_from_decompose_path(decompose) or "BACK"
+    epic_id = epic_id_from_decompose_path(decompose) or ""
+    return arm_phase(
+        cwd,
+        epic_id,
+        "IMPLEMENT",
+        role.lower(),
+        decompose_rel=decompose,
+    )
+
+
 def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
     """Make activeContext + armed_step match index.yaml next pending (SoT).
 
@@ -3005,7 +3032,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
                         "armed_step": handoff_phase,
                     }
         # Queue exhausted — arm may promote to AUDIT/QA/DONE.
-        arm = arm_active_context_from_decompose(cwd_p, decompose)
+        arm = _arm_from_decompose_via_transition(cwd_p, decompose)
         return {
             "ok": bool(arm.get("ok")),
             "synced": True,
@@ -3026,7 +3053,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
             "step_id": next_id,
         }
 
-    arm = arm_active_context_from_decompose(cwd_p, decompose)
+    arm = _arm_from_decompose_via_transition(cwd_p, decompose)
     ok = bool(arm.get("ok")) and not arm.get("complete")
     if arm.get("complete"):
         ok = bool(arm.get("ok"))
@@ -3088,7 +3115,7 @@ def repair_fingerprint_stall(cwd: str | Path) -> dict[str, Any]:
 
     st_status = str(cur.get("status") or "").lower()
     if st_status in {"completed", "done"}:
-        arm = arm_active_context_from_decompose(cwd_p, str(idx))
+        arm = _arm_from_decompose_via_transition(cwd_p, str(idx))
         ok = bool(arm.get("ok")) and not arm.get("complete")
         if arm.get("complete"):
             # all steps done — arm may return complete; still a successful repair
@@ -4901,263 +4928,6 @@ def clear_reserved_role_arm(cwd: str | Path) -> dict[str, Any]:
     }
 
 
-def arm_active_context_from_decompose(
-    cwd: str | Path,
-    decompose: str,
-) -> dict[str, Any]:
-    """Overwrite activeContext from decompose index — ignore prior epic cursor.
-
-    Used when human launches ``./loop/loop.sh decompose-<epic> …`` so the model
-    starts on the chosen epic's next pending/active step even if activeContext
-    still points at another epic or carries BLOCKED/NEED_HUMAN from it.
-    """
-    from loop.epic_transition import _legacy_warn
-    _legacy_warn("arm_active_context_from_decompose")
-
-    if decompose is None or not isinstance(decompose, (str, Path)):
-        return {
-            "ok": False,
-            "error": f"invalid_arg: expected str/Path, got {type(decompose).__name__}",
-        }
-    cwd_p = Path(cwd)
-    idx = _decompose_index_path(cwd_p, decompose)
-    ypath = index_yaml_path(idx) if idx is not None else None
-    if idx is None or (
-        not idx.is_file() and not (ypath is not None and ypath.is_file())
-    ):
-        return {
-            "ok": False,
-            "error": f"decompose index not found: {decompose!r}",
-        }
-
-    loaded = load_decompose_steps_fail_closed(cwd_p, str(idx))
-    if not loaded["ok"]:
-        return loaded
-    steps = loaded["steps"]
-    # steps are loaded directly from YAML canon
-    queue_src = loaded["source"]
-    epic_id = epic_id_from_decompose_path(
-        str(idx.relative_to(cwd_p)) if idx.is_relative_to(cwd_p) else str(idx)
-    ) or epic_id_from_decompose_path(decompose)
-    if is_reserved_role_epic_id(epic_id):
-        return {
-            "ok": False,
-            "error": (
-                f"epic_id must not be a role slug: {epic_id!r} "
-                "(forbidden: back|front|integration|integ)"
-            ),
-            "diagnostic_code": "epic_id_reserved",
-            "epic_id": epic_id,
-        }
-    role, role_dir = _role_dir_from_index_path(idx, cwd_p)
-    index_rel = (
-        str(idx.relative_to(cwd_p)).replace("\\", "/")
-        if idx.is_relative_to(cwd_p)
-        else str(idx)
-    )
-    ypath = index_yaml_path(idx)
-    yaml_rel = (
-        str(ypath.relative_to(cwd_p)).replace("\\", "/")
-        if ypath.is_file() and ypath.is_relative_to(cwd_p)
-        else (str(ypath) if ypath.is_file() else "")
-    )
-    tracker_rel = yaml_rel or index_rel
-    tracker_link = tracker_rel.removeprefix("memory-bank/")
-
-    step = find_next_decompose_step_from_queue(steps)
-    if step is None:
-        phase, qa_p, _ = post_implement_phase(cwd_p, role_dir, epic_id or "")
-        body = build_post_implement_active_context(
-            role=role,
-            role_dir=role_dir,
-            epic_id=epic_id or "unknown",
-            tracker_rel=tracker_rel,
-            tracker_link=tracker_link,
-            index_rel=index_rel,
-            hub_rel=None,
-            phase=phase,
-            qa_path=qa_p,
-            cwd=cwd_p,
-        )
-        if post_implement_handoff_violates_epic_done(phase, body):
-            return {
-                "ok": False,
-                "error": (
-                    f"invariant: post-implement Handoff for phase={phase} "
-                    "must not contain EPIC_DONE"
-                ),
-                "phase": phase,
-                "epic_id": epic_id,
-            }
-        locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
-        if locked:
-            return locked
-        cleared = clear_runner_checkpoint(cwd_p)
-        if not cleared.get("ok"):
-            return {
-                "ok": False,
-                "error": "failed to clear runner checkpoint after arm",
-                "diagnostic_code": cleared.get("diagnostic_code"),
-                "checkpoint_clear": cleared,
-                "epic_id": epic_id,
-                "phase": phase,
-            }
-        st = load_epic_state(cwd_p)
-        st["armed_epic"] = epic_id
-        st["armed_decompose"] = tracker_rel
-        st["armed_step"] = None
-        st["role"] = role
-        st["pending_fingerprint_before"] = None
-        if phase == "DONE":
-            st["active"] = False
-            st["status"] = "complete"
-            st["halt_reason"] = None
-            save_epic_state(cwd_p, st)
-            return {
-                "ok": True,
-                "complete": True,
-                "stop": "EPIC_DONE",
-                "phase": phase,
-                "epic_id": epic_id,
-                "role": role,
-                "index": tracker_rel,
-                "queue_source": queue_src,
-                "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
-            }
-        st["active"] = True
-        st["status"] = "armed"
-        st["halt_reason"] = None
-        st["armed_step"] = phase
-        save_epic_state(cwd_p, st)
-        return {
-            "ok": True,
-            "complete": False,
-            "stop": None,
-            "phase": phase,
-            "epic_id": epic_id,
-            "role": role,
-            "step_id": phase,
-            "status": "pending",
-            "index": tracker_rel,
-            "queue_source": queue_src,
-            "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
-            "qa_path": str(qa_p.relative_to(cwd_p)) if qa_p else None,
-        }
-
-    shard_rel = _resolve_href(_decompose_step_shards_dir(idx), step["shard_href"], cwd_p)
-    if not shard_rel:
-        steps_dir = _decompose_step_shards_dir(idx)
-        guess = steps_dir / f"{step['step_id']}.yaml"
-        if not guess.is_file():
-            hits = sorted(steps_dir.glob(f"{step['step_id']}-*.yaml"))
-            guess = hits[0] if hits else guess
-        if guess.is_file():
-            shard_rel = guess.relative_to(cwd_p).as_posix()
-        else:
-            return {
-                "ok": False,
-                "error": (
-                    f"work shard for {step['step_id']} not found under {steps_dir}"
-                ),
-                "step_id": step["step_id"],
-            }
-
-    phase = effective_phase(
-        role=role,
-        next_phase=step["next_phase"],
-        needs_creative=_step_needs_creative(cwd_p, idx, step),
-    )
-    title = step["title"] or step["step_id"]
-    yaml_for_load = (
-        tracker_rel if tracker_rel.endswith(".yaml") else yaml_rel or tracker_rel
-    )
-    shard_link = shard_rel.removeprefix("memory-bank/")
-    yaml_link = yaml_for_load.removeprefix("memory-bank/")
-    done_items: list[str] = []
-    completed = [s["id"] for s in steps if s.get("status") in {"completed", "done"}]
-    if completed:
-        done_items.append(
-            f"{completed[0]}–{completed[-1]} completed в `{tracker_link}` "
-            f"({len(completed)} шагов)"
-        )
-
-    body = _render_loop_active_context(
-        role=role,
-        mode=phase,
-        epic_id=epic_id or "unknown",
-        step_id=step["step_id"],
-        load_now=[
-            (
-                shard_link,
-                f"текущий work shard ({phase} {step['step_id']})",
-            ),
-            (
-                yaml_link,
-                "очередь/status (canon=yaml)",
-            ),
-        ],
-        custom_lines=[
-            f"- **Эпик:** {epic_id} ({role}); armed из `{tracker_link}` "
-            f"(прошлый activeContext игнорирован).",
-            f"- **Текущий шаг:** {step['step_id']} — {title} "
-            f"(status={step['status']} в index.yaml).",
-            f"- **Команда:** `{phase} @{step['step_id']}`",
-        ],
-        next_hint=(
-            "выполнить atomic шаг → FINISH "
-            "(seed-implement → flush cp → suite → evidence in_progress → "
-            "validate-step → Handoff → @verify → finalize-step)"
-        ),
-        done=done_items,
-    )
-    locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
-    if locked:
-        return locked
-
-    # Arm always rewrites activeContext. Drop runner checkpoint unconditionally —
-    # same-step re-arm still changes context_fingerprint and would halt prepare with
-    # checkpoint_projection_conflict if a prior committed/prepared checkpoint remains.
-    cleared = clear_runner_checkpoint(cwd_p)
-    if not cleared.get("ok"):
-        return {
-            "ok": False,
-            "error": "failed to clear runner checkpoint after arm",
-            "diagnostic_code": cleared.get("diagnostic_code"),
-            "checkpoint_clear": cleared,
-            "epic_id": epic_id,
-            "step_id": step["step_id"],
-        }
-
-    st = load_epic_state(cwd_p)
-    st["active"] = True
-    st["status"] = "armed"
-    st["halt_reason"] = None
-    st["armed_epic"] = epic_id
-    st["armed_decompose"] = tracker_rel
-    st["armed_step"] = step["step_id"]
-    st["phase"] = phase
-    st["role"] = role
-    st["pending_fingerprint_before"] = None
-    save_epic_state(cwd_p, st)
-
-    return {
-        "ok": True,
-        "complete": False,
-        "epic_id": epic_id,
-        "role": role,
-        "step_id": step["step_id"],
-        "status": step["status"],
-        "phase": phase,
-        "work_shard": shard_rel,
-        "index": tracker_rel,
-        "index_md": index_rel,
-        "queue_source": queue_src,
-        "implement_hub": None,
-        "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
-        "checkpoint_cleared": True,
-    }
-
-
 def arm_epic(
     cwd: str | Path,
     epic_id: str,
@@ -5175,7 +4945,7 @@ def arm_epic(
     phase = (action.phase or "").upper()
     if phase == "DONE":
         if action.decompose_rel:
-            return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
+            return arm_phase(cwd_p, epic_id, "DONE", role, decompose_rel=action.decompose_rel)
         return {
             "ok": True,
             "complete": True,
@@ -5281,144 +5051,6 @@ def arm_epic(
     return {
         "ok": False,
         "error": f"unhandled phase {phase} for epic {epic_id}",
-    }
-
-
-def arm_pre_implement_context(
-    cwd: str | Path,
-    *,
-    epic_id: str,
-    role: str,
-    phase: str,
-    target_rel: str | None,
-    decompose_rel: str | None = None,
-) -> dict[str, Any]:
-    """Arm activeContext for pre-implement phases (PLAN, DECOMPOSE, CLARIFY, ANALYZE)."""
-    from loop.epic_transition import _legacy_warn
-    _legacy_warn("arm_pre_implement_context")
-
-    cwd_p = Path(cwd)
-    role_key = str(role or "back").lower()
-    from epic_paths import epic_id_from_plan_path, find_plan_md_path
-
-    resolved_plan = find_plan_md_path(cwd_p, role_key, epic_id)
-    if resolved_plan is not None:
-        full_id = epic_id_from_plan_path(resolved_plan)
-        if full_id:
-            epic_id = full_id
-
-    phase_u = str(phase or "").upper()
-    role_u = str(role or "back").upper()
-    if target_rel:
-        pass
-    elif resolved_plan is not None:
-        try:
-            target_rel = resolved_plan.relative_to(cwd_p).as_posix()
-        except ValueError:
-            target_rel = str(resolved_plan).replace("\\", "/")
-    else:
-        from loop.paths.epic_layout import EpicLayoutKind, resolve as layout_resolve
-
-        target_rel = layout_resolve(
-            role_key, epic_id, EpicLayoutKind.PLAN_MD, project_root=cwd_p
-        ).relative_to(cwd_p).as_posix()
-    link = target_rel.removeprefix("memory-bank/")
-    next_cmd = f"{role_u} {phase_u}"
-    load_now = (
-        f"1. [{Path(target_rel).name}]({link}) — source plan/artifact for pre-implement phase {phase_u}.\n"
-    )
-    armed_decompose: str | None = None
-    if phase_u == "ANALYZE" and decompose_rel:
-        decomp_yaml = decompose_rel
-        if decomp_yaml.endswith("/md/decompose-index.md"):
-            decomp_yaml = decomp_yaml[: -len("/md/decompose-index.md")] + "/yaml/decompose-index.yaml"
-        elif decomp_yaml.endswith("decompose-index.md"):
-            decomp_yaml = decomp_yaml[: -len("decompose-index.md")] + "decompose-index.yaml"
-        elif decomp_yaml.endswith("index.md"):
-            decomp_yaml = decomp_yaml[: -len("index.md")] + "index.yaml"
-        decomp_link = decomp_yaml.removeprefix("memory-bank/")
-        decomp_path = Path(decompose_rel)
-        if decomp_path.name in {"decompose-index.yaml", "decompose-index.md"}:
-            decomp_label = decomp_path.name
-        elif decomp_path.suffix.lower() in {".yaml", ".yml", ".md"}:
-            decomp_label = f"{decomp_path.parent.name}/{decomp_path.name}"
-        else:
-            decomp_label = f"{decomp_path.name}/index.yaml"
-        load_now += (
-            f"2. [`{decomp_label}`]({decomp_link}) — decompose index for ANALYZE gate.\n"
-        )
-        armed_decompose = decomp_yaml
-    elif phase_u == "DECOMPOSE":
-        from epic_paths import find_decompose_index_path
-        from loop.paths.epic_layout import EpicLayoutKind, resolve as layout_resolve
-
-        rule_dir = {
-            "back": "back_developer",
-            "front": "front_developer",
-            "integration": "integration_developer",
-        }.get(role_key, f"{role_key}_developer")
-        idx = find_decompose_index_path(cwd_p, role_key, epic_id)
-        v2_yaml = layout_resolve(
-            role_key, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p
-        )
-        v2_md = layout_resolve(
-            role_key, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p
-        )
-        if idx and idx.is_file():
-            decomp_yaml = idx.relative_to(cwd_p).as_posix()
-            if idx.name in {"decompose-index.md", "index.md"}:
-                sibling_yaml = idx.with_name(
-                    "decompose-index.yaml" if idx.name == "decompose-index.md" else "index.yaml"
-                )
-                if sibling_yaml.is_file():
-                    decomp_yaml = sibling_yaml.relative_to(cwd_p).as_posix()
-                elif idx.name == "decompose-index.md":
-                    decomp_yaml = v2_yaml.relative_to(cwd_p).as_posix()
-        else:
-            decomp_yaml = v2_yaml.relative_to(cwd_p).as_posix()
-        decomp_link = decomp_yaml.removeprefix("memory-bank/")
-        decomp_md_link = v2_md.relative_to(cwd_p).as_posix().removeprefix("memory-bank/")
-        load_now += (
-            f"2. `.cursor/templates/decompose/` — epic-step.yaml + index.md "
-            f"(layout v2: md/decompose-index.md + yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).\n"
-            f"3. `.cursor/rules/{rule_dir}/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.\n"
-            f"4. Target decompose: [`decompose-index.yaml`]({decomp_link}) "
-            f"(layout v2: `{decomp_md_link}` + `{decomp_link}` + `yaml/steps/sNN-<slug>.yaml`).\n"
-        )
-        armed_decompose = decomp_yaml if idx and idx.is_file() else None
-    body = (
-        f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
-        f"## load_now\n{load_now}\n"
-        f"## Handoff {phase_u}\n"
-        f"- # epic_id: {epic_id} — NOT short queue id\n"
-        f"- **Эпик:** {epic_id} ({role_u}).\n"
-        f"- **Режим/шаг:** `{next_cmd}`.\n"
-        f"- **Дальше:** выполнить `{next_cmd}`.\n"
-    )
-    locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
-    if locked:
-        return locked
-    clear_runner_checkpoint(cwd_p)
-    st = load_epic_state(cwd_p)
-    st["active"] = True
-    st["status"] = "armed"
-    st["halt_reason"] = None
-    st["armed_epic"] = epic_id
-    st["armed_decompose"] = armed_decompose
-    st["armed_step"] = phase_u
-    st["phase"] = phase_u
-    st["role"] = role
-    st["pending_fingerprint_before"] = None
-    save_epic_state(cwd_p, st)
-    return {
-        "ok": True,
-        "complete": False,
-        "phase": phase_u,
-        "epic_id": epic_id,
-        "role": role,
-        "step_id": phase_u,
-        "target_rel": target_rel,
-        "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
     }
 
 

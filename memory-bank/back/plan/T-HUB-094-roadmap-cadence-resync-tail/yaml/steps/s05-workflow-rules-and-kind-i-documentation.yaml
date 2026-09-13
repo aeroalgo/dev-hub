@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s05 — Kind I workflow rules update and no-sliding-window documentation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить документацию Kind I и правила workflow (finish-doc-router, WORKFLOW.md, README.md, mainrule.mdc),
+  зафиксировав полный cadence цикл (every-2: REPLAN -> Refactor -> Resync -> Reset/Idle) и строгий запрет sliding window.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - US-004
+    - TM-04
+  nouns:
+    - .cursor/rules/shared/finish-doc-router.mdc
+    - loop/WORKFLOW.md
+    - loop/README.md
+    - .cursor/rules/back_developer/mainrule.mdc
+    - Kind I
+    - sliding window
+  layout_paths:
+    - .cursor/rules/shared/finish-doc-router.mdc
+    - loop/WORKFLOW.md
+    - loop/README.md
+    - .cursor/rules/back_developer/mainrule.mdc
+  ac_quotes:
+    - "Kind I: finish-doc-router / WORKFLOW / mainrule — cadence every-2 REPLAN->Refactor->resync; forbid window"
+    - "US-004: no window in rules -> rg Kind I"
+    - "TM-04: Kind I no sliding window"
+    - "AC-: no reintroduce window; no §Epic mutation"
+  plan_jumps:
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:65-76"
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:100-112"
+
+context:
+  consumes:
+    - loop/WORKFLOW.md
+    - loop/README.md
+    - .cursor/rules/back_developer/mainrule.mdc
+    - .cursor/rules/shared/finish-doc-router.mdc
+  produces:
+    - loop/WORKFLOW.md
+    - loop/README.md
+    - .cursor/rules/back_developer/mainrule.mdc
+    - .cursor/rules/shared/finish-doc-router.mdc
+  plan_refs:
+    - FR-006
+    - US-004
+    - TM-04
+  files:
+    - loop/WORKFLOW.md
+    - loop/README.md
+    - .cursor/rules/back_developer/mainrule.mdc
+    - .cursor/rules/shared/finish-doc-router.mdc
+
+as_built:
+  - "WORKFLOW.md and rules define cadence replan/refactor foundations from 092/093"
+
+delta:
+  - "Document cadence tail: reconcile from-queue, resync evidence, reset to idle"
+  - "Explicitly forbid sliding window / window shifting in workflow instructions"
+  - "Update finish-doc-router and mainrule.mdc to document resync tail lifecycle"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "code level changes and tests (handled in s01-s04 and s06)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "WORKFLOW.md and README.md document every-2 REPLAN -> Refactor -> Resync -> Reset cycle"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+  - id: cp2
+    criterion: "no sliding window terminology in active Kind I instruction surfaces"
+    verify: "python3 -c 'import re; assert not re.search(r\"sliding.?window\", open(\"loop/WORKFLOW.md\").read(), re.I)'"
+
+verify: []
+tdd: []

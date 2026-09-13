@@ -1,0 +1,37 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-092-roadmap-cadence-foundation
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-cadence-schema-and-sot-api.yaml
+  title: s01 — Cadence schema and SoT API (load/save, fail-closed, initial cadence.yaml)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-queue-item-kind-and-counter-logic.yaml
+  title: s02 — Queue item kind normalization and cadence counter / replan trigger
+    logic
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-mark-done-cadence-wire-and-idempotency.yaml
+  title: s03 — mark_queue_epic_done cadence hook wire and idempotent counter protection
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-roadmap-advance-gate-and-pause.yaml
+  title: s04 — roadmap_advance gate pausing feature-epic selection when cadence is
+    active
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-cadence-status-cli-and-instruction-surfaces.yaml
+  title: s05 — cadence-status CLI subcommand and Kind I instruction surfaces alignment
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: completed

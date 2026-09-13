@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 4
+  cut_list:
+  - redesign of v2 schemas
+  - archive rewrite beyond current migration contract
+  - new roadmap features
+steps:
+- id: s01
+  file: s01-characterize-flows-and-archive-boundaries.yaml
+  title: Characterize v2 event, DAG, and roadmap contracts, denial diagnostics, and
+    archive migration boundaries
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-purge-live-event-fallbacks.yaml
+  title: Purge live event reader fallbacks, isolate event v1 adapter, and enforce
+    fail-closed v2 event log validation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-enforce-v2-dag-validation-and-purge-arm-adapters.yaml
+  title: Enforce strict v2 DAG manifest validation in _arm_dag_next and purge implicit
+    DAG adaptation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-purge-roadmap-v1-and-markdown-mirror.yaml
+  title: Purge legacy roadmap v1 queue support, legacy path probes, and markdown mirror
+    rendering
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-rewrite-obsolete-tests-and-instructions.yaml
+  title: Rewrite obsolete tests, fixtures, and instruction surfaces for event, DAG,
+    and roadmap v2 contracts
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: completed

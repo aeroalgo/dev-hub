@@ -1,0 +1,242 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт удалены или переписаны;
+  Kind I instructions приведены к v2 SoT; suite green без restore legacy.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - adapt_v1_event
+    - adapt_manifest
+    - QUEUE_VERSION_V1
+    - LEGACY_DEFAULT_QUEUE
+    - canon_md_rel
+    - _render_merged_roadmap_md
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Live reducer never calls adapt_v1_event."
+    - "Live DAG arm never calls adapt_manifest for v1."
+    - "Default roadmap parser never probes plan/roadmap-epics.queue.yaml."
+    - "No runtime code builds or writes a Markdown roadmap mirror."
+    - "Нет v1 adapter invocation from live event/DAG/roadmap call sites."
+    - "Нет legacy queue fallback when v2 queue is missing."
+    - "Нет canon_md_rel/Markdown mirror production dependency."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:86-119"
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:142-175"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#refactor-inventory
+  files:
+    - harness/hooks/epic_events.py
+    - loop/dag.py
+    - loop/context_loop.py
+    - loop/roadmap_queue.py
+    - loop/WORKFLOW.md
+
+as_built:
+  - "Проведена подготовка и изоляция v2 контрактов на шагах s01-s05"
+
+delta:
+  - "Удалить все устаревшие fallback-ветки и неиспользуемые символы"
+  - "Провести полный sunset inventory scan A+B+C+I"
+
+sunset_inventory:
+  - symbol: harness/hooks/epic_events.py:adapt_v1_event
+    kind: A
+    replacement: v2 event validator
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero live prod callers; no runtime adaptation in read_event_log_result
+  - symbol: loop/dag.py:adapt_manifest
+    kind: A
+    replacement: loop.dag.validate_manifest
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero live arm callers in context_loop
+  - symbol: loop/roadmap_queue.py:QUEUE_VERSION_V1
+    kind: A
+    replacement: loop.roadmap_queue.QUEUE_VERSION
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero matches in prod runtime
+  - symbol: loop/roadmap_queue.py:LEGACY_DEFAULT_QUEUE
+    kind: A
+    replacement: canonical queue path resolution
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero matches in prod runtime
+  - symbol: loop/roadmap_queue.py:_render_merged_roadmap_md
+    kind: A
+    replacement: YAML queue result
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero matches in prod runtime
+  - symbol: loop/roadmap_queue.py:canon_md_rel
+    kind: A
+    replacement: canonical YAML queue
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero matches in prod runtime
+  - symbol: implicit event/DAG/roadmap migration during runtime
+    kind: B
+    replacement: explicit offline migration CLI or diagnostic error
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero implicit migration triggers in live execution
+  - symbol: write_md/mirror preview in roadmap merge
+    kind: B
+    replacement: YAML-only merge output
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero markdown mirror file generation
+  - symbol: non-v2 event -> adapter in read_event_log_result
+    kind: C
+    replacement: schema error / fail-closed
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_events.py
+    expect: zero fallback to adapt_v1_event in live read
+  - symbol: invalid DAG -> inferred v2/autonomous false in _arm_dag_next
+    kind: C
+    replacement: validation failure
+    policy: delete in-epic
+    rg_scope: loop/context_loop.py loop/dag.py
+    expect: zero fallback to adapt_manifest in live arm
+  - symbol: missing v2 queue -> LEGACY_DEFAULT_QUEUE probe in resolve_queue_path
+    kind: C
+    replacement: queue_missing error
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: zero fallback to legacy queue file
+  - symbol: roadmap docs naming Markdown mirror as SoT
+    kind: I
+    replacement: v2 queue YAML
+    policy: delete in-epic
+    rg_scope: loop/ .cursor/ memory-bank/
+    expect: zero references to markdown mirror as source of truth
+  - symbol: runbook suggesting v1 DAG/event input
+    kind: I
+    replacement: v2 schemas + explicit migration
+    policy: delete in-epic
+    rg_scope: loop/ .cursor/
+    expect: zero instructions directing use of v1 runtime formats
+
+deletes:
+  - harness/hooks/epic_events.py:adapt_v1_event live call branch
+  - loop/context_loop.py:_arm_dag_next adapt_manifest call
+  - loop/roadmap_queue.py:QUEUE_VERSION_V1
+  - loop/roadmap_queue.py:LEGACY_DEFAULT_QUEUE
+  - loop/roadmap_queue.py:_render_merged_roadmap_md
+  - loop/roadmap_queue.py:canon_md_rel
+
+out_of_scope:
+  - "redesign of v2 schemas (cut_list)"
+  - "archive rewrite beyond current migration contract (cut_list)"
+  - "new roadmap features (cut_list)"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: harness/hooks/epic_events.py:adapt_v1_event
+    command: 'rg -n "adapt_v1_event" loop/ harness/hooks/ --glob "*.py" | rg -v "/archive/|test_event_legacy_adapter|migrate_event_log"'
+    expect: no prod live callers
+  - id: inv-a-02
+    kind: A
+    symbol: loop/dag.py:adapt_manifest
+    command: 'rg -n "adapt_manifest" loop/context_loop.py loop/dag.py | rg -v "def adapt_manifest"'
+    expect: no prod live callers
+  - id: inv-a-03
+    kind: A
+    symbol: loop/roadmap_queue.py:QUEUE_VERSION_V1
+    command: 'rg -n "QUEUE_VERSION_V1" loop/roadmap_queue.py loop/context_loop.py || true'
+    expect: no output
+  - id: inv-a-04
+    kind: A
+    symbol: loop/roadmap_queue.py:LEGACY_DEFAULT_QUEUE
+    command: 'rg -n "LEGACY_DEFAULT_QUEUE" loop/roadmap_queue.py loop/context_loop.py || true'
+    expect: no output
+  - id: inv-a-05
+    kind: A
+    symbol: loop/roadmap_queue.py:_render_merged_roadmap_md
+    command: 'rg -n "_render_merged_roadmap_md" loop/roadmap_queue.py || true'
+    expect: no output
+  - id: inv-a-06
+    kind: A
+    symbol: loop/roadmap_queue.py:canon_md_rel
+    command: 'rg -n "canon_md_rel" loop/roadmap_queue.py || true'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: implicit runtime migration triggers
+    command: 'rg -n "migrate_manifest|migrate_event_log" loop/context_loop.py || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: legacy queue probe fallback
+    command: 'rg -n "roadmap-epics.queue.yaml" loop/roadmap_queue.py || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: roadmap markdown mirror SoT references
+    command: 'rg -n "roadmap-epics.md" loop/ .cursor/rules/ || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A подтверждает 0 prod callers
+    verify: "rg -n 'QUEUE_VERSION_V1|LEGACY_DEFAULT_QUEUE|_render_merged_roadmap_md|canon_md_rel' loop/roadmap_queue.py || true"
+  - id: cp2
+    criterion: Kind B — entrypoint inventory подтверждает отсутствие runtime auto-migration
+    verify: "rg -n 'migrate_manifest|migrate_event_log' loop/context_loop.py || true"
+  - id: cp3
+    criterion: Kind C — anti-fallback rg подтверждает отсутствие fallback-веток для event, DAG и roadmap
+    verify: "rg -n 'roadmap-epics.queue.yaml' loop/roadmap_queue.py || true"
+  - id: cp4
+    criterion: Kind I — instruction surfaces обновлены на v2 YAML SoT
+    verify: "rg -n 'roadmap-epics.md' loop/WORKFLOW.md || true"
+  - id: cp5
+    criterion: Obsolete tests на старый контракт удалены или переписаны; targeted suite green
+    verify: "bin/pytest loop/tests/test_event_stream.py loop/tests/test_dag_manifest.py loop/tests/test_roadmap_queue.py -q"
+  - id: cp6
+    criterion: Targeted regression suite green после полного удаления legacy-кода
+    verify: "bin/pytest loop/tests/test_event_stream.py loop/tests/test_dag_scheduler.py loop/tests/test_roadmap_queue.py -q"
+
+verify: []
+tdd: []

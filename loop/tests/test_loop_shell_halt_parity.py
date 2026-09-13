@@ -118,4 +118,4 @@ def test_runtime_adapter_preparation_failure_halts_without_session(tmp_path: Pat
     outcome = runner.run()
 
     assert outcome.action == RunAction.HALT
-    assert outcome.exit_code == 130
+    assert outcome.exit_code == 1

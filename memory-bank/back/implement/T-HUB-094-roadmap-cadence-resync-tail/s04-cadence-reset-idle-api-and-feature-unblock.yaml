@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s04 — s04 — Cadence reset to idle API and feature lane unblocking IMPLEMENT
+status: completed
+date: '2026-09-13'
+decompose_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/yaml/steps/s04-cadence-reset-idle-api-and-feature-unblock.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added on_resync_done and reset_cadence_idle to loop/roadmap_cadence.py and loop/roadmap_queue.py
+- Configured completed_feature_count property and counter reset to 0 in cadence state
+- Ensured roadmap_advance unblocks next feature epic once cadence is reset to idle
+- Added unit tests in loop/tests/test_roadmap_cadence.py verifying state reset and
+  subsequent feature advance
+files:
+- loop/roadmap_cadence.py
+- loop/roadmap_queue.py
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_roadmap_cadence.py -k test_reset_cadence_idle -q` —
+  2 passed'
+- '`bin/pytest loop/tests/test_roadmap_cadence.py -q` — 26 passed'
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+grep_control: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_roadmap_cadence.py -k test_reset_cadence_idle
+  -q'', ''outcome'': ''PASS''}'
+- '{''command'': ''bin/pytest loop/tests/test_roadmap_cadence.py -q'', ''outcome'':
+  ''PASS''}'
+checkpoints:
+- id: cp1
+  criterion: on_resync_done resets cadence state phase to idle and completed_feature_count
+    to 0
+  status: done
+- id: cp2
+  criterion: subsequent roadmap_advance call successfully arms next feature epic
+  status: done
+resume_from: completed

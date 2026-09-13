@@ -54,8 +54,21 @@ FINAL OUTCOME REVIEW
 outcome. Архитектурные улучшения, расширение функциональности и новые идеи
 фиксируются в backlog и не открывают четвёртый plan.
 
-## Переходный статус
+## Cadence-блок (Kind I) и интеграция с cadence.yaml
 
-Этот режим описан только в workflow. Он не добавляет loop state, CLI, schema,
-автоматический счётчик iteration или runtime gate; оператор запускает его явно.
+Каденс-блок (`memory-bank/back/roadmap/cadence.yaml`) запускается автоматически каждые N завершённых feature-эпиков и выполняется в строгом порядке:
+1. `phase=replan`: REPLAN для `pair_ids` (завершённой пары feature-эпиков).
+2. `phase=refactor`: PLAN REFACTOR (строго после завершения фазы `replan` для всех `pair_ids`).
+3. `phase=resync`: синхронизация roadmap tail.
 
+### Правила исполнения REPLAN в cadence-блоке
+
+- **Critical gaps only:** В рамках фазы `replan` анализируются только критические расхождения (`filter_critical_gaps`). Косметические замечания (`cosmetic`) не создают работу в REPLAN и фиксируются в backlog.
+- **Skip evidence:** При отсутствии критических gaps для эпика фиксируется `skip` с явным evidence (`record_replan_skip` / `outcome="skip"`). Запрещено создавать пустой или фиктивный план.
+- **Правило One-hop per ID:** Для каждого `epic_id` из `pair_ids` в рамках одного cadence-блока допустим максимум один REPLAN. **FORBIDDEN:** replan-of-replan (повторный REPLAN перепланированного эпика в том же блоке).
+- **Завершение фазы replan:** Фаза `replan` считается завершённой только тогда, когда для всех `pair_ids` зафиксирован терминальный статус (`complete` или `skip`). После этого происходит переход в фазу `refactor` (`phase=refactor`).
+
+## Anti-carry policy & Sliding window (HARD)
+
+- **FORBIDDEN:** перенос незакрытых требований (FR) или незавершённых шагов в соседние feature-эпики (anti-carry policy / no neighbor carry). Незакрытые требования должны либо устраняться в рамках REPLAN текущего эпика (с учётом one-hop), либо фиксироваться как отдельные follow-up/backlog задачи, но никогда не переносятся скрыто в следующий плановый feature-эпик.
+- **FORBIDDEN:** использование скользящих окон (sliding window) через границы cadence-блока.

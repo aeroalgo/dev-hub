@@ -91,7 +91,7 @@ def test_malicious_yaml_is_not_executed_and_unrelated_markdown_is_ignored(tmp_pa
     assert result.get("notes") is None
 
 
-def test_legacy_definitions_get_compatibility_defaults(tmp_path: Path) -> None:
+def test_unannotated_definitions_get_standard_defaults(tmp_path: Path) -> None:
     registry = _load()
     _agent(tmp_path, "verify.md", "name: verify")
     _agent(tmp_path, "reviewer.md", "name: reviewer")
@@ -107,10 +107,12 @@ def test_legacy_definitions_get_compatibility_defaults(tmp_path: Path) -> None:
         project_env={},
     )
 
-    assert result.get("verify").mode == "gate"
-    assert result.get("reviewer").verdict == "pass-blocked-fail"
-    assert result.get("explorer").mode == "search"
-    assert all(agent.runnable for agent in result.definitions)
+    assert result.get("verify").mode == "optional"
+    assert result.get("verify").managed is False
+    assert result.get("reviewer").verdict == "none"
+    assert result.get("reviewer").managed is False
+    assert result.get("explorer").mode == "optional"
+    assert result.get("explorer").managed is False
 
 
 def test_normalize_type_verify_alias() -> None:
@@ -136,7 +138,7 @@ def test_sunset_discovered(tmp_path: Path) -> None:
     _agent(
         tmp_path,
         "sunset-inventory.md",
-        "name: sunset-inventory\noverlay:\n  managed: true\n  mode: search\n  verdict: none",
+        "name: sunset-inventory\noverlay:\n  managed: true\n  mode: search\n  requires_model: false\n  verdict: none",
     )
     result = registry.discover_registry(tmp_path, process_env={}, project_env_local={}, project_env={})
     agent = result.get("sunset-inventory")
@@ -144,8 +146,6 @@ def test_sunset_discovered(tmp_path: Path) -> None:
     assert agent.mode == "search"
     assert agent.verdict == "none"
     assert agent.runnable is True
-
-
 
 
 def test_explicit_inherit_model_keeps_required_reviewer_runnable(tmp_path):
@@ -157,3 +157,53 @@ def test_explicit_inherit_model_keeps_required_reviewer_runnable(tmp_path):
     assert agent.runnable is True
     assert agent.model is None
     assert not result.diagnostics
+
+
+def test_managed_agents_have_metadata() -> None:
+    """Every managed agent in .claude/agents must have explicit frontmatter overlay before legacy purge."""
+    registry = _load()
+    result = registry.discover_registry(ROOT, process_env={}, project_env_local={}, project_env={})
+    managed = [agent for agent in result.definitions if agent.managed]
+    assert len(managed) >= 10
+    for agent in managed:
+        assert agent.overlay.managed is True
+        assert agent.overlay.mode in {"gate", "search", "repair", "optional"}
+        assert agent.overlay.verdict in {"pass-fail", "pass-blocked-fail", "none"}
+        assert isinstance(agent.overlay.requires_model, bool)
+        assert isinstance(agent.overlay.default_loop, bool)
+
+
+def test_overlay_contract_and_attributes(tmp_path: Path) -> None:
+    registry = _load()
+    _agent(
+        tmp_path,
+        "custom-gate.md",
+        "name: custom-gate\ndescription: Custom gate\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  default_chat: false\n  verdict: pass-fail\n  allow_worktree: true\n  max_runtime_sec: 120",
+    )
+    result = registry.discover_registry(
+        tmp_path,
+        process_env={"PROJECT_AGENT_CUSTOM_GATE_MODEL": "test-model"},
+        project_env_local={},
+        project_env={},
+    )
+    agent = result.get("custom-gate")
+    assert agent is not None
+    assert agent.overlay.managed is True
+    assert agent.overlay.mode == "gate"
+    assert agent.overlay.requires_model is True
+    assert agent.overlay.default_loop is True
+    assert agent.overlay.default_chat is False
+    assert agent.overlay.verdict == "pass-fail"
+    assert agent.overlay.allow_worktree is True
+    assert agent.overlay.max_runtime_sec == 120
+    assert agent.runnable is True
+
+    default_overlay = registry.AgentOverlay()
+    assert default_overlay.managed is False
+    assert default_overlay.mode == "optional"
+    assert default_overlay.requires_model is False
+    assert default_overlay.default_loop is False
+    assert default_overlay.default_chat is False
+    assert default_overlay.verdict == "none"
+    assert default_overlay.allow_worktree is False
+    assert default_overlay.max_runtime_sec is None

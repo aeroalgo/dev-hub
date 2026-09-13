@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s02 — s02 — Queue item kind normalization and cadence counter / replan trigger
+  logic IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/steps/s02-queue-item-kind-and-counter-logic.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Добавлена поддержка поля kind (default: ''feature'', допустимы ''refactor'', ''reconcile'',
+  etc.) в нормализацию и сериализацию очереди loop/roadmap_queue.py'
+- 'Реализована функция on_feature_done в loop/roadmap_cadence.py: увеличивает счётчик
+  для feature-эпиков и при достижении every_n выставляет phase=replan и заполняет
+  pair_ids'
+- 'Реализована функция on_non_feature_done в loop/roadmap_cadence.py: сохраняет состояние
+  без изменения счётчика и фазы'
+- Добавлены unit-тесты test_queue_item_kind_default_and_custom в loop/tests/test_roadmap_queue.py
+  и test_on_feature_done_transition_to_replan, test_on_non_feature_done_no_counter_increment
+  в loop/tests/test_roadmap_cadence.py
+files:
+- loop/roadmap_queue.py
+- loop/roadmap_cadence.py
+- loop/tests/test_roadmap_cadence.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_queue_item_kind_default_and_custom
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_on_feature_done_transition_to_replan
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_on_non_feature_done_no_counter_increment
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+grep_control: []
+verification_results:
+- 'loop/tests/test_roadmap_cadence.py and loop/tests/test_roadmap_queue.py: passed'
+checkpoints:
+- id: cp1
+  criterion: Парсинг элементов очереди сохраняет указанный kind или устанавливает
+    'feature' по умолчанию
+  status: done
+  done_at: '2026-09-12T09:02:31Z'
+- id: cp2
+  criterion: on_feature_done увеличивает счётчик и при 2 завершённых feature переводит
+    фазу в replan с pair_ids из двух элементов
+  status: done
+  done_at: '2026-09-12T09:02:35Z'
+- id: cp3
+  criterion: on_non_feature_done (например для refactor) не увеличивает счётчик и
+    не переводит фазу
+  status: done
+  done_at: '2026-09-12T09:02:40Z'
+resume_from: cp1

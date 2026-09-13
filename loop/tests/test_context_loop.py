@@ -235,13 +235,23 @@ def test_dag_fanout_arms_dependency_ready_node(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "loop/dag/portal.yaml",
-        "schema: loop-dag/v1\n"
-        "pipeline_id: portal\n"
+        "schema: loop-dag/v2\n"
+        "pipeline:\n"
+        "  id: portal\n"
+        "source:\n"
+        "  kind: manifest\n"
+        "  artifacts:\n"
+        "    - loop/dag/portal.yaml\n"
+        "execution:\n"
+        "  autonomous: true\n"
         "nodes:\n"
         "  - id: back\n"
-        "    role_dir: back\n"
+        "    role: BACK\n"
         "    decompose: memory-bank/back/plan/decompose-demo/index.md\n"
-        "    depends_on: []\n",
+        "    depends_on: []\n"
+        "    completion:\n"
+        "      type: decompose\n"
+        "    action: implement\n",
     )
     _write(
         tmp_path,
@@ -319,7 +329,7 @@ def test_status_exposes_dag_cursor_and_gate_state(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "loop/dag/portal.yaml",
-        "schema: loop-dag/v1\npipeline_id: portal\nnodes: []\n",
+        "schema: loop-dag/v2\npipeline:\n  id: portal\nsource:\n  kind: manifest\n  artifacts:\n    - loop/dag/portal.yaml\nexecution:\n  autonomous: true\nnodes: []\n",
     )
 
     out = ctx.status(tmp_path)
@@ -358,8 +368,21 @@ def test_status_agent_policy_section(tmp_path: Path, monkeypatch) -> None:
 def test_status_agent_policy_active_loop_agents(tmp_path: Path, monkeypatch) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    for agent in ("explorer", "reviewer", "verify"):
-        _write(tmp_path, f".claude/agents/{agent}.md", f"---\nname: {agent}\n---\nbody\n")
+    _write(
+        tmp_path,
+        ".claude/agents/explorer.md",
+        "---\nname: explorer\noverlay:\n  managed: true\n  mode: search\n  requires_model: false\n  default_loop: true\n  default_chat: false\n---\nbody\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/agents/reviewer.md",
+        "---\nname: reviewer\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  default_chat: false\n  verdict: pass-blocked-fail\n---\nbody\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/agents/verify.md",
+        "---\nname: verify\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  default_chat: false\n  verdict: pass-fail\n---\nbody\n",
+    )
     monkeypatch.setenv("EPIC_LOOP", "1")
     monkeypatch.setenv("PROJECT_AGENT_EXPLORER_MODEL_LOOP", "1")
     monkeypatch.setenv("PROJECT_AGENT_VERIFY_MODEL", "sonnet")
@@ -2598,6 +2621,42 @@ def test_record_abort_native_collaboration_timeout_is_repairable(tmp_path: Path)
     assert marker["status"] == "aborted"
 
 
+def test_record_abort_malformed_tool_call_retries_without_gate_repair(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps(
+            {
+                "status": "running",
+                "active": True,
+                "armed_step": "s03",
+                "armed_epic": "T-HUB-088-lifecycle-transition-fallback-purge",
+            }
+        ),
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=codex\n"
+        "CODEX_UNSUPPORTED_TOOL_CALL tool=malformed_tool_call\n"
+        "SESSION_END session=1 exit_code=126 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=126, runtime="codex")
+
+    assert out["retryable"] is True
+    assert out["halted"] is False
+    state = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert state["gate_diagnostic"] == "verify_runtime_unsupported_tool"
+    assert state.get("repair_required") in (None, "", False)
+    assert "malformed_tool_call" in (state.get("halt_reason") or "")
+    assert "gate-repair" not in (state.get("halt_reason") or "")
+
+
 def test_record_abort_gate_integrity_never_marks_completed(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
@@ -3224,3 +3283,126 @@ def test_build_prompt_analyze_includes_auto_finish_stop(tmp_path: Path) -> None:
     assert "atomic" in prompt.lower() or "auto-finish" in prompt
     assert "немедленно останови turn без новых tools" in prompt
     assert "FORBIDDEN после analyze-verify PASS" in prompt
+
+
+def test_epic_done_stop_result_chains_to_replan(tmp_path: Path, monkeypatch) -> None:
+    """FR-005 / US-001: EPIC_DONE in replan phase chains to BACK REPLAN for current pair_id."""
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    ctx = _load_ctx()
+
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            counter=2,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue = lambda p, q: (
+        (p / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True),
+        (p / "memory-bank/back/roadmap/queue.yaml").write_text(q.strip() + "\n", encoding="utf-8")
+    )
+    _write_queue(tmp_path, queue_yaml)
+    (tmp_path / "memory-bank/back/plan/T-FEAT-1/md").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank/back/plan/T-FEAT-1/md/plan.md").write_text("# feat 1\n", encoding="utf-8")
+    (tmp_path / "memory-bank/activeContext.md").write_text("## load_now\n- initial\n\n## Handoff\n", encoding="utf-8")
+
+    monkeypatch.setenv("EPIC_CHAIN_ROADMAP", "1")
+    monkeypatch.setattr(ctx, "epic_complete_allowed", lambda cwd: {"allowed": True, "phase": "EPIC_DONE"})
+
+    res = ctx._epic_done_stop_result(tmp_path)
+    assert res["ok"] is True
+    assert res["complete"] is False
+    assert res["chained"] is True
+    assert res["reprepare"] is True
+    assert res["roadmap_advance"]["epic"] == "T-FEAT-1"
+    assert res["roadmap_advance"]["phase"] == "REPLAN"
+
+    ac_text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "BACK REPLAN" in ac_text
+    assert "T-FEAT-1" in ac_text
+
+
+def test_epic_done_stop_result_chains_to_plan_refactor(tmp_path: Path, monkeypatch) -> None:
+    """FR-005 / US-003: EPIC_DONE in refactor phase chains to BACK PLAN REFACTOR for refactor epic."""
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    ctx = _load_ctx()
+
+    save_cadence(
+        RoadmapCadenceState(
+            phase="refactor",
+            counter=0,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-REF-1
+    epic_id: T-REF-1
+    plan: plan-T-REF-1.md
+    deps: []
+    kind: refactor
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue = lambda p, q: (
+        (p / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True),
+        (p / "memory-bank/back/roadmap/queue.yaml").write_text(q.strip() + "\n", encoding="utf-8")
+    )
+    _write_queue(tmp_path, queue_yaml)
+    (tmp_path / "memory-bank/back/plan/T-REF-1/md").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank/back/plan/T-REF-1/md/plan.md").write_text("# refactor 1\n", encoding="utf-8")
+    (tmp_path / "memory-bank/activeContext.md").write_text("## load_now\n- initial\n\n## Handoff\n", encoding="utf-8")
+
+    monkeypatch.setenv("EPIC_CHAIN_ROADMAP", "1")
+    monkeypatch.setattr(ctx, "epic_complete_allowed", lambda cwd: {"allowed": True, "phase": "EPIC_DONE"})
+
+    res = ctx._epic_done_stop_result(tmp_path)
+    assert res["ok"] is True
+    assert res["complete"] is False
+    assert res["chained"] is True
+    assert res["reprepare"] is True
+    assert res["roadmap_advance"]["epic"] == "T-REF-1"
+    assert res["roadmap_advance"]["phase"] == "PLAN REFACTOR"
+
+    ac_text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "BACK PLAN REFACTOR" in ac_text
+    assert "T-REF-1" in ac_text

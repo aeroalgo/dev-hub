@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-094-roadmap-cadence-resync-tail
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+epic_id: T-HUB-094-roadmap-cadence-resync-tail
+date: '2026-09-13'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 7b5adeb671cfc5f85f1dee33c7a273da5303f2de878fc020a420c129cc7f5cfe
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-094-roadmap-cadence-resync-tail"
+  - "epic: T-HUB-094-roadmap-cadence-resync-tail"
+  - "steps: s01–s06"
+  - "files: harness/hooks/epic/reconcile.py, harness/hooks/epic_resolve.py, loop/README.md, loop/WORKFLOW.md, loop/context_loop.py, loop/roadmap_cadence.py, loop/roadmap_queue.py, loop/schemas/roadmap_cadence.py, loop/tests/test_reconcile_spec.py, loop/tests/test_roadmap_cadence.py, memory-bank/back/roadmap/cadence.yaml, .cursor/rules/back_developer/mainrule.mdc, .cursor/rules/shared/finish-doc-router.mdc"
+
+ac_plus:
+  - "from-queue works; HIGH blocks; reset restores feature lane; rules document cadence without window."
+
+ac_minus:
+  - "no resume on raw HIGH; no §Epic mutation; no reintroduce window; no re-implement 092/093 executors."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2885 passed, 4 skipped in 97.46s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS (0 eligible blockers)"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 2885 passed, 4 skipped"

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from harness.hooks.epic_index import load_index_yaml
 from harness.hooks.epic_paths import (
     epic_id_from_plan_path,
@@ -359,6 +361,79 @@ def reconcile_active_epics(cwd: Path) -> dict[str, Any]:
     }
 
 
+def list_queue_epic_ids(
+    cwd: Path,
+    *,
+    queue_rel: str = "memory-bank/back/roadmap/queue.yaml",
+) -> list[str]:
+    root = Path(cwd)
+    path = root / queue_rel
+    if not path.is_file():
+        return []
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not isinstance(data, dict):
+        return []
+    raw_queue = data.get("queue")
+    if not isinstance(raw_queue, list):
+        return []
+    out: list[str] = []
+    for item in raw_queue:
+        if isinstance(item, dict):
+            eid = str(item.get("id") or item.get("epic_id") or "").strip()
+            if eid:
+                out.append(eid)
+        elif isinstance(item, str) and item.strip():
+            out.append(item.strip())
+    return out
+
+
+def reconcile_queue_epics(
+    cwd: Path,
+    *,
+    queue_rel: str = "memory-bank/back/roadmap/queue.yaml",
+) -> dict[str, Any]:
+    root = Path(cwd)
+    epic_ids = list_queue_epic_ids(root, queue_rel=queue_rel)
+    path = root / queue_rel
+    raw_queue: list[Any] = []
+    if path.is_file():
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and isinstance(data.get("queue"), list):
+                raw_queue = data["queue"]
+        except Exception:
+            pass
+    reports: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for idx, epic_id in enumerate(epic_ids):
+        item = raw_queue[idx] if idx < len(raw_queue) and isinstance(raw_queue[idx], dict) else {}
+        bundle = resolve_epic_bundle(root, epic_id)
+        if bundle is None and isinstance(item, dict):
+            for candidate_key in ("epic_id", "plan", "id"):
+                cand = str(item.get(candidate_key) or "").strip()
+                if cand and cand != epic_id:
+                    bundle = resolve_epic_bundle(root, cand)
+                    if bundle is not None:
+                        break
+        if bundle is None:
+            errors.append(f"unknown epic bundle for {epic_id}")
+            continue
+        reports.append(reconcile_epic(root, bundle))
+    high_total = sum(r.get("high_count", 0) for r in reports)
+    return {
+        "schema": REPORT_SCHEMA,
+        "mode": "from_queue",
+        "epic_ids": epic_ids,
+        "reports": reports,
+        "errors": errors,
+        "findings_total": sum(r.get("findings_total", 0) for r in reports),
+        "high_count": high_total,
+    }
+
+
 def reconcile_plan_id(cwd: Path, plan_id: str) -> dict[str, Any]:
     bundle = resolve_epic_bundle(Path(cwd), plan_id)
     if bundle is None:
@@ -407,12 +482,18 @@ def run_reconcile_spec(
     cwd: str | Path,
     *,
     plan_id: str | None = None,
+    from_queue: bool = False,
+    queue_rel: str = "memory-bank/back/roadmap/queue.yaml",
     fmt: str = "json",
     strict: bool = False,
 ) -> dict[str, Any]:
     root = Path(cwd)
     if plan_id:
         payload = reconcile_plan_id(root, plan_id)
+    elif from_queue:
+        payload = reconcile_queue_epics(root, queue_rel=queue_rel)
+        payload["ok"] = True
+        payload["exit_code"] = 0
     else:
         payload = reconcile_active_epics(root)
         payload["ok"] = True

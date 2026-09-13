@@ -46,8 +46,10 @@ deletes: []
 # Checkpoint: ≥1 verify с `rg`/import-audit — старый путь/символ без живых callers.
 # Brownfield: финальный шаг slug *-legacy-fallback-purge — остаток A+B+C+I + ПОЛНЫЙ inventory scan.
 # Шаблон purge: @.cursor/templates/decompose/legacy-purge-step.yaml (sunset_inventory + grep_control + cp-inventory-a/b/c/i).
-# Machine-boundary steps: ladder add→wire→enforce→purge; implement `wire_complete` (behavior-first §9).
-# Канон: shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+# Machine-boundary steps: set wire_complete_required: true → ladder wire→enforce→purge;
+# IMPLEMENT must ship wire_complete + deny_old_proven (behavior-first §9 / anti-minimal-done).
+# wire_complete_required: false
+wire_complete_required: false
 
 # Sunset Scope (optional — для шагов, требующих bounded sunset-inventory scan)
 # sunset_scope:

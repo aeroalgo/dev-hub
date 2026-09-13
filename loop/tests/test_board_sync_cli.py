@@ -38,7 +38,7 @@ def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
     (project / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(
             {
-                "version": "roadmap-queue/v1",
+                "version": "roadmap-queue/v2",
                 "role": "back",
                 "queue": [
                     {"id": "T-DEMO", "plan": "plan-T-DEMO.md", "deps": []}
@@ -90,6 +90,15 @@ def test_dry_run_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> N
     assert "mb-demo-back-t-demo-epic" in output
     assert "archive mb-" not in output
     assert client.write_count == 0
+
+
+def test_main_help_and_subcommand_dispatch(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    client = FakeClient()
+    dsh_home = _dsh_home(tmp_path)
+    assert main(["sync", "--dsh-home", str(dsh_home), "--dry-run"], client=client) == 0
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
 
 
 def test_sync_workspace_filter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -168,3 +177,47 @@ def test_missing_dsh_home(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_wrapper_is_executable() -> None:
     assert (Path(__file__).parents[2] / "bin" / "hub-board").stat().st_mode & 0o111
+
+
+def test_dispatch_all_subcommands(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify canonical dispatch routing for all subcommands (sync, status, arm, loop, arm-loop)."""
+    client = FakeClient()
+    dsh_home = _dsh_home(tmp_path)
+    hub = tmp_path / "hub"
+    hub.mkdir(exist_ok=True)
+    monkeypatch.setenv("DEV_HUB", str(hub))
+
+    # sync
+    assert main(["sync", "--dsh-home", str(dsh_home), "--dry-run"], client=client) == 0
+    assert "upsert" in capsys.readouterr().out
+
+    # status
+    ledger = tmp_path / "ledger.json"
+    main(["sync", "--dsh-home", str(dsh_home), "--offline-ledger", str(ledger)])
+    capsys.readouterr()
+    assert main(["status", "--offline-ledger", str(ledger)]) == 0
+    assert "generation=1" in capsys.readouterr().out
+
+    # launch subcommands help/dispatch validation
+    for cmd in ("arm", "loop", "arm-loop"):
+        assert main([cmd, "--help"]) == 0
+        assert cmd in capsys.readouterr().out
+
+    # unknown subcommand fails
+    assert main(["invalid-subcommand"]) != 0
+
+
+def test_legacy_dispatch_and_printer_symbols_purged() -> None:
+    import loop.board_sync.cli as cli_module
+
+    assert not hasattr(cli_module, "_print_result_legacy")
+    assert not hasattr(cli_module, "_dispatch_legacy")
+
+
+def test_dispatch_unsupported_command_fails() -> None:
+    import argparse
+    import loop.board_sync.cli as cli_module
+
+    fake_args = argparse.Namespace(command="unknown_cmd")
+    with pytest.raises(ValueError, match="unsupported command: unknown_cmd"):
+        cli_module._dispatch(fake_args, client=None)

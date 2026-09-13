@@ -400,7 +400,12 @@ class LoopRunner:
 
                     result = self.session_invoker.invoke(req)
 
-                    if result.exit_code in (130, 143) or result.interrupted:
+                    # Only real user signals stop the loop. SessionResult.interrupted
+                    # is also set for timeout (124), model-sub (125), unsupported
+                    # tool (126) and SIGKILL (137) — those must go through
+                    # record_abort so retryable aborts (e.g. malformed_tool_call)
+                    # continue the transient retry loop instead of false Ctrl+C halt.
+                    if result.exit_code in (130, 143):
                         self.stderr("==> loop aborted by user interrupt (SIGINT/SIGTERM)\n")
                         return RunOutcome(action=RunAction.HALT, exit_code=130, reason="user_interrupt")
 

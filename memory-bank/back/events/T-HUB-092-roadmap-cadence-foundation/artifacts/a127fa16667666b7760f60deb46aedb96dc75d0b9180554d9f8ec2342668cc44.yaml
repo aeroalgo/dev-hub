@@ -1,0 +1,52 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-092
+plan_id: T-HUB-092-roadmap-cadence-foundation
+epic_id: T-HUB-092-roadmap-cadence-foundation
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: blocked
+checklist_sha256: 2acd9476c49e69254a59f106b67a8dc992f355d2704ed252117d62c8b889d27e
+verify_scope: full
+
+scope:
+  - "task: T-HUB-092"
+  - "epic: T-HUB-092-roadmap-cadence-foundation"
+  - "steps: s01–s06"
+  - "files: loop/schemas/roadmap_cadence.py, loop/roadmap_cadence.py, loop/roadmap_queue.py, loop/context_loop.py, memory-bank/back/roadmap/cadence.yaml"
+
+ac_plus:
+  - "2 feature done → phase=replan"
+  - "advance не армает feature"
+  - "refactor done не ++ counter"
+  - "tests green targeted"
+
+ac_minus:
+  - "нет dual-path optional cadence"
+  - "нет silent old advance"
+  - "нет реализации REPLAN/Refactor/resync как done этого эпика"
+
+section_011:
+  - "Integration parity preserved without legacy dual paths or silent fallback"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> 2851 passed, 4 skipped"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT BLOCKED"
+
+issues:
+  - "Optional cadence fallback when cadence.yaml missing in mark_queue_epic_done and roadmap_advance"
+
+blockers:
+  - "ac_gap: optional cadence fallback when cadence.yaml missing in loop/roadmap_queue.py"
+  - "ac_gap: roadmap_advance skips cadence gate when cadence.yaml missing in loop/roadmap_queue.py"
+
+fix_plan:
+  - "BACK BUGFIX make cadence loading fail-closed on missing cadence.yaml in mark_queue_epic_done in loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line"
+  - "BACK BUGFIX ensure roadmap_advance enforces cadence gate without silent bypass in loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

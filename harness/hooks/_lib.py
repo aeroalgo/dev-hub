@@ -1769,7 +1769,7 @@ def match_gate_evidence(
     if not isinstance(evidence, dict):
         return False, "verdict_evidence_missing"
     if evidence.get("authority") == "manual":
-        return True, "manual_fallback_non_authoritative"
+        return False, "manual_authority_rejected"
 
     schema = str(evidence.get("schema") or "").strip()
     if schema == "loop-verifier-receipt/v1":

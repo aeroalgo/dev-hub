@@ -96,6 +96,58 @@ class CheckpointProgress(BaseModel):
         return v.strip().lower()
 
 
+class WireCompleteBlock(BaseModel):
+    """IMPLEMENT evidence that sole SoT is wired and old path is DENY (behavior-first §9)."""
+
+    call_sites: list[str] = Field(default_factory=list)
+    enforce_path: str = ""
+    dual_path_rg: str = ""
+    instruction_rg: str = ""
+    deny_old_proven: bool = False
+
+
+_BOUNDARY_STEP_HINT_RE = re.compile(
+    r"(?i)(?:legacy-fallback-purge|-enforce-|-cutover-|wire.complete|"
+    r"sole.?sot|fail-?closed|sot.consolidat|fallback.purge|"
+    r"\benforce\b|\bcutover\b|\bpurge\b)"
+)
+_NEGATIVE_VERIFY_HINT_RE = re.compile(
+    r"(?i)(?:\brg\b|dual.?path|deny|halt|fail-?closed|import-audit|0 hits|expect 0)"
+)
+
+
+def boundary_step_hint(step_id: str, title: str = "", goal: str = "") -> bool:
+    """True when slug/title/goal look like machine-boundary / sole-path work."""
+    blob = f"{step_id} {title} {goal}"
+    return bool(_BOUNDARY_STEP_HINT_RE.search(blob))
+
+
+def wire_complete_errors(
+    block: WireCompleteBlock | None,
+    *,
+    prefix: str = "wire_complete",
+    require_deny_old: bool = True,
+) -> list[str]:
+    """FAIL messages when wire_complete is required but incomplete."""
+    if block is None:
+        return [
+            f"{prefix}: required (call_sites, enforce_path, dual_path_rg, "
+            "instruction_rg, deny_old_proven: true) — anti-minimal / behavior-first §9"
+        ]
+    errors: list[str] = []
+    if not [x for x in block.call_sites if str(x).strip()]:
+        errors.append(f"{prefix}.call_sites: non-empty hot paths required")
+    if not str(block.enforce_path or "").strip():
+        errors.append(f"{prefix}.enforce_path: DENY/HALT old path required")
+    if not str(block.dual_path_rg or "").strip():
+        errors.append(f"{prefix}.dual_path_rg: command required (expect 0 old SoT hits)")
+    if not str(block.instruction_rg or "").strip():
+        errors.append(f"{prefix}.instruction_rg: Kind I scan command required")
+    if require_deny_old and block.deny_old_proven is not True:
+        errors.append(f"{prefix}.deny_old_proven: must be true before completed/FINISH")
+    return errors
+
+
 class EpicImplementDoc(BaseModel):
     schema_version: str = Field(alias="schema")
     role: Literal["back", "front", "integ"]
@@ -115,6 +167,7 @@ class EpicImplementDoc(BaseModel):
     done: list[str] = Field(default_factory=list)
     files: list[str] = Field(default_factory=list)
     deletes: list[str] = Field(default_factory=list)
+    wire_complete: WireCompleteBlock | None = None
     tests: list[str] = Field(default_factory=list)
     integration_check: list[str] = Field(default_factory=list)
     grep_control: list[GrepRow] = Field(default_factory=list)
@@ -184,6 +237,7 @@ class EpicDecomposeDoc(BaseModel):
     out_of_scope: list[str] = Field(default_factory=list)
     plan_contract: dict[str, Any] = Field(default_factory=dict)
     capability_checks: list[CapabilityCheckSpec] = Field(default_factory=list)
+    wire_complete_required: bool = False
 
     model_config = {"populate_by_name": True}
 
@@ -720,6 +774,14 @@ def validate_implement_yaml(
             except Exception as exc:
                 errors.append(f"tests: validate failed ({exc})")
 
+    requires_wire = bool(dec_doc and dec_doc.wire_complete_required)
+    if doc.wire_complete is not None and finish:
+        errors.extend(
+            wire_complete_errors(doc.wire_complete, require_deny_old=requires_wire)
+        )
+    elif finish and requires_wire:
+        errors.extend(wire_complete_errors(None))
+
     return errors
 
 
@@ -918,6 +980,25 @@ def validate_decompose_full(
             warnings.append(
                 "deletes not referenced in any delta: "
                 + ", ".join(unmentioned_del[:5])
+            )
+
+    # Anti-minimal: boundary steps should declare wire_complete_required;
+    # when declared, require a negative/DENY-style verify.
+    goal_txt = str(doc.goal or "")
+    if boundary_step_hint(doc.step_id, doc.title, goal_txt) and not doc.wire_complete_required:
+        warnings.append(
+            "wire_complete_required: boundary/SoT/cutover/purge step should set "
+            "wire_complete_required: true (anti-minimal / behavior-first §9)"
+        )
+    if doc.wire_complete_required:
+        verify_blob = " ".join(
+            [str(v) for v in doc.verify]
+            + [str(cp.verify or "") for cp in doc.checkpoints]
+        )
+        if not _NEGATIVE_VERIFY_HINT_RE.search(verify_blob):
+            errors.append(
+                "wire_complete_required: true but no negative/DENY verify "
+                "(need rg/dual_path/deny/halt/fail-closed/import-audit in verify)"
             )
 
     return errors, warnings
@@ -1483,14 +1564,6 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
     return errors
 
 
-def validate_shard_yaml(path: Path, *, finish: bool = True, expected_verdict: str | None = None) -> list[str]:
-    """Errors-only (FAIL) validation — back-compat for all consumers."""
-    errs, _warns = validate_shard_yaml_full(
-        path, finish=finish, expected_verdict=expected_verdict
-    )
-    return errs
-
-
 def validate_shard_yaml_full(
     path: Path,
     *,
@@ -1614,21 +1687,6 @@ def step_context_prompt_lines(
     if done:
         lines.append(f"- done: {', '.join(done)}")
     lines.append("Прочитай shard (goal/delta/checkpoints/verify).")
-    return lines
-
-
-def checkpoint_prompt_lines(doc: EpicImplementDoc) -> list[str]:
-    """Legacy alias — prefer step_context_prompt_lines with implement doc."""
-    resume = doc.resume_from or compute_resume_from(doc.checkpoints)
-    pending = [cp.id for cp in doc.checkpoints if cp.status == "pending"]
-    done = [cp.id for cp in doc.checkpoints if cp.status == "done"]
-    lines = ["", "## checkpoints"]
-    if resume and doc.status != "completed":
-        lines.append(f"- resume_from: `{resume}`")
-    if pending:
-        lines.append(f"- pending: {', '.join(pending)}")
-    if done:
-        lines.append(f"- done: {', '.join(done)}")
     return lines
 
 
@@ -1806,6 +1864,14 @@ def implement_ready_for_finalize_doc(
             )
         except Exception as exc:
             errors.append(f"tests: validate failed ({exc})")
+
+    requires_wire = bool(dec_doc and dec_doc.wire_complete_required)
+    if doc.wire_complete is not None:
+        errors.extend(
+            wire_complete_errors(doc.wire_complete, require_deny_old=requires_wire)
+        )
+    elif requires_wire:
+        errors.extend(wire_complete_errors(None))
     return errors
 
 
@@ -1839,6 +1905,11 @@ def implement_load_state(cwd: str | Path, rel: str) -> dict[str, Any]:
             "path": rel,
         }
     completed = doc.status == "completed" and all_checkpoints_done(doc.checkpoints)
+    if completed:
+        # Mirror validate_implement finish gate for boundary steps.
+        finish_errs = validate_implement_yaml(p, finish=True, cwd=cwd)
+        if any(e.startswith("wire_complete") for e in finish_errs):
+            completed = False
     return {
         "ok": True,
         "load_error": None,

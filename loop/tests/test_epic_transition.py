@@ -40,16 +40,14 @@ def test_resolve_next_delegates_to_resolver(tmp_path):
 def test_arm_phase_decompose(tmp_path):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
-    expected = {"ok": True, "armed_step": "s01", "active_context": "memory-bank/activeContext.md"}
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "md" / "plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# plan\n", encoding="utf-8")
 
-    with patch(
-        "epic.core.arm_active_context_from_decompose",
-        return_value=expected,
-    ) as mock:
-        res = arm_phase(tmp_path, "T-TEST-001", "DECOMPOSE", "back", decompose_rel="memory-bank/back/plan/decompose-T-TEST-001")
+    res = arm_phase(tmp_path, "T-TEST-001", "DECOMPOSE", "back")
 
     assert res["ok"] is True
-    assert res["armed_step"] == "s01"
+    assert res["armed_step"] == "DECOMPOSE"
     assert res["handoff"] == "memory-bank/activeContext.md"
     assert res["role"] == "back"
 
@@ -60,13 +58,11 @@ def test_arm_phase_decompose(tmp_path):
 def test_arm_phase_analyze(tmp_path):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
-    expected = {"ok": True, "step_id": "ANALYZE", "active_context": "memory-bank/activeContext.md"}
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "md" / "plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# plan\n", encoding="utf-8")
 
-    with patch(
-        "epic.core.arm_pre_implement_context",
-        return_value=expected,
-    ) as mock:
-        res = arm_phase(tmp_path, "T-TEST-001", "ANALYZE", "back")
+    res = arm_phase(tmp_path, "T-TEST-001", "ANALYZE", "back")
 
     assert res["ok"] is True
     assert res["armed_step"] == "ANALYZE"
@@ -79,13 +75,32 @@ def test_arm_phase_analyze(tmp_path):
 def test_arm_phase_implement(tmp_path):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
-    expected = {"ok": True, "step_id": "s01", "active_context": "memory-bank/activeContext.md"}
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    decomp_dir.mkdir(parents=True, exist_ok=True)
+    decomp = decomp_dir / "decompose-index.yaml"
+    decomp.write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-TEST-001\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01.yaml\n"
+        "  status: pending\n"
+        "  next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
+        encoding="utf-8",
+    )
 
-    with patch(
-        "epic.core.arm_active_context_from_decompose",
-        return_value=expected,
-    ) as mock:
-        res = arm_phase(tmp_path, "T-TEST-001", "IMPLEMENT", "back", decompose_rel="memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml")
+    res = arm_phase(
+        tmp_path,
+        "T-TEST-001",
+        "IMPLEMENT",
+        "back",
+        decompose_rel="memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
+    )
 
     assert res["ok"] is True
     assert res["armed_step"] == "s01"
@@ -97,21 +112,35 @@ def test_arm_phase_implement(tmp_path):
 def test_arm_phase_audit_with_decompose_rel(tmp_path):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
-    expected = {"ok": True, "armed_step": "AUDIT", "active_context": "memory-bank/activeContext.md"}
-    decomp = "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    decomp_dir.mkdir(parents=True, exist_ok=True)
+    decomp = decomp_dir / "decompose-index.yaml"
+    decomp.write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-TEST-001\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01.yaml\n"
+        "  status: completed\n"
+        "  next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
+        encoding="utf-8",
+    )
 
-    with patch(
-        "epic.core.arm_active_context_from_decompose",
-        return_value=expected,
-    ) as mock_decomp, patch(
-        "epic.core.arm_epic",
-    ) as mock_epic:
-        res = arm_phase(tmp_path, "T-TEST-001", "AUDIT", "back", decompose_rel=decomp)
+    res = arm_phase(
+        tmp_path,
+        "T-TEST-001",
+        "AUDIT",
+        "back",
+        decompose_rel="memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
+    )
 
     assert res["ok"] is True
     assert res["armed_step"] == "AUDIT"
-    mock_decomp.assert_called_once_with(tmp_path, decomp)
-    mock_epic.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +152,7 @@ def test_arm_phase_unknown_strips_decompose_rel_before_arm_epic(tmp_path):
     expected = {"ok": True, "step_id": "UNKNOWN", "active_context": "memory-bank/activeContext.md"}
 
     with patch(
-        "epic.core.arm_epic",
+        "loop.epic_transition.arm_epic",
         return_value=expected,
     ) as mock:
         res = arm_phase(
@@ -149,32 +178,13 @@ def test_arm_phase_unknown_falls_back_to_arm_epic(tmp_path):
     expected = {"ok": True, "step_id": "UNKNOWN", "active_context": "memory-bank/activeContext.md"}
 
     with patch(
-        "epic.core.arm_epic",
+        "loop.epic_transition.arm_epic",
         return_value=expected,
     ) as mock:
         res = arm_phase(tmp_path, "T-TEST-001", "UNKNOWN_PHASE", "back")
 
     mock.assert_called_once()
     assert res["ok"] is True
-
-
-# ---------------------------------------------------------------------------
-# test_arm_phase_deprecation_warn_from_legacy
-# ---------------------------------------------------------------------------
-def test_arm_phase_deprecation_warn_from_legacy(tmp_path):
-    import sys
-    hooks_path = str(ROOT / ".claude" / "hooks")
-    if hooks_path not in sys.path:
-        sys.path.insert(0, hooks_path)
-    from epic.core import arm_active_context_from_decompose  # noqa: PLC0415
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        # Call with invalid args so it fails fast after issuing warning
-        arm_active_context_from_decompose(tmp_path, None)
-
-    assert len(caught) >= 1
-    assert any(issubclass(w.category, DeprecationWarning) and "arm_active_context_from_decompose" in str(w.message) for w in caught)
 
 
 # ---------------------------------------------------------------------------
@@ -388,21 +398,6 @@ def test_promote_if_ready_analyze_finish_goes_implement(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# test_legacy_warn_emits_deprecation
-# ---------------------------------------------------------------------------
-def test_legacy_warn_emits_deprecation():
-    from loop.epic_transition import _legacy_warn  # noqa: PLC0415
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        _legacy_warn("old_caller_fn")
-
-    assert len(caught) == 1
-    assert issubclass(caught[0].category, DeprecationWarning)
-    assert "old_caller_fn" in str(caught[0].message)
-
-
-# ---------------------------------------------------------------------------
 # Phase Registry tests (s06)
 # ---------------------------------------------------------------------------
 def test_load_phase_registry_returns_all_phases():
@@ -500,7 +495,7 @@ def test_arm_phase_dsh_injects_preset(tmp_path, monkeypatch):
     def mock_arm_epic(cwd, epic_id, **kwargs):
         return {"ok": True, "armed_epic": epic_id, "kwargs": kwargs}
 
-    monkeypatch.setattr("epic.core.arm_epic", mock_arm_epic)
+    monkeypatch.setattr("loop.epic_transition.arm_epic", mock_arm_epic)
     monkeypatch.setenv("EPIC_RUNTIME", "dsh")
 
     res = arm_phase(tmp_path, "T-TEST-001", "IMPLEMENT", "back")
@@ -535,22 +530,17 @@ def test_registry_roles_covers_all():
     assert reg.get("roles") == ["back", "front", "integration"]
 
 
-def test_arm_phase_front_decompose(tmp_path, monkeypatch):
+def test_arm_phase_front_decompose(tmp_path):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
-    def mock_arm_pre(cwd, epic_id, role, phase, target_rel=None, decompose_rel=None):
-        active_ctx = tmp_path / "memory-bank" / "activeContext.md"
-        active_ctx.parent.mkdir(parents=True, exist_ok=True)
-        role_prefix = "FRONT" if role == "front" else "INTEG" if role == "integration" else "BACK"
-        active_ctx.write_text(f"## Handoff\n- Mode: {role_prefix} {phase}\n", encoding="utf-8")
-        return {"ok": True, "active_context": str(active_ctx), "role": role}
+    plan = tmp_path / "memory-bank" / "front" / "plan" / "T-FRONT-001" / "md" / "plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# plan\n", encoding="utf-8")
 
-    monkeypatch.setattr("epic.core.arm_pre_implement_context", mock_arm_pre)
-
-    res = arm_phase(tmp_path, "T-FRONT-001", "DECOMPOSE", "front", target_rel="memory-bank/front/plan/plan-T-FRONT-001.md")
+    res = arm_phase(tmp_path, "T-FRONT-001", "DECOMPOSE", "front", target_rel="memory-bank/front/plan/T-FRONT-001/md/plan.md")
     assert res.get("ok") is True
     assert res.get("role") == "front"
-    active_content = Path(res["handoff"]).read_text(encoding="utf-8")
+    active_content = Path(tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
     assert "FRONT DECOMPOSE" in active_content
 
 
@@ -564,7 +554,7 @@ def test_arm_phase_integ_implement(tmp_path, monkeypatch):
         active_ctx.write_text(f"## Handoff\n- Mode: {role_prefix} IMPLEMENT\n", encoding="utf-8")
         return {"ok": True, "active_context": str(active_ctx), "role": role}
 
-    monkeypatch.setattr("epic.core.arm_epic", mock_arm_epic)
+    monkeypatch.setattr("loop.epic_transition.arm_epic", mock_arm_epic)
 
     res = arm_phase(tmp_path, "T-INTEG-001", "IMPLEMENT", "integration")
     assert res.get("ok") is True
@@ -616,17 +606,18 @@ def test_load_phase_registry_invalid_yaml_raises(tmp_path):
         load_phase_registry(pack_id="dev-hub-software", cwd=tmp_path)
 
 
-def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> None:
-    from epic.core import arm_pre_implement_context, load_epic_state  # noqa: PLC0415
+def test_arm_phase_decompose_sets_armed_decompose(tmp_path: Path) -> None:
+    from loop.epic_transition import arm_phase  # noqa: PLC0415
+    from epic.core import load_epic_state  # noqa: PLC0415
 
     plan = tmp_path / "memory-bank" / "back" / "plan" / "T-030-demo" / "md" / "plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# plan\n", encoding="utf-8")
-    res = arm_pre_implement_context(
+    res = arm_phase(
         tmp_path,
         epic_id="T-030-demo",
-        role="back",
         phase="DECOMPOSE",
+        role="back",
         target_rel="memory-bank/back/plan/T-030-demo/md/plan.md",
     )
     assert res.get("ok") is True
@@ -641,8 +632,9 @@ def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> Non
     assert "decompose-T-030-demo/index.yaml" not in ac
 
 
-def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None:
-    from epic.core import arm_pre_implement_context, load_epic_state  # noqa: PLC0415
+def test_arm_phase_decompose_short_queue_id_uses_plan_stem(tmp_path: Path) -> None:
+    from loop.epic_transition import arm_phase  # noqa: PLC0415
+    from epic.core import load_epic_state  # noqa: PLC0415
 
     plan = (
         tmp_path
@@ -653,11 +645,11 @@ def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None
     )
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# plan\n", encoding="utf-8")
-    res = arm_pre_implement_context(
+    res = arm_phase(
         tmp_path,
         epic_id="T-HUB-023",
-        role="back",
         phase="DECOMPOSE",
+        role="back",
         target_rel="memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/md/plan.md",
     )
     assert res.get("ok") is True
@@ -671,8 +663,9 @@ def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None
     assert "NOT short queue id" in ac
 
 
-def test_arm_pre_implement_decompose_with_index_sets_armed_decompose(tmp_path: Path) -> None:
-    from epic.core import arm_pre_implement_context, load_epic_state  # noqa: PLC0415
+def test_arm_phase_decompose_with_index_sets_armed_decompose(tmp_path: Path) -> None:
+    from loop.epic_transition import arm_phase  # noqa: PLC0415
+    from epic.core import load_epic_state  # noqa: PLC0415
 
     plan = tmp_path / "memory-bank" / "back" / "plan" / "T-030-demo" / "md" / "plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
@@ -683,11 +676,11 @@ def test_arm_pre_implement_decompose_with_index_sets_armed_decompose(tmp_path: P
         "schema: epic-decompose-index/v1\nplan_id: T-030-demo\nsteps: []\n",
         encoding="utf-8",
     )
-    res = arm_pre_implement_context(
+    res = arm_phase(
         tmp_path,
         epic_id="T-030-demo",
-        role="back",
         phase="DECOMPOSE",
+        role="back",
         target_rel="memory-bank/back/plan/T-030-demo/md/plan.md",
     )
     assert res.get("ok") is True

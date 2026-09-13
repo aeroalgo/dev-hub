@@ -1,0 +1,63 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-088
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+epic_id: T-HUB-088-lifecycle-transition-fallback-purge
+date: '2026-09-11'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: 3980102b75a5c919d87c57451cc5fa7ee2fc860403e056171eaf8afea99e68d1
+verify_scope: full
+
+scope:
+  - "task: T-HUB-088"
+  - "epic: T-HUB-088-lifecycle-transition-fallback-purge"
+  - "steps: s01–s06"
+  - "files: harness/hooks/**, loop/**, memory-bank/**"
+
+ac_plus:
+  - "SC-001: 0 production callers legacy arm symbols"
+  - "SC-002: invalid/manual evidence cannot finish BUGFIX"
+  - "SC-003: valid phase transition behavior unchanged"
+  - "SC-004: no raw Markdown handoff fallback in runtime"
+
+ac_minus:
+  - "Нет production import/call для `arm_active_context_from_decompose`/`arm_pre_implement_context`."
+  - "Нет `authority == manual` как успешного verifier evidence."
+  - "Нет raw dict fallback из typed handoff parser."
+  - "Нет artifact-only finish path for active BUGFIX."
+  - "Нет тестов, которые закрепляют старый arm/handoff/BUGFIX contract."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> FAILED (7 failed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+
+issues:
+  - "Suite regression: 7 tests failed during full repository test suite execution"
+
+blockers:
+  - "suite_red: loop/tests/test_stop_gate.py::test_subagent_stop_increments_incomplete_without_verdict"
+  - "suite_red: harness/hooks/tests/test_posttool_dispatch.py::test_posttool_agent_evidence_recording"
+  - "suite_red: harness/hooks/tests/test_gate_boundaries.py::test_subagent_stop_validates_transcript_fence_over_advisory_pass"
+  - "suite_red: loop/tests/test_stop_gate.py::test_bugfix_finish_stops_before_next_session_qa_gates"
+  - "suite_red: harness/hooks/tests/test_session_start_identity.py::test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt"
+  - "suite_red: loop/tests/test_loop_shell_halt_parity.py::test_runtime_adapter_preparation_failure_halts_without_session"
+  - "suite_red: loop/tests/test_verify_demote_no_promote.py::test_demoted_pass_not_promoted_by_transport_bind_report"
+
+fix_plan:
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_subagent_stop_increments_incomplete_without_verdict"
+  - "BACK BUGFIX Fix failing suite test in harness/hooks/tests/test_posttool_dispatch.py::test_posttool_agent_evidence_recording"
+  - "BACK BUGFIX Fix failing suite test in harness/hooks/tests/test_gate_boundaries.py::test_subagent_stop_validates_transcript_fence_over_advisory_pass"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_bugfix_finish_stops_before_next_session_qa_gates"
+  - "BACK BUGFIX Fix failing suite test in harness/hooks/tests/test_session_start_identity.py::test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_loop_shell_halt_parity.py::test_runtime_adapter_preparation_failure_halts_without_session"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_verify_demote_no_promote.py::test_demoted_pass_not_promoted_by_transport_bind_report"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

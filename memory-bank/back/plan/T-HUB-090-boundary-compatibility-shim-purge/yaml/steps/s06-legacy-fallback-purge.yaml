@@ -1,0 +1,309 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт
+  удалены или переписаны; Kind I instructions переписаны; suite green без restore legacy.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+    - AC+ #1
+    - AC+ #2
+    - AC+ #3
+    - AC+ #4
+    - AC+ #5
+    - AC− #1
+    - AC− #2
+    - AC− #3
+    - AC− #4
+    - AC− #5
+  nouns:
+    - harness.hooks.agent_registry._LEGACY_OVERLAYS
+    - loop.board_sync.cli._dispatch_legacy
+    - loop.board_sync.cli._print_result_legacy
+    - loop.runtime_adapters.common.get_adapter_for_runtime
+    - harness.hooks.session_resilience.ABORT_PATTERNS
+    - harness.hooks.epic_yaml.validate_shard_yaml
+    - harness.hooks.epic_yaml.checkpoint_prompt_lines
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Every managed agent has canonical overlay metadata before _LEGACY_OVERLAYS is removed."
+    - "Board CLI canonical commands no longer route through an unused legacy printer/dispatcher."
+    - "Deleted aliases have zero production, test-support and configuration references, or are explicitly retained with owner and reason in the plan."
+    - "PATH/npx, LLM secondary model, runtime configuration failure and DSH alias behavior are not accidentally removed."
+    - "Canonical runtime/agent/board tests replace old alias tests."
+    - "Нет hardcoded legacy agent defaults for agents with metadata SOT."
+    - "Нет dead public alias definitions without caller proof."
+    - "Нет legacy CLI handler silently reachable from canonical commands."
+    - "Operational fallback is not converted into silent success or removed without replacement."
+    - "Нет obsolete tests importing deleted symbols."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/md/plan.md:143-226"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  files:
+    - harness/hooks/agent_registry.py
+    - loop/board_sync/cli.py
+    - loop/runtime_adapters/common.py
+    - harness/hooks/session_resilience.py
+    - harness/hooks/epic_yaml.py
+
+as_built:
+  - "Шаги s01-s05 зафиксировали контракты, перевели агентские оверлеи на frontmatter, CLI на единый диспетчер, runtime на typed registry, и удалили устаревшие алиасы"
+
+delta:
+  - "Выполнить полный sunset inventory scan по всем строкам sunset A/B/C/I"
+  - "Убедиться в отсутствии живых вызовов удаленных символов и fallback-веток"
+  - "Запустить полный регрессионный сьют тестов по всем затронутым модулям"
+
+sunset_inventory:
+  - symbol: harness/hooks/agent_registry.py:_LEGACY_OVERLAYS
+    kind: A
+    replacement: agent frontmatter overlay metadata
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero occurrences of _LEGACY_OVERLAYS
+  - symbol: harness/hooks/agent_registry.py:_legacy_or_default default field merge
+    kind: A
+    replacement: strict metadata parsing and dataclass defaults
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: zero legacy map merge logic
+  - symbol: loop/board_sync/cli.py:_print_result_legacy
+    kind: A
+    replacement: canonical result printers
+    policy: delete in-epic
+    rg_scope: loop/board_sync/
+    expect: zero occurrences of _print_result_legacy
+  - symbol: loop/board_sync/cli.py:_dispatch_legacy
+    kind: A
+    replacement: canonical CLI dispatcher
+    policy: delete in-epic
+    rg_scope: loop/board_sync/
+    expect: zero occurrences of _dispatch_legacy
+  - symbol: loop/runtime_adapters/common.py:_RUNTIME_ALIASES unreferenced aliases
+    kind: A
+    replacement: runtime registry
+    policy: delete in-epic
+    rg_scope: loop/runtime_adapters/
+    expect: no unreferenced aliases
+  - symbol: loop/runtime_adapters/common.py module attribute scan fallback
+    kind: A
+    replacement: registry-owned typed adapter
+    policy: delete in-epic
+    rg_scope: loop/runtime_adapters/
+    expect: zero dir(obj) scanning
+  - symbol: harness/hooks/session_resilience.py:ABORT_PATTERNS
+    kind: A
+    replacement: _FATAL_ABORT_PATTERNS and _TRANSIENT_ABORT_PATTERNS
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero occurrences in production code
+  - symbol: loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown
+    kind: A
+    replacement: handoff_mode_from_text
+    policy: delete in-epic
+    rg_scope: loop/schemas/
+    expect: zero callers across codebase
+  - symbol: harness/hooks/epic_yaml.py:checkpoint_prompt_lines
+    kind: A
+    replacement: step_context_prompt_lines
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero callers in production code
+  - symbol: harness/hooks/epic_yaml.py:validate_shard_yaml
+    kind: A
+    replacement: validate_shard_yaml_full
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero callers in production code
+  - symbol: old board command forms with no supported caller
+    kind: B
+    replacement: canonical CLI commands
+    policy: delete in-epic
+    rg_scope: loop/board_sync/
+    expect: zero unreachable dispatch routes
+  - symbol: old DSH tool names
+    kind: B
+    replacement: lowercase canonical tools
+    policy: retain until supported client scan is zero
+    rg_scope: harness/ loop/
+    expect: retained with explicit classification
+  - symbol: missing agent metadata -> hardcoded legacy overlay
+    kind: C
+    replacement: metadata validation error / fail-closed
+    policy: delete in-epic
+    rg_scope: harness/hooks/agent_registry.py
+    expect: fail-closed on missing metadata
+  - symbol: registry miss -> blind module scan
+    kind: C
+    replacement: typed registry error / fail-closed
+    policy: delete in-epic
+    rg_scope: loop/runtime_adapters/common.py
+    expect: explicit ValueError on unknown runtime
+  - symbol: dead API alias fallback
+    kind: C
+    replacement: canonical functions
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero dead alias definitions
+  - symbol: PATH/npx/LLM operational recovery
+    kind: C
+    replacement: bounded operational resolver
+    policy: keep with explicit non-legacy classification
+    rg_scope: loop/runtime_adapters/
+    expect: retained as operational resilience
+  - symbol: docs/instructions naming old board route or agent default map
+    kind: I
+    replacement: metadata/registry canonical route
+    policy: delete in-epic
+    rg_scope: harness/instructions/ .cursor/rules/ docs/
+    expect: zero references to legacy routes or maps
+
+deletes:
+  - "harness/hooks/agent_registry.py:_LEGACY_OVERLAYS"
+  - "loop/board_sync/cli.py:_print_result_legacy"
+  - "loop/board_sync/cli.py:_dispatch_legacy"
+  - "loop/runtime_adapters/common.py:module attribute scan fallback"
+  - "harness/hooks/session_resilience.py:ABORT_PATTERNS"
+  - "harness/hooks/epic_yaml.py:validate_shard_yaml"
+  - "harness/hooks/epic_yaml.py:checkpoint_prompt_lines"
+  - "loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown"
+
+out_of_scope:
+  - "DSH lowercase canonical tools and tool-name compatibility shims while supported clients exist (FR-006)"
+  - "Operational environment fallbacks (which-dsh, which-codex, LLM secondary model) (FR-005, FR-006)"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: _LEGACY_OVERLAYS
+    command: 'rg -n "_LEGACY_OVERLAYS" harness/hooks/agent_registry.py || true'
+    expect: no matches
+  - id: inv-a-02
+    kind: A
+    symbol: _print_result_legacy
+    command: 'rg -n "_print_result_legacy" loop/board_sync/cli.py || true'
+    expect: no matches
+  - id: inv-a-03
+    kind: A
+    symbol: _dispatch_legacy
+    command: 'rg -n "_dispatch_legacy" loop/board_sync/cli.py || true'
+    expect: no matches
+  - id: inv-a-04
+    kind: A
+    symbol: dir(obj) adapter scan
+    command: 'rg -n "for name in dir\(obj\)" loop/runtime_adapters/common.py || true'
+    expect: no matches
+  - id: inv-a-05
+    kind: A
+    symbol: ABORT_PATTERNS alias
+    command: 'rg -n "^ABORT_PATTERNS\s*=" harness/hooks/session_resilience.py || true'
+    expect: no matches
+  - id: inv-a-06
+    kind: A
+    symbol: validate_shard_yaml alias
+    command: 'rg -n "def validate_shard_yaml\(" harness/hooks/epic_yaml.py || true'
+    expect: no matches
+  - id: inv-a-07
+    kind: A
+    symbol: checkpoint_prompt_lines alias
+    command: 'rg -n "def checkpoint_prompt_lines\(" harness/hooks/epic_yaml.py || true'
+    expect: no matches
+  - id: inv-b-01
+    kind: B
+    symbol: old board CLI dispatch
+    command: 'rg -n "_status_or_launch" loop/board_sync/cli.py || true'
+    expect: clean canonical dispatcher
+  - id: inv-c-01
+    kind: C
+    symbol: blind runtime module fallback
+    command: 'rg -n "endswith\(\"Adapter\"\)" loop/runtime_adapters/common.py || true'
+    expect: no matches
+  - id: inv-i-01
+    kind: I
+    symbol: instructions referencing deleted symbols
+    command: 'rg -n "_LEGACY_OVERLAYS|_print_result_legacy|checkpoint_prompt_lines" harness/instructions/ .cursor/rules/ || true'
+    expect: no matches
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по каждой строке sunset_inventory kind=A:
+      0 prod callers, 0 dead fallback functions, 0 live imports of deleted symbols.
+    verify: |
+      rg -n "_LEGACY_OVERLAYS|_print_result_legacy|_dispatch_legacy|^ABORT_PATTERNS\s*=|def checkpoint_prompt_lines|def validate_shard_yaml" harness/hooks/ loop/ --glob "!*.md" || true
+  - id: cp2
+    criterion: |
+      Kind B — entrypoint inventory: board CLI и runtime entrypoints используют только канонические маршруты.
+    verify: |
+      bin/pytest loop/tests/test_board_sync_cli.py loop/tests/test_runtime_registry.py -q
+  - id: cp3
+    criterion: |
+      Kind C — anti-fallback rg: слепое сканирование модулей и fallback на hardcoded map отсутствуют.
+    verify: |
+      rg -n "dir\(obj\)|_LEGACY_OVERLAYS" harness/hooks/agent_registry.py loop/runtime_adapters/common.py || true
+  - id: cp4
+    criterion: |
+      Kind I — instruction surfaces: инструкции и правила не содержат ссылок на удаленные алиасы и маршруты.
+    verify: |
+      rg -n "_LEGACY_OVERLAYS|checkpoint_prompt_lines" harness/instructions/ .cursor/rules/ || true
+  - id: cp5
+    criterion: |
+      Obsolete tests на старый контракт удалены или переписаны; suite green без restore legacy.
+    verify: |
+      bin/pytest loop/tests/test_agent_registry.py loop/tests/test_board_sync_cli.py loop/tests/test_codex_runtime_adapter.py loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py -q
+  - id: cp6
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line -k 'agent_registry or board_sync or codex_runtime or session_wrapper or epic_yaml'"
+
+verify: []
+tdd: []

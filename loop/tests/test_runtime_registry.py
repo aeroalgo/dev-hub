@@ -88,3 +88,39 @@ def test_registry_malformed_yaml_raises(tmp_path: Path):
     corrupt_yaml.write_text("::invalid yaml::")
     with pytest.raises(InvalidRuntimeConfig):
         load_registry(corrupt_yaml)
+
+
+def test_get_adapter_for_runtime_canonical_adapters():
+    from loop.runtime_adapters.common import get_adapter_for_runtime
+    from loop.runtime_adapters.claude import ClaudeAdapter
+    from loop.runtime_adapters.dsh import DshAdapter
+    from loop.runtime_adapters.codex import CodexAdapter
+
+    assert isinstance(get_adapter_for_runtime("claude"), ClaudeAdapter)
+    assert isinstance(get_adapter_for_runtime("claude-code"), ClaudeAdapter)
+    assert isinstance(get_adapter_for_runtime("dsh"), DshAdapter)
+    assert isinstance(get_adapter_for_runtime("codex"), CodexAdapter)
+
+
+def test_get_adapter_for_runtime_purged_aliases_fail_closed():
+    from loop.runtime_adapters.common import get_adapter_for_runtime
+
+    with pytest.raises(ValueError, match="Unknown runtime: claude_cli"):
+        get_adapter_for_runtime("claude_cli")
+    with pytest.raises(ValueError, match="Unknown runtime: claude-cli"):
+        get_adapter_for_runtime("claude-cli")
+
+
+def test_get_adapter_for_runtime_no_blind_dir_scan():
+    import types
+    from unittest.mock import patch
+    from loop.runtime_adapters.common import get_adapter_for_runtime
+
+    class RandomFallbackAdapter:
+        pass
+
+    mock_mod = types.ModuleType("mock_mod")
+    mock_mod.RandomFallbackAdapter = RandomFallbackAdapter
+    with patch("loop.runtime_adapters.common.get_runtime_adapter", return_value=mock_mod):
+        with pytest.raises(ValueError, match="No RuntimeAdapter implementation found in adapter module for runtime 'claude'"):
+            get_adapter_for_runtime("claude")

@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s01 — Cadence schema and SoT API (load/save, fail-closed, initial cadence.yaml)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать типизированную схему roadmap-cadence/v1 в loop/schemas/roadmap_cadence.py,
+  зарегистрировать её в loop/schemas/__init__.py, реализовать fail-closed API загрузки
+  и атомарного сохранения SoT в loop/roadmap_cadence.py, проинициализировать
+  memory-bank/back/roadmap/cadence.yaml и покрыть базовыми юнит-тестами.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - NFR-001
+    - US-001
+  nouns:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - memory-bank/back/roadmap/cadence.yaml
+    - RoadmapCadenceState
+    - CadencePhase
+    - load_cadence
+    - save_cadence
+  layout_paths:
+    - loop/schemas/roadmap_cadence.py
+    - loop/schemas/__init__.py
+    - loop/roadmap_cadence.py
+    - memory-bank/back/roadmap/cadence.yaml
+    - loop/tests/test_roadmap_cadence.py
+  ac_quotes:
+    - "US-001: Typed cadence load/save (P0) — bad YAML fail-closed"
+    - "FR-001: Schema + path cadence.yaml"
+    - "FR-002: API load/save/on_feature_done/on_non_feature_done"
+    - "NFR-001: Fail-closed corrupt SoT"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md:35-85"
+
+context:
+  consumes:
+    - loop/schemas/
+    - memory-bank/back/roadmap/queue.yaml
+  produces:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - memory-bank/back/roadmap/cadence.yaml
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr--nfr
+    - plan.md#target-layout
+  files:
+    - loop/schemas/roadmap_cadence.py
+    - loop/schemas/__init__.py
+    - loop/roadmap_cadence.py
+    - memory-bank/back/roadmap/cadence.yaml
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "loop/schemas содержит Pydantic-модели схем артефактов (active_context.py, bugfix_queue.py, etc.)"
+  - "memory-bank/back/roadmap/queue.yaml содержит очередь эпиков roadmap-queue/v2 без отдельного cadence SoT"
+
+delta:
+  - "Создать loop/schemas/roadmap_cadence.py со схемой roadmap-cadence/v1 (CadencePhase, RoadmapCadenceState)"
+  - "Экспортировать модель в loop/schemas/__init__.py"
+  - "Создать модуль loop/roadmap_cadence.py с методами load_cadence, save_cadence, canon_cadence_path"
+  - "Создать канонический файл memory-bank/back/roadmap/cadence.yaml с начальным состоянием (phase: idle, counter: 0, every_n: 2, pair_ids: [])"
+  - "Создать тесты loop/tests/test_roadmap_cadence.py для проверки load/save и fail-closed при невалидном YAML/схеме"
+
+deletes: []
+
+out_of_scope:
+  - "Интеграция с очередью и хуками done -> s02, s03"
+  - "Блокировка advance -> s04"
+  - "Исполнение блока REPLAN/Refactor -> follow_up: T-HUB-093-roadmap-cadence-replan-refactor-block"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Схема roadmap-cadence/v1 и модель RoadmapCadenceState валидируют поля phase, counter, every_n, pair_ids"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_schema_validation -q"
+  - id: cp2
+    criterion: "load_cadence возвращает валидное состояние из memory-bank/back/roadmap/cadence.yaml, а save_cadence атомарно записывает YAML"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_load_save -q"
+  - id: cp3
+    criterion: "load_cadence падает (fail-closed) при повреждённом YAML или неизвестной фазе"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_fail_closed_on_corrupt -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+tdd: []

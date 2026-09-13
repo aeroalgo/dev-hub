@@ -124,3 +124,22 @@ def test_legacy_manifest_is_read_only_and_not_autonomous() -> None:
     assert result["autonomous"] is False
     assert result["manifest"]["schema"] == "loop-dag/v2"
     assert any(item["code"] == "legacy_gap_inference" for item in result["diagnostics"])
+
+
+def test_validate_manifest_rejects_v1_schema_fail_closed() -> None:
+    legacy = {
+        "schema": "loop-dag/v1",
+        "pipeline_id": "portal",
+        "nodes": [
+            {
+                "id": "back",
+                "role_dir": "back",
+                "decompose": "memory-bank/back/plan/decompose-demo/index.md",
+                "depends_on": [],
+            }
+        ],
+    }
+    result = validate_manifest(legacy)
+    assert result["ok"] is False
+    codes = {item["code"] for item in result["diagnostics"]}
+    assert "schema_invalid" in codes

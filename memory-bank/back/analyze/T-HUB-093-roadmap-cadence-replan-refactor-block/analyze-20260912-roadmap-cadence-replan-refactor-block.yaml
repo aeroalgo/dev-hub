@@ -1,0 +1,130 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+slug: roadmap-cadence-replan-refactor-block
+date: '2026-09-12'
+status: complete
+index_fingerprint: sha256:7315f0a1ad4d2f47d6087076176bdd37fb6e417197979ec9a655b90c68e68000
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: REPLAN arms/skips pair ids (P0) — both ids terminal before refactor
+- requirement_id: US-002
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: refactor blocked early (P0) — error if phase=replan
+- requirement_id: US-003
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: refactor epic or noop (P0) — kind refactor XOR noop evidence
+- requirement_id: US-004
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: no neighbor carry steps (P0) — AC− / rg policy in rules
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: '`advance_replan` / record skip|complete per pair id'
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: transition to refactor only when pair done
+- requirement_id: FR-003
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: '`start_refactor_phase` upsert+arm or noop'
+- requirement_id: FR-004
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: mark refactor epic done → handoff phase for 094 (resync)
+- requirement_id: FR-005
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Wire roadmap_advance to arm REPLAN/PLAN REFACTOR commands via
+    activeContext identity
+- requirement_id: FR-006
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Tests order + skip evidence
+- requirement_id: FR-007
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Kind I workflows replan + plan-refactor
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: cannot arm refactor in replan; after pair skip/complete → refactor
+    or noop; tests enforce order; rules state REPLAN→Refactor.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: no refactor-before-replan path; no replan-of-replan; no carry
+    FR steps; no implementing from-queue resync here (094).
+- requirement_id: TM-01
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: refactor before replan done → fail
+- requirement_id: TM-02
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: both skipped → noop refactor allowed
+- requirement_id: TM-03
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: refactor kind not counted as feature (092 invariant still holds)
+- requirement_id: TM-04
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: rules forbid window/carry
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

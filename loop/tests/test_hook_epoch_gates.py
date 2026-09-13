@@ -106,14 +106,14 @@ def test_record_verdict_rejects_stale_and_keeps_diagnostic() -> None:
     assert state["verify_evidence"]["diagnostic"] == "verdict_stale"
 
 
-def test_manual_evidence_is_labeled_non_authoritative() -> None:
+def test_manual_evidence_is_rejected() -> None:
     lib = _load_lib()
     state = {"gate_identity": {"session_id": "s", "step": "s12", "projection_hash": "h", "phase_epoch": "e"}}
     evidence = lib.verdict_evidence({"authority": "manual"}, "PASS")
     matched, diagnostic = lib.record_verdict(state, "verify", "PASS", evidence)
-    assert (matched, diagnostic) == (True, "manual_fallback_non_authoritative")
-    assert state["verify_verdict"] == "PASS"
-    assert state["verify_evidence"]["diagnostic"] == "manual_fallback_non_authoritative"
+    assert matched is False
+    assert diagnostic == "manual_authority_rejected"
+    assert state.get("verify_verdict") is None
 
 
 def test_verdict_dedupe_key_allows_fail_then_pass_retry() -> None:

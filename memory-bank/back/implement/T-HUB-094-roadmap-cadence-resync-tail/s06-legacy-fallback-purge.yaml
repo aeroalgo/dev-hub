@@ -1,0 +1,78 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s06 — legacy-fallback-purge — sunset inventory scan, cleanup and full cadence
+  E2E
+status: completed
+date: '2026-09-13'
+decompose_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+- 'Confirmed sunset inventory targets: Kind A, B, C, I'
+- Verified grep_control commands yield 0 bypasses across loop/ and harness/
+- Validated full cadence lifecycle E2E execution
+gaps:
+  status: none
+done:
+- Conducted sunset inventory scan across categories A, B, C, I verifying zero bypasses
+- Validated fail-closed resume gate on HIGH drift without resync evidence
+- Verified from-queue reconcile coverage across entire roadmap queue
+- Implemented and verified comprehensive E2E test for complete cadence lifecycle (2
+  features -> replan -> refactor -> resync HIGH -> block -> resync -> reset idle ->
+  next feature)
+files:
+- loop/roadmap_cadence.py
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+wire_complete:
+  call_sites:
+  - loop/roadmap_queue.py:roadmap_advance
+  - loop/roadmap_cadence.py:record_resync_evidence
+  enforce_path: loop/roadmap_queue.py
+  dual_path_rg: rg -n "allow_resume_unverified|ignore_high_drift" loop/ -> 0 matches
+  instruction_rg: test_advance_blocked_resync and test_full_cadence_lifecycle_e2e
+    in loop/tests/test_roadmap_cadence.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_blocked_resync -q`
+  — 1 passed'
+- '`bin/pytest loop/tests/test_reconcile_spec.py -q` — 20 passed'
+- '`bin/pytest loop/tests/test_roadmap_cadence.py -k test_full_cadence_lifecycle_e2e
+  -q` — 1 passed'
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_full_cadence_lifecycle_e2e
+  -q
+- bin/pytest loop/tests/test_reconcile_spec.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'PASS: test_advance_blocked_resync'
+- 'PASS: test_reconcile_spec'
+- 'PASS: test_full_cadence_lifecycle_e2e'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A/B — feature advance строго блокируется при наличии HIGH drift
+    без resync evidence.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'Kind C — reconcile from-queue валидирует всю очередь roadmap.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'Kind I / E2E — сквозной тест полного цикла: block_done -> HIGH -> block
+    -> resync -> feature advance.
+
+    '
+  status: done
+resume_from: completed

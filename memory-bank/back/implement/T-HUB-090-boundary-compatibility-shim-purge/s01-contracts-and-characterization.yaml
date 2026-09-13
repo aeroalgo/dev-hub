@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s01 — Characterize agent overlay completeness, board CLI canonical dispatcher,
+  runtime registry adapter lookup, and dead alias inventory IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s01-contracts-and-characterization.yaml
+skills_used: []
+discovery:
+- Characterized canonical agent metadata frontmatter and overlay contract across all
+  12 managed agents.
+- Characterized canonical board sync CLI dispatching (sync, status, arm, loop, arm-loop)
+  and legacy dispatch helper behavior.
+- Characterized typed runtime adapter lookup and fail-closed behavior for unknown
+  runtime IDs.
+- Characterized dead aliases (ABORT_PATTERNS in session resilience, validate_shard_yaml
+  and checkpoint_prompt_lines in epic_yaml).
+gaps:
+  status: none
+done:
+- Added tests verifying all managed agents in .claude/agents have explicit frontmatter
+  metadata and overlay contracts in loop/tests/test_agent_registry.py.
+- Added tests for canonical subcommand dispatch and help routing in loop/tests/test_board_sync_cli.py.
+- Added tests for typed runtime adapter lookup and unknown runtime fail-closed behavior
+  in loop/tests/test_codex_runtime_adapter.py.
+- Added inventory characterization tests for ABORT_PATTERNS in loop/tests/test_session_wrapper.py
+  and dead aliases in harness/hooks/tests/test_epic_yaml.py.
+files:
+- loop/tests/test_agent_registry.py
+- loop/tests/test_board_sync_cli.py
+- loop/tests/test_codex_runtime_adapter.py
+- loop/tests/test_session_wrapper.py
+- harness/hooks/tests/test_epic_yaml.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_agent_registry.py -k 'test_managed_agents_have_metadata
+  or test_overlay' -q
+- bin/pytest loop/tests/test_board_sync_cli.py -k 'test_main or test_dispatch' -q
+- bin/pytest loop/tests/test_codex_runtime_adapter.py loop/tests/test_runtime_registry.py
+  -q
+- bin/pytest loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py
+  -q
+integration_check:
+- Managed agent registry loads overlay properties from frontmatter without reliance
+  on legacy fallback.
+- Board CLI routes subcommands to canonical handlers and reports errors cleanly.
+- Runtime registry provides typed adapters and rejects unknown runtimes.
+- Session resilience and epic_yaml dead aliases are identified and characterized.
+grep_control:
+- back: rg -n 'def test_managed_agents_have_metadata|def test_dispatch_all_subcommands|def
+    test_get_adapter_for_runtime' loop/tests/
+  front: n/a
+verification_results:
+- 'cp1: bin/pytest loop/tests/test_agent_registry.py -k test_managed_agents_have_metadata
+  or test_overlay passed.'
+- 'cp2: bin/pytest loop/tests/test_board_sync_cli.py -k test_main or test_dispatch
+  passed.'
+- 'cp3: bin/pytest loop/tests/test_codex_runtime_adapter.py loop/tests/test_runtime_registry.py
+  passed.'
+- 'cp4: bin/pytest loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py
+  passed.'
+checkpoints:
+- id: cp1
+  criterion: Тесты полноты canonical agent metadata frontmatter и overlay контракта
+    добавлены и готовы к проверке
+  status: done
+  done_at: '2026-09-12T02:35:00Z'
+- id: cp2
+  criterion: Тесты канонической диспетчеризации board sync CLI зафиксированы
+  status: done
+  done_at: '2026-09-12T02:35:10Z'
+- id: cp3
+  criterion: Тесты typed runtime adapter lookup и fail-closed поведения зафиксированы
+  status: done
+  done_at: '2026-09-12T02:35:20Z'
+- id: cp4
+  criterion: Инвентарные тесты dead aliases и operational fallback классификации добавлены
+  status: done
+  done_at: '2026-09-12T02:35:30Z'
+resume_from: cp1

@@ -9,6 +9,7 @@ alwaysApply: false
 - без эпика: `memory-bank/back/qa/qa-YYYYMMDD-<slug>.yaml`  
 - **FORBIDDEN:** дубль `qa.yaml` + `qa-YYYYMMDD-*` с одним содержимым (один файл на прогон) 
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/qa/epic-step.yaml` (`epic-qa/v1`)
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — suite green ≠ PASS при dual path / fail `sot_enforce_scan` / нет behavior smoke на gate FR
 
 ## Gates (обязательные — узкий путь)
 

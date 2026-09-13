@@ -7,6 +7,7 @@ alwaysApply: false
 **Канон (проза/таблицы):** `workflow-decompose.mdc` · behavior-first · legacy-fallback-cleanup  
 **Артефакт:** `memory-bank/back/plan/<plan_id>/yaml/decompose-index.yaml` + `yaml/steps/sNN-*.yaml` (+ `md/decompose-index.md`)  
 **`<plan_id>` HARD:** stem plan **со descriptive slug** (`plan/<plan_id>/md/plan.md`) — @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — sole-path FR → wire→enforce→purge; boundary sNN: `wire_complete_required: true` + negative verify
 
 ## PASS checklist
 

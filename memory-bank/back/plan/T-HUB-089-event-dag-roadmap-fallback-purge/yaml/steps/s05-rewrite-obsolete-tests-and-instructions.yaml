@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: Rewrite obsolete tests, fixtures, and instruction surfaces for event, DAG, and roadmap v2 contracts
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать или удалить устаревшие тесты, которые проверяли автоматическую адаптацию устаревших v1 структур
+  (в `test_event_legacy_adapter.py`, `test_dag_manifest.py`, `test_dag_generate.py`, `test_t035_invariants.py`),
+  перевести их на assert отказа (fail-closed) и обновить документацию/runbooks, удалив упоминания Markdown roadmap mirror.
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - test_event_legacy_adapter.py
+    - test_dag_manifest.py
+    - test_dag_generate.py
+    - test_roadmap_queue.py
+    - loop/WORKFLOW.md
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s05-rewrite-obsolete-tests-and-instructions.yaml
+  ac_quotes:
+    - "Tests retain valid v2 and historical ignore behavior, but delete adapter success tests when adapter is removed."
+    - "Нет тестов, которые требуют v1 migration as runtime success."
+    - "roadmap docs naming Markdown mirror as SoT -> v2 queue YAML."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:111-119"
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:169-175"
+
+context:
+  consumes:
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_dag_manifest.py
+    - loop/tests/test_dag_generate.py
+    - loop/tests/test_t035_invariants.py
+    - loop/tests/test_dag_canary.py
+    - loop/WORKFLOW.md
+  produces:
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_dag_manifest.py
+    - loop/tests/test_dag_generate.py
+    - loop/tests/test_t035_invariants.py
+    - loop/tests/test_dag_canary.py
+    - loop/WORKFLOW.md
+  plan_refs:
+    - FR-007
+    - SC-002
+    - SC-003
+    - SC-004
+  files:
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_dag_manifest.py
+    - loop/tests/test_dag_generate.py
+    - loop/tests/test_t035_invariants.py
+    - loop/tests/test_dag_canary.py
+    - loop/WORKFLOW.md
+
+as_built:
+  - "Тесты в test_event_legacy_adapter.py и test_dag_manifest.py проверяют успешную адаптацию v1 в live pipeline"
+  - "loop/WORKFLOW.md содержит устаревшие ссылки на reflection_done и markdown roadmap mirror"
+
+delta:
+  - "Переписать test_event_legacy_adapter.py для проверки явного offline-интерфейса либо удалить неиспользуемые кейсы"
+  - "Переписать test_dag_manifest.py, test_dag_generate.py, test_t035_invariants.py для проверки fail-closed отказа v1 манифестов"
+  - "Обновить loop/WORKFLOW.md и сопутствующую документацию, зафиксировав v2 YAML SoT"
+
+deletes: []
+
+out_of_scope:
+  - "Финальный sunset scan и удаление кода (шаг s06)"
+  - "Full regression suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Тесты на события и DAG проверяют валидные v2 контракты и отказ устаревших форматов
+    verify: "bin/pytest loop/tests/test_event_schema.py loop/tests/test_dag_manifest.py loop/tests/test_t035_invariants.py -q"
+  - id: cp2
+    criterion: Инструкции и документация WORKFLOW.md не содержат ссылок на Markdown mirror как источник истины
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q"
+
+verify: []
+tdd: []

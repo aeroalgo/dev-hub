@@ -23,45 +23,6 @@ _MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$")
 _ENV_TOKEN_RE = re.compile(r"^[A-Z][A-Z0-9_-]{0,63}$")
 _MODEL_SUFFIXES = ("_MODEL_CHAT", "_MODEL_LOOP", "_MODEL", "_ENABLED")
 
-_LEGACY_OVERLAYS = {
-    "explorer": {
-        "managed": True,
-        "mode": "search",
-        "requires_model": False,
-        "default_loop": True,
-        "default_chat": False,
-        "verdict": "none",
-        "allow_worktree": False,
-    },
-    "sunset-inventory": {
-        "managed": True,
-        "mode": "search",
-        "requires_model": False,
-        "default_loop": True,
-        "default_chat": False,
-        "verdict": "none",
-        "allow_worktree": False,
-    },
-    "verify": {
-        "managed": True,
-        "mode": "gate",
-        "requires_model": True,
-        "default_loop": True,
-        "default_chat": False,
-        "verdict": "pass-fail",
-        "allow_worktree": False,
-    },
-    "reviewer": {
-        "managed": True,
-        "mode": "gate",
-        "requires_model": True,
-        "default_loop": True,
-        "default_chat": False,
-        "verdict": "pass-blocked-fail",
-        "allow_worktree": False,
-    },
-}
-
 
 @dataclass(frozen=True)
 class AgentOverlay:
@@ -254,24 +215,21 @@ def _read_frontmatter(path: Path) -> tuple[dict[str, object] | None, str | None]
     return parsed, None
 
 
-def _legacy_or_default(agent_id: str, metadata: object) -> tuple[AgentOverlay | None, str | None]:
-    if metadata is None and agent_id in _LEGACY_OVERLAYS:
-        metadata = _LEGACY_OVERLAYS[agent_id]
+def _parse_overlay(metadata: object) -> tuple[AgentOverlay | None, str | None]:
     if metadata is None:
-        metadata = {}
+        return AgentOverlay(), None
     if not isinstance(metadata, dict):
         return None, "overlay_invalid"
     allowed = {"managed", "mode", "requires_model", "default_loop", "default_chat", "verdict", "allow_worktree", "max_runtime_sec"}
     if set(metadata) - allowed:
         return None, "overlay_field_invalid"
-    legacy = _LEGACY_OVERLAYS.get(agent_id, {})
-    managed = metadata.get("managed", legacy.get("managed", False))
-    mode = metadata.get("mode", legacy.get("mode", "optional"))
-    requires_model = metadata.get("requires_model", legacy.get("requires_model", bool(managed)))
-    default_loop = metadata.get("default_loop", legacy.get("default_loop", bool(managed)))
-    default_chat = metadata.get("default_chat", legacy.get("default_chat", False))
-    verdict = metadata.get("verdict", legacy.get("verdict", "none"))
-    allow_worktree = metadata.get("allow_worktree", legacy.get("allow_worktree", False))
+    managed = metadata.get("managed", False)
+    mode = metadata.get("mode", "optional")
+    requires_model = metadata.get("requires_model", bool(managed))
+    default_loop = metadata.get("default_loop", bool(managed))
+    default_chat = metadata.get("default_chat", False)
+    verdict = metadata.get("verdict", "none")
+    allow_worktree = metadata.get("allow_worktree", False)
     max_runtime_sec = metadata.get("max_runtime_sec")
     if not all(isinstance(value, bool) for value in (managed, requires_model, default_loop, default_chat, allow_worktree)):
         return None, "overlay_field_invalid"
@@ -353,7 +311,7 @@ def discover_registry(
             if filename_id is None or filename_id.replace("-", "_") != agent_id.replace("-", "_"):
                 diagnostics.append(RegistryDiagnostic("definition_invalid", agent_id))
                 continue
-        overlay, overlay_error = _legacy_or_default(agent_id, metadata.get("overlay"))
+        overlay, overlay_error = _parse_overlay(metadata.get("overlay"))
         if overlay_error:
             diagnostics.append(RegistryDiagnostic("definition_invalid", agent_id))
             continue

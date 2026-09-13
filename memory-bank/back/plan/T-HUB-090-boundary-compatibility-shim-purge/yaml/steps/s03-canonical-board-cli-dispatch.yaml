@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: Consolidate board sync CLI into single canonical command dispatcher and delete legacy printers and handlers
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Объединить маршрутизацию команд в loop/board_sync/cli.py в единый канонический диспетчер,
+  удалить мертвую функцию _print_result_legacy и устаревший маршрутизатор _dispatch_legacy,
+  и гарантировать, что все поддерживаемые команды (sync, status, arm, loop, arm-loop)
+  выполняются через прямой вызов обработчиков с явным fail-closed при неподдерживаемой команде.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - SC-002
+    - SC-003
+    - US-002
+    - AC+ #2
+    - AC− #3
+  nouns:
+    - loop.board_sync.cli._print_result_legacy
+    - loop.board_sync.cli._dispatch_legacy
+    - loop.board_sync.cli._status_or_launch
+    - loop.board_sync.cli.main
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s03-canonical-board-cli-dispatch.yaml
+  ac_quotes:
+    - "Board CLI canonical commands no longer route through an unused legacy printer/dispatcher."
+    - "Нет legacy CLI handler silently reachable from canonical commands."
+    - "loop/board_sync/cli.py has one canonical dispatch route; unused _print_result_legacy is deleted and legacy command handlers are removed or explicitly denied."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/md/plan.md:33-102"
+
+context:
+  consumes:
+    - plan §WHAT FR-002
+    - plan §Refactor inventory L90-03, L90-04
+  produces:
+    - чистый loop/board_sync/cli.py без _print_result_legacy и _dispatch_legacy
+    - обновленный test_board_sync_cli.py с проверкой прямого канонического dispatch
+  plan_refs:
+    - FR-002
+    - SC-002
+    - SC-003
+    - US-002
+  files:
+    - loop/board_sync/cli.py
+    - loop/tests/test_board_sync_cli.py
+
+as_built:
+  - "loop/board_sync/cli.py содержит неиспользуемый helper _print_result_legacy"
+  - "_status_or_launch разделяет arm/loop/arm-loop и передает остальные команды в _dispatch_legacy"
+  - "_dispatch_legacy выполняет ветвление между _sync и _status"
+
+delta:
+  - "Удалить функцию _print_result_legacy из loop/board_sync/cli.py"
+  - "Удалить функцию _dispatch_legacy и объединить _status_or_launch в единую функцию dispatch с mapping таблицей или прямым ветвлением"
+  - "Обеспечить явное возвращение ошибки / исключения при неизвестной команде"
+  - "Обновить тесты в loop/tests/test_board_sync_cli.py, проверяющие диспетчеризацию команд и отсутствие устаревших маршрутов"
+
+deletes:
+  - "loop/board_sync/cli.py:_print_result_legacy"
+  - "loop/board_sync/cli.py:_dispatch_legacy"
+
+wire_complete_required: true
+
+out_of_scope:
+  - "Изменения протокола HTTP клиента board sync или DSH API (сохраняются без изменений)"
+  - "Удаление несвязанных public aliases (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "_print_result_legacy и _dispatch_legacy удалены из loop/board_sync/cli.py"
+    verify: "python3 -c \"import subprocess, sys; out = subprocess.run(['rg', '-n', '_print_result_legacy|_dispatch_legacy', 'loop/board_sync/cli.py'], capture_output=True, text=True); sys.exit(1 if out.stdout else 0)\""
+  - id: cp2
+    criterion: "Все команды CLI board sync (sync, status, arm, loop, arm-loop) выполняются успешно через канонический dispatcher"
+    verify: "bin/pytest loop/tests/test_board_sync_cli.py -q"
+
+verify: []
+tdd: []

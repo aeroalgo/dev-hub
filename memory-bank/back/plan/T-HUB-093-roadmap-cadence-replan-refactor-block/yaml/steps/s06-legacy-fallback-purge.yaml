@@ -1,0 +1,145 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan `## Replacement / sunset` A+B+C+I.
+  Гарантировать отсутствие запуска refactor в обход replan (Kind B), исключить ручной
+  REPLAN вне фаз cadence (Kind A), удалить устаревшие правила/тесты, допускавшие
+  перенос шагов в соседа или скользящие окна (Kind I).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+    - TM-01
+    - TM-02
+    - TM-03
+    - TM-04
+  nouns:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - sunset_inventory
+    - grep_control
+    - cadence.yaml
+  layout_paths:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "AC+: cannot arm refactor in replan; after pair skip/complete -> refactor or noop; tests enforce order; rules state REPLAN->Refactor."
+    - "AC−: no refactor-before-replan path; no replan-of-replan; no carry FR steps; no implementing from-queue resync here (094)."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md:65-157"
+
+context:
+  consumes:
+    - plan §Replacement / sunset
+    - decompose index §Replacement cleanup
+  produces:
+    - удалённые fallback-пути и устаревшие допущения о переносе шагов
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#ac--ac-
+    - plan.md#qa-consumes-draft
+  files:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "s01..s05 реализовали gap-evidence API, refactor upsert/noop, arming команд, правила workflow и e2e тесты"
+
+delta:
+  - "Провести аудит loop/roadmap_cadence.py и loop/roadmap_queue.py на отсутствие несанкционированных вызовов refactor до закрытия replan"
+  - "Убедиться в loop/context_loop.py, что вызов start_refactor_phase строго блокируется при phase == replan"
+  - "Проверить отсутствие инструкций о скользящих окнах (sliding window) и переносе шагов (carry-to-neighbor)"
+  - "Удалить или обновить устаревшие тесты старого поведения в loop/tests/test_roadmap_cadence.py и loop/tests/test_roadmap_queue.py"
+
+sunset_inventory:
+  - symbol: manual-only REPLAN without loop cadence order
+    kind: A
+    replacement: cadence phase wire (replan -> refactor -> resync)
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: REPLAN integrated into cadence flow
+  - symbol: refactor-before-replan execution path
+    kind: B
+    replacement: fail-closed gate requiring closed replan pair_ids
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero bypasses allowing early refactor
+  - symbol: window or carry-to-neighbor policy
+    kind: I
+    replacement: strict anti-carry policy and one-hop per ID rule
+    policy: delete in-epic
+    rg_scope: .cursor/rules/
+    expect: zero references permitting carry-to-neighbor or sliding windows
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Resync tail и reconcile from-queue -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: manual-only replan
+    command: 'rg -n "replan_without_cadence" loop/ || true'
+    expect: no standalone uncoordinated replan callers
+  - id: inv-b-01
+    kind: B
+    symbol: early refactor
+    command: 'rg -n "allow_refactor_early" loop/ || true'
+    expect: zero bypasses allowing early refactor
+  - id: inv-i-01
+    kind: I
+    symbol: carry-to-neighbor instructions
+    command: 'rg -n "carry.*neighbor|sliding.*window" .cursor/rules/ || true'
+    expect: no permissive carry/window rules
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A/B — refactor строго запрещён (deny / fail-closed) до завершения всех pair_ids в фазе replan.
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan -q
+  - id: cp2
+    criterion: |
+      Kind I — правила воркфлоу строго запрещают sliding window и перенос незакрытых шагов (rg проверка).
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_anti_carry_policy -q
+  - id: cp3
+    criterion: |
+      Полный набор тестов cadence и очереди проходит успешно (rg / audit control).
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_block_e2e_progression -q
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -k fail_closed -q"
+  - "bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q"
+tdd: []

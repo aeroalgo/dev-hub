@@ -360,6 +360,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             sys.stderr.write(f"==> ERROR: arming epic failed: {arm_res.get('error', 'unknown')}\n")
             sys.stderr.flush()
             return 1
+        if arm_res.get("complete") or str(arm_res.get("stop") or "") == "EPIC_DONE":
+            epic_done = arm_res.get("epic_id") or target_epic
+            sys.stdout.write(
+                f"==> EPIC_DONE: {epic_done} already complete — loop not started "
+                "(pass a pending epic id, or omit --epic to resume current cursor)\n"
+            )
+            sys.stdout.flush()
+            return 0
+        armed_id = str(arm_res.get("epic_id") or "").strip()
+        if armed_id:
+            from harness.hooks._lib import epic_ids_compatible
+
+            if not epic_ids_compatible(armed_id, str(target_epic)):
+                sys.stderr.write(
+                    f"==> ERROR: arm epic mismatch: requested={target_epic} "
+                    f"armed={armed_id}\n"
+                )
+                sys.stderr.flush()
+                return 1
 
     try:
         outcome = LoopRunner(config).run()

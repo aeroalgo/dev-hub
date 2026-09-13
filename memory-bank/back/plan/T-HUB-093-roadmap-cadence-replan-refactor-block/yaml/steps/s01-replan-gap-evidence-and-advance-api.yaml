@@ -1,0 +1,108 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s01 — Replan gap evidence schema, state tracking and advance_replan API
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать типизированную модель доказательств gap-анализа (ReplanEvidence/ReplanSkipRecord)
+  и API advance_replan в loop/roadmap_cadence.py для последовательной обработки каждого
+  эпика в pair_ids (завершение или пропуск со структурированным evidence) и перехода в фазу refactor.
+  Gap-фильтр учитывает только critical gaps: cosmetic gaps не создают replan или refactor work.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-006
+    - US-001
+    - US-002
+  nouns:
+    - advance_replan
+    - ReplanEvidence
+    - ReplanSkipRecord
+    - pair_ids
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+  layout_paths:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+  ac_quotes:
+    - "cannot arm refactor in replan; after pair skip/complete -> refactor or noop"
+    - "US-001: REPLAN arms/skips pair ids (P0) — both ids terminal before refactor"
+    - "US-002: refactor blocked early (P0) — error if phase=replan"
+    - "FR-001: advance_replan / record skip|complete per pair id"
+    - "FR-002: transition to refactor only when pair done"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md:40-95"
+
+context:
+  consumes:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - memory-bank/back/roadmap/cadence.yaml
+  produces:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr
+    - plan.md#target-layout
+  files:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "loop/schemas/roadmap_cadence.py определяет RoadmapCadenceState с фазами idle, replan, refactor, resync и списком pair_ids"
+  - "loop/roadmap_cadence.py содержит базовые методы load_cadence, save_cadence, on_feature_done, on_non_feature_done"
+
+delta:
+  - "Добавить типизированные модели ReplanEvidence/ReplanSkipRecord и структуру прогресса/результатов replan в loop/schemas/roadmap_cadence.py"
+  - "Реализовать функцию advance_replan(cwd, path, epic_id, outcome, evidence) в loop/roadmap_cadence.py"
+  - "Обеспечить валидацию последовательного прохождения pair_ids: запись complete или skip со структурированным evidence"
+  - "Применять critical-only gap filter: cosmetic gaps не создают работу и не запускают replan или refactor"
+  - "Переводить cadence.phase в refactor только после того, как все эпики из pair_ids перешли в терминальный статус"
+  - "Блокировать переход в refactor при наличии незавершённых pair_ids (fail-closed)"
+  - "Добавить юнит-тесты в loop/tests/test_roadmap_cadence.py для проверки advance_replan, валидации skip-evidence и перехода в refactor"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Инициация фазы refactor и upsert refactor-эпика -> s02"
+  - "Завершение refactor и переход в resync -> s02"
+  - "Армирование команд в context_loop -> s03"
+  - "Маршрутизация команд в command_router -> s03"
+  - "Обновление правил workflow -> s04"
+  - "CLI-расширение и сквозные тесты cadence-блока -> s05"
+  - "Удаление legacy fallback путей -> s06"
+  - "Reconcile очереди из 094 -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "advance_replan фиксирует статус complete или skip со структурированным evidence для текущего epic_id из pair_ids только при наличии critical gap; cosmetic gap не создаёт работу"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_replan_records_outcome -q"
+  - id: cp2
+    criterion: "advance_replan переводит phase в refactor только после закрытия всех pair_ids"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_replan_transitions_to_refactor -q"
+  - id: cp3
+    criterion: "advance_replan падает (fail-closed) при попытке закрыть неизвестный epic_id или при отсутствии evidence у skip"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_replan_validation -q"
+  - id: cp4
+    criterion: "Gap-фильтр обрабатывает только critical gaps; cosmetic gaps не создают replan или refactor work"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_critical_only_gap_filter -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -k fail_closed -q"
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+tdd: []

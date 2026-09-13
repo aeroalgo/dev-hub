@@ -67,6 +67,27 @@ Epic success: **net LOC ≤ 0** and **net public symbols / owners ≤ 0**, or an
 11. Reconcile `memory-bank/back/roadmap/queue.yaml` with `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`. On conflict, unknown dependency, empty active queue, or `ok: false`, halt PLAN.
 12. FINISH with the ordinary PLAN doc-router. Handoff must load the canonical queue, the first plan, its prompt, and the clarify artifact if one was created. Next: `BACK DECOMPOSE <queue[0]>`.
 
+## Cadence-блок (Kind I) и порядок исполнения
+
+В рамках автоматического цикла каденса (`memory-bank/back/roadmap/cadence.yaml`) `BACK PLAN REFACTOR` является второй обязательной фазой:
+
+```text
+phase=replan (pair_ids: complete | skip) → phase=refactor (PLAN REFACTOR: kind: refactor | noop) → phase=resync
+```
+
+### Правила исполнения в Cadence-блоке
+
+1. **Строгая блокировка до завершения REPLAN:** `BACK PLAN REFACTOR` исполняется строго после того, как для всех `pair_ids` в `cadence.yaml` зафиксирован терминальный исход (`complete` или `skip`). Запуск refactor при незавершённой фазе `replan` — **FORBIDDEN** (fail-closed, `ValueError`).
+2. **Результат фазы refactor:**
+   - При наличии безопасных кандидатов на удаление или консолидацию создаётся план и в очередь ставится эпик с `kind: refactor` (`start_refactor_phase`).
+   - Если доказательств для безопасного рефакторинга нет, фиксируется noop evidence (`record_refactor_noop`, `no_safe_deletion_or_consolidation_found`).
+3. **Переход в resync:** Завершение refactor-эпика (`on_refactor_done`) или фиксация noop переводит cadence-блок в фазу `resync` (`phase=resync`).
+
+## Anti-carry policy & Sliding window (HARD)
+
+- **FORBIDDEN:** перенос незакрытых требований (FR) или незавершённых шагов в соседние feature-эпики (anti-carry policy / no neighbor carry).
+- **FORBIDDEN:** использование скользящих окон (sliding window) для обхода границ cadence-блока.
+
 ## Refactor-specific review questions
 
 - What will be deleted, not merely moved?

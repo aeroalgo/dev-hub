@@ -1,0 +1,244 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-089-event-dag-roadmap-fallback-purge
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+date: '2026-09-12'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Purge legacy event, DAG, and roadmap v1 fallbacks and Markdown mirror, enforce fail-closed v2 contracts and isolate offline migration tools.
+  source: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 4
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: read_event_log_result processes loop-event/v2 directly with fail-closed validation on invalid or legacy records.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: _arm_dag_next validates loop-dag/v2 strictly via validate_manifest and rejects legacy or unsupported manifests without implicit adaptation.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: roadmap_merge and parser operate exclusively on roadmap-queue/v2 YAML without Markdown mirror output or legacy queue fallback.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: read_event_log_result consumes canonical v2 logs directly; v1 auto-conversion removed from live read path.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: migrate_event_log is isolated as explicit offline migration requiring manual invocation rather than runtime fallback.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: reflection_done is retained in LEGACY_DEAD_EVENT_KINDS solely for archive replay and does not affect live phase transitions.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: loop/context_loop._arm_dag_next enforces strict v2 manifest validation and fails closed on invalid DAG manifests.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: QUEUE_VERSION_V1, LEGACY_DEFAULT_QUEUE, legacy plan probes, and Markdown mirror rendering are fully purged from runtime.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: roadmap_merge writes only roadmap/queue.yaml; canon_md_rel and _render_merged_roadmap_md removed with zero live callers.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Canonical v2 behavior and explicit fail-closed rejection covered across event, DAG, and roadmap test suites; adapter success tests deleted.
+  remaining_work: ''
+- source_ref: SC-001
+  status: satisfied
+  evidence: Zero live v1 event, DAG, or queue adapter invocations across production call sites confirmed via grep control.
+  remaining_work: ''
+- source_ref: SC-002
+  status: satisfied
+  evidence: Canonical v2 event stream, DAG scheduler, and roadmap queue execution flows pass without legacy dependencies.
+  remaining_work: ''
+- source_ref: SC-003
+  status: satisfied
+  evidence: Legacy inputs across event logs, DAG manifests, and missing queues fail closed with diagnostic error structures.
+  remaining_work: ''
+- source_ref: SC-004
+  status: satisfied
+  evidence: Archive preservation and offline migration contracts function independently of the live runtime execution loop.
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Zero v1 adapter invocations from live event, DAG, or roadmap call sites in runtime codebase.
+  remaining_work: ''
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Zero legacy queue fallback probing when canonical v2 queue is missing.
+  remaining_work: ''
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Zero canon_md_rel or Markdown mirror production dependencies in roadmap merge and queue management.
+  remaining_work: ''
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Zero tests asserting v1 migration as live runtime execution success.
+  remaining_work: ''
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Archive compatibility is explicit, bounded, and decoupled from live runtime execution paths.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitution requirements audited; all event, DAG, and roadmap transitions adhere to MUST rules.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first respected with characterization tests and fail-closed regression assertions.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback respected by purging legacy fallback paths and asserting fail-closed behavior.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected across backend transition refactoring.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution and shard decomposition.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration enforced on invalid schemas and legacy inputs.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; unambiguous error codes and diagnostics emitted.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema validation.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority verified; transition engines act as authoritative boundaries.
+  remaining_work: ''
+architecture_parity: []
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-089-event-dag-roadmap-fallback-purge/s01-characterize-flows-and-archive-boundaries.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-089-event-dag-roadmap-fallback-purge/s02-purge-live-event-fallbacks.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-089-event-dag-roadmap-fallback-purge/s03-enforce-v2-dag-validation-and-purge-arm-adapters.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-089-event-dag-roadmap-fallback-purge/s04-purge-roadmap-v1-and-markdown-mirror.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-089-event-dag-roadmap-fallback-purge/s05-rewrite-obsolete-tests-and-instructions.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-089-event-dag-roadmap-fallback-purge/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-12'
+  plan_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md#replacement--sunset
+  rows:
+  - symbol: harness/hooks/epic_events.py:adapt_v1_event
+    kind: A
+    command: rg -n "adapt_v1_event" loop/ harness/hooks/ --glob "*.py" | rg -v "/archive/|test_event_legacy_adapter|migrate_event_log"
+    result: pass
+    prod_callers: []
+    notes: 0 live prod callers; isolated to offline migrate_event_log
+  - symbol: loop/dag.py:adapt_manifest
+    kind: A
+    command: rg -n "adapt_manifest" loop/context_loop.py loop/dag.py | rg -v "def adapt_manifest"
+    result: pass
+    prod_callers: []
+    notes: 0 live arm callers in context_loop; validate_manifest enforces v2
+  - symbol: loop/roadmap_queue.py:QUEUE_VERSION_V1
+    kind: A
+    command: rg -n "QUEUE_VERSION_V1" loop/roadmap_queue.py loop/context_loop.py
+    result: pass
+    prod_callers: []
+    notes: 0 matches in prod runtime; purged
+  - symbol: loop/roadmap_queue.py:LEGACY_DEFAULT_QUEUE
+    kind: A
+    command: rg -n "LEGACY_DEFAULT_QUEUE" loop/roadmap_queue.py loop/context_loop.py
+    result: pass
+    prod_callers: []
+    notes: 0 matches in prod runtime; purged
+  - symbol: loop/roadmap_queue.py:_render_merged_roadmap_md
+    kind: A
+    command: rg -n "_render_merged_roadmap_md" loop/roadmap_queue.py
+    result: pass
+    prod_callers: []
+    notes: 0 matches in prod runtime; purged
+  - symbol: loop/roadmap_queue.py:canon_md_rel
+    kind: A
+    command: rg -n "canon_md_rel" loop/roadmap_queue.py
+    result: pass
+    prod_callers: []
+    notes: 0 matches in prod runtime; purged
+  - symbol: implicit event/DAG/roadmap migration during runtime
+    kind: B
+    command: rg -n "migrate_manifest|migrate_event_log" loop/context_loop.py
+    result: pass
+    prod_callers: []
+    notes: 0 implicit migration triggers in live execution
+  - symbol: write_md/mirror preview in roadmap merge
+    kind: B
+    command: rg -n "render_merged_roadmap_md|write_md" loop/roadmap_queue.py
+    result: pass
+    prod_callers: []
+    notes: 0 markdown mirror generation in live merge
+  - symbol: non-v2 event -> adapter in read_event_log_result
+    kind: C
+    command: rg -n "adapt_v1_event" harness/hooks/epic_events.py
+    result: pass
+    prod_callers: []
+    notes: read_event_log_result fails closed without fallback
+  - symbol: invalid DAG -> inferred v2/autonomous false in _arm_dag_next
+    kind: C
+    command: rg -n "adapt_manifest" loop/context_loop.py
+    result: pass
+    prod_callers: []
+    notes: _arm_dag_next fails closed on invalid manifest
+  - symbol: missing v2 queue -> LEGACY_DEFAULT_QUEUE probe in resolve_queue_path
+    kind: C
+    command: rg -n "roadmap-epics.queue.yaml" loop/roadmap_queue.py
+    result: pass
+    prod_callers: []
+    notes: missing queue emits error without probe fallback
+  - symbol: roadmap docs naming Markdown mirror as SoT
+    kind: I
+    command: rg -n "roadmap-epics.md" loop/ .cursor/rules/
+    result: pass
+    prod_callers: []
+    notes: all instructions updated to canonical queue YAML
+  - symbol: runbook suggesting v1 DAG/event input
+    kind: I
+    command: rg -n "loop-dag/v1|loop-event/v1" loop/ .cursor/
+    result: pass
+    prod_callers: []
+    notes: runbooks reference v2 canonical schemas exclusively
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

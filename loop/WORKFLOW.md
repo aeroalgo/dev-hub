@@ -23,6 +23,19 @@
 | **Checkpoint** | durable cursor + `resume_from_step`; `state.json` — telemetry projection only |
 | **Scheduler** | `loop-dag/v2`, dependency-ready nodes sequentially, one checkout |
 
+## Roadmap Cadence Cycle
+
+Каденс-блок дорожной карты (`memory-bank/back/roadmap/cadence.yaml`) выполняется автоматически каждые N (по умолчанию 2) завершённых feature-эпиков в строгом дискретном порядке фаз:
+
+1. **REPLAN (`phase=replan`):** Выполняется перепланирование для завершённой пары feature-эпиков (`pair_ids`). Действует правило One-hop per ID (запрет повторного перепланирования), анализируются только критические расхождения (critical gaps), при отсутствии которых фиксируется явный `skip` evidence.
+2. **PLAN REFACTOR (`phase=refactor`):** Запускается строго после завершения всех `pair_ids` в фазе replan. Создаётся эпик рефакторинга (`kind: refactor`) в голове очереди либо фиксируется структурированное `noop` evidence.
+3. **Resync (`phase=resync`):** Хвост синхронизации дорожной карты. Выполняется reconcile очереди (`--from-queue`) для всех эпиков в `queue.yaml`, фиксируется `ResyncEvidence` на SoT `cadence.yaml`, и при обнаружении HIGH drift инвалидируются устаревшие планы HOW (без мутации неизменяемой секции prompt §Epic). Дальнейшее продвижение фич (resume) блокируется fail-closed при наличии HIGH drift без evidence.
+4. **Reset / Idle (`phase=idle`):** После завершения resync фаза сбрасывается в `idle` (`on_resync_done` / `reset_cadence_idle`), счетчик фич обнуляется, разблокируя дальнейшее продвижение фич в `roadmap_advance`.
+
+**Anti-carry policy (Строгий запрет переноса):**
+- Запрещён перенос незакрытых требований (FR) или незавершённых шагов в соседние feature-эпики (no neighbor carry).
+- Дискретные границы cadence-блока строго изолируют требования между блоками.
+
 ## Epic-level board (Task Board)
 
 При синхронизации с task-board через `hub-board`:
@@ -53,7 +66,7 @@
 
 ## Rollout / rollback checklist
 
-- **Phase A — observe:** collect bounded status and v1 compatibility diagnostics.
+- **Phase A — observe:** collect bounded status and explicit v2/migration diagnostics.
 - **Phase B — shadow:** validate v2 manifest dependencies and checkpoint transitions without scheduling.
 - **Phase C — canary:** execute one sequential dependency chain with timeout/retry/degraded caps.
 - **Phase D — expand:** add chains only after restart-after-timeout, process-death and blocked-resume evidence.
@@ -110,7 +123,9 @@ promote_if_ready(cwd, epic_id, role)
 
 ### Legacy Deprecations
 
-Functions `arm_active_context_from_decompose` and `arm_pre_implement_context` are deprecated shims delegating to `epic_transition`.
+Legacy activeContext arm shims have been removed. All phase arming goes through
+`loop.epic_transition.arm_phase` or `arm_epic`; callers must fail closed instead
+of importing a compatibility entrypoint.
 
 
 ### Loop phase models (main session `--model`)

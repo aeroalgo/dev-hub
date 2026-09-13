@@ -1,0 +1,49 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-090
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+epic_id: T-HUB-090-boundary-compatibility-shim-purge
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: ac06192a8c336c548b42b727259a8d6fed5e0d32774acf1c499ca842a34da0c8
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-090"
+  - "epic: T-HUB-090-boundary-compatibility-shim-purge"
+  - "steps: s01–s06"
+  - "files: harness/**, loop/**, memory-bank/**"
+
+ac_plus:
+  - "SC-001: no hardcoded managed-agent fallback for covered agents"
+  - "SC-002: no internal callers of deleted aliases"
+  - "SC-003: canonical board/runtime paths green"
+  - "SC-004: operational fallbacks still bounded and explicit"
+
+ac_minus:
+  - "Нет hardcoded legacy agent defaults for agents with metadata SOT."
+  - "Нет dead public alias definitions without caller proof."
+  - "Нет legacy CLI handler silently reachable from canonical commands."
+  - "Operational fallback is not converted into silent success or removed without replacement."
+  - "Нет obsolete tests importing deleted symbols."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> PASS (2834 passed, 4 skipped)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

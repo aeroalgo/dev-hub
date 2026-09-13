@@ -105,7 +105,20 @@ def test_extract_handoff_phase_heading():
         "- **Эпик:** T-HUB-022\n"
     )
     mode = handoff_mode_from_text(legacy_text)
-    assert mode == "DECOMPOSE"
+    assert mode is None
+
+
+def test_handoff_mode_from_frontmatter():
+    text = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: DECOMPOSE\n"
+        "epic_id: T-HUB-022\n"
+        "---\n\n"
+        "## Handoff BACK IMPLEMENT\n"
+    )
+    assert handoff_mode_from_text(text) == "DECOMPOSE"
 
 
 def test_validate_frontmatter_errors():
@@ -119,3 +132,40 @@ def test_validate_frontmatter_errors():
     assert meta is None
     assert len(errors) > 0
     assert any("role" in err for err in errors)
+
+
+def test_parse_invalid_schema_returns_none():
+    text = (
+        "---\n"
+        "schema: unknown/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-HUB-022\n"
+        "---\n\n"
+        "## load_now\n"
+    )
+    assert parse_handoff_meta(text) is None
+
+
+def test_parse_invalid_role_returns_none():
+    text = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INVALID_ROLE\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-HUB-022\n"
+        "---\n\n"
+        "## load_now\n"
+    )
+    assert parse_handoff_meta(text) is None
+
+
+def test_parse_unstructured_frontmatter_returns_none():
+    text = (
+        "---\n"
+        "unstructured_key: some_value\n"
+        "another_field: 123\n"
+        "---\n\n"
+        "## load_now\n"
+    )
+    assert parse_handoff_meta(text) is None

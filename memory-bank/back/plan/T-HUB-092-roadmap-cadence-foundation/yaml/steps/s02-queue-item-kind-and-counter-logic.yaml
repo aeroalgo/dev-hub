@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s02 — Queue item kind normalization and cadence counter / replan trigger logic
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить поддержку атрибута kind (default: 'feature', допустимы 'refactor', 'reconcile', etc.)
+  в нормализацию элементов очереди loop/roadmap_queue.py и реализовать функции
+  on_feature_done / on_non_feature_done в loop/roadmap_cadence.py, которые увеличивают
+  счётчик только для feature-эпиков и при достижении every_n (2) выставляют
+  phase=replan и заполняют pair_ids парой завершённых эпиков.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - US-002
+    - US-003
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/roadmap_cadence.py
+    - kind
+    - on_feature_done
+    - on_non_feature_done
+    - pair_ids
+    - phase
+    - replan
+  layout_paths:
+    - loop/roadmap_queue.py
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "US-002: feature ++ / refactor no ++ (P0) — mark_done matrix"
+    - "US-003: 2 done → phase replan, pair len 2 (P0) — state after two marks"
+    - "FR-002: API load/save/on_feature_done/on_non_feature_done"
+    - "FR-003: kind on queue; default feature"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md:40-95"
+
+context:
+  consumes:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+  produces:
+    - loop/roadmap_queue.py
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr--nfr
+    - plan.md#target-layout
+  files:
+    - loop/roadmap_queue.py
+    - loop/roadmap_cadence.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "loop/roadmap_queue.py выполняет парсинг и нормализацию queue.yaml без поля kind"
+  - "loop/roadmap_cadence.py содержит load_cadence и save_cadence"
+
+delta:
+  - "Обновить _normalize_queue_item в loop/roadmap_queue.py для поддержки поля kind (по умолчанию 'feature')"
+  - "Реализовать on_feature_done(cwd, epic_id) и on_non_feature_done(cwd, epic_id) в loop/roadmap_cadence.py"
+  - "Зафиксировать логику: on_feature_done инкрементирует counter; при counter >= every_n устанавливает phase=replan, pair_ids=[epic_prev, epic_curr], counter=0"
+  - "Зафиксировать логику: on_non_feature_done не изменяет counter и phase"
+  - "Добавить тесты переходов состояния в loop/tests/test_roadmap_cadence.py и тесты парсинга kind в loop/tests/test_roadmap_queue.py"
+
+deletes: []
+
+out_of_scope:
+  - "Сквозной вызов хука из mark_queue_epic_done -> s03"
+  - "Блокировка advance -> s04"
+  - "Автоматическое создание эпиков REPLAN -> follow_up: T-HUB-093-roadmap-cadence-replan-refactor-block"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Парсинг элементов очереди сохраняет указанный kind или устанавливает 'feature' по умолчанию"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_queue_item_kind_default_and_custom -q"
+  - id: cp2
+    criterion: "on_feature_done увеличивает счётчик и при 2 завершённых feature переводит фазу в replan с pair_ids из двух элементов"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_on_feature_done_transition_to_replan -q"
+  - id: cp3
+    criterion: "on_non_feature_done (например для refactor) не увеличивает счётчик и не переводит фазу"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_on_non_feature_done_no_counter_increment -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q"
+tdd: []

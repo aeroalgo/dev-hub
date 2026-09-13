@@ -1,0 +1,278 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+slug: boundary-compatibility-shim-purge
+date: '2026-09-12'
+status: complete
+index_fingerprint: sha256:6f7cbc7687a6be018241f645c5797d6e6e167831aa3578797960fdbe188ea5ec
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Как runtime, я хочу получать agent overlay из canonical metadata,
+    а не из hardcoded legacy map.
+- requirement_id: US-002
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Как оператор, я хочу canonical board commands, а legacy handlers
+    не должны жить скрытым вторым route.
+- requirement_id: US-003
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как maintainer, я хочу удалить dead API aliases без удаления
+    operational PATH/LLM/DSH resilience.
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: _LEGACY_OVERLAYS is removed from managed agent resolution after
+    metadata coverage is proven.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: loop/board_sync/cli.py has one canonical dispatch route; unused
+    _print_result_legacy is deleted and legacy command handlers are removed or explicitly
+    denied.
+- requirement_id: FR-003
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Runtime adapter alias/module scan is removed only where registry/config
+    coverage proves no dynamic implementation dependency; runtime failure remains
+    explicit.
+- requirement_id: FR-004
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Dead aliases ABORT_PATTERNS, _handoff_mode_from_legacy_markdown,
+    checkpoint_prompt_lines and validate_shard_yaml are removed after external-import
+    scan.
+- requirement_id: FR-005
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Session resilience parameters retained for active callers are
+    not falsely classified as dead; only zero-caller compatibility surface is deleted.
+- requirement_id: FR-006
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: DSH lowercase canonical tools remain; compatibility aliases
+    are deleted only after client/reference scan proves no supported caller.
+- requirement_id: FR-007
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Tests for deleted symbols/legacy handlers are removed or rewritten
+    to canonical behavior; operational fallback tests remain.
+- requirement_id: SC-001
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: no hardcoded managed-agent fallback for covered agents
+- requirement_id: SC-002
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: no internal callers of deleted aliases
+- requirement_id: SC-003
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: canonical board/runtime paths green
+- requirement_id: SC-004
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: operational fallbacks still bounded and explicit
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Every managed agent has canonical overlay metadata before _LEGACY_OVERLAYS
+    is removed.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Board CLI canonical commands no longer route through an unused
+    legacy printer/dispatcher.
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Deleted aliases have zero production, test-support and configuration
+    references, or are explicitly retained with owner and reason in the plan.
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: PATH/npx, LLM secondary model, runtime configuration failure
+    and DSH alias behavior are not accidentally removed.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Canonical runtime/agent/board tests replace old alias tests.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Нет hardcoded legacy agent defaults for agents with metadata
+    SOT.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет dead public alias definitions without caller proof.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Нет legacy CLI handler silently reachable from canonical commands.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Operational fallback is not converted into silent success or
+    removed without replacement.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет obsolete tests importing deleted symbols.
+- requirement_id: TM-090-01
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: 'agent metadata completeness: bin/pytest loop/tests/test_agent_registry.py
+    loop/tests/test_agent_materializer.py -q -> no legacy map needed'
+- requirement_id: TM-090-02
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: 'canonical board CLI: bin/pytest loop/tests/test_board_sync_cli.py
+    loop/tests/test_board_launch_cli.py -q -> canonical route only'
+- requirement_id: TM-090-03
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: 'registry-owned runtime adapter: bin/pytest loop/tests/test_runtime_registry.py
+    loop/tests/test_runtime_dispatch.py -q -> explicit unknown failure'
+- requirement_id: TM-090-04
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'dead alias/import scan: plan rg/import controls -> zero deleted-symbol
+    hits'
+- requirement_id: TM-090-05
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: 'supported DSH aliases: bin/pytest loop/tests/test_dsh_runtime_adapter.py
+    loop/tests/test_dsh_epic_gate_gaps.py -q -> retained aliases behave'
+- requirement_id: TM-090-06
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'operational fallback preservation: bin/pytest loop/tests/test_hooks_llm_fallback.py
+    loop/tests/test_incidents_doctor.py loop/tests/test_incidents_metrics.py -q ->
+    bounded fallback unchanged'
+- requirement_id: TM-090-07
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'sunset instructions and tests: plan rg controls -> no old contract
+    references'
+- requirement_id: TM-090-08
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: 'full hub regression: bin/pytest -q --tb=line -> PASS'
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

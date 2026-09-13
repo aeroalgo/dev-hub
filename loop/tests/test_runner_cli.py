@@ -373,3 +373,96 @@ class TestMainExecution:
         assert code == 0
         assert any(c[0] == "run" for c in calls)
         assert any(c[0] == "init" for c in calls)
+
+    def test_main_epic_done_does_not_start_runner(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        proj = tmp_path / "proj"
+        proj.mkdir()
+        (proj / "memory-bank").mkdir()
+        (proj / "memory-bank" / "activeContext.md").write_text(
+            "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\n"
+            "epic_id: T-FOREIGN\nstep_id: s03\n---\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("PROJECT_ROOT", str(proj))
+        monkeypatch.setenv("EPIC_RUNTIME", "claude")
+
+        runner_calls: list[str] = []
+
+        class _FakeRunner:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                runner_calls.append("init")
+
+            def run(self) -> Any:
+                runner_calls.append("run")
+                raise AssertionError("LoopRunner must not start for EPIC_DONE arm")
+
+        monkeypatch.setattr("loop.runner.orchestrator.LoopRunner", _FakeRunner)
+        monkeypatch.setattr(
+            "loop.runner.cli.run_preflight_checks",
+            lambda config, **kwargs: type(
+                "PF",
+                (),
+                {"ok": True, "reason": None, "exit_code": 0},
+            )(),
+        )
+
+        import loop.context_loop as cl
+
+        monkeypatch.setattr(
+            cl,
+            "arm_epic",
+            lambda *a, **k: {
+                "ok": True,
+                "complete": True,
+                "stop": "EPIC_DONE",
+                "epic_id": "T-HUB-086-python-loop-supervisor-cutover",
+                "phase": "DONE",
+            },
+        )
+
+        code = main(["--epic", "T-HUB-086-python-loop-supervisor-cutover", "-m", "gpt-test"])
+        assert code == 0
+        assert runner_calls == []
+        captured = capsys.readouterr()
+        assert "EPIC_DONE" in captured.out
+        assert "T-HUB-086" in captured.out
+
+    def test_main_arm_epic_mismatch_halts(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        proj = tmp_path / "proj"
+        proj.mkdir()
+        (proj / "memory-bank").mkdir()
+        (proj / "memory-bank" / "activeContext.md").write_text("# ac\n", encoding="utf-8")
+        monkeypatch.setenv("PROJECT_ROOT", str(proj))
+        monkeypatch.setenv("EPIC_RUNTIME", "claude")
+
+        monkeypatch.setattr(
+            "loop.runner.cli.run_preflight_checks",
+            lambda config, **kwargs: type(
+                "PF",
+                (),
+                {"ok": True, "reason": None, "exit_code": 0},
+            )(),
+        )
+
+        import loop.context_loop as cl
+
+        monkeypatch.setattr(
+            cl,
+            "arm_epic",
+            lambda *a, **k: {
+                "ok": True,
+                "complete": False,
+                "epic_id": "T-HUB-088-other",
+                "phase": "IMPLEMENT",
+                "step_id": "s03",
+            },
+        )
+
+        code = main(["--epic", "T-HUB-086-python-loop-supervisor-cutover", "-m", "gpt-test"])
+        assert code == 1
+        captured = capsys.readouterr()
+        assert "arm epic mismatch" in captured.err

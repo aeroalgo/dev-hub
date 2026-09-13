@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: s05 — Rewrite obsolete lifecycle tests, fixtures, and instruction surfaces
+  to canonical contracts IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s05-obsolete-test-and-instruction-rewrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалены test_legacy_warn_emits_deprecation и test_arm_phase_deprecation_warn_from_legacy
+  в loop/tests/test_epic_transition.py
+- Переписаны тесты arm_phase и arm_pre_implement_* на прямое тестирование канонического
+  transition engine без моков устаревших arm функций
+- Проверены тесты finish BUGFIX в loop/tests/test_finish_bugfix.py на использование
+  loop-verifier-receipt/v1 и отклонение manual authority
+- Проверены тесты обработки REFLECT в loop/tests/test_event_legacy_adapter.py и loop/tests/test_reducer_qa_bugfix.py
+  на историческое игнорирование без сайд-эффектов
+files:
+- loop/tests/test_epic_transition.py
+- loop/tests/test_finish_bugfix.py
+- loop/tests/test_event_legacy_adapter.py
+- loop/tests/test_reducer_qa_bugfix.py
+deletes:
+- test_legacy_warn_emits_deprecation in loop/tests/test_epic_transition.py
+- legacy manual authority assertions across test files
+tests:
+- '`bin/pytest loop/tests/test_epic_transition.py loop/tests/test_finish_bugfix.py
+  -q`'
+- '`bin/pytest loop/tests/test_event_legacy_adapter.py loop/tests/test_reducer_qa_bugfix.py
+  -q`'
+integration_check:
+- bin/pytest loop/tests/test_epic_transition.py loop/tests/test_finish_bugfix.py -q
+- bin/pytest loop/tests/test_event_legacy_adapter.py loop/tests/test_reducer_qa_bugfix.py
+  -q
+grep_control: []
+verification_results:
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: Тесты перехода фаз и finish транзакций зелены без использования legacy
+    shims и manual authority
+  status: done
+- id: cp2
+  criterion: Тесты обработки REFLECT подтверждают историческое игнорирование без побочных
+    эффектов на фазы
+  status: done
+resume_from: verify

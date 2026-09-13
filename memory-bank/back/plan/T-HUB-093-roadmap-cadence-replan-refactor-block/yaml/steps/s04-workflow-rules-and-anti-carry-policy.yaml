@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s04 — Kind I workflow rules update and strict anti-carry policy enforcement
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить правила воркфлоу workflow-replan.mdc, workflow-plan-refactor.mdc и mainrule.mdc,
+  зафиксировав порядок фаз в cadence-блоке (REPLAN -> PLAN REFACTOR -> resync),
+  правило one-hop per ID (запрет replan-of-replan) и строгий запрет переноса (anti-carry)
+  незакрытых FR-шагов в соседние feature-эпики.
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - US-004
+    - TM-04
+  nouns:
+    - workflow-replan.mdc
+    - workflow-plan-refactor.mdc
+    - mainrule.mdc
+    - anti-carry policy
+    - one-hop
+    - cadence order
+  layout_paths:
+    - .cursor/rules/back_developer/workflow-replan.mdc
+    - .cursor/rules/back_developer/workflow-plan-refactor.mdc
+    - .cursor/rules/back_developer/mainrule.mdc
+  ac_quotes:
+    - "FR-007: Kind I workflows replan + plan-refactor"
+    - "US-004: no neighbor carry steps (P0) — AC− / rg policy in rules"
+    - "TM-04: rules forbid window/carry"
+    - "no refactor-before-replan path; no replan-of-replan; no carry FR steps"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md:65-125"
+
+context:
+  consumes:
+    - .cursor/rules/back_developer/workflow-replan.mdc
+    - .cursor/rules/back_developer/workflow-plan-refactor.mdc
+    - .cursor/rules/back_developer/mainrule.mdc
+  produces:
+    - .cursor/rules/back_developer/workflow-replan.mdc
+    - .cursor/rules/back_developer/workflow-plan-refactor.mdc
+    - .cursor/rules/back_developer/mainrule.mdc
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr
+    - plan.md#target-layout
+    - plan.md#replacement--sunset
+  files:
+    - .cursor/rules/back_developer/workflow-replan.mdc
+    - .cursor/rules/back_developer/workflow-plan-refactor.mdc
+    - .cursor/rules/back_developer/mainrule.mdc
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "workflow-replan.mdc описывает REPLAN как ручной запуск без привязки к cadence SoT"
+  - "workflow-plan-refactor.mdc описывает процесс рефакторинга без фиксации его места в cadence-блоке"
+  - "mainrule.mdc маршрутизирует команды роли"
+
+delta:
+  - "Обновить .cursor/rules/back_developer/workflow-replan.mdc: описать интеграцию с cadence.yaml (фаза replan), фиксацию skip-evidence, работу только по critical-gaps и правило one-hop per ID в блоке"
+  - "Обновить .cursor/rules/back_developer/workflow-plan-refactor.mdc: зафиксировать исполнение строго после завершения replan для pair_ids, возможность фиксации noop и перевод в resync"
+  - "Обновить .cursor/rules/back_developer/mainrule.mdc: добавить указатели на порядок исполнения REPLAN и PLAN REFACTOR в cadence-блоке"
+  - "Зафиксировать в правилах строгий запрет (FORBIDDEN) на перенос незакрытых FR в соседние feature-эпики (anti-carry) и запрет скользящих окон (sliding window)"
+  - "Добавить тесты проверки правил (linter/rg) в loop/tests/test_roadmap_cadence.py"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Реализация логики runtime-переходов -> s01, s02, s03"
+  - "Resync tail воркфлоу в 094 -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: rules
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-replan.mdc и workflow-plan-refactor.mdc содержат инструкции cadence-порядка и запрет replan-of-replan"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_cadence_instructions -q"
+  - id: cp2
+    criterion: "Правила содержат явный запрет на перенос шагов (anti-carry policy) и скользящие окна"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_anti_carry_policy -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+tdd: []

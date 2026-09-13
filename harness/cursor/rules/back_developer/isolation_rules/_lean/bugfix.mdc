@@ -9,6 +9,7 @@ alwaysApply: false
 - отчёт: `memory-bank/back/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`
 - без эпика: `memory-bank/back/bugfix/bugfix-YYYYMMDD-<slug>.md`  
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — local bug partial OK; contract/SoT regression → DENY old / `wire_complete` bar (не dual path «чтобы green»)
 
 ## Gates
 

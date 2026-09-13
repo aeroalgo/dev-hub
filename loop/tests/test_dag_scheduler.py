@@ -140,3 +140,23 @@ def test_selected_missing_manifest_is_fail_closed(tmp_path: Path) -> None:
 
     assert out["ok"] is False
     assert out["diagnostic"]["code"] == "dag_manifest_missing"
+
+
+def test_arm_dag_next_rejects_v1_manifest_without_adaptation(tmp_path: Path, monkeypatch) -> None:
+    import loop.dag as dag_mod
+
+    def _unexpected_adapt(*args, **kwargs):
+        raise AssertionError('adapt_manifest should not be called in live arm path')
+
+    monkeypatch.setattr(dag_mod, 'adapt_manifest', _unexpected_adapt)
+
+    ctx = _load_ctx()
+    _write(
+        tmp_path,
+        'loop/dag/portal.yaml',
+        'schema: loop-dag/v1\npipeline_id: portal\nnodes:\n  - id: back\n    role_dir: back\n',
+    )
+    out = ctx._arm_dag_next(tmp_path, 'portal')
+    assert out['ok'] is False
+    assert out['armed'] is False
+    assert out['diagnostic']['code'] == 'dag_schema_invalid'

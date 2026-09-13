@@ -28,6 +28,7 @@ def test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt(monkeypatch, tmp_p
     # Stale activeContext with QA frontmatter
     stale_active_context = (
         "---\n"
+        "schema: loop-handoff/v1\n"
         "mode: QA\n"
         "role: BACK\n"
         "epic_id: T-HUB-071\n"
@@ -77,6 +78,7 @@ def test_armed_bugfix_single_command_back_bugfix_no_second_command_qa(monkeypatc
 
     aligned_active_context = (
         "---\n"
+        "schema: loop-handoff/v1\n"
         "mode: BUGFIX\n"
         "role: BACK\n"
         "epic_id: T-HUB-071\n"

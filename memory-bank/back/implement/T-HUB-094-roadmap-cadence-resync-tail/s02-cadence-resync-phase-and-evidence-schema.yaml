@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s02 — s02 — Cadence resync phase, evidence schema and plan stale helper IMPLEMENT
+status: completed
+date: '2026-09-13'
+decompose_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/yaml/steps/s02-cadence-resync-phase-and-evidence-schema.yaml
+skills_used: []
+discovery:
+- Added ResyncEvidence schema and state fields to loop/schemas/roadmap_cadence.py
+- Added record_resync_evidence, run_cadence_resync, and mark_plan_stale to loop/roadmap_cadence.py
+- Added unit tests for resync evidence and mark_plan_stale in loop/tests/test_roadmap_cadence.py
+gaps:
+  status: none
+done:
+- Add ResyncEvidence schema and state fields in loop/schemas/roadmap_cadence.py
+- Add record_resync_evidence and run_cadence_resync in loop/roadmap_cadence.py
+- Add mark_plan_stale helper in loop/roadmap_cadence.py
+- Add unit tests for resync evidence and mark_plan_stale in loop/tests/test_roadmap_cadence.py
+files:
+- loop/schemas/roadmap_cadence.py
+- loop/schemas/__init__.py
+- loop/roadmap_cadence.py
+- loop/tests/test_roadmap_cadence.py
+- memory-bank/back/roadmap/cadence.yaml
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_resync_evidence -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+integration_check:
+- loop.roadmap_cadence.record_resync_evidence and run_cadence_resync persist structured
+  ResyncEvidence to cadence.yaml and fail closed on invalid phase
+- loop.roadmap_cadence.mark_plan_stale updates plan status and inserts STALE notice
+  banner without mutating prompt §Epic
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_roadmap_cadence.py -> 22 passed
+checkpoints:
+- id: cp1
+  criterion: record_resync_evidence saves valid structured evidence to cadence.yaml
+  status: done
+- id: cp2
+  criterion: mark_plan_stale helper updates plan status/note without mutating §Epic
+  status: done

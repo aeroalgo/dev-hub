@@ -87,6 +87,45 @@ def test_render_invalid_bad_load_now_raises():
         render_active_context(meta, load_now, [], handoff)
 
 
+def test_render_path_with_done_token_is_valid():
+    """Hyphenated path tokens like mark-done must not trip completed_in_load_now."""
+    meta = LoopHandoffMeta(
+        role="BACK",
+        mode="IMPLEMENT",
+        epic_id="T-HUB-092-roadmap-cadence-foundation",
+        step_id="s03",
+    )
+    load_now = [
+        LoadNowItem(
+            path=(
+                "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/"
+                "yaml/steps/s03-mark-done-cadence-wire-and-idempotency.yaml"
+            ),
+            description="текущий work shard (IMPLEMENT s03)",
+        ),
+        LoadNowItem(
+            path=(
+                "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/"
+                "yaml/decompose-index.yaml"
+            ),
+            description="очередь/status (canon=yaml)",
+        ),
+    ]
+    handoff = HandoffBody(
+        mode="IMPLEMENT",
+        step_id="s03",
+        next_hint="выполнить atomic шаг → FINISH",
+    )
+    done = [
+        "s01–s02 completed в "
+        "`back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/decompose-index.yaml` "
+        "(2 шагов)"
+    ]
+
+    rendered = render_active_context(meta, load_now, done, handoff)
+    assert validate_active_context_shape(rendered) == []
+
+
 def test_render_invalid_missing_load_now_raises():
     meta = LoopHandoffMeta(
         role="BACK",

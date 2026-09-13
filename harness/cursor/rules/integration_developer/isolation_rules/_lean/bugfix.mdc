@@ -5,6 +5,7 @@ alwaysApply: false
 # INTEG BUGFIX — gates
 
 **Артефакты:** с эпиком `memory-bank/integration/bugfix/<epic_id>/bugfix-queue.yaml` (`epic-bugfix-queue/v1`, status SoT) + `bugfix-YYYYMMDD-<slug>.md`; без — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — local partial OK; contract drift → DENY old / `wire_complete` bar (не dual client)
 
 ## Gates
 

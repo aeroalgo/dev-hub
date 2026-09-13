@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s05 — Rewrite obsolete tests, fixtures, and instruction surfaces for event,
+  DAG, and roadmap v2 contracts IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s05-rewrite-obsolete-tests-and-instructions.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Переписан test_event_legacy_adapter.py: live reader fail-closed на немигрированных
+  v1 событиях, сохранена проверка explicit offline migration migrate_event_log и safe
+  dead kind ignore'
+- Обновлены test_dag_manifest.py, test_dag_generate.py и test_t035_invariants.py для
+  проверки fail-closed отказа устаревших v1 DAG манифестов
+- 'Обновлен loop/WORKFLOW.md: зафиксирован v2 YAML queue SoT, удалены любые ссылки
+  на Markdown mirror и устаревшие v1 diagnostics'
+files:
+- loop/tests/test_event_legacy_adapter.py
+- loop/tests/test_dag_manifest.py
+- loop/tests/test_dag_generate.py
+- loop/tests/test_t035_invariants.py
+- loop/tests/test_dag_canary.py
+- loop/WORKFLOW.md
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_event_schema.py loop/tests/test_dag_manifest.py loop/tests/test_t035_invariants.py
+  -q`'
+- '`bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_event_legacy_adapter.py
+  loop/tests/test_dag_generate.py -q`'
+integration_check:
+- '`bin/pytest loop/tests/test_event_schema.py loop/tests/test_event_stream.py loop/tests/test_event_legacy_adapter.py
+  loop/tests/test_dag_manifest.py loop/tests/test_dag_generate.py loop/tests/test_t035_invariants.py
+  loop/tests/test_dag_canary.py loop/tests/test_dag_scheduler.py loop/tests/test_dag_journey.py
+  loop/tests/test_roadmap_queue.py -q`'
+grep_control: []
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Тесты на события и DAG проверяют валидные v2 контракты и отказ устаревших
+    форматов
+  status: done
+- id: cp2
+  criterion: Инструкции и документация WORKFLOW.md не содержат ссылок на Markdown
+    mirror как источник истины
+  status: done

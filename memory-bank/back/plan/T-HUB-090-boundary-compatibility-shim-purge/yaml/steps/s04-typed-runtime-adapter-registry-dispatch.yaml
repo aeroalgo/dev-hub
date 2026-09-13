@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: Purge runtime adapter alias/module scan, enforce typed registry errors, and classify operational fallbacks
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Очистить механизм фабрики runtime-адаптеров в loop/runtime_adapters/common.py: удалить слепое сканирование
+  атрибутов модуля dir(obj), очистить неиспользуемые алиасы в _RUNTIME_ALIASES, обеспечить строгий вызов
+  типизированного адаптера из registry с fail-closed поведением при неизвестном runtime, и зафиксировать
+  сохранение operational fallbacks (which-dsh, which-codex, LLM model fallback).
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-005
+    - FR-006
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-003
+    - AC+ #3
+    - AC+ #4
+    - AC− #2
+    - AC− #4
+  nouns:
+    - loop.runtime_adapters.common._RUNTIME_ALIASES
+    - loop.runtime_adapters.common.get_adapter_for_runtime
+    - loop.runtime.registry.get_runtime_adapter
+    - loop.runtime.registry.InvalidRuntimeConfig
+    - loop.runtime_adapters.codex.which-codex
+    - loop.runtime_adapters.dsh.which-dsh
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s04-typed-runtime-adapter-registry-dispatch.yaml
+  ac_quotes:
+    - "Runtime adapter alias/module scan is removed only where registry/config coverage proves no dynamic implementation dependency; runtime failure remains explicit."
+    - "PATH/npx, LLM secondary model, runtime configuration failure and DSH alias behavior are not accidentally removed."
+    - "Operational fallback is not converted into silent success or removed without replacement."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/md/plan.md:33-111"
+
+context:
+  consumes:
+    - plan §WHAT FR-003, FR-005, FR-006
+    - plan §Refactor inventory L90-05, L90-06, L90-11, L90-12, L90-13
+  produces:
+    - типизированный get_adapter_for_runtime без blind module dir scan
+    - тесты явного падения при неизвестном runtime и сохранение operational fallbacks
+  plan_refs:
+    - FR-003
+    - FR-005
+    - FR-006
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-003
+  files:
+    - loop/runtime_adapters/common.py
+    - loop/tests/test_codex_runtime_adapter.py
+    - loop/tests/test_runtime_registry.py
+    - loop/tests/test_loop_dsh_dispatch.py
+
+as_built:
+  - "loop/runtime_adapters/common.py содержит _RUNTIME_ALIASES с claude-code, claude_cli, claude-cli"
+  - "get_adapter_for_runtime выполняет fallback dir(obj) scan в поисках любого *Adapter класса"
+  - "Operational fallbacks (which-dsh, which-codex, LLM models) функционируют как resilience resolvers"
+
+delta:
+  - "Удалить слепое сканирование dir(obj) из get_adapter_for_runtime: адаптер должен быть классом либо модуль должен содержать строго f'{runtime_id.capitalize()}Adapter'"
+  - "Очистить неиспользуемые алиасы в _RUNTIME_ALIASES, оставив только поддерживаемые нормализации (или пустой словарь, если runtime_registry.yaml сам владеет именами)"
+  - "Гарантировать, что InvalidRuntimeConfig и неизвестные runtime выбрасывают ValueError с понятным диагностическим сообщением"
+  - "Добавить/обновить тесты для проверки strict adapter instantiation и сохранения operational fallbacks (which-codex, which-dsh)"
+
+deletes:
+  - "loop/runtime_adapters/common.py: fallback scan module attributes using dir(obj)"
+
+wire_complete_required: true
+
+out_of_scope:
+  - "Редизайн runtime_registry.yaml (сохраняется текущий контракт)"
+  - "Удаление DSH tool aliases (сохраняются согласно FR-006)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Слепое сканирование dir(obj) удалено из loop/runtime_adapters/common.py"
+    verify: |
+      python3 -c "import subprocess, sys; out = subprocess.run(['rg', '-n', 'dir(obj)', 'loop/runtime_adapters/common.py'], capture_output=True, text=True); sys.exit(1 if out.stdout else 0)"
+  - id: cp2
+    criterion: "Канонические runtime адаптеры (claude, codex, dsh) инстанциируются корректно, а неизвестные runtime вызывают ValueError"
+    verify: "bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_codex_runtime_adapter.py loop/tests/test_loop_dsh_dispatch.py -q"
+
+verify: []
+tdd: []

@@ -1,0 +1,41 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s03 — Enforce strict v2 DAG manifest validation in _arm_dag_next and purge
+  implicit DAG adaptation IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s03-enforce-v2-dag-validation-and-purge-arm-adapters.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удален импорт и вызов adapt_manifest в loop/context_loop.py:_arm_dag_next
+- Включена строгая fail-closed валидация v2 DAG манифестов в loop/context_loop.py:_arm_dag_next
+  с возвратом dag_schema_invalid при ошибке валидации или v1 схеме
+- Добавлен тест test_arm_dag_next_rejects_v1_manifest_without_adaptation в loop/tests/test_dag_scheduler.py
+files:
+- loop/dag.py
+- loop/context_loop.py
+- loop/tests/test_dag_scheduler.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_dag_manifest.py loop/tests/test_dag_transition.py -q`'
+- '`bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_dag_journey.py -q`'
+integration_check:
+- '`bin/pytest loop/tests/test_dag_manifest.py loop/tests/test_dag_transition.py loop/tests/test_dag_scheduler.py
+  loop/tests/test_dag_journey.py -q`'
+grep_control: []
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: _arm_dag_next отклоняет v1 DAG манифесты без вызова adapt_manifest и
+    останавливает arm
+  status: done
+- id: cp2
+  criterion: Валидный v2 DAG manifest успешно проходит arm и планирование фаз
+  status: done

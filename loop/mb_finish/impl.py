@@ -636,17 +636,23 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             ],
         )
 
-    # New loop state records an explicit BUGFIX phase after QA failure.  The
-    # legacy mb-finish entry point did not persist that phase, so retain its
-    # artifact-only compatibility while enforcing verify-bugfix for the real
-    # QA→BUGFIX transition.
-    bugfix_phase_active = str(
-        state.get("phase") or state.get("armed_step") or ""
-    ).upper() == "BUGFIX"
-    if bugfix_phase_active:
-        verify = _verify_pass_ready_for_step(cwd, "BUGFIX")
-        if not verify.get("ok"):
-            return MbFinishResult(ok=False, diagnostic_codes=[verify["diagnostic"]], shape_errors=[verify["error"]])
+    bugfix_phase_active = (
+        str(state.get("phase") or state.get("armed_step") or "").upper() == "BUGFIX"
+        or str(state.get("phase") or "").upper().endswith("BUGFIX")
+    )
+    if not bugfix_phase_active:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_phase_inactive"],
+            shape_errors=["Bugfix finish requires active BUGFIX phase in loop state"],
+        )
+    verify = _verify_pass_ready_for_step(cwd, "BUGFIX")
+    if not verify.get("ok"):
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=[verify["diagnostic"]],
+            shape_errors=[verify["error"]],
+        )
 
     try:
         bugfix_rel = bugfix_art.relative_to(cwd).as_posix()

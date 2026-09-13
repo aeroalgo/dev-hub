@@ -8,6 +8,7 @@ alwaysApply: false
 **Phase 0:** `workflow-plan-clarify-orchestration.mdc` — auto-clarify в той же сессии PLAN при триггерах
 **Multi-epic:** research/audit → epic cut + N rows в `memory-bank/back/roadmap/queue.yaml` + N× `plan/<epic_id>/` (`workflow-plan-multi-epic.mdc`); single-epic также обязан иметь одну row; **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE
 **SUSPENSION GUARD:** `token-economy-core.mdc §0.0` — plan без telegraph / 200-line cap
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — L3+ `Done when` + `Forbidden after`; boundary FR → enforce entrypoint (не «модуль есть»)
 
 ## Gates
 

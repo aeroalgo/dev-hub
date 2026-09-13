@@ -182,6 +182,12 @@ def main() -> int:
         help="output format",
     )
     p_reconcile.add_argument(
+        "--from-queue",
+        dest="from_queue",
+        action="store_true",
+        help="audit drift across all epics in memory-bank/back/roadmap/queue.yaml",
+    )
+    p_reconcile.add_argument(
         "--strict",
         action="store_true",
         help="exit 1 when any HIGH finding",
@@ -1082,6 +1088,7 @@ def main() -> int:
         payload = run_reconcile_spec(
             cwd,
             plan_id=args.plan_id,
+            from_queue=bool(getattr(args, "from_queue", False)),
             fmt=args.format,
             strict=bool(args.strict),
         )

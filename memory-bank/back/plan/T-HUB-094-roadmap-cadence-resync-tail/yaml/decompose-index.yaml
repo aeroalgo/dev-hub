@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-reconcile-from-queue-api-and-cli.yaml
+  title: s01 — Reconcile from-queue API, CLI option and drift aggregation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-cadence-resync-phase-and-evidence-schema.yaml
+  title: s02 — Cadence resync phase, evidence schema and plan stale helper
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-roadmap-resume-gate-and-advance-enforcement.yaml
+  title: s03 — Resume gate in roadmap advance and fail-closed HIGH drift blocking
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-cadence-reset-idle-api-and-feature-unblock.yaml
+  title: s04 — Cadence reset to idle API and feature lane unblocking
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-workflow-rules-and-kind-i-documentation.yaml
+  title: s05 — Kind I workflow rules update and no-sliding-window documentation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — sunset inventory scan, cleanup and full cadence
+    E2E
+  next_phase: BACK IMPLEMENT
+  status: completed

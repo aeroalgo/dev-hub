@@ -176,14 +176,6 @@ def _print_result(result: Any) -> None:
             print("model_env=" + result.model_env)
     elif isinstance(result, ArmResult):
         print(f"armed step_id={result.step_id} epic_id={result.armed_epic}")
-
-def _print_result_legacy(result: Any) -> None:
-    if isinstance(result, LoopArgvResult):
-        print("argv=" + shlex.join(result.argv))
-        print("env=" + repr(result.env_extra))
-        print("model_source=" + result.model_source)
-    elif isinstance(result, ArmResult):
-        print(f"armed step_id={result.step_id} epic_id={result.armed_epic}")
     elif isinstance(result, PipelineResult):
         print(f"status={result.status} loop_invoked={result.loop_invoked}")
         if result.loop is not None:
@@ -275,18 +267,18 @@ def _arm_plan(card: LaunchCard, config: BridgeConfig) -> LoopArgvResult:
     )
 
 
-def _launch(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
+def _dispatch(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
+    if args.command == "sync":
+        return _sync(args, client)
+    if args.command == "status":
+        return _status(args, client)
     if args.command == "arm":
         return _arm(args, client)
     if args.command == "loop":
         return _loop(args, client)
-    return _arm_loop(args, client)
-
-
-def _status_or_launch(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
-    if args.command in {"arm", "loop", "arm-loop"}:
-        return _launch(args, client)
-    return _dispatch_legacy(args, client)
+    if args.command == "arm-loop":
+        return _arm_loop(args, client)
+    raise ValueError(f"unsupported command: {args.command}")
 
 
 def main(
@@ -302,20 +294,10 @@ def main(
     except SystemExit as exc:
         return int(exc.code)
     try:
-        return _status_or_launch(args, client)
+        return _dispatch(args, client)
     except (BoardClientError, WorkspacesError, OSError, ValueError) as exc:
-
         print(f"hub-board: {exc}", file=sys.stderr)
         return 1
-
-
-def _dispatch_legacy(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
-    if args.command == "sync":
-        return _sync(args, client)
-    return _status(args, client)
-
-
-# Keep legacy handlers named and isolated for callers importing them directly.
 
 
 def _sync(args: argparse.Namespace, client: TaskBoardClient | None) -> int:

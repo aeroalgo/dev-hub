@@ -1085,3 +1085,13 @@ def test_pending_collaboration_freezes_stream_idle(tmp_path: Path) -> None:
     assert "SESSION_END" in text
     assert rc == 0
     assert 'activity="native collaboration wait"' in text
+
+
+def test_abort_patterns_inventory_and_operational_resilience() -> None:
+    """Verify ABORT_PATTERNS dead alias is purged while operational resilience patterns remain."""
+    sr = _load_resilience()
+    assert not hasattr(sr, "ABORT_PATTERNS"), "ABORT_PATTERNS alias must be purged"
+    assert hasattr(sr, "_FATAL_ABORT_PATTERNS")
+    assert hasattr(sr, "_TRANSIENT_ABORT_PATTERNS")
+    assert len(sr._FATAL_ABORT_PATTERNS) > 0
+    assert len(sr._TRANSIENT_ABORT_PATTERNS) > 0

@@ -1,0 +1,65 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-090
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+epic_id: T-HUB-090-boundary-compatibility-shim-purge
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: ac06192a8c336c548b42b727259a8d6fed5e0d32774acf1c499ca842a34da0c8
+verify_scope: full
+
+scope:
+  - "task: T-HUB-090"
+  - "epic: T-HUB-090-boundary-compatibility-shim-purge"
+  - "steps: s01–s06"
+  - "files: harness/**, loop/**, memory-bank/**"
+
+ac_plus:
+  - "SC-001: no hardcoded managed-agent fallback for covered agents"
+  - "SC-002: no internal callers of deleted aliases"
+  - "SC-003: canonical board/runtime paths green"
+  - "SC-004: operational fallbacks still bounded and explicit"
+
+ac_minus:
+  - "Нет hardcoded legacy agent defaults for agents with metadata SOT."
+  - "Нет dead public alias definitions without caller proof."
+  - "Нет legacy CLI handler silently reachable from canonical commands."
+  - "Operational fallback is not converted into silent success or removed without replacement."
+  - "Нет obsolete tests importing deleted symbols."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> FAILED (8 failed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+
+issues:
+  - "Suite regression: 8 tests failed during full repository test suite execution"
+
+blockers:
+  - "suite_red: loop/tests/test_context_loop.py::test_status_agent_policy_active_loop_agents"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_active_overlay_contains_protocol"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_spawn_map_legacy_agents_preserves_text"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_chat"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_explicit"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_gate_fail_closed"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_optional_no_gate"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_decompose_finish_blocked_without_verify_pass"
+
+fix_plan:
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_context_loop.py::test_status_agent_policy_active_loop_agents"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_agent_hooks.py::test_active_overlay_contains_protocol"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_agent_hooks.py::test_spawn_map_legacy_agents_preserves_text"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_chat"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_gate_bypass_explicit"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_gate_fail_closed"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_optional_no_gate"
+  - "BACK BUGFIX Fix failing suite test in loop/tests/test_stop_gate.py::test_stop_gate_decompose_finish_blocked_without_verify_pass"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

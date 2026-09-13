@@ -72,6 +72,19 @@ def _run_cli(payload: dict[str, Any], env: dict[str, str] | None = None) -> dict
 def test_posttool_agent_evidence_recording(tmp_path: Path) -> None:
     """AgentPostToolAdapter parses verdict, records evidence, and syncs gate identity."""
     session_id = "test-agent-sess-01"
+    from epic.core import default_state, save_epic_state
+    epic_st = default_state()
+    epic_st.update({
+        "active": True,
+        "armed_epic": "T-HUB-085",
+        "armed_step": "s05",
+        "armed_role": "BACK",
+        "session_id": session_id,
+        "projection_hash": "hash-pt-01",
+        "phase_epoch": 1,
+        "authority": "autonomous",
+    })
+    save_epic_state(tmp_path, epic_st)
     save_state(session_id, str(tmp_path), {"active": True, "mode": "IMPLEMENT"})
 
     adapter = AgentPostToolAdapter()

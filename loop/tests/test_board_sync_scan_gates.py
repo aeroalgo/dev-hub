@@ -38,7 +38,7 @@ def _queue(project: Path, epic: str) -> None:
     (project / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(
             {
-                "version": "roadmap-queue/v1",
+                "version": "roadmap-queue/v2",
                 "role": "back",
                 "roadmap": "memory-bank/back/roadmap/queue.yaml",
                 "queue": [{"id": epic, "plan": f"plan-{epic}.md", "deps": []}],

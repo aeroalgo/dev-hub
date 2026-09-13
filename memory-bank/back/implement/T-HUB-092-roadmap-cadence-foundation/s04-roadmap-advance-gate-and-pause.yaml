@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s04 — roadmap_advance gate pausing feature-epic selection when cadence is active
+  IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/steps/s04-roadmap-advance-gate-and-pause.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Встроена проверка состояния cadence в roadmap_advance (loop/roadmap_queue.py):
+  если cadence.phase != idle, выбор и армирование следующего feature-эпика блокируется
+  и возвращается статус cadence_blocked с причиной блокировки'
+- 'Обновлена обработка в loop/context_loop.py (_epic_done_stop_result): при получении
+  cadence_blocked от roadmap_advance процесс останавливается без армирования нового
+  feature-эпика и логируется ожидание cadence-действий'
+- Сохранён нормальный выбор и армирование эпика при cadence.phase == idle
+- Добавлены тесты test_roadmap_advance_blocked_when_cadence_active, test_roadmap_advance_success_when_idle,
+  test_epic_done_stop_result_cadence_blocked в loop/tests/test_roadmap_queue.py
+files:
+- loop/roadmap_queue.py
+- loop/context_loop.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_blocked_when_cadence_active
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_success_when_idle
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_epic_done_stop_result_cadence_blocked
+  -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_roadmap_cadence.py -q
+grep_control: []
+verification_results:
+- 'test_roadmap_advance_blocked_when_cadence_active: passed'
+- 'test_roadmap_advance_success_when_idle: passed'
+- 'test_epic_done_stop_result_cadence_blocked: passed'
+checkpoints:
+- id: cp1
+  criterion: roadmap_advance при phase == 'replan' возвращает ok=False/blocked и не
+    армирует следующий feature эпик
+  status: done
+  done_at: '2026-09-12T10:00:00Z'
+- id: cp2
+  criterion: roadmap_advance при phase == 'idle' успешно выбирает и армирует следующий
+    доступный эпик
+  status: done
+  done_at: '2026-09-12T10:00:05Z'
+resume_from: cp1

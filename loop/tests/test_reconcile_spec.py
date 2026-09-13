@@ -14,7 +14,9 @@ if str(HOOKS) not in sys.path:
 
 from epic.reconcile import (  # noqa: E402
     list_active_epic_ids,
+    list_queue_epic_ids,
     reconcile_epic,
+    reconcile_queue_epics,
     resolve_epic_bundle,
     run_reconcile_spec,
 )
@@ -34,6 +36,16 @@ def _minimal_tasks(active_ids: list[str]) -> str:
         rows.append(f"| {eid} | demo | L3 | IMPLEMENT | active | plan |")
     rows.append("| T-HUB-999 | queued | L3 | PLAN | queued | plan |")
     return "# Tasks\n\n## Active\n\n" + "\n".join(rows) + "\n"
+
+
+def _minimal_queue(queue_items: list[dict[str, Any]]) -> str:
+    doc = {
+        "version": "roadmap-queue/v2",
+        "role": "back",
+        "queue": queue_items,
+        "done": [],
+    }
+    return yaml.safe_dump(doc, allow_unicode=True, sort_keys=False)
 
 
 def _seed_epic(tmp_path: Path, *, plan_id: str, as_built_path: str, create_file: bool) -> None:
@@ -230,3 +242,99 @@ def test_decompose_index_template_appetite_optional() -> None:
     assert "circuit_breaker" not in index_template
 
 
+
+
+def test_list_queue_epic_ids_reads_queue_yaml(tmp_path: Path) -> None:
+    queue_data = [
+        {"id": "T-HUB-094", "epic_id": "T-HUB-094-roadmap-cadence-resync-tail"},
+        {"id": "T-HUB-095", "epic_id": "T-HUB-095-next-feature"},
+    ]
+    _write(tmp_path / "memory-bank/back/roadmap/queue.yaml", _minimal_queue(queue_data))
+    assert list_queue_epic_ids(tmp_path) == ["T-HUB-094", "T-HUB-095"]
+
+
+def test_reconcile_queue_epics_finds_pending_queue_epic(tmp_path: Path) -> None:
+    plan_id = "T-HUB-910-queue-demo"
+    _seed_epic(tmp_path, plan_id=plan_id, as_built_path="src/q.py", create_file=True)
+    _write(tmp_path / "memory-bank/constitution.md", "# Constitution\n")
+    _write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        _minimal_queue([{"id": "T-HUB-910", "epic_id": plan_id}]),
+    )
+    res = reconcile_queue_epics(tmp_path)
+    assert res["schema"] == "reconcile-report/v1"
+    assert res["mode"] == "from_queue"
+    assert res["epic_ids"] == ["T-HUB-910"]
+    assert len(res["reports"]) == 1
+    assert res["reports"][0]["plan_id"] == plan_id
+    assert res["high_count"] == 0
+    assert res["findings_total"] == 0
+
+
+def test_reconcile_queue_epics_stale_gives_high(tmp_path: Path) -> None:
+    plan_id = "T-HUB-911-queue-stale"
+    _seed_epic(tmp_path, plan_id=plan_id, as_built_path="src/missing_queue.py", create_file=False)
+    _write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        _minimal_queue([{"id": "T-HUB-911", "epic_id": plan_id}]),
+    )
+    res = reconcile_queue_epics(tmp_path)
+    assert res["schema"] == "reconcile-report/v1"
+    assert res["mode"] == "from_queue"
+    assert res["epic_ids"] == ["T-HUB-911"]
+    assert res["high_count"] >= 1
+    assert len(res["reports"]) == 1
+    assert res["reports"][0]["high_count"] >= 1
+
+
+def test_reconcile_queue_empty_queue_exit0(tmp_path: Path) -> None:
+    _write(tmp_path / "memory-bank/back/roadmap/queue.yaml", _minimal_queue([]))
+    res = run_reconcile_spec(tmp_path, from_queue=True)
+    assert res["exit_code"] == 0
+    assert res["findings_total"] == 0
+    assert res["epic_ids"] == []
+
+
+def test_cli_reconcile_spec_from_queue_json(tmp_path: Path) -> None:
+    plan_id = "T-HUB-912-cli-queue"
+    _seed_epic(tmp_path, plan_id=plan_id, as_built_path="src/valid.py", create_file=True)
+    _write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        _minimal_queue([{"id": "T-HUB-912", "epic_id": plan_id}]),
+    )
+    cmd = [
+        sys.executable,
+        str(HOOKS / "epic_resolve.py"),
+        "--cwd",
+        str(tmp_path),
+        "reconcile-spec",
+        "--from-queue",
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    assert proc.returncode == 0
+    data = json.loads(proc.stdout)
+    assert data["schema"] == "reconcile-report/v1"
+    assert data["mode"] == "from_queue"
+    assert data["epic_ids"] == ["T-HUB-912"]
+    assert len(data["reports"]) == 1
+    assert data["reports"][0]["plan_id"] == plan_id
+
+
+def test_cli_reconcile_spec_from_queue_strict_exit1_on_high(tmp_path: Path) -> None:
+    plan_id = "T-HUB-913-cli-strict"
+    _seed_epic(tmp_path, plan_id=plan_id, as_built_path="src/missing_strict.py", create_file=False)
+    _write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        _minimal_queue([{"id": "T-HUB-913", "epic_id": plan_id}]),
+    )
+    cmd = [
+        sys.executable,
+        str(HOOKS / "epic_resolve.py"),
+        "--cwd",
+        str(tmp_path),
+        "reconcile-spec",
+        "--from-queue",
+        "--strict",
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    assert proc.returncode == 1

@@ -9,7 +9,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from harness.hooks._lib import current_gate_identity, verdict_evidence
+from harness.hooks._lib import current_gate_identity, verdict_evidence, save_state
 from harness.hooks.epic.core import mirror_gate_verdict, read_active_context, save_epic_state
 from loop.mb_finish.impl import (
     finish_analyze,
@@ -120,12 +120,14 @@ def test_finish_analyze_happy(tmp_path: Path):
             "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
             "session_id": "sess-test",
             "role": "BACK",
+            "projection_hash": "h1",
+            "phase_epoch": "e1",
         },
     )
 
+    save_state("sess-test", str(tmp_path), {"in_flight": [{"agent": "verify", "managed": True}]})
     identity = current_gate_identity(str(tmp_path), "sess-test")
     ev = verdict_evidence(identity, "PASS")
-    ev["authority"] = "manual"
     mirror_gate_verdict(tmp_path, "PASS", evidence=ev)
 
     req = MbFinishRequest(
@@ -213,11 +215,13 @@ def test_finish_analyze_missing_artifact(tmp_path: Path):
             "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
             "session_id": "sess-test",
             "role": "BACK",
+            "projection_hash": "h1",
+            "phase_epoch": "e1",
         },
     )
+    save_state("sess-test", str(tmp_path), {"in_flight": [{"agent": "verify", "managed": True}]})
     identity = current_gate_identity(str(tmp_path), "sess-test")
     ev = verdict_evidence(identity, "PASS")
-    ev["authority"] = "manual"
     mirror_gate_verdict(tmp_path, "PASS", evidence=ev)
 
     res = finish_analyze(
@@ -476,12 +480,14 @@ def test_finish_analyze_next_typed_fields(tmp_path: Path):
             "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
             "session_id": "sess-test",
             "role": "BACK",
+            "projection_hash": "h1",
+            "phase_epoch": "e1",
         },
     )
 
+    save_state("sess-test", str(tmp_path), {"in_flight": [{"agent": "verify", "managed": True}]})
     identity = current_gate_identity(str(tmp_path), "sess-test")
     ev = verdict_evidence(identity, "PASS")
-    ev["authority"] = "manual"
     mirror_gate_verdict(tmp_path, "PASS", evidence=ev)
 
     req = MbFinishRequest(

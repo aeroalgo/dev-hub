@@ -5,6 +5,7 @@ import pytest
 from unittest.mock import patch
 from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
 from loop.runtime_adapters.codex import CodexAdapter
+from loop.runtime_adapters.common import get_adapter_for_runtime
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -12,6 +13,17 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 def test_codex_adapter_implements_protocol():
     adapter = CodexAdapter()
     assert isinstance(adapter, RuntimeAdapter)
+
+
+def test_get_adapter_for_runtime_typed_lookup():
+    adapter = get_adapter_for_runtime("codex")
+    assert isinstance(adapter, CodexAdapter)
+    assert isinstance(adapter, RuntimeAdapter)
+
+
+def test_get_adapter_for_runtime_unknown_fails_closed():
+    with pytest.raises(ValueError, match="Unknown runtime: unknown_adapter_name"):
+        get_adapter_for_runtime("unknown_adapter_name")
 
 
 def test_build_command_contains_exec():
@@ -283,3 +295,16 @@ def test_which_codex_script():
     assert os.path.exists(script_path)
     res = subprocess.run(["bash", script_path], capture_output=True, text=True)
     assert res.returncode in (0, 127)
+
+
+def test_resolve_codex_binary_operational_fallback_env(monkeypatch, tmp_path):
+    from loop.runtime_adapters.codex import _resolve_codex_binary
+
+    fake_bin = tmp_path / "fake_codex"
+    fake_bin.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    fake_bin.chmod(0o755)
+
+    monkeypatch.setenv("CODEX_BIN", str(fake_bin))
+    with patch("pathlib.Path.exists", return_value=False):
+        resolved = _resolve_codex_binary()
+        assert resolved == str(fake_bin)

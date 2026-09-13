@@ -1,0 +1,49 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-089
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+epic_id: T-HUB-089-event-dag-roadmap-fallback-purge
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 2d7af91623eb2d487e4811700f9a5f474d6b99f60073dcd88c9eeeb3e32e1532
+verify_scope: full
+
+scope:
+  - "task: T-HUB-089"
+  - "epic: T-HUB-089-event-dag-roadmap-fallback-purge"
+  - "steps: s01–s06"
+  - "files: harness/hooks/epic_events.py, loop/context_loop.py, loop/dag.py, loop/roadmap_queue.py"
+
+ac_plus:
+  - "SC-001: no live v1 event/DAG/queue adapters"
+  - "SC-002: v2 event/DAG/roadmap flows green"
+  - "SC-003: legacy inputs fail closed"
+  - "SC-004: archive preservation decision is executable"
+
+ac_minus:
+  - "Нет v1 adapter invocation from live event/DAG/roadmap call sites."
+  - "Нет legacy queue fallback when v2 queue is missing."
+  - "Нет canon_md_rel/Markdown mirror production dependency."
+  - "Нет тестов, которые требуют v1 migration as runtime success."
+  - "Archive compatibility is explicit, bounded and not a hidden fallback."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green: bin/pytest -q --tb=line (2820 passed, 3 skipped)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

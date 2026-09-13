@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s02 — Enforce canonical overlay metadata in agent frontmatter and eliminate
+  legacy overlay map fallback IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s02-canonicalize-agent-overlay-metadata.yaml
+skills_used: []
+discovery:
+- Confirmed all 12 managed agent markdown definitions have complete typed overlay
+  frontmatter.
+- Identified _LEGACY_OVERLAYS map and _legacy_or_default fallback merge in harness/hooks/agent_registry.py
+  as redundant compatibility shims.
+gaps:
+  status: none
+done:
+- _LEGACY_OVERLAYS удален из harness/hooks/agent_registry.py
+- _legacy_or_default заменен на чистый _parse_overlay без legacy hardcoded fallback
+- Обновлен loop/tests/test_agent_registry.py для проверки стандартных дефолтов без
+  legacy overlays
+files:
+- harness/hooks/agent_registry.py
+- loop/tests/test_agent_registry.py
+- loop/tests/test_agent_materializer.py
+deletes:
+- harness/hooks/agent_registry.py:_LEGACY_OVERLAYS
+- harness/hooks/agent_registry.py:_legacy_or_default legacy fallback merge logic
+wire_complete:
+  call_sites:
+  - harness/hooks/agent_registry.py:discover_registry
+  enforce_path: harness/hooks/agent_registry.py
+  dual_path_rg: rg -n _LEGACY_OVERLAYS harness/hooks/agent_registry.py -> 0 matches
+  instruction_rg: test_unannotated_definitions_get_standard_defaults in loop/tests/test_agent_registry.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest loop/tests/test_agent_registry.py loop/tests/test_agent_materializer.py
+  -q`'
+integration_check:
+- Agent registry discovers all managed agents with strict frontmatter overlay parsing
+  without legacy map fallback.
+- Agent materialization generates correct toml and policy files for Codex without
+  runtime regressions.
+grep_control:
+- back: rg -n _LEGACY_OVERLAYS harness/hooks/agent_registry.py
+  front: n/a
+verification_results:
+- python3 -c "import subprocess, sys; out = subprocess.run(['rg', '-n', '_LEGACY_OVERLAYS',
+  'harness/hooks/agent_registry.py'], capture_output=True, text=True); sys.exit(1
+  if out.stdout else 0)" -> PASS
+- bin/pytest loop/tests/test_agent_registry.py loop/tests/test_agent_materializer.py
+  -q -> 20 passed
+checkpoints:
+- id: cp1
+  criterion: _LEGACY_OVERLAYS удален из agent_registry.py, overlay парсится строго
+    из metadata
+  status: done
+- id: cp2
+  criterion: Загрузка всех managed agents и материализация конфигов завершается успешно
+    без legacy overlay map
+  status: done
+resume_from: cp2

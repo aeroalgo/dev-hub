@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s01 — Reconcile from-queue API, CLI option and drift aggregation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать вызов reconcile для всех эпиков в `queue.yaml` через функцию `reconcile_queue_epics`
+  и флаг `--from-queue` в CLI `reconcile-spec` для сквозного аудита дрифта очереди перед завершением cadence.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-005
+    - US-001
+    - TM-01
+  nouns:
+    - harness/hooks/epic/reconcile.py
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_reconcile_spec.py
+    - memory-bank/back/roadmap/queue.yaml
+    - reconcile_queue_epics
+    - --from-queue
+  layout_paths:
+    - harness/hooks/epic/reconcile.py
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_reconcile_spec.py
+  ac_quotes:
+    - "from-queue reconcile: CLI/API queue ids -> reports per queue epic -> pytest lists queue ids"
+    - "reconcile mode --from-queue / API: iterate queue: epic bundles"
+    - "TM-01: from-queue finds pending queue epic"
+  plan_jumps:
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:38-46"
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:58-75"
+
+context:
+  consumes:
+    - memory-bank/back/roadmap/queue.yaml
+    - harness/hooks/epic/reconcile.py
+  produces:
+    - harness/hooks/epic/reconcile.py
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_reconcile_spec.py
+  plan_refs:
+    - FR-001
+    - FR-005
+    - US-001
+    - TM-01
+  files:
+    - harness/hooks/epic/reconcile.py
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_reconcile_spec.py
+
+as_built:
+  - "harness/hooks/epic/reconcile.py supports reconcile_active_epics for tasks.md active epics and reconcile_epic for single plan_id"
+
+delta:
+  - "Add reconcile_queue_epics function in harness/hooks/epic/reconcile.py to read queue.yaml and execute drift analysis across all queue items"
+  - "Support --from-queue flag in reconcile-spec CLI entrypoint"
+  - "Add tests in loop/tests/test_reconcile_spec.py verifying from-queue detection and reporting of queue epics"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "cadence phase resync and evidence schema in loop/roadmap_cadence.py (handled in s02)"
+  - "roadmap advance resume gate (handled in s03)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "reconcile_queue_epics correctly parses queue.yaml and returns drift findings per epic"
+    verify: "bin/pytest loop/tests/test_reconcile_spec.py -k test_reconcile_queue -q"
+  - id: cp2
+    criterion: "reconcile CLI with --from-queue executes successfully against queue"
+    verify: "bin/pytest loop/tests/test_reconcile_spec.py -q"
+
+verify: []
+tdd: []

@@ -167,10 +167,31 @@ class GateIdentity:
 
         projection = st.get("projection")
         proj_dict = projection if isinstance(projection, dict) else {}
-        proj_hash = str(proj_dict.get("projection_hash") or st.get("projection_hash") or "").strip()
-        phase_epoch = proj_dict.get("phase_epoch") or st.get("phase_epoch") or ""
-        event_digest = str(proj_dict.get("event_digest") or st.get("event_digest") or "").strip()
-        authority = "autonomous" if proj_hash and phase_epoch else "manual"
+        if start and start.projection_hash:
+            proj_hash = start.projection_hash
+        else:
+            proj_hash = str(proj_dict.get("projection_hash") or st.get("projection_hash") or "").strip()
+
+        if start and start.phase_epoch:
+            phase_epoch = start.phase_epoch
+        else:
+            phase_epoch = proj_dict.get("phase_epoch") or st.get("phase_epoch") or ""
+
+        if start and start.event_digest:
+            event_digest = start.event_digest
+        else:
+            event_digest = str(proj_dict.get("event_digest") or st.get("event_digest") or "").strip()
+
+        if start and start.authority and start.authority != "manual":
+            authority = start.authority
+        elif (
+            isinstance(start_raw, dict)
+            and start_raw.get("authority")
+            and start_raw.get("authority") != "manual"
+        ):
+            authority = str(start_raw.get("authority")).strip()
+        else:
+            authority = "autonomous" if proj_hash and phase_epoch else "manual"
 
         return cls(
             schema=GATE_IDENTITY_SCHEMA,

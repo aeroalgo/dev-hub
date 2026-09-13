@@ -101,6 +101,8 @@ def test_demoted_pass_not_promoted_by_transport_bind_report(
             "armed_role": "BACK",
             "role": "BACK",
             "session_id": session_id,
+            "projection_hash": "sha256:proj",
+            "phase_epoch": 1,
             "session_start_identity": {
                 "schema": "loop-session-start-identity/v1",
                 "phase": "BACK IMPLEMENT",
@@ -109,6 +111,9 @@ def test_demoted_pass_not_promoted_by_transport_bind_report(
                 "role": "BACK",
                 "phase_run_id": "run-1",
                 "session_id": session_id,
+                "projection_hash": "sha256:proj",
+                "phase_epoch": 1,
+                "authority": "autonomous",
             },
         }
     )
@@ -227,6 +232,8 @@ def test_stale_demoted_receipt_does_not_emit_pass_mb_finish_hint(
                 "demote_blockers": ["checkpoints not done: cp1"],
                 "authority": "autonomous",
             },
+            "projection_hash": "sha256:proj",
+            "phase_epoch": 1,
             "session_start_identity": {
                 "schema": "loop-session-start-identity/v1",
                 "phase": "BACK IMPLEMENT",
@@ -235,6 +242,9 @@ def test_stale_demoted_receipt_does_not_emit_pass_mb_finish_hint(
                 "role": "BACK",
                 "phase_run_id": "run-1",
                 "session_id": session_id,
+                "projection_hash": "sha256:proj",
+                "phase_epoch": 1,
+                "authority": "autonomous",
             },
         }
     )

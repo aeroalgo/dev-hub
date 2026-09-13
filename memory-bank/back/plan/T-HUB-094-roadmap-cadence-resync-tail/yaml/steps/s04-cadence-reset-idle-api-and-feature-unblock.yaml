@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s04 — Cadence reset to idle API and feature lane unblocking
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать API `on_resync_done` / `reset_cadence_idle`, выполняющий сброс фазы cadence в `idle`
+  и обнуление счетчика завершенных фич, разблокируя продолжение feature lane.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - US-003
+    - TM-03
+  nouns:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+    - on_resync_done
+    - reset_cadence_idle
+    - completed_feature_count
+  layout_paths:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+  ac_quotes:
+    - "Reset idle: after ok/resync -> counter/phase reset -> next feature allowed"
+    - "Success -> phase=idle, reset feature counter, allow feature advance"
+    - "US-003: after resync idle -> feature arm works"
+    - "TM-03: after reset feature advances"
+  plan_jumps:
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:42-45"
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:63-75"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+  produces:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - FR-004
+    - FR-005
+    - US-003
+    - TM-03
+  files:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "loop/roadmap_cadence.py tracks completed_feature_count and phase transitions"
+
+delta:
+  - "Add on_resync_done / reset_cadence_idle to reset phase to 'idle' and completed_feature_count to 0"
+  - "Ensure roadmap_advance unblocks next feature epic once cadence is reset to idle"
+  - "Add tests in loop/tests/test_roadmap_cadence.py verifying state reset and subsequent feature advance"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Kind I rules and documentation updates (handled in s05)"
+  - "Sunset cleanup and full cycle test (handled in s06)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "on_resync_done resets cadence state phase to idle and completed_feature_count to 0"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_reset_cadence_idle -q"
+  - id: cp2
+    criterion: "subsequent roadmap_advance call successfully arms next feature epic"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+
+verify: []
+tdd: []

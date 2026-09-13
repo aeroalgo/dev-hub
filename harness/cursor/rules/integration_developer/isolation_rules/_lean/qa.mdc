@@ -5,6 +5,7 @@ alwaysApply: false
 # INTEG QA — gates
 
 **Артефакт:** с эпиком `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`; без — плоско. **FORBIDDEN** дубль `qa.yaml`+dated. @.cursor/rules/shared/epic-scoped-paths.mdc · `.cursor/templates/qa/epic-step.yaml`
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — suite ≠ PASS при dual path / leftover mock-SoT / нет behavior smoke на gate FR
 
 ## Gates
 

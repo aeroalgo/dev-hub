@@ -19,27 +19,27 @@ steps:
   file: s02-canonicalize-transition-owner-and-callers.yaml
   title: Absorb legacy arm logic into canonical transition engine and rewire callers
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s03
   file: s03-typed-handoff-and-fail-closed-parsing.yaml
   title: Enforce typed loop-handoff/v1 frontmatter and remove raw dict / markdown
     parsing fallbacks
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-enforce-verifier-receipt-and-bugfix-transaction.yaml
   title: Enforce typed verifier receipt and purge manual BUGFIX authority and artifact-only
     finish
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-obsolete-test-and-instruction-rewrite.yaml
   title: Rewrite obsolete lifecycle tests, fixtures, and instruction surfaces to canonical
     contracts
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-legacy-fallback-purge.yaml
   title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

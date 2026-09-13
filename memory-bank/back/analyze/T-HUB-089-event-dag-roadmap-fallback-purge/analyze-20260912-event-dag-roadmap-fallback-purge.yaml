@@ -1,0 +1,273 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+slug: event-dag-roadmap-fallback-purge
+date: '2026-09-12'
+status: complete
+index_fingerprint: sha256:0538931ecc6d1d91453e7e81d0ba7b1f6f364980b5ce584498c708db4838ca22
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как lifecycle reducer, я хочу читать только canonical event
+    v2 и игнорировать dead history без adapter branch.
+- requirement_id: US-002
+  step_ids:
+  - s01
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как DAG runner, я хочу выполнять только v2 manifest с explicit
+    autonomous contract.
+- requirement_id: US-003
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как roadmap runner, я хочу одну v2 queue и YAML-only merge.
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: '`read_event_log_result` consumes canonical v2 live logs; v1
+    conversion is removed from live read path.'
+- requirement_id: FR-002
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: '`migrate_event_log` is isolated as explicit offline migration
+    or deleted if no supported consumer remains.'
+- requirement_id: FR-003
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: '`reflection_done` remains a dead historical kind only where
+    required for archive replay; it cannot affect phase or trigger fallback.'
+- requirement_id: FR-004
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: '`loop/context_loop._arm_dag_next` rejects v1 manifests instead
+    of calling `adapt_manifest` implicitly.'
+- requirement_id: FR-005
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: '`QUEUE_VERSION_V1`, `LEGACY_DEFAULT_QUEUE`, legacy plan lookup
+    and Markdown mirror are removed from normal roadmap runtime.'
+- requirement_id: FR-006
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: '`roadmap_merge` writes only `roadmap/queue.yaml`; `canon_md_rel`
+    and `_render_merged_roadmap_md` are removed when no dry-run/API caller remains.'
+- requirement_id: FR-007
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: v2 behavior, explicit denial and historical archive semantics
+    are covered by tests; adapter-only tests are deleted.
+- requirement_id: SC-001
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: no live v1 event/DAG/queue adapters
+- requirement_id: SC-002
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: v2 event/DAG/roadmap flows green
+- requirement_id: SC-003
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: legacy inputs fail closed
+- requirement_id: SC-004
+  step_ids:
+  - s01
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: archive preservation decision is executable
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Live reducer never calls `adapt_v1_event`.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Live DAG arm never calls `adapt_manifest` for v1.
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Default roadmap parser never probes `plan/roadmap-epics.queue.yaml`.
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: No runtime code builds or writes a Markdown roadmap mirror.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Archived `reflection_done` remains non-semantic and does not
+    alter lifecycle.
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Tests retain valid v2 and historical ignore behavior, but delete
+    adapter success tests when adapter is removed.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Нет v1 adapter invocation from live event/DAG/roadmap call sites.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Нет legacy queue fallback when v2 queue is missing.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Нет `canon_md_rel`/Markdown mirror production dependency.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет тестов, которые требуют v1 migration as runtime success.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Archive compatibility is explicit, bounded and not a hidden
+    fallback.
+- requirement_id: TM-089-01
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: 'event reader: non-v2 live record -> schema check -> reject/diagnose'
+- requirement_id: TM-089-02
+  step_ids:
+  - s01
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'archive migration: malformed old record -> migration validator
+    -> preserve source, report failure'
+- requirement_id: TM-089-03
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: 'DAG arm: v1 schema -> v2 validator -> no arm'
+- requirement_id: TM-089-04
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: 'DAG execution: missing autonomous field -> schema validation
+    -> fail-closed'
+- requirement_id: TM-089-05
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: 'roadmap parser: v2 queue missing -> canonical path check ->
+    queue_missing error'
+- requirement_id: TM-089-06
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: 'roadmap merge: legacy source supplied -> explicit import boundary
+    -> no implicit merge'
+- requirement_id: TM-089-07
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'purge symbols and references: plan `rg` controls -> zero live
+    adapters'
+- requirement_id: TM-089-08
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'full hub regression: `bin/pytest -q --tb=line` -> PASS'
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

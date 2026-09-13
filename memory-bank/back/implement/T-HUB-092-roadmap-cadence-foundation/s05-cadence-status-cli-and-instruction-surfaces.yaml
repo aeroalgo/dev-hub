@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s05 — s05 — cadence-status CLI subcommand and Kind I instruction surfaces alignment
+  IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/steps/s05-cadence-status-cli-and-instruction-surfaces.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлена CLI-подкоманда cadence-status в loop/context_loop.py с поддержкой JSON
+  и text форматов
+- Реализованы функции cadence_status и format_cadence_status в loop/context_loop.py
+- Добавлена секция cadence в общий status(cwd) payload
+- Добавлены тесты CLI и форматирования в loop/tests/test_roadmap_cadence.py
+files:
+- loop/context_loop.py
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cli_cadence_status -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_status_output_formatting
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+grep_control: []
+verification_results:
+- 'cp1: pass — CLI команда cadence-status выводит валидный JSON/text отчёт с phase,
+  counter, every_n, pair_ids'
+- 'cp2: pass — форматирование и подсказки корректно отражают статус паузы и ссылки
+  на T-HUB-093 / T-HUB-094 при активном cadence-блоке'
+checkpoints:
+- id: cp1
+  criterion: CLI команда cadence-status выводит валидную информацию о текущей фазе,
+    счётчике и паре эпиков
+  status: done
+  done_at: '2026-09-12T13:48:00Z'
+- id: cp2
+  criterion: Kind I документация и подсказки корректно отражают статус паузы при активном
+    cadence-блоке
+  status: done
+  done_at: '2026-09-12T13:48:00Z'
+resume_from: cp1

@@ -1,0 +1,248 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+date: '2026-09-12'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: 'Execute two-phase cadence block: REPLAN for pair_ids followed by PLAN
+    REFACTOR (refactor epic or noop) on live cadence SoT.'
+  source: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 0
+  layout_paths_total: 8
+  layout_paths_closed: 8
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: advance_replan enforces pair_id validation, records skip with gap evidence
+    or completion status for each pair_id, and transitions to refactor only after
+    both pair IDs are terminal.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: start_refactor_phase and upsert_refactor_epic enforce fail-closed check
+    raising ValueError when invoked while cadence phase is replan or idle.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: start_refactor_phase supports inserting a kind refactor epic at queue
+    head or recording verified noop evidence, transitioning phase to resync in either
+    case.
+  remaining_work: ''
+- source_ref: US-004
+  status: satisfied
+  evidence: Kind I workflow rules in workflow-replan.mdc and workflow-plan-refactor.mdc
+    forbid sliding window carryover and cross-epic requirement transfer.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: advance_replan records skip with explicit gap evidence or complete status
+    per pair ID in replan_results dictionary.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: advance_replan verifies all pair_ids are terminal before updating cadence
+    phase from replan to refactor.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: start_refactor_phase and upsert_refactor_epic arm new refactor epic or
+    transition to resync with noop evidence.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: on_non_feature_done marks refactor epic completed and transitions cadence
+    phase to resync ready for T-HUB-094.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: roadmap_advance arms BACK REPLAN when phase is replan and BACK PLAN REFACTOR
+    when phase is refactor via activeContext identity.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: Cadence state machine and skip evidence validation covered by unit tests
+    in test_roadmap_cadence.py and test_roadmap_queue.py.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Kind I workflows workflow-replan.mdc and workflow-plan-refactor.mdc define
+    strict cadence ordering and anti-carry policy.
+  remaining_work: ''
+- source_ref: layout:.cursor/rules/back_developer/mainrule.mdc
+  status: satisfied
+  evidence: Updated workflow router with cadence block pointers and REPLAN / PLAN
+    REFACTOR multi-word command recognition.
+  remaining_work: ''
+- source_ref: layout:.cursor/rules/back_developer/workflow-plan-refactor.mdc
+  status: satisfied
+  evidence: Workflow rule defining PLAN REFACTOR phase execution, purge and consolidation
+    inventory, and queue insertion.
+  remaining_work: ''
+- source_ref: layout:.cursor/rules/back_developer/workflow-replan.mdc
+  status: satisfied
+  evidence: Workflow rule defining REPLAN phase execution, one-hop per pair ID constraint,
+    and gap evidence logging.
+  remaining_work: ''
+- source_ref: layout:loop/context_loop.py
+  status: satisfied
+  evidence: Integrates CLI cadence inspection and activeContext identity arming for
+    cadence phases.
+  remaining_work: ''
+- source_ref: layout:loop/roadmap_cadence.py
+  status: satisfied
+  evidence: Implements advance_replan, start_refactor_phase, and on_non_feature_done
+    state transitions.
+  remaining_work: ''
+- source_ref: layout:loop/roadmap_queue.py
+  status: satisfied
+  evidence: Implements upsert_refactor_epic, kind refactor queue rows, and cadence-aware
+    roadmap_advance command arming.
+  remaining_work: ''
+- source_ref: layout:loop/tests/test_roadmap_cadence.py
+  status: satisfied
+  evidence: Comprehensive tests for replan gap evidence, refactor phase transitions,
+    noop path, and anti-carry policy.
+  remaining_work: ''
+- source_ref: layout:loop/workflow/command_router.py
+  status: satisfied
+  evidence: Routes BACK REPLAN and BACK PLAN REFACTOR commands to corresponding workflow
+    handlers.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST principles from constitution audited and verified across implementation
+    steps.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed with comprehensive unit and characterization
+    tests for all cadence capabilities.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback respected with explicit fail-closed exceptions
+    for invalid cadence transitions.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 Backend-only cadence implementation; no unauthorized frontend test
+    execution.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution across all implementation
+    shards.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration verified; invalid phase transitions
+    fail explicitly.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; unambiguous error codes and diagnostics
+    emitted.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema
+    validation.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority verified; roadmap advance gates act as authoritative
+    boundaries.
+  remaining_work: ''
+architecture_parity:
+- layout_path: .cursor/rules/back_developer/mainrule.mdc
+  status: present
+  evidence: Updated workflow router with cadence block pointers and multi-word command
+    definitions.
+- layout_path: .cursor/rules/back_developer/workflow-plan-refactor.mdc
+  status: present
+  evidence: Defines PLAN REFACTOR phase execution, purge and consolidation inventory,
+    and queue insertion.
+- layout_path: .cursor/rules/back_developer/workflow-replan.mdc
+  status: present
+  evidence: Defines REPLAN phase execution, one-hop per pair ID constraint, and gap
+    evidence logging.
+- layout_path: loop/context_loop.py
+  status: present
+  evidence: Integrates CLI cadence inspection and activeContext identity arming for
+    cadence phases.
+- layout_path: loop/roadmap_cadence.py
+  status: present
+  evidence: Implements advance_replan, start_refactor_phase, and on_non_feature_done
+    state transitions.
+- layout_path: loop/roadmap_queue.py
+  status: present
+  evidence: Implements upsert_refactor_epic, kind refactor queue rows, and cadence-aware
+    roadmap_advance command arming.
+- layout_path: loop/tests/test_roadmap_cadence.py
+  status: present
+  evidence: Comprehensive tests for replan gap evidence, refactor phase transitions,
+    noop path, and anti-carry policy.
+- layout_path: loop/workflow/command_router.py
+  status: present
+  evidence: Routes BACK REPLAN and BACK PLAN REFACTOR commands to corresponding workflow
+    handlers.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-093-roadmap-cadence-replan-refactor-block/s01-replan-gap-evidence-and-advance-api.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-093-roadmap-cadence-replan-refactor-block/s02-refactor-phase-api-and-queue-upsert.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-093-roadmap-cadence-replan-refactor-block/s03-arm-replan-and-plan-refactor-command-wire.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-093-roadmap-cadence-replan-refactor-block/s04-workflow-rules-and-anti-carry-policy.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-093-roadmap-cadence-replan-refactor-block/s05-cadence-status-cli-and-block-e2e-tests.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-093-roadmap-cadence-replan-refactor-block/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-12'
+  plan_ref: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md#replacement--sunset
+  rows:
+  - symbol: loop/roadmap_cadence.py:Manual-only REPLAN with no loop order
+    kind: A
+    command: rg -n "advance_replan" loop/roadmap_cadence.py || true
+    result: pass
+    prod_callers: []
+    notes: advance_replan integrates REPLAN phase into automated cadence state machine
+  - symbol: loop/roadmap_cadence.py:Refactor anytime
+    kind: B
+    command: rg -n "start_refactor_phase" loop/roadmap_cadence.py || true
+    result: pass
+    prod_callers: []
+    notes: start_refactor_phase strictly denied with ValueError when phase != refactor
+  - symbol: .cursor/rules/back_developer/workflow-replan.mdc:Window / carry-to-neighbor
+    kind: I
+    command: rg -n "FORBIDDEN.*carry" .cursor/rules/back_developer/workflow-replan.mdc
+      || true
+    result: pass
+    prod_callers: []
+    notes: Kind I workflow rules strictly prohibit sliding window and neighbor carry
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

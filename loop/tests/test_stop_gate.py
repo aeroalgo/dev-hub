@@ -540,6 +540,19 @@ def test_agent_pretool_denies_verify_after_no_verdict_retries(tmp_path: Path) ->
 
 def test_subagent_stop_increments_incomplete_without_verdict(tmp_path: Path) -> None:
     stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    from epic.core import default_state, save_epic_state
+    epic_st = default_state()
+    epic_st.update({
+        "active": True,
+        "armed_epic": "T-HUB-057",
+        "armed_step": "s01",
+        "armed_role": "BACK",
+        "session_id": "test-incomplete",
+        "projection_hash": "hash-inc-01",
+        "phase_epoch": 1,
+        "authority": "autonomous",
+    })
+    save_epic_state(tmp_path, epic_st)
     payload = {
         "agent_type": "verify",
         "session_id": "test-incomplete",
@@ -1989,7 +2002,7 @@ def _write_gate_fixture(
     ), cwd)
     _write(
         ".claude/agents/verify.md",
-        "---\nname: verify\n---\nverify gate\n",
+        "---\nname: verify\noverlay:\n  managed: true\n  mode: gate\n  requires_model: true\n  default_loop: true\n  verdict: pass-fail\n---\nverify gate\n",
         cwd,
     )
     if researcher:
@@ -2314,7 +2327,29 @@ def test_bugfix_finish_stops_before_next_session_qa_gates(tmp_path: Path) -> Non
         "armed_step": "BUGFIX", "armed_epic": "demo", "armed_role": "BACK",
         "session_id": "bugfix-run",
     })
-    mirror_verify_verdict(tmp_path, "PASS", evidence={"authority": "manual", "step": "BUGFIX"})
+    from gate_receipt import issue_verifier_receipt
+    ident = {
+        "session_id": "bugfix-run",
+        "epic_id": "demo",
+        "step": "BUGFIX",
+        "step_id": "BUGFIX",
+        "role": "BACK",
+        "projection_hash": "hash-bugfix",
+        "phase_epoch": 1,
+        "event_digest": "",
+        "authority": "autonomous",
+    }
+    receipt = issue_verifier_receipt(ident, "PASS", "verify-bugfix")
+    st = load_epic_state(tmp_path)
+    st.update({
+        "projection_hash": "hash-bugfix",
+        "phase_epoch": 1,
+        "gate_identity": ident,
+    })
+    save_epic_state(tmp_path, st)
+    from _lib import save_state
+    save_state("bugfix-run", str(tmp_path), {"in_flight": [{"agent": "verify-bugfix", "managed": True}]})
+    mirror_verify_verdict(tmp_path, "PASS", agent_id="verify-bugfix", evidence=receipt, session_id="bugfix-run")
     _write("memory-bank/back/bugfix/demo/bugfix-001.md", "# Root cause fixed\n", tmp_path)
     from loop.bugfix_queue import seed_or_merge_bugfix_queue, set_bugfix_verification, update_bugfix_item
     qa = tmp_path / "memory-bank/back/qa/demo/qa-001.yaml"

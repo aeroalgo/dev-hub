@@ -5,6 +5,7 @@ alwaysApply: false
 # FRONT BUGFIX — gates
 
 **Артефакты:** с эпиком `memory-bank/front/bugfix/<epic_id>/bugfix-queue.yaml` (`epic-bugfix-queue/v1`, status SoT) + `bugfix-YYYYMMDD-<slug>.md`; без эпика — `bugfix-YYYYMMDD-<slug>.md`. @.cursor/rules/shared/epic-scoped-paths.mdc
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — local partial OK; contract/SoT UI regression → DENY old / `wire_complete` bar
 
 ## Gates
 

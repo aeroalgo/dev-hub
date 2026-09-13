@@ -76,7 +76,7 @@ def _project(tmp_path: Path, *, statuses: list[str], epic: str = "T-DEMO") -> Wo
     (tmp_path / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(
             {
-                "version": "roadmap-queue/v1",
+                "version": "roadmap-queue/v2",
                 "role": "back",
                 "queue": [
                     {"id": "T-DEMO", "plan": "plan-T-DEMO.md", "deps": []}

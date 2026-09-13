@@ -1,0 +1,108 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s02 — Refactor phase API, queue upsert with kind refactor and noop transition
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать функции start_refactor_phase, record_refactor_noop и on_refactor_done
+  в loop/roadmap_cadence.py и loop/roadmap_queue.py для создания refactor-эпика в очереди
+  (kind: refactor) либо фиксации noop evidence, с последующим переходом в phase resync.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - FR-006
+    - US-002
+    - US-003
+  nouns:
+    - start_refactor_phase
+    - record_refactor_noop
+    - on_refactor_done
+    - kind: refactor
+    - resync
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+  layout_paths:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "cannot arm refactor in replan; after pair skip/complete -> refactor or noop"
+    - "US-002: refactor blocked early (P0) — error if phase=replan"
+    - "US-003: refactor epic or noop (P0) — kind refactor XOR noop evidence"
+    - "FR-003: start_refactor_phase upsert+arm or noop"
+    - "FR-004: mark refactor epic done -> handoff phase for 094 (resync)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md:40-105"
+
+context:
+  consumes:
+    - loop/schemas/roadmap_cadence.py
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - memory-bank/back/roadmap/cadence.yaml
+    - memory-bank/back/roadmap/queue.yaml
+  produces:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr
+    - plan.md#target-layout
+  files:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "loop/roadmap_cadence.py поддерживает переход в phase: refactor после advance_replan"
+  - "loop/roadmap_queue.py поддерживает нормализацию элементов очереди с kind (по умолчанию feature)"
+
+delta:
+  - "Реализовать функцию start_refactor_phase(cwd, path, epic_spec) в loop/roadmap_cadence.py и loop/roadmap_queue.py: вставка эпика с kind: refactor в начало очереди"
+  - "Реализовать record_refactor_noop(cwd, path, reason, evidence): запись noop-решения и перевод phase в resync"
+  - "Реализовать on_refactor_done(cwd, path, epic_id): перевод phase в resync после успешного завершения refactor-эпика без инкремента feature counter"
+  - "Запретить вызов start_refactor_phase до закрытия фазы replan (fail-closed проверка phase == refactor)"
+  - "Добавить юнит-тесты в loop/tests/test_roadmap_cadence.py и loop/tests/test_roadmap_queue.py для проверки upsert refactor, noop evidence и перехода в resync"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Обработка REPLAN pair_ids -> s01"
+  - "Интеграция с context_loop arming -> s03"
+  - "Маршрутизация команд в command_router -> s03"
+  - "Обновление правил workflow -> s04"
+  - "CLI-расширение и сквозные тесты cadence-блока -> s05"
+  - "Удаление legacy fallback путей -> s06"
+  - "Resync tail логика из 094 -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "start_refactor_phase падает с ошибкой (fail-closed / deny), если phase != refactor (например phase == replan)"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_start_refactor_phase_blocked_in_replan -q"
+  - id: cp2
+    criterion: "start_refactor_phase успешно добавляет refactor-эпик (kind: refactor) в queue.yaml"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_upsert_refactor_epic -q"
+  - id: cp3
+    criterion: "record_refactor_noop и on_refactor_done переводят phase в resync и не увеличивают feature counter"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_refactor_noop_and_done_transition_resync -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -k fail-closed -q"
+  - "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+  - "bin/pytest loop/tests/test_roadmap_queue.py -q"
+tdd: []

@@ -61,7 +61,7 @@ def parse_frontmatter(text: str) -> LoopHandoffFrontmatter | None:
     return parse_handoff_meta(text)
 
 
-def parse_handoff_meta(text: str) -> LoopHandoffFrontmatter | dict[str, Any] | None:
+def parse_handoff_meta(text: str) -> LoopHandoffFrontmatter | None:
     raw, _body = split_frontmatter(text)
     if not raw:
         return None
@@ -69,9 +69,8 @@ def parse_handoff_meta(text: str) -> LoopHandoffFrontmatter | dict[str, Any] | N
         try:
             return LoopHandoffFrontmatter.model_validate(raw)
         except ValidationError:
-            pass
-    # Fallback to dict for unstructured/transitional frontmatter
-    return raw
+            return None
+    return None
 
 
 def validate_handoff_frontmatter(text: str) -> tuple[LoopHandoffFrontmatter | None, list[str]]:
@@ -146,22 +145,7 @@ def handoff_mode_from_text(text: str) -> str | None:
     meta = parse_handoff_meta(text)
     if meta is not None:
         return normalize_gate_mode(meta.mode, meta.role)
-    handoff = _extract_handoff_block(text) or ""
-    if not handoff:
-        return None
-    if _IMPLEMENT_HANDOFF_RE.search(handoff):
-        return "IMPLEMENT"
-    match = _HANDOFF_MODE_LINE_RE.search(handoff)
-    if match:
-        return str(match.group(1)).upper()
-    match = _HANDOFF_PHASE_HEADING_RE.search(handoff)
-    if match:
-        return str(match.group(1)).upper()
     return None
-
-
-def _handoff_mode_from_legacy_markdown(text: str) -> str | None:
-    return handoff_mode_from_text(text)
 
 
 def _extract_handoff_block(text: str) -> str:

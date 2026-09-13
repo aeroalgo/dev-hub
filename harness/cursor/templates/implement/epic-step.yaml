@@ -18,13 +18,15 @@ files: []
 # deletes: из decompose.deletes — пути/символы, удалённые в этом шаге (FINISH: полный список выполнен).
 deletes: []
 
-# wire_complete: REQUIRED на machine-boundary / SoT cutover / wire|enforce steps
-# (shared/workflow-behavior-first.mdc §9). Иначе не status: completed.
+# wire_complete: REQUIRED когда decompose.wire_complete_required: true
+# (shared/_lean/anti-minimal-done.mdc · behavior-first §9). Иначе не status: completed.
+# Slug hint (enforce/cutover/purge) → WARN в validate-decompose, не silent auto-FAIL истории.
 # wire_complete:
 #   call_sites: []
 #   enforce_path: ""
 #   dual_path_rg: ""
 #   instruction_rg: ""
+#   deny_old_proven: true
 
 # tests: HARD — только executable cmds (loop after запускает как shell).
 # OK (Hub dev-hub self-test): - '`bin/pytest path -q` — PASS'

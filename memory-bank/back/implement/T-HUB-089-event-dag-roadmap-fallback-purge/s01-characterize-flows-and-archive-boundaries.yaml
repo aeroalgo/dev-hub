@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s01 — Characterize v2 event, DAG, and roadmap contracts, denial diagnostics,
+  and archive migration boundaries IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s01-characterize-flows-and-archive-boundaries.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added characterization tests for live v2 event replay, validation, and rejection
+  diagnostics in loop/tests/test_event_v2_characterization.py.
+- Added characterization tests for strict v2 DAG manifest validation, migration boundaries,
+  context_loop arming, and v2 roadmap queue contracts in loop/tests/test_dag_v2_characterization.py.
+files:
+- loop/tests/test_event_v2_characterization.py
+- loop/tests/test_dag_v2_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_event_v2_characterization.py loop/tests/test_event_stream.py
+  -q
+- bin/pytest loop/tests/test_dag_v2_characterization.py loop/tests/test_dag_manifest.py
+  -q
+integration_check:
+- bin/pytest loop/tests/test_event_v2_characterization.py loop/tests/test_dag_v2_characterization.py
+  -q
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Characterization тесты подтверждают валидный v2 event stream и baseline
+    diagnostic при невалидном v1
+  status: done
+  done_at: '2026-09-11T22:05:04Z'
+- id: cp2
+  criterion: Characterization тесты фиксируют выполнение v2 DAG manifest и отказ v1
+    manifest без адаптации
+  status: done
+  done_at: '2026-09-11T22:05:07Z'
+resume_from: cp1

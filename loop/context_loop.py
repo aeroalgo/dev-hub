@@ -461,6 +461,17 @@ def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
                 "reason": "ROADMAP_DONE",
                 "roadmap_advance": adv,
             }
+        if adv.get("cadence_blocked") or adv.get("error") == "cadence_blocked":
+            logger.info("roadmap advance blocked by cadence: %s", adv.get("reason"))
+            return {
+                "ok": False,
+                "complete": False,
+                "halt": True,
+                "stop": adv.get("stop") or "CADENCE_BLOCKED",
+                "reason": adv.get("reason") or "cadence blocked",
+                "cadence_blocked": True,
+                "roadmap_advance": adv,
+            }
         if adv.get("error") == "queue_yaml_missing" or adv.get("stop") == "NEED_HUMAN: queue_yaml_missing":
             pass
         else:
@@ -502,6 +513,9 @@ def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
     }
     if mark_done is not None:
         out["mark_done"] = mark_done
+        if isinstance(mark_done, dict) and mark_done.get("cadence"):
+            logger.info("cadence state updated on EPIC_DONE: %s", mark_done["cadence"])
+            out["cadence"] = mark_done["cadence"]
     return out
 
 
@@ -1544,7 +1558,9 @@ def arm_session(cwd: str | Path, epic: str) -> dict[str, Any]:
             out = dict(out)
             out["deprecated"] = "arm via decompose path; prefer arm_epic(epic_id) or --epic-id"
     else:
-        out = arm_active_context_from_decompose(cwd, epic)
+        from epic_paths import epic_id_from_decompose_path
+        epic_id = epic_id_from_decompose_path(str(epic)) or "unknown"
+        out = arm_phase(cwd, epic_id, "IMPLEMENT", "back", decompose_rel=str(epic))
     if not out.get("ok"):
         return out
     if out.get("complete"):
@@ -3742,14 +3758,26 @@ def record_abort(
             + "; retry spawn_agent, then gate-repair and verify"
         )
     elif reason and reason.startswith("unsupported_tool_call:"):
-        gate_runtime_repair = True
-        st["gate_diagnostic"] = "verify_runtime_unsupported_tool"
-        st["repair_required"] = "gate-repair"
-        st["halt_reason"] = (
-            "repairable gate-runtime error: "
-            + reason
-            + "; retry spawn_agent, then gate-repair and verify"
-        )
+        tool_name = reason.split(":", 1)[1].strip()
+        # Model emitted a broken tool payload (malformed_tool_call) — outer
+        # transient retry of the same phase. Native gate transport tools still
+        # need gate-repair after spawn/wait failure.
+        if tool_name == "malformed_tool_call":
+            st["gate_diagnostic"] = "verify_runtime_unsupported_tool"
+            st["repair_required"] = None
+            st["halt_reason"] = (
+                "transient unsupported tool: malformed_tool_call; "
+                "retry same phase without gate-repair"
+            )
+        else:
+            gate_runtime_repair = True
+            st["gate_diagnostic"] = "verify_runtime_unsupported_tool"
+            st["repair_required"] = "gate-repair"
+            st["halt_reason"] = (
+                "repairable gate-runtime error: "
+                + reason
+                + "; retry spawn_agent, then gate-repair and verify"
+            )
     elif reason and reason.startswith("gate_integrity:"):
         gate_runtime_repair = True
         diagnostic = reason.split(":", 1)[1] or "gate_integrity_failure"
@@ -4104,11 +4132,7 @@ def _arm_dag_next(cwd: str | Path, pipeline_id: str | None = None) -> dict[str, 
     from dag import validate_manifest
     validation = validate_manifest(dag)
     if not validation["ok"]:
-        from dag import adapt_manifest
-        legacy = adapt_manifest(dag)
-        if not legacy.get("ok"):
-            return {"ok": False, "armed": False, "diagnostic": {"code": "dag_schema_invalid", "diagnostics": validation["diagnostics"]}}
-        dag = legacy["manifest"]
+        return {"ok": False, "armed": False, "diagnostic": {"code": "dag_schema_invalid", "diagnostics": validation["diagnostics"]}}
     state = load_epic_state(root)
     state["dag_pipeline"] = dag.get("pipeline", {}).get("id") or dag.get("pipeline_id")
     save_epic_state(root, state)
@@ -4366,6 +4390,7 @@ def status(cwd: str | Path) -> dict[str, Any]:
         "configuration": config,
         "finish_integrity": finish_integrity,
         "agent_policy": _status_agent_policy(root, st),
+        "cadence": cadence_status(root),
         "incidents": _status_incidents(root),
         "metrics": _status_metrics(root),
         "trace_tail": _status_trace_tail(root),
@@ -4373,6 +4398,174 @@ def status(cwd: str | Path) -> dict[str, Any]:
     if drift:
         out["drift_counters"] = drift
     return out
+
+
+
+def cadence_status(cwd: str | Path) -> dict[str, Any]:
+    """Return roadmap cadence state for status and CLI inspection."""
+    from loop.roadmap_cadence import load_cadence
+
+    root = Path(cwd)
+    try:
+        state = load_cadence(cwd=root)
+        is_paused = state.phase != "idle"
+        replan_outcomes_dict: dict[str, Any] = {}
+        pair_details: list[dict[str, Any]] = []
+        for pid in state.pair_ids:
+            rec = state.replan_outcomes.get(pid)
+            if rec is not None:
+                if hasattr(rec, "model_dump"):
+                    rec_dump = rec.model_dump(exclude_none=True)
+                elif isinstance(rec, dict):
+                    rec_dump = dict(rec)
+                else:
+                    rec_dump = {"outcome": str(rec)}
+                replan_outcomes_dict[pid] = rec_dump
+                pair_details.append({
+                    "epic_id": pid,
+                    "status": rec_dump.get("outcome", "unknown"),
+                    "reason": rec_dump.get("reason", ""),
+                    "evidence": rec_dump.get("evidence"),
+                })
+            else:
+                pair_details.append({
+                    "epic_id": pid,
+                    "status": "pending",
+                    "reason": "",
+                    "evidence": None,
+                })
+        for k, v in state.replan_outcomes.items():
+            if k not in replan_outcomes_dict:
+                if hasattr(v, "model_dump"):
+                    replan_outcomes_dict[k] = v.model_dump(exclude_none=True)
+                elif isinstance(v, dict):
+                    replan_outcomes_dict[k] = dict(v)
+                else:
+                    replan_outcomes_dict[k] = {"outcome": str(v)}
+        resync_evidence_dict = None
+        if state.resync_evidence is not None:
+            if hasattr(state.resync_evidence, "model_dump"):
+                resync_evidence_dict = state.resync_evidence.model_dump(exclude_none=True)
+            elif isinstance(state.resync_evidence, dict):
+                resync_evidence_dict = dict(state.resync_evidence)
+            else:
+                resync_evidence_dict = {"raw": str(state.resync_evidence)}
+
+        resync_summary_dict = None
+        if state.resync_summary is not None:
+            resync_summary_dict = dict(state.resync_summary)
+
+        return {
+            "ok": True,
+            "phase": state.phase,
+            "counter": state.counter,
+            "every_n": state.every_n,
+            "pair_ids": list(state.pair_ids),
+            "replan_outcomes": replan_outcomes_dict,
+            "pair_details": pair_details,
+            "resync_evidence": resync_evidence_dict,
+            "resync_summary": resync_summary_dict,
+            "paused": is_paused,
+            "blocked": is_paused,
+            "status": "paused" if is_paused else "active",
+            "message": (
+                f"Cadence block active ({state.phase}): feature selection paused until replan/resync completes (T-HUB-093 / T-HUB-094)"
+                if is_paused
+                else "Cadence idle: normal roadmap advance active"
+            ),
+        }
+    except FileNotFoundError:
+        return {
+            "ok": False,
+            "phase": "unknown",
+            "counter": 0,
+            "every_n": 2,
+            "pair_ids": [],
+            "replan_outcomes": {},
+            "pair_details": [],
+            "paused": False,
+            "blocked": False,
+            "status": "missing",
+            "error": "cadence.yaml not found",
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "phase": "corrupt",
+            "counter": 0,
+            "every_n": 2,
+            "pair_ids": [],
+            "replan_outcomes": {},
+            "pair_details": [],
+            "paused": True,
+            "blocked": True,
+            "status": "corrupt",
+            "error": str(exc),
+        }
+
+
+def format_cadence_status(data: dict[str, Any]) -> str:
+    """Format cadence status as human-readable text report."""
+    if not data.get("ok"):
+        return f"Roadmap cadence status: ERROR ({data.get('error', 'unknown error')})"
+    phase = data.get("phase", "idle")
+    counter = data.get("counter", 0)
+    every_n = data.get("every_n", 2)
+    pair_ids = ", ".join(data.get("pair_ids") or []) or "none"
+    paused = data.get("paused", False)
+    status_str = "PAUSED (cadence block active)" if paused else "ACTIVE"
+
+    lines = [
+        f"Roadmap Cadence Status: {status_str}",
+        f"  Phase:    {phase}",
+        f"  Counter:  {counter} / {every_n}",
+        f"  Pair IDs: {pair_ids}",
+    ]
+    pair_details = data.get("pair_details")
+    if pair_details:
+        lines.append("  Pair Progress:")
+        for item in pair_details:
+            pid = item.get("epic_id", "")
+            st = str(item.get("status", "pending")).lower()
+            reason = item.get("reason", "")
+            if st in ("skip", "skipped"):
+                reason_str = f" ({reason})" if reason else ""
+                lines.append(f"    - {pid}: SKIPPED{reason_str}")
+            elif st in ("complete", "completed"):
+                lines.append(f"    - {pid}: COMPLETED")
+            else:
+                lines.append(f"    - {pid}: PENDING")
+    elif data.get("replan_outcomes"):
+        lines.append("  Pair Progress:")
+        for pid, outcome_info in data.get("replan_outcomes", {}).items():
+            st = str(outcome_info.get("outcome", "unknown") if isinstance(outcome_info, dict) else outcome_info).lower()
+            reason = outcome_info.get("reason", "") if isinstance(outcome_info, dict) else ""
+            if st in ("skip", "skipped"):
+                reason_str = f" ({reason})" if reason else ""
+                lines.append(f"    - {pid}: SKIPPED{reason_str}")
+            elif st in ("complete", "completed"):
+                lines.append(f"    - {pid}: COMPLETED")
+            else:
+                lines.append(f"    - {pid}: {st.upper()}")
+
+    if phase == "refactor":
+        lines.append("  Refactor: IN_PROGRESS (armed or awaiting noop)")
+    elif phase == "resync":
+        resync_ev = data.get("resync_evidence") or {}
+        if resync_ev:
+            high_cnt = resync_ev.get("high_count", 0)
+            action = resync_ev.get("resync_action", "")
+            lines.append(f"  Refactor: COMPLETED / NOOP (transitioned to resync; HIGH drift={high_cnt}, action={action or 'none'})")
+        else:
+            lines.append("  Refactor: COMPLETED / NOOP (transitioned to resync)")
+    elif phase == "replan":
+        lines.append("  Refactor: PENDING (waiting for replan pair to complete)")
+    else:
+        lines.append("  Refactor: IDLE")
+
+    if paused:
+        lines.append(f"  Note:     {data.get('message', '')}")
+    return "\n".join(lines)
 
 
 def _status_incidents(cwd: Path) -> dict[str, Any]:
@@ -4632,6 +4825,22 @@ def main(argv: list[str] | None = None) -> int:
         help="Do not move legacy slug sources into roadmap/archive/",
     )
 
+    p_cadence = sub.add_parser(
+        "cadence-status",
+        help="Show roadmap cadence status (phase, counter, every_n, pair_ids)",
+    )
+    p_cadence.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON format (alias for format=json)",
+    )
+    p_cadence.add_argument(
+        "--format",
+        choices=["json", "text"],
+        default="json",
+        help="Output format (json or text; default: json)",
+    )
+
     sub.add_parser("status", help="Show context cursor")
 
     p_doc = sub.add_parser("doctor", help="Preflight check before autopilot")
@@ -4786,6 +4995,15 @@ def main(argv: list[str] | None = None) -> int:
             archive_sources=not bool(args.no_archive),
         )
         print(json.dumps(out, ensure_ascii=False))
+        return 0 if out.get("ok") else 1
+
+    if args.cmd == "cadence-status":
+        out = cadence_status(cwd)
+        use_format = "json" if getattr(args, "json", False) else getattr(args, "format", "json")
+        if use_format == "text":
+            print(format_cadence_status(out))
+        else:
+            print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0 if out.get("ok") else 1
 
     if args.cmd == "status":

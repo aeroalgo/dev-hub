@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s03 — Resume gate in roadmap advance and fail-closed HIGH drift blocking
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Встроить проверку resume gate в `roadmap_advance` и `context_loop.py`, блокирующую перевод
+  в следующую фичу (fail-closed) при наличии HIGH drift без зафиксированного `resync_evidence`.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-005
+    - US-002
+    - TM-02
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - roadmap_advance
+    - resume_gate
+    - high_count
+  layout_paths:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+  ac_quotes:
+    - "high_count > 0 без resync_evidence -> feature advance forbidden"
+    - "Resume gate: cadence resync phase -> HIGH without resync -> no feature arm -> blocked advance"
+    - "US-002: HIGH blocks resume -> advance fail-closed"
+    - "TM-02: HIGH without resync blocks"
+  plan_jumps:
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:40-44"
+    - "back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md:60-74"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+  produces:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+  plan_refs:
+    - FR-003
+    - FR-005
+    - US-002
+    - TM-02
+  files:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+
+as_built:
+  - "loop/roadmap_queue.py checks cadence pause and arming during advance"
+
+delta:
+  - "Enforce resync gate in roadmap_advance: deny advancing to next feature when high_count > 0 without valid resync_evidence"
+  - "Wire context_loop to surface resync blockers when attempting advance"
+  - "Add tests in loop/tests/test_roadmap_cadence.py verifying advance is blocked on raw HIGH drift and allowed when no HIGH or resynced"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "cadence reset to idle (handled in s04)"
+  - "Kind I rules updates (handled in s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "advance is blocked when phase=resync and high_count > 0 without resync_evidence"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -k test_advance_blocked_resync -q"
+  - id: cp2
+    criterion: "advance succeeds when high_count == 0 or resync_evidence is present"
+    verify: "bin/pytest loop/tests/test_roadmap_cadence.py -q"
+
+verify: []
+tdd: []

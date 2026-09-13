@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s05 — Extend cadence-status CLI and end-to-end cadence block progression tests
+  IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/yaml/steps/s05-cadence-status-cli-and-block-e2e-tests.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Расширены функции cadence_status и format_cadence_status в loop/context_loop.py:
+  добавлена детальная структурированная информация и человекочитаемый вывод прогресса
+  pair_ids (completed, skipped с причиной, pending) и состояния фазы refactor (idle,
+  pending, in_progress, completed/noop)'
+- Добавлен тест test_cadence_status_output_details в loop/tests/test_roadmap_cadence.py,
+  проверяющий корректный детальный вывод CLI cadence-status и format_cadence_status
+  во всех фазах cadence-блока
+- Добавлен сквозной e2e тест test_cadence_block_e2e_progression в loop/tests/test_roadmap_cadence.py,
+  покрывающий полный цикл cadence-блока (2 features -> replan pair -> refactor/noop
+  -> resync) и негативные сценарии (TM-01, TM-02, TM-03)
+files:
+- loop/context_loop.py
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+wire_complete:
+  call_sites:
+  - loop.context_loop.cadence_status
+  - loop.context_loop.format_cadence_status
+  - loop.tests.test_roadmap_cadence.test_cadence_status_output_details
+  - loop.tests.test_roadmap_cadence.test_cadence_block_e2e_progression
+  enforce_path: bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_status_output_details
+    -q
+  dual_path_rg: rg cadence_status loop/context_loop.py
+  instruction_rg: rg cadence-status memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_status_output_details
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_block_e2e_progression
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+integration_check:
+- CLI cadence-status корректно выводит статус прогресса парных эпиков и фазы refactor
+  в текстовом и JSON форматах
+- Сквозной пайплайн cadence-блока обеспечивает соблюдение инвариантов TM-01, TM-02,
+  TM-03
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_status_output_details
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_block_e2e_progression
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -q -> PASS (20 passed)
+checkpoints:
+- id: cp1
+  criterion: cadence-status отображает детальный прогресс pair_ids и состояние фазы
+    refactor
+  status: done
+- id: cp2
+  criterion: Сквозные тесты подтверждают корректное прохождение всего cadence-блока
+    (TM-01, TM-02, TM-03)
+  status: done

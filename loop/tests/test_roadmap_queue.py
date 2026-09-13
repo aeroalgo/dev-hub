@@ -54,6 +54,13 @@ def _write_queue(cwd: Path, queue_yaml: str, *, name: str = "queue") -> None:
     body = queue_yaml.strip() + "\n"
     if name in {"queue", "roadmap-epics"}:
         _write(cwd, "memory-bank/back/roadmap/queue.yaml", body)
+        cad_path = cwd / "memory-bank/back/roadmap/cadence.yaml"
+        if not cad_path.is_file():
+            _write(
+                cwd,
+                "memory-bank/back/roadmap/cadence.yaml",
+                "schema: roadmap-cadence/v1\nphase: idle\ncounter: 0\nevery_n: 2\npair_ids: []\n",
+            )
         return
     _write(cwd, f"memory-bank/back/roadmap/batches/{name}.yaml", body)
 
@@ -861,3 +868,731 @@ def test_roadmap_advance_persists_done_before_next(tmp_path: Path) -> None:
     parsed = rq.parse_roadmap_queue(tmp_path)
     assert "T-A" in [x["id"] for x in parsed["done"]]
     assert "T-A" not in [x["id"] for x in parsed["queue"]]
+def test_queue_item_kind_default_and_custom(tmp_path: Path) -> None:
+    rq = _load_rq()
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+  - id: T-REF-1
+    epic_id: T-REF-1
+    plan: plan-T-REF-1.md
+    deps: [T-FEAT-1]
+    kind: refactor
+  - id: T-REC-1
+    epic_id: T-REC-1
+    plan: plan-T-REC-1.md
+    deps: [T-REF-1]
+    kind: reconcile
+done:
+  - id: T-DONE-FEAT
+    epic_id: T-DONE-FEAT
+    plan: plan-T-DONE-FEAT.md
+  - id: T-DONE-REF
+    epic_id: T-DONE-REF
+    plan: plan-T-DONE-REF.md
+    kind: refactor
+"""
+    _write_queue(tmp_path, queue_yaml)
+    out = rq.parse_roadmap_queue(tmp_path)
+    assert out["ok"] is True
+    queue_items = {item["id"]: item for item in out["queue"]}
+    assert queue_items["T-FEAT-1"]["kind"] == "feature"
+    assert queue_items["T-REF-1"]["kind"] == "refactor"
+    assert queue_items["T-REC-1"]["kind"] == "reconcile"
+
+    done_items = {item["id"]: item for item in out["done"]}
+    assert done_items["T-DONE-FEAT"]["kind"] == "feature"
+    assert done_items["T-DONE-REF"]["kind"] == "refactor"
+
+
+def test_mark_queue_epic_done_invokes_cadence_feature(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import save_cadence, load_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(RoadmapCadenceState(phase="idle", counter=0, every_n=2, pair_ids=[]), cwd=tmp_path)
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    deps: [T-FEAT-1]
+    kind: feature
+done: []
+"""
+    _write_queue(tmp_path, queue_yaml)
+
+    out1 = rq.mark_queue_epic_done(tmp_path, "T-FEAT-1", role="back")
+    assert out1["ok"] is True
+    assert out1["written"] is True
+    assert out1.get("cadence") is not None
+    assert out1["cadence"]["counter"] == 1
+    assert out1["cadence"]["phase"] == "idle"
+    assert out1["cadence"]["pair_ids"] == ["T-FEAT-1"]
+
+    c1 = load_cadence(cwd=tmp_path)
+    assert c1.counter == 1
+    assert c1.phase == "idle"
+    assert c1.pair_ids == ["T-FEAT-1"]
+
+    out2 = rq.mark_queue_epic_done(tmp_path, "T-FEAT-2", role="back")
+    assert out2["ok"] is True
+    assert out2["written"] is True
+    assert out2.get("cadence") is not None
+    assert out2["cadence"]["counter"] == 2
+    assert out2["cadence"]["phase"] == "replan"
+    assert out2["cadence"]["pair_ids"] == ["T-FEAT-1", "T-FEAT-2"]
+
+    c2 = load_cadence(cwd=tmp_path)
+    assert c2.counter == 2
+    assert c2.phase == "replan"
+    assert c2.pair_ids == ["T-FEAT-1", "T-FEAT-2"]
+
+
+def test_mark_queue_epic_done_idempotent(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import save_cadence, load_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(RoadmapCadenceState(phase="idle", counter=0, every_n=2, pair_ids=[]), cwd=tmp_path)
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+    kind: feature
+done: []
+"""
+    _write_queue(tmp_path, queue_yaml)
+
+    out1 = rq.mark_queue_epic_done(tmp_path, "T-FEAT-1", role="back")
+    assert out1["ok"] is True
+    assert out1["written"] is True
+    assert out1["already_done"] is False
+
+    c1 = load_cadence(cwd=tmp_path)
+    assert c1.counter == 1
+    assert c1.pair_ids == ["T-FEAT-1"]
+
+    # Repeated call for the same epic (already in done:)
+    out2 = rq.mark_queue_epic_done(tmp_path, "T-FEAT-1", role="back")
+    assert out2["ok"] is True
+    assert out2["written"] is False
+    assert out2["already_done"] is True
+
+    # Cadence state must remain unchanged
+    c2 = load_cadence(cwd=tmp_path)
+    assert c2.counter == 1
+    assert c2.phase == "idle"
+    assert c2.pair_ids == ["T-FEAT-1"]
+
+    # Unknown epic not in queue
+    out3 = rq.mark_queue_epic_done(tmp_path, "T-NONEXISTENT", role="back")
+    assert out3["ok"] is True
+    assert out3["written"] is False
+    assert out3["skipped"] == "not_in_queue"
+
+    c3 = load_cadence(cwd=tmp_path)
+    assert c3.counter == 1
+    assert c3.phase == "idle"
+    assert c3.pair_ids == ["T-FEAT-1"]
+
+
+def test_mark_queue_epic_done_refactor_no_increment(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import save_cadence, load_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(RoadmapCadenceState(phase="idle", counter=1, every_n=2, pair_ids=["T-FEAT-1"]), cwd=tmp_path)
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-REF-1
+    epic_id: T-REF-1
+    plan: plan-T-REF-1.md
+    deps: []
+    kind: refactor
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+
+    out = rq.mark_queue_epic_done(tmp_path, "T-REF-1", role="back")
+    assert out["ok"] is True
+    assert out["written"] is True
+    assert out.get("cadence") is not None
+    assert out["cadence"]["counter"] == 1
+    assert out["cadence"]["phase"] == "idle"
+    assert out["cadence"]["pair_ids"] == ["T-FEAT-1"]
+
+    c = load_cadence(cwd=tmp_path)
+    assert c.counter == 1
+    assert c.phase == "idle"
+    assert c.pair_ids == ["T-FEAT-1"]
+
+def test_roadmap_advance_blocked_when_cadence_active(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import save_cadence, load_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(phase="resync", counter=0, every_n=2, pair_ids=["T-FEAT-1", "T-FEAT-2"]),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-3/md/plan.md", "# feat 3\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    out = rq.roadmap_advance(tmp_path)
+    assert out["ok"] is False
+    assert out["armed"] is False
+    assert out["cadence_blocked"] is True
+    assert out["phase"] == "resync"
+    assert out.get("next_epic") == "T-FEAT-3"
+
+    ctx_text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "T-FEAT-3" not in ctx_text
+
+    save_cadence(
+        RoadmapCadenceState(phase="idle", counter=1, every_n=2, pair_ids=["T-FEAT-1"]),
+        cwd=tmp_path,
+    )
+    queue_yaml_chain = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    deps: []
+    kind: feature
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml_chain)
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-2/md/plan.md", "# feat 2\n")
+
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-1/md/plan.md", "# feat 1\n")
+    out_chain = rq.roadmap_advance(tmp_path, skip_epic="T-FEAT-2")
+    assert out_chain["ok"] is True
+    assert out_chain["armed"] is True
+    assert out_chain["phase"] == "REPLAN"
+    assert out_chain["epic"] == "T-FEAT-1"
+    assert out_chain["mark_done"]["ok"] is True
+
+    c_after = load_cadence(cwd=tmp_path)
+    assert c_after.phase == "replan"
+    assert c_after.counter == 2
+    assert c_after.pair_ids == ["T-FEAT-1", "T-FEAT-2"]
+
+
+def test_roadmap_advance_success_when_idle(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import save_cadence, load_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(phase="idle", counter=0, every_n=2, pair_ids=[]),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    deps: [T-FEAT-1]
+    kind: feature
+done: []
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-1/md/plan.md", "# feat 1\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-2/md/plan.md", "# feat 2\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    out = rq.roadmap_advance(tmp_path)
+    assert out["ok"] is True
+    assert out["armed"] is True
+    assert out["epic"] == "T-FEAT-1"
+    assert out["phase"] == "DECOMPOSE"
+
+    ctx_text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "T-FEAT-1" in ctx_text
+
+def test_epic_done_stop_result_cadence_blocked(tmp_path: Path, monkeypatch) -> None:
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    ctx = _load_ctx()
+
+    save_cadence(
+        RoadmapCadenceState(phase="resync", counter=0, every_n=2, pair_ids=["T-FEAT-1", "T-FEAT-2"]),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-3/md/plan.md", "# feat 3" + chr(10))
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now" + chr(10) + "- initial" + chr(10) + chr(10) + "## Handoff" + chr(10))
+
+    monkeypatch.setenv("EPIC_CHAIN_ROADMAP", "1")
+    monkeypatch.setattr(ctx, "epic_complete_allowed", lambda cwd: {"allowed": True, "phase": "EPIC_DONE"})
+
+    res = ctx._epic_done_stop_result(tmp_path)
+    assert res["ok"] is False
+    assert res["complete"] is False
+    assert res["halt"] is True
+    assert res["cadence_blocked"] is True
+    assert res["stop"] == "CADENCE_BLOCKED"
+
+def test_mark_queue_epic_done_missing_cadence_fail_closed(tmp_path: Path) -> None:
+    """BF-001: mark_queue_epic_done fails closed when cadence.yaml is missing."""
+    import pytest
+    rq = _load_rq()
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+    kind: feature
+done: []
+"""
+    _write(tmp_path, "memory-bank/back/roadmap/queue.yaml", queue_yaml.strip() + "\n")
+    cad_path = tmp_path / "memory-bank/back/roadmap/cadence.yaml"
+    if cad_path.is_file():
+        cad_path.unlink()
+
+    with pytest.raises(FileNotFoundError):
+        rq.mark_queue_epic_done(tmp_path, "T-FEAT-1", role="back", require_done=False)
+
+
+def test_roadmap_advance_missing_cadence_fail_closed(tmp_path: Path) -> None:
+    """BF-002: roadmap_advance fails closed when cadence.yaml is missing."""
+    import pytest
+    rq = _load_rq()
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+    kind: feature
+done: []
+"""
+    _write(tmp_path, "memory-bank/back/roadmap/queue.yaml", queue_yaml.strip() + "\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-1/md/plan.md", "# feat 1\n")
+    cad_path = tmp_path / "memory-bank/back/roadmap/cadence.yaml"
+    if cad_path.is_file():
+        cad_path.unlink()
+
+    with pytest.raises(FileNotFoundError):
+        rq.roadmap_advance(tmp_path)
+
+
+def test_upsert_refactor_epic(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import save_cadence, load_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    # 1. Fail closed when cadence is in replan or idle
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            counter=0,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+    import pytest
+    with pytest.raises(ValueError, match="cannot start refactor phase.*'replan'"):
+        rq.upsert_refactor_epic(tmp_path, "T-REF-1")
+
+    with pytest.raises(ValueError, match="cannot start refactor phase.*'replan'"):
+        rq.start_refactor_phase(tmp_path, {"id": "T-REF-1", "plan": "plan-T-REF-1.md"})
+
+    # 2. In refactor phase, insert at head with kind: refactor
+    save_cadence(
+        RoadmapCadenceState(
+            phase="refactor",
+            counter=0,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+  - id: T-FEAT-4
+    epic_id: T-FEAT-4
+    plan: plan-T-FEAT-4.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+
+    out = rq.start_refactor_phase(tmp_path, {"id": "T-REF-1", "plan": "plan-T-REF-1.md"})
+    assert out["ok"] is True
+    assert out["written"] is True
+    assert out["id"] == "T-REF-1"
+    assert out["kind"] == "refactor"
+
+    parsed = rq.parse_roadmap_queue(tmp_path)
+    assert parsed["ok"] is True
+    assert len(parsed["queue"]) == 3
+    # Verify refactor epic is at head of queue
+    assert parsed["queue"][0]["id"] == "T-REF-1"
+    assert parsed["queue"][0]["kind"] == "refactor"
+    assert parsed["queue"][1]["id"] == "T-FEAT-3"
+    assert parsed["queue"][2]["id"] == "T-FEAT-4"
+
+    # 3. Completing refactor epic transitions cadence to resync
+    mark_out = rq.mark_queue_epic_done(tmp_path, "T-REF-1", role="back")
+    assert mark_out["ok"] is True
+    assert mark_out["written"] is True
+    assert mark_out.get("cadence") is not None
+    assert mark_out["cadence"]["phase"] == "resync"
+    assert mark_out["cadence"]["counter"] == 0
+
+    c_after = load_cadence(cwd=tmp_path)
+    assert c_after.phase == "resync"
+    assert c_after.counter == 0
+
+
+def test_roadmap_advance_arms_replan_pair(tmp_path: Path) -> None:
+    """cp1: roadmap_advance in replan phase arms BACK REPLAN for pending pair_ids."""
+    from loop.roadmap_cadence import save_cadence, advance_replan, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            counter=2,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-1/md/plan.md", "# feat 1\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-2/md/plan.md", "# feat 2\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-3/md/plan.md", "# feat 3\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    # 1. First advance in replan arms T-FEAT-1 for BACK REPLAN
+    out1 = rq.roadmap_advance(tmp_path)
+    assert out1["ok"] is True
+    assert out1["armed"] is True
+    assert out1["epic"] == "T-FEAT-1"
+    assert out1["phase"] == "REPLAN"
+    assert out1["cadence_phase"] == "replan"
+
+    ac_text1 = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "BACK REPLAN" in ac_text1
+    assert "T-FEAT-1" in ac_text1
+
+    # 2. Advance replan for T-FEAT-1
+    advance_replan(tmp_path, "T-FEAT-1", "skip", reason="no critical gaps")
+
+    # 3. Second advance in replan arms T-FEAT-2 for BACK REPLAN
+    out2 = rq.roadmap_advance(tmp_path)
+    assert out2["ok"] is True
+    assert out2["armed"] is True
+    assert out2["epic"] == "T-FEAT-2"
+    assert out2["phase"] == "REPLAN"
+    assert out2["cadence_phase"] == "replan"
+
+    ac_text2 = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "BACK REPLAN" in ac_text2
+    assert "T-FEAT-2" in ac_text2
+
+
+def test_roadmap_advance_arms_plan_refactor(tmp_path: Path) -> None:
+    """cp2: roadmap_advance in refactor phase arms BACK PLAN REFACTOR for refactor epic."""
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(
+            phase="refactor",
+            counter=0,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-REF-1
+    epic_id: T-REF-1
+    plan: plan-T-REF-1.md
+    deps: []
+    kind: refactor
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-REF-1/md/plan.md", "# refactor 1\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-3/md/plan.md", "# feat 3\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    out = rq.roadmap_advance(tmp_path)
+    assert out["ok"] is True
+    assert out["armed"] is True
+    assert out["epic"] == "T-REF-1"
+    assert out["phase"] == "PLAN REFACTOR"
+    assert out["cadence_phase"] == "refactor"
+
+    ac_text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "BACK PLAN REFACTOR" in ac_text
+    assert "T-REF-1" in ac_text
+
+
+def test_roadmap_advance_denies_refactor_in_replan(tmp_path: Path) -> None:
+    """cp3: roadmap_advance denies refactor epic while phase == replan (fail-closed)."""
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            counter=2,
+            every_n=2,
+            pair_ids=["T-FEAT-1", "T-FEAT-2"],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-REF-1
+    epic_id: T-REF-1
+    plan: plan-T-REF-1.md
+    deps: []
+    kind: refactor
+  - id: T-FEAT-3
+    epic_id: T-FEAT-3
+    plan: plan-T-FEAT-3.md
+    deps: []
+    kind: feature
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-REF-1/md/plan.md", "# refactor 1\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-3/md/plan.md", "# feat 3\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    out = rq.roadmap_advance(tmp_path)
+    assert out["ok"] is False
+    assert out["armed"] is False
+    assert out["halt"] is True
+    assert out["error"] == "refactor_in_replan_denied"
+    assert "replan" in out["reason"].lower()
+
+
+def test_roadmap_advance_resync_blocks_non_feature(tmp_path: Path) -> None:
+    """BF-002: roadmap_advance in resync phase blocks non-feature epics (fail-closed)."""
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(phase="resync", counter=0, every_n=2, pair_ids=["T-FEAT-1", "T-FEAT-2"]),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-CHORE-1
+    epic_id: T-CHORE-1
+    plan: plan-T-CHORE-1.md
+    deps: []
+    kind: chore
+done:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    kind: feature
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-CHORE-1/md/plan.md", "# chore 1\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    out = rq.roadmap_advance(tmp_path)
+    assert out["ok"] is False
+    assert out["armed"] is False
+    assert out["cadence_blocked"] is True
+    assert out["phase"] == "resync"
+    assert out.get("next_epic") == "T-CHORE-1"
+
+
+def test_roadmap_advance_denies_refactor_in_idle(tmp_path: Path) -> None:
+    """BF-003: roadmap_advance denies refactor epic while cadence phase is idle."""
+    from loop.roadmap_cadence import save_cadence, RoadmapCadenceState
+    rq = _load_rq()
+
+    save_cadence(
+        RoadmapCadenceState(
+            phase="idle",
+            counter=0,
+            every_n=2,
+            pair_ids=[],
+        ),
+        cwd=tmp_path,
+    )
+
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-REF-1
+    epic_id: T-REF-1
+    plan: plan-T-REF-1.md
+    deps: []
+    kind: refactor
+done: []
+"""
+    _write_queue(tmp_path, queue_yaml)
+    _write(tmp_path, "memory-bank/back/plan/T-REF-1/md/plan.md", "# refactor 1\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    out = rq.roadmap_advance(tmp_path)
+    assert out["ok"] is False
+    assert out["armed"] is False
+    assert out["halt"] is True
+    assert out["error"] == "refactor_in_idle_denied"
+    assert "idle" in out["reason"].lower()

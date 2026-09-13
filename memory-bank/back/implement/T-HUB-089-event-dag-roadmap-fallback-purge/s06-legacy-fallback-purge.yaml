@@ -1,0 +1,73 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Выполнен полный sunset inventory scan (Kind A, B, C, I) по контрактам event, DAG
+  и roadmap
+- Подтверждено отсутствие вызовов v1 adapt_v1_event/adapt_manifest в live prod runtime
+- Удалены устаревшие fallback-проверки и остатки Markdown mirror/legacy queue в loop/roadmap_queue.py
+- Переписаны устаревшие тесты board_sync и context_loop на строгий v2 формат
+- Весь targeted и регрессионный тестовый набор успешно проходит (green)
+files:
+- harness/hooks/epic_events.py
+- loop/dag.py
+- loop/context_loop.py
+- loop/roadmap_queue.py
+- loop/WORKFLOW.md
+- loop/tests/test_board_sync_cli.py
+- loop/tests/test_board_sync_sync.py
+- loop/tests/test_board_sync_scan_gates.py
+- loop/tests/test_board_sync_epic_regression.py
+- loop/tests/test_dag_v2_characterization.py
+- loop/tests/test_context_loop.py
+deletes:
+- harness/hooks/epic_events.py:adapt_v1_event live call branch
+- loop/context_loop.py:_arm_dag_next adapt_manifest call
+- loop/roadmap_queue.py:QUEUE_VERSION_V1
+- loop/roadmap_queue.py:LEGACY_DEFAULT_QUEUE
+- loop/roadmap_queue.py:_render_merged_roadmap_md
+- loop/roadmap_queue.py:canon_md_rel
+tests:
+- '`bin/pytest loop/tests/test_event_stream.py loop/tests/test_dag_manifest.py loop/tests/test_roadmap_queue.py
+  -q`'
+- '`bin/pytest loop/tests/test_event_stream.py loop/tests/test_dag_scheduler.py loop/tests/test_roadmap_queue.py
+  -q`'
+integration_check:
+- '`bin/pytest loop/tests/test_board_sync_sync.py loop/tests/test_board_sync_cli.py
+  loop/tests/test_board_sync_scan_gates.py loop/tests/test_board_sync_epic_regression.py
+  loop/tests/test_dag_v2_characterization.py loop/tests/test_context_loop.py -q`'
+grep_control: []
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A подтверждает 0 prod
+    callers
+  status: done
+- id: cp2
+  criterion: Kind B — entrypoint inventory подтверждает отсутствие runtime auto-migration
+  status: done
+- id: cp3
+  criterion: Kind C — anti-fallback rg подтверждает отсутствие fallback-веток для
+    event, DAG и roadmap
+  status: done
+- id: cp4
+  criterion: Kind I — instruction surfaces обновлены на v2 YAML SoT
+  status: done
+- id: cp5
+  criterion: Obsolete tests на старый контракт удалены или переписаны; targeted suite
+    green
+  status: done
+- id: cp6
+  criterion: Targeted regression suite green после полного удаления legacy-кода
+  status: done

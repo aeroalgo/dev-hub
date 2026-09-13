@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s03 — Wire roadmap_advance and context_loop to arm REPLAN and PLAN REFACTOR commands
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Связать roadmap_advance и context_loop с состоянием cadence для автоматического
+  армирования активного контекста (activeContext.md) командами BACK REPLAN <pair_id>
+  в фазе replan и BACK PLAN REFACTOR <refactor_epic_id> в фазе refactor.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - US-001
+    - US-003
+  nouns:
+    - roadmap_advance
+    - context_loop.py
+    - command_router.py
+    - activeContext.md
+    - BACK REPLAN
+    - BACK PLAN REFACTOR
+    - loop/context_loop.py
+    - loop/roadmap_queue.py
+  layout_paths:
+    - loop/context_loop.py
+    - loop/roadmap_queue.py
+    - loop/workflow/command_router.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "FR-005: Wire roadmap_advance to arm REPLAN/PLAN REFACTOR commands via activeContext identity"
+    - "cannot arm refactor in replan; after pair skip/complete -> refactor or noop"
+    - "US-001: REPLAN arms/skips pair ids (P0) — both ids terminal before refactor"
+    - "US-003: refactor epic or noop (P0) — kind refactor XOR noop evidence"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md:50-115"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/workflow/command_router.py
+  produces:
+    - loop/context_loop.py
+    - loop/roadmap_queue.py
+    - loop/workflow/command_router.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_roadmap_queue.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr
+    - plan.md#target-layout
+  files:
+    - loop/context_loop.py
+    - loop/roadmap_queue.py
+    - loop/workflow/command_router.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "roadmap_advance в loop/roadmap_queue.py блокирует выбор feature-эпика, если cadence.phase != 'idle'"
+  - "context_loop.py армирует активный контекст при переходе между фазами"
+  - "command_router.py маршрутизирует команды воркфлоу через IntentRoutingTable"
+
+delta:
+  - "Добавить в roadmap_advance / arm в loop/roadmap_queue.py и loop/context_loop.py поддержку выбора активного pair_id при phase == replan с формированием команды BACK REPLAN <epic_id>"
+  - "Добавить в roadmap_advance выбор refactor-эпика при phase == refactor с формированием команды BACK PLAN REFACTOR <epic_id>"
+  - "Убедиться, что command_router.py корректно разрешает пути к правилам для BACK REPLAN и BACK PLAN REFACTOR"
+  - "Обеспечить запрет (fail-closed) на армирование PLAN REFACTOR, пока фаза replan не закрыта"
+  - "Добавить юнит-тесты в loop/tests/test_context_loop.py и loop/tests/test_roadmap_queue.py для проверки армирования команд в активных фазах cadence"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "API закрытия REPLAN и перехода -> s01"
+  - "API вставки refactor в очередь -> s02"
+  - "Обновление правил workflow -> s04"
+  - "CLI-расширение и сквозные тесты cadence-блока -> s05"
+  - "Удаление legacy fallback путей -> s06"
+  - "Синхронизация очереди в 094 -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "roadmap_advance при phase == replan армирует BACK REPLAN для текущего незавершённого pair_id"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_arms_replan_pair -q"
+  - id: cp2
+    criterion: "roadmap_advance при phase == refactor армирует BACK PLAN REFACTOR для refactor-эпика"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_arms_plan_refactor -q"
+  - id: cp3
+    criterion: "roadmap_advance запрещает (deny / fail-closed) выбор refactor-эпика, пока phase == replan"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_denies_refactor_in_replan -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_queue.py -k fail-closed -q"
+  - "bin/pytest loop/tests/test_roadmap_queue.py -q"
+  - "bin/pytest loop/tests/test_context_loop.py -q"
+tdd: []

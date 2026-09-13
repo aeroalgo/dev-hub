@@ -7,7 +7,6 @@ import yaml
 
 from harness.hooks.epic.core import (
     _declared_artifacts,
-    arm_pre_implement_context,
     default_state,
     resolve_pipeline_identity,
     save_epic_state,
@@ -25,6 +24,7 @@ from loop.mb_finish.finish_implement import (
 from loop.mb_finish.impl import finish_decompose
 from loop.mb_finish.schemas import MbFinishRequest
 from loop.parallel.orchestrator import filter_non_overlapping
+from loop.epic_transition import arm_phase
 from loop.paths.epic_layout import (
     EpicLayoutKind,
     EpicLayoutResolveRequest,
@@ -332,11 +332,11 @@ def test_analyze_arm_normalizes_v2_md_mirror_to_yaml_sot(tmp_path: Path) -> None
     plan = resolve("back", "T-072-v2-analyze-arm", EpicLayoutKind.PLAN_MD, project_root=tmp_path)
     _write(plan, "# Plan\n")
 
-    result = arm_pre_implement_context(
+    result = arm_phase(
         tmp_path,
-        epic_id="T-072-v2-analyze-arm",
-        role="back",
-        phase="ANALYZE",
+        "T-072-v2-analyze-arm",
+        "ANALYZE",
+        "back",
         target_rel=plan.relative_to(tmp_path).as_posix(),
         decompose_rel=index_md.relative_to(tmp_path).as_posix(),
     )

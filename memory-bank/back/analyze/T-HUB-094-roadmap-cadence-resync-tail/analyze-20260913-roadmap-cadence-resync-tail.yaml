@@ -1,0 +1,131 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+slug: roadmap-cadence-resync-tail
+date: '2026-09-13'
+status: complete
+index_fingerprint: sha256:477c03e9d1d975f0b5e8a1dc3e08998e47cca4cd93d6a4f31f719a71fc1cf8f6
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: from-queue reports (P0) — ids ⊂ queue
+- requirement_id: US-002
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: HIGH blocks resume (P0) — advance fail-closed
+- requirement_id: US-003
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: after resync idle (P0) — feature arm works
+- requirement_id: US-004
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: no window in rules (P0) — rg Kind I
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: reconcile from-queue implementation
+- requirement_id: FR-002
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: cadence resync phase + evidence fields
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: resume gate in advance
+- requirement_id: FR-004
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: reset API
+- requirement_id: FR-005
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: tests
+- requirement_id: FR-006
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Kind I docs/rules
+- requirement_id: FR-007
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: optional minimal resync helper (mark plan stale) — full JIT PLAN остаётся agent-side
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: from-queue works; HIGH blocks; reset restores feature lane; rules document cadence without window.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: no resume on raw HIGH; no §Epic mutation; no reintroduce window; no re-implement 092/093 executors.
+- requirement_id: TM-01
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: from-queue finds pending queue epic
+- requirement_id: TM-02
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: HIGH without resync blocks
+- requirement_id: TM-03
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: after reset feature advances
+- requirement_id: TM-04
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Kind I no sliding window
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

@@ -1,0 +1,147 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan `## Replacement / sunset` A+B+C+I.
+  Гарантировать отсутствие dual-path обхода cadence (Kind C), исключить безусловный
+  выбор фич без проверки cadence.phase (Kind A), удалить устаревшие тесты старого
+  поведения и выверить инструкции (Kind I).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - NFR-001
+    - NFR-002
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+  nouns:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - sunset_inventory
+    - grep_control
+    - cadence.yaml
+  layout_paths:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "AC+: 2 feature done → phase=replan; advance не армает feature; refactor done не ++ counter; tests green targeted."
+    - "AC−: нет dual-path optional cadence; нет silent old advance; нет реализации REPLAN/Refactor/resync как done этого эпика."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md:70-160"
+
+context:
+  consumes:
+    - plan §Replacement / sunset
+    - decompose index §Replacement cleanup
+  produces:
+    - удалённые fallback-пути и безусловные advance вызовы
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#ac--ac-
+    - plan.md#qa-consumes-draft
+  files:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_cadence.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "s01..s05 реализовали схему, логику счётчика, хуки mark_done, гейт advance и CLI"
+
+delta:
+  - "Провести аудит кодовой базы на отсутствие dual-path обхода cadence.yaml"
+  - "Убедиться, что отсутствие или повреждение cadence.yaml приводит к строгому fail-closed без fallback-выбора следующего feature"
+  - "Удалить или обновить устаревшие тесты, предполагавшие безусловный advance после завершения эпиков"
+
+sunset_inventory:
+  - symbol: unconditional advance without cadence check
+    kind: A
+    replacement: roadmap_advance with cadence phase gate
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero prod callers bypassing cadence check
+  - symbol: queue rows without kind support
+    kind: A
+    replacement: explicit or default kind='feature' normalization
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: normalized kind on all queue elements
+  - symbol: optional cadence bypass fallback
+    kind: C
+    replacement: fail-closed cadence validation
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero silent cadence fallback matches
+  - symbol: instructions describing unconstrained advance
+    kind: I
+    replacement: cadence-aware advance workflow instructions
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: updated workflow documentation
+
+deletes: []
+
+out_of_scope:
+  - "Исполнение REPLAN/Refactor -> follow_up: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "Синхронизация очереди -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: unconditional advance
+    command: 'rg -n "def roadmap_advance" loop/ -A 30'
+    expect: advance logic checks cadence phase
+  - id: inv-c-01
+    kind: C
+    symbol: optional cadence bypass
+    command: 'rg -n "ignore_cadence|skip_cadence" loop/ || true'
+    expect: no optional cadence bypass flags in prod code
+  - id: inv-i-01
+    kind: I
+    symbol: old unconstrained advance docs
+    command: 'rg -n "always advance feature after done" loop/ || true'
+    expect: no old instructions in scope
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по строкам sunset_inventory: roadmap_advance гарантированно выполняет проверку фазы cadence.
+    verify: |
+      bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance -q
+  - id: cp2
+    criterion: |
+      Kind C — отсутствие silent fallback или optional bypass при повреждённом/отсутствующем cadence.yaml.
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_fail_closed -q
+  - id: cp3
+    criterion: |
+      Все тесты cadence и roadmap queue проходят успешно.
+    verify: |
+      bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_cadence.py loop/tests/test_roadmap_queue.py -q"
+tdd: []

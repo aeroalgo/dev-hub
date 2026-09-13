@@ -158,3 +158,15 @@ def test_checkpoint_conflict_halts_dag_without_promoting_cursor(tmp_path: Path) 
     assert result["node"] != "missing"
     state_after = ctx.load_epic_state(tmp_path)
     assert state_after.get("dag_cursor") == "back"
+
+
+def test_validate_manifest_rejects_v1_legacy_manifest_fail_closed() -> None:
+    result = validate_manifest(
+        {
+            "schema": "loop-dag/v1",
+            "pipeline_id": "portal",
+            "nodes": [{"id": "back", "role_dir": "back", "depends_on": []}],
+        },
+    )
+    assert result["ok"] is False
+    assert any(item["code"] == "schema_invalid" for item in result["diagnostics"])

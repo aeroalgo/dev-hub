@@ -312,10 +312,7 @@ def read_event_log_result(
                 # mixed historical log is repaired by the next _append_event,
                 # which rewrites only canonical lifecycle events atomically.
                 continue
-            if isinstance(raw, dict) and raw.get("schema") == EVENT_SCHEMA:
-                result = validate_event(raw, expected_epic_id=expected_epic_id)
-            else:
-                result = adapt_v1_event(raw, seq=index, epic_id=epic, cwd=root)
+            result = validate_event(raw, expected_epic_id=expected_epic_id)
             if result.valid and result.event is not None:
                 events.append(result.event)
             else:
@@ -501,11 +498,7 @@ def iter_events(records: Iterable[Any], *, epic_id: str) -> EventLogResult:
     events: list[dict[str, Any]] = []
     diagnostics: list[EventDiagnostic] = []
     for seq, record in enumerate(records, start=1):
-        result = (
-            validate_event(record, expected_epic_id=epic_id)
-            if isinstance(record, dict) and record.get("schema") == EVENT_SCHEMA
-            else adapt_v1_event(record, seq=seq, epic_id=epic_id)
-        )
+        result = validate_event(record, expected_epic_id=epic_id)
         if result.valid and result.event is not None:
             events.append(result.event)
         else:

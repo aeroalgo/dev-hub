@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s03 — s03 — mark_queue_epic_done cadence hook wire and idempotent counter protection
+  IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/steps/s03-mark-done-cadence-wire-and-idempotency.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Встроена интеграция с cadence в mark_queue_epic_done (loop/roadmap_queue.py): при
+  переносе эпика в done: вызывается on_feature_done или on_non_feature_done в зависимости
+  от kind эпика'
+- 'Обеспечена строгая идемпотентность: если эпик уже находится в done: (already_done)
+  или отсутствует в очереди (skipped: not_in_queue), хуки cadence не вызываются и
+  счётчик не изменяется'
+- 'Обновлён loop/context_loop.py: на EPIC_DONE логируется статус обновления cadence
+  и возвращается состояние cadence в результате'
+- Добавлены интеграционные тесты test_mark_queue_epic_done_invokes_cadence_feature,
+  test_mark_queue_epic_done_idempotent, test_mark_queue_epic_done_refactor_no_increment
+  в loop/tests/test_roadmap_queue.py
+files:
+- loop/roadmap_queue.py
+- loop/context_loop.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_mark_queue_epic_done_invokes_cadence_feature
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_mark_queue_epic_done_idempotent
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_mark_queue_epic_done_refactor_no_increment
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_roadmap_cadence.py -q
+grep_control: []
+verification_results:
+- 'loop/tests/test_roadmap_queue.py: passed'
+- 'loop/tests/test_roadmap_cadence.py: passed'
+checkpoints:
+- id: cp1
+  criterion: mark_queue_epic_done для feature эпика вызывает on_feature_done и обновляет
+    cadence.yaml
+  status: done
+  done_at: '2026-09-12T09:30:00Z'
+- id: cp2
+  criterion: Повторный вызов mark_queue_epic_done для того же эпика возвращает ok/skipped
+    и не изменяет счётчик cadence
+  status: done
+  done_at: '2026-09-12T09:30:05Z'
+- id: cp3
+  criterion: mark_queue_epic_done для refactor эпика вызывает on_non_feature_done
+    и не инкрементирует счётчик
+  status: done
+  done_at: '2026-09-12T09:30:10Z'
+resume_from: cp1

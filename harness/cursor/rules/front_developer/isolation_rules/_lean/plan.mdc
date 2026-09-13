@@ -8,6 +8,7 @@ alwaysApply: false
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
 **Multi-epic:** research/audit → epic cut + N rows в `memory-bank/front/roadmap/queue.yaml` + N× plan; single-epic также обязан иметь одну row; **FORBIDDEN** slug roadmap md/yaml в `plan/`; next = DECOMPOSE
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — L3+ `Done when` + `Forbidden after`; boundary FR → enforce entrypoint
 
 ## Gates
 

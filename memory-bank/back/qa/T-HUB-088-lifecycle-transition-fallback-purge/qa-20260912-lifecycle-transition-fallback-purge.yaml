@@ -1,0 +1,49 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-088
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+epic_id: T-HUB-088-lifecycle-transition-fallback-purge
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 3980102b75a5c919d87c57451cc5fa7ee2fc860403e056171eaf8afea99e68d1
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-088"
+  - "epic: T-HUB-088-lifecycle-transition-fallback-purge"
+  - "steps: s01–s06"
+  - "files: harness/hooks/**, loop/**, memory-bank/**"
+
+ac_plus:
+  - "SC-001: 0 production callers legacy arm symbols"
+  - "SC-002: invalid/manual evidence cannot finish BUGFIX"
+  - "SC-003: valid phase transition behavior unchanged"
+  - "SC-004: no raw Markdown handoff fallback in runtime"
+
+ac_minus:
+  - "Нет production import/call для `arm_active_context_from_decompose`/`arm_pre_implement_context`."
+  - "Нет `authority == manual` как успешного verifier evidence."
+  - "Нет raw dict fallback из typed handoff parser."
+  - "Нет artifact-only finish path for active BUGFIX."
+  - "Нет тестов, которые закрепляют старый arm/handoff/BUGFIX contract."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> 2800 passed, 4 skipped in 92.55s"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

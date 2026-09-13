@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s04 — roadmap_advance gate pausing feature-epic selection when cadence is active
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Встроить проверку состояния cadence в roadmap_advance (loop/roadmap_queue.py и loop/context_loop.py):
+  если cadence.phase != 'idle' (например, phase == 'replan'), roadmap_advance
+  блокирует выбор и армирование следующего feature-эпика, возвращая статус
+  cadence_blocked / cadence_pending, предотвращая переход к третьему feature-эпику.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - US-004
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - roadmap_advance
+    - phase
+    - replan
+    - idle
+    - cadence_blocked
+  layout_paths:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "US-004: mid-block no new feature arm (P0) — advance ≠ third feature"
+    - "FR-005: Wire advance: block feature select if phase≠idle"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md:50-115"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+  produces:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_queue.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr--nfr
+    - plan.md#target-layout
+  files:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "roadmap_advance выбирает первый доступный незавершённый эпик из queue.yaml независимо от cadence"
+  - "loop/context_loop.py вызывает roadmap_advance после завершения эпика"
+
+delta:
+  - "Добавить в roadmap_advance проверку фазы cadence: если phase != 'idle', остановить выбор следующего feature-эпика и вернуть статус с причиной блокировки"
+  - "Обновить context_loop.py: при получении cadence_blocked не армировать новый эпик и логировать ожидание cadence-действий"
+  - "Сохранить нормальный advance при phase == 'idle'"
+  - "Добавить тесты в loop/tests/test_roadmap_queue.py, подтверждающие, что при phase != idle новый feature-эпик не выбирается"
+
+deletes: []
+
+out_of_scope:
+  - "Автоматический запуск REPLAN в 093 -> follow_up: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "Синхронизация очереди -> follow_up: T-HUB-094-roadmap-cadence-resync-tail"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "roadmap_advance при phase == 'replan' возвращает ok=False/blocked и не армирует следующий feature эпик"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_blocked_when_cadence_active -q"
+  - id: cp2
+    criterion: "roadmap_advance при phase == 'idle' успешно выбирает и армирует следующий доступный эпик"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_success_when_idle -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_queue.py -q"
+tdd: []

@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s04 — Purge runtime adapter alias/module scan, enforce typed registry errors,
+  and classify operational fallbacks IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s04-typed-runtime-adapter-registry-dispatch.yaml
+skills_used: []
+discovery:
+- Removed blind dir(obj) scan in get_adapter_for_runtime.
+- Purged unreferenced legacy aliases (claude_cli, claude-cli) from _RUNTIME_ALIASES,
+  keeping only supported claude-code normalization.
+- Enforced strict ValueError fail-closed behavior for unknown runtimes and adapter
+  modules missing expected Adapter class.
+- Retained and verified operational fallback mechanisms (which-codex, which-dsh, CODEX_BIN,
+  DSH_BIN).
+gaps:
+  status: none
+done:
+- Cleaned get_adapter_for_runtime in loop/runtime_adapters/common.py by removing fallback
+  dir(obj) scanning and requiring typed adapter class resolution.
+- Cleaned _RUNTIME_ALIASES to remove unused legacy aliases.
+- Added comprehensive unit tests in loop/tests/test_runtime_registry.py verifying
+  canonical adapter instantiation, purged alias fail-closed behavior, and absence
+  of blind dir(obj) scanning.
+- Verified operational fallback resilience in loop/tests/test_codex_runtime_adapter.py
+  and loop/tests/test_loop_dsh_dispatch.py.
+files:
+- loop/runtime_adapters/common.py
+- loop/tests/test_codex_runtime_adapter.py
+- loop/tests/test_runtime_registry.py
+- loop/tests/test_loop_dsh_dispatch.py
+deletes:
+- 'loop/runtime_adapters/common.py: fallback scan module attributes using dir(obj)'
+wire_complete:
+  call_sites:
+  - loop/runtime_adapters/common.py:get_adapter_for_runtime
+  enforce_path: loop/runtime_adapters/common.py
+  dual_path_rg: rg -n "dir\(obj\)" loop/runtime_adapters/common.py -> 0 matches
+  instruction_rg: test_get_adapter_for_runtime_no_blind_dir_scan in loop/tests/test_runtime_registry.py
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_codex_runtime_adapter.py
+  loop/tests/test_loop_dsh_dispatch.py -q
+integration_check:
+- Canonical runtimes (claude, codex, dsh) and claude-code alias resolve to typed adapter
+  instances cleanly.
+- Unknown runtimes and modules lacking adapter class fail closed with ValueError.
+- Binary resolvers (which-codex, which-dsh) and environment overrides operate as resilience
+  mechanisms without silent fallback.
+grep_control:
+- back: rg -n "dir\(obj\)" loop/runtime_adapters/common.py
+  front: n/a
+verification_results:
+- 'cp1: dir(obj) scan removed from loop/runtime_adapters/common.py -> PASS'
+- 'cp2: bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_codex_runtime_adapter.py
+  loop/tests/test_loop_dsh_dispatch.py -q passed (42 passed).'
+checkpoints:
+- id: cp1
+  criterion: Слепое сканирование dir(obj) удалено из loop/runtime_adapters/common.py
+  status: done
+  done_at: '2026-09-12T03:30:00Z'
+- id: cp2
+  criterion: Канонические runtime адаптеры (claude, codex, dsh) инстанциируются корректно,
+    а неизвестные runtime вызывают ValueError
+  status: done
+  done_at: '2026-09-12T03:30:10Z'
+resume_from: cp2

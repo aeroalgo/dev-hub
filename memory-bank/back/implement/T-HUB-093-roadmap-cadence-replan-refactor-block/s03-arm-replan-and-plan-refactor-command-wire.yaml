@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s03 — Wire roadmap_advance and context_loop to arm REPLAN and PLAN REFACTOR
+  commands
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/yaml/steps/s03-arm-replan-and-plan-refactor-command-wire.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'В loop/roadmap_queue.py обновлен roadmap_advance для поддержки фазы replan: автоматический
+  выбор и армирование незавершённого pair_id с формированием команды BACK REPLAN <epic_id>'
+- 'В loop/roadmap_queue.py добавлен выбор refactor-эпика (kind: refactor) при phase
+  == refactor с формированием команды BACK PLAN REFACTOR <epic_id>'
+- В loop/roadmap_queue.py реализован запрет (deny / fail-closed) на выбор refactor-эпика,
+  пока phase == replan
+- В loop/context_loop.py обеспечен переход и chaining по roadmap_advance при EPIC_DONE
+  для команд REPLAN и PLAN REFACTOR
+- Добавлены юнит-тесты test_roadmap_advance_arms_replan_pair, test_roadmap_advance_arms_plan_refactor,
+  test_roadmap_advance_denies_refactor_in_replan в loop/tests/test_roadmap_queue.py
+- Добавлены юнит-тесты test_epic_done_stop_result_chains_to_replan и test_epic_done_stop_result_chains_to_plan_refactor
+  в loop/tests/test_context_loop.py
+files:
+- loop/context_loop.py
+- loop/roadmap_queue.py
+- loop/workflow/command_router.py
+- loop/tests/test_context_loop.py
+- loop/tests/test_roadmap_queue.py
+deletes: []
+wire_complete:
+  call_sites:
+  - loop.roadmap_queue.roadmap_advance
+  - loop.context_loop._epic_done_stop_result
+  - loop.workflow.command_router.route_command
+  enforce_path: bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_context_loop.py
+    -q
+  dual_path_rg: rg roadmap_advance loop/
+  instruction_rg: rg roadmap_advance memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_arms_replan_pair
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_arms_plan_refactor
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_denies_refactor_in_replan
+  -q
+- bin/pytest loop/tests/test_context_loop.py -k test_epic_done_stop_result_chains
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -k fail_closed -q
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_context_loop.py -q
+integration_check:
+- roadmap_advance arms BACK REPLAN when cadence.phase == replan
+- roadmap_advance arms BACK PLAN REFACTOR when cadence.phase == refactor
+- roadmap_advance denies refactor epic selection when cadence.phase == replan (fail-closed)
+- _epic_done_stop_result chains to REPLAN and PLAN REFACTOR when EPIC_CHAIN_ROADMAP=1
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_arms_replan_pair
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_arms_plan_refactor
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_roadmap_advance_denies_refactor_in_replan
+  -q -> PASS
+- bin/pytest loop/tests/test_context_loop.py -k test_epic_done_stop_result_chains
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_queue.py -k fail_closed -q -> PASS
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_context_loop.py -q ->
+  PASS
+checkpoints:
+- id: cp1
+  criterion: roadmap_advance при phase == replan армирует BACK REPLAN для текущего
+    незавершённого pair_id
+  status: done
+- id: cp2
+  criterion: roadmap_advance при phase == refactor армирует BACK PLAN REFACTOR для
+    refactor-эпика
+  status: done
+- id: cp3
+  criterion: roadmap_advance запрещает (deny / fail-closed) выбор refactor-эпика,
+    пока phase == replan
+  status: done

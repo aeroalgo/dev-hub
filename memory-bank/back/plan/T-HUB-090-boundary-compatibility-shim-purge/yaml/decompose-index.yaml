@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - DSH alias removal
+  - new runtime registry design
+  - operational fallback redesign
+steps:
+- id: s01
+  file: s01-contracts-and-characterization.yaml
+  title: Characterize agent overlay completeness, board CLI canonical dispatcher,
+    runtime registry adapter lookup, and dead alias inventory
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-canonicalize-agent-overlay-metadata.yaml
+  title: Enforce canonical overlay metadata in agent frontmatter and eliminate legacy
+    overlay map fallback
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-canonical-board-cli-dispatch.yaml
+  title: Consolidate board sync CLI into single canonical command dispatcher and delete
+    legacy printers and handlers
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-typed-runtime-adapter-registry-dispatch.yaml
+  title: Purge runtime adapter alias/module scan, enforce typed registry errors, and
+    classify operational fallbacks
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-dead-alias-purge-and-obsolete-test-rewrite.yaml
+  title: Purge dead public aliases, rewrite obsolete test suites, and clean up instruction
+    surfaces
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: completed

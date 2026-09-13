@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+title: s04 — Kind I workflow rules update and strict anti-carry policy enforcement
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/yaml/steps/s04-workflow-rules-and-anti-carry-policy.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Обновлены правила .cursor/rules/back_developer/workflow-replan.mdc: описана интеграция
+  с cadence.yaml (фаза replan), фиксация skip-evidence при отсутствии критических
+  gaps, работа только по critical gaps и строгое правило one-hop per ID (запрет replan-of-replan)'
+- 'Обновлены правила .cursor/rules/back_developer/workflow-plan-refactor.mdc: зафиксирован
+  порядок фаз в cadence-блоке (replan -> refactor -> resync), строгая блокировка до
+  завершения replan для pair_ids, фиксация kind: refactor / noop evidence и перевод
+  в resync'
+- 'Обновлен индекс .cursor/rules/back_developer/mainrule.mdc: добавлены указатели
+  на фазы cadence-блока (replan -> refactor -> resync) для REPLAN и PLAN REFACTOR'
+- Зафиксирован в workflow-правилах строгий запрет (FORBIDDEN) на перенос незакрытых
+  требований (FR) в соседние feature-эпики (anti-carry policy) и запрет скользящих
+  окон (sliding window)
+- Добавлены тесты test_rules_cadence_instructions и test_rules_anti_carry_policy в
+  loop/tests/test_roadmap_cadence.py
+files:
+- .cursor/rules/back_developer/workflow-replan.mdc
+- .cursor/rules/back_developer/workflow-plan-refactor.mdc
+- .cursor/rules/back_developer/mainrule.mdc
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+wire_complete:
+  call_sites:
+  - .cursor/rules/back_developer/workflow-replan.mdc
+  - .cursor/rules/back_developer/workflow-plan-refactor.mdc
+  - .cursor/rules/back_developer/mainrule.mdc
+  enforce_path: bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules -q
+  dual_path_rg: rg cadence.yaml .cursor/rules/back_developer/
+  instruction_rg: rg anti-carry .cursor/rules/back_developer/
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_cadence_instructions
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_anti_carry_policy -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+integration_check:
+- workflow-replan.mdc describes cadence block replan phase, one-hop per ID, critical
+  gaps only, and skip evidence
+- workflow-plan-refactor.mdc describes cadence block refactor phase, blocking until
+  replan complete, noop evidence, and resync transition
+- mainrule.mdc indexes cadence block phase progression and anti-carry policy
+- anti-carry policy and sliding window prohibition enforced across rules
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_cadence_instructions
+  -q -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_rules_anti_carry_policy -q
+  -> PASS
+- bin/pytest loop/tests/test_roadmap_cadence.py -q -> PASS
+checkpoints:
+- id: cp1
+  criterion: workflow-replan.mdc и workflow-plan-refactor.mdc содержат инструкции
+    cadence-порядка и запрет replan-of-replan
+  status: done
+- id: cp2
+  criterion: Правила содержат явный запрет на перенос шагов (anti-carry policy) и
+    скользящие окна
+  status: done

@@ -95,7 +95,7 @@
 |------|--------|
 | `harness/hooks/epic/reconcile.py` | Modify |
 | `loop/roadmap_cadence.py` | Modify (resync/reset) |
-| `loop/roadmap_queue.py` / `context_loop.py` | Modify (gate + CLI) |
+| `loop/roadmap_queue.py` / `loop/context_loop.py` | Modify (gate + CLI) |
 | `loop/tests/test_reconcile_spec.py` | Modify |
 | `loop/tests/test_roadmap_cadence.py` | Extend |
 | `.cursor/rules/shared/finish-doc-router.mdc` | Modify if needed |

@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: s02 — Purge live event reader fallbacks, isolate event v1 adapter, and enforce
+  fail-closed v2 event log validation IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s02-purge-live-event-fallbacks.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удален вызов adapt_v1_event из read_event_log_result и iter_events в harness/hooks/epic_events.py
+- Обеспечена строгая валидация loop-event/v2 и fail-closed диагностика для non-v2
+  / v1 записей
+- Сохранена изоляция offline-миграции migrate_event_log и безопасная обработка reflection_done
+  как dead kind в loop/schemas/event.py и harness/hooks/epic_events.py
+files:
+- harness/hooks/epic_events.py
+- loop/schemas/event.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_event_stream.py loop/tests/test_event_schema.py -q`'
+- '`bin/pytest loop/tests/test_schemas_event.py loop/tests/test_reducer_qa_bugfix.py
+  -q`'
+integration_check:
+- '`bin/pytest loop/tests/test_event_stream.py loop/tests/test_event_schema.py loop/tests/test_schemas_event.py
+  loop/tests/test_reducer_qa_bugfix.py -q`'
+grep_control: []
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: read_event_log_result отклоняет v1 event logs с fail-closed diagnostic
+    и не вызывает adapt_v1_event
+  status: done
+- id: cp2
+  criterion: Исторический reflection_done безопасно распознаётся как dead kind и не
+    ломает v2 replay
+  status: done

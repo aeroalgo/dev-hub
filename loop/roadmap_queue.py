@@ -10,6 +10,9 @@ import yaml
 HOOKS = Path(__file__).resolve().parents[1] / ".claude" / "hooks"
 if str(HOOKS) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(HOOKS))
+LOOP_DIR = Path(__file__).resolve().parent
+if str(LOOP_DIR) not in __import__("sys").path:
+    __import__("sys").path.insert(0, str(LOOP_DIR))
 
 from epic import (  # noqa: E402
     arm_epic,
@@ -27,16 +30,15 @@ try:
     from loop.analyze_gate import analyze_required_before_implement  # noqa: E402
 except ImportError:
     from analyze_gate import analyze_required_before_implement  # noqa: E402
+from loop.roadmap_cadence import on_resync_done, reset_cadence_idle  # noqa: E402
 
-QUEUE_VERSION_V1 = "roadmap-queue/v1"
 QUEUE_VERSION = "roadmap-queue/v2"
-SUPPORTED_QUEUE_VERSIONS = {QUEUE_VERSION_V1, QUEUE_VERSION}
+SUPPORTED_QUEUE_VERSIONS = {QUEUE_VERSION}
 
 # Layout v2 SoT (yaml-only; no sibling .md)
 DEFAULT_QUEUE = "memory-bank/back/roadmap/queue.yaml"
 # Deprecated aliases (migration / old docs)
 DEFAULT_ROADMAP = "memory-bank/back/roadmap/queue.yaml"
-LEGACY_DEFAULT_QUEUE = "memory-bank/back/plan/roadmap-epics.queue.yaml"
 
 
 def queue_rel_from_roadmap(roadmap_rel: str) -> str:
@@ -97,6 +99,8 @@ def _normalize_queue_item(item: dict[str, Any], *, index: int, path: str) -> dic
             "path": path,
         }
     deps = [str(d).strip() for d in deps_raw if str(d).strip()]
+    kind_raw = item.get("kind")
+    kind = str(kind_raw).strip() if kind_raw is not None and str(kind_raw).strip() else "feature"
     batch = str(item.get("batch") or "").strip() or None
     out: dict[str, Any] = {
         "ok": True,
@@ -104,6 +108,7 @@ def _normalize_queue_item(item: dict[str, Any], *, index: int, path: str) -> dic
         "plan": plan or f"plan-{epic_fs}.md",
         "epic_id": epic_fs or plan_stem_from_name(plan),
         "deps": deps,
+        "kind": kind,
     }
     if batch:
         out["batch"] = batch
@@ -142,13 +147,6 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
             "reason": "queue must be a list",
             "path": path,
         }
-    if version == QUEUE_VERSION_V1 and not raw_queue:
-        return {
-            "ok": False,
-            "error": "queue_yaml_invalid",
-            "reason": "queue must be a non-empty list",
-            "path": path,
-        }
     queue: list[dict[str, Any]] = []
     seen: set[str] = set()
     for i, item in enumerate(raw_queue):
@@ -164,7 +162,13 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
                 "path": path,
             }
         seen.add(epic_id)
-        row = {"id": epic_id, "plan": norm["plan"], "deps": norm["deps"], "epic_id": norm["epic_id"]}
+        row = {
+            "id": epic_id,
+            "plan": norm["plan"],
+            "deps": norm["deps"],
+            "epic_id": norm["epic_id"],
+            "kind": norm["kind"],
+        }
         if norm.get("batch"):
             row["batch"] = norm["batch"]
         queue.append(row)
@@ -200,6 +204,7 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
                 "plan": norm["plan"],
                 "deps": norm["deps"],
                 "epic_id": norm["epic_id"],
+                "kind": norm["kind"],
             }
             if norm.get("batch"):
                 row["batch"] = norm["batch"]
@@ -228,8 +233,7 @@ def parse_roadmap_queue(
     """Parse machine queue YAML. Fail-closed on errors.
 
     Prefers ``queue_rel``. Default: ``DEFAULT_QUEUE``
-    (``memory-bank/<role>/roadmap/queue.yaml``). If default missing, tries
-    legacy ``plan/roadmap-epics.queue.yaml`` once (migration window).
+    (``memory-bank/<role>/roadmap/queue.yaml``).
     """
     root = Path(cwd)
     if queue_rel:
@@ -239,11 +243,6 @@ def parse_roadmap_queue(
     else:
         rel = DEFAULT_QUEUE
     path = root / rel
-    if not path.is_file() and not queue_rel and not roadmap_rel:
-        legacy = root / LEGACY_DEFAULT_QUEUE
-        if legacy.is_file():
-            rel = LEGACY_DEFAULT_QUEUE
-            path = legacy
     if not path.is_file():
         return {
             "ok": False,
@@ -532,6 +531,7 @@ def mark_queue_epic_done(
         "epic_id": row.get("epic_id") or plan_stem_from_name(row.get("plan") or ""),
         "plan": row.get("plan") or f"plan-{row['id']}.md",
         "deps": [],
+        "kind": row.get("kind") or "feature",
     }
     if row.get("batch"):
         done_row["batch"] = row["batch"]
@@ -546,7 +546,24 @@ def mark_queue_epic_done(
     qpath = root / parsed["path"]
     qpath.parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(qpath, body)
-    return {
+
+    cadence_out: dict[str, Any] | None = None
+    from loop.roadmap_cadence import on_feature_done, on_non_feature_done
+
+    kind = str(done_row.get("kind") or "feature").strip().lower()
+    cadence_epic = done_row.get("epic_id") or done_row["id"]
+    if kind == "feature":
+        c_state = on_feature_done(root, epic_id=cadence_epic)
+    elif kind == "refactor":
+        from loop.roadmap_cadence import on_refactor_done
+        c_state = on_refactor_done(root, epic_id=cadence_epic)
+    elif kind == "resync":
+        from loop.roadmap_cadence import on_resync_done
+        c_state = on_resync_done(root, epic_id=cadence_epic)
+    else:
+        c_state = on_non_feature_done(root, epic_id=cadence_epic)
+    cadence_out = c_state.model_dump(by_alias=True)
+    res: dict[str, Any] = {
         "ok": True,
         "written": True,
         "already_done": False,
@@ -555,6 +572,9 @@ def mark_queue_epic_done(
         "path": parsed["path"],
         "queue_remaining": [x["id"] for x in queue],
     }
+    if cadence_out is not None:
+        res["cadence"] = cadence_out
+    return res
 
 
 def resolve_entry(
@@ -841,6 +861,84 @@ def roadmap_advance(
                 "reason": marked.get("reason"),
                 "mark_done": marked,
             }
+
+    from loop.roadmap_cadence import load_cadence
+
+    cad_state = load_cadence(cwd=cwd)
+
+    # 1. Replan phase: arm BACK REPLAN for pending pair_ids; deny refactor epics
+    if cad_state.phase == "replan":
+        selected = select_next_epic(
+            cwd,
+            queue_rel=queue_rel,
+            roadmap_rel=roadmap_rel,
+            skip_epic=skip_epic,
+        )
+        if selected.get("ok"):
+            item = selected.get("item") or selected.get("entry") or {}
+            item_kind = str(item.get("kind") or "feature").strip().lower()
+            if item_kind == "refactor":
+                out_deny = {
+                    "ok": False,
+                    "armed": False,
+                    "complete": False,
+                    "halt": True,
+                    "error": "refactor_in_replan_denied",
+                    "stop": "NEED_HUMAN: refactor_in_replan_denied",
+                    "reason": "cannot select or arm refactor epic while cadence phase is 'replan'",
+                    "phase": "replan",
+                }
+                if marked is not None:
+                    out_deny["mark_done"] = marked
+                return out_deny
+
+        pending_pair_ids = [
+            pid for pid in cad_state.pair_ids if pid not in cad_state.replan_outcomes
+        ]
+        if pending_pair_ids:
+            target_pid = pending_pair_ids[0]
+            from loop.epic_transition import _arm_pre_implement
+
+            arm_res = _arm_pre_implement(
+                cwd,
+                epic_id=target_pid,
+                role="back",
+                phase="REPLAN",
+                target_rel=None,
+            )
+            if not arm_res.get("ok"):
+                return arm_res
+            out_replan = {
+                "ok": True,
+                "armed": True,
+                "complete": False,
+                "epic": target_pid,
+                "phase": "REPLAN",
+                "step_id": "REPLAN",
+                "role": "back",
+                "cadence_phase": "replan",
+                "arm": arm_res,
+            }
+            if marked is not None:
+                out_replan["mark_done"] = marked
+            return out_replan
+
+        out_blocked = {
+            "ok": False,
+            "armed": False,
+            "complete": False,
+            "halt": True,
+            "cadence_blocked": True,
+            "error": "cadence_blocked",
+            "stop": "CADENCE_BLOCKED",
+            "phase": cad_state.phase,
+            "reason": f"cadence phase is '{cad_state.phase}', pausing feature advance",
+            "cadence": cad_state.model_dump(by_alias=True),
+        }
+        if marked is not None:
+            out_blocked["mark_done"] = marked
+        return out_blocked
+
     selected = select_next_epic(
         cwd,
         queue_rel=queue_rel,
@@ -873,6 +971,168 @@ def roadmap_advance(
         if marked is not None:
             out_bad["mark_done"] = marked
         return out_bad
+
+    # 2. Refactor phase: arm BACK PLAN REFACTOR for refactor epic; pause feature epics
+    if cad_state.phase == "refactor":
+        item = selected.get("item") or selected.get("entry") or {}
+        item_kind = str(item.get("kind") or "feature").strip().lower()
+        item_phase = str(item.get("phase") or "").strip().upper()
+        if item_kind == "refactor" or "PLAN REFACTOR" in item_phase:
+            refactor_epic_id = str(
+                item.get("epic") or item.get("id") or item.get("queue_id") or ""
+            ).strip()
+            role_val = (
+                str(item.get("role") or selected.get("role") or "back").strip().lower()
+                or "back"
+            )
+            from loop.epic_transition import _arm_pre_implement
+
+            arm_res = _arm_pre_implement(
+                cwd,
+                epic_id=refactor_epic_id,
+                role=role_val,
+                phase="PLAN REFACTOR",
+                target_rel=None,
+            )
+            if not arm_res.get("ok"):
+                return arm_res
+            out_refactor = {
+                "ok": True,
+                "armed": True,
+                "complete": False,
+                "epic": refactor_epic_id,
+                "phase": "PLAN REFACTOR",
+                "step_id": "PLAN REFACTOR",
+                "role": role_val,
+                "cadence_phase": "refactor",
+                "arm": arm_res,
+            }
+            if marked is not None:
+                out_refactor["mark_done"] = marked
+            return out_refactor
+
+        out_blocked = {
+            "ok": False,
+            "armed": False,
+            "complete": False,
+            "halt": True,
+            "cadence_blocked": True,
+            "error": "cadence_blocked",
+            "stop": "CADENCE_BLOCKED",
+            "phase": cad_state.phase,
+            "reason": f"cadence phase is '{cad_state.phase}', pausing feature advance",
+            "cadence": cad_state.model_dump(by_alias=True),
+            "next_epic": selected.get("item", {}).get("id"),
+            "done_ids": selected.get("done_ids"),
+        }
+        if marked is not None:
+            out_blocked["mark_done"] = marked
+        return out_blocked
+
+    # 3. Resync phase: resume gate (fail-closed on HIGH drift without resync_evidence)
+    if cad_state.phase == "resync":
+        has_evidence = cad_state.resync_evidence is not None
+        ev = cad_state.resync_evidence
+        ev_high = 0
+        ev_action = ""
+        if has_evidence:
+            if hasattr(ev, "high_count"):
+                ev_high = int(getattr(ev, "high_count") or 0)
+                ev_action = str(getattr(ev, "resync_action") or "").strip().lower()
+            elif isinstance(ev, dict):
+                ev_high = int(ev.get("high_count") or 0)
+                ev_action = str(ev.get("resync_action") or "").strip().lower()
+
+        is_resynced = bool(ev_action and ev_action not in ("drift_detected", "unresynced")) or (has_evidence and ev_high == 0)
+        if (not has_evidence) or (ev_high > 0 and not is_resynced):
+            reason_str = (
+                f"cadence phase is 'resync' with high_count={ev_high} without resync_evidence, pausing feature advance"
+                if has_evidence
+                else "cadence phase is 'resync' without resync_evidence, pausing feature advance"
+            )
+            out_blocked = {
+                "ok": False,
+                "armed": False,
+                "complete": False,
+                "halt": True,
+                "cadence_blocked": True,
+                "error": "cadence_blocked",
+                "stop": "CADENCE_BLOCKED",
+                "phase": "resync",
+                "high_count": ev_high,
+                "reason": reason_str,
+                "cadence": cad_state.model_dump(by_alias=True),
+                "next_epic": selected.get("item", {}).get("id"),
+                "done_ids": selected.get("done_ids"),
+            }
+            if marked is not None:
+                out_blocked["mark_done"] = marked
+            return out_blocked
+
+        item = selected.get("item") or selected.get("entry") or {}
+        item_kind = str(item.get("kind") or "feature").strip().lower()
+        if item_kind == "refactor":
+            out_deny = {
+                "ok": False,
+                "armed": False,
+                "complete": False,
+                "halt": True,
+                "error": "refactor_in_resync_denied",
+                "stop": "NEED_HUMAN: refactor_in_resync_denied",
+                "reason": "cannot select or arm refactor epic while cadence phase is 'resync'",
+                "phase": "resync",
+            }
+            if marked is not None:
+                out_deny["mark_done"] = marked
+            return out_deny
+
+        armed = arm_roadmap_entry(cwd, selected)
+        armed["done_ids"] = selected.get("done_ids")
+        armed["blocked"] = selected.get("blocked")
+        armed["path"] = selected.get("path")
+        armed["cadence_phase"] = "resync"
+        if marked is not None:
+            armed["mark_done"] = marked
+        return armed
+
+    # 4. Other non-idle phases: pause feature advance (fail-closed)
+    if cad_state.phase != "idle":
+        out_blocked = {
+            "ok": False,
+            "armed": False,
+            "complete": False,
+            "halt": True,
+            "cadence_blocked": True,
+            "error": "cadence_blocked",
+            "stop": "CADENCE_BLOCKED",
+            "phase": cad_state.phase,
+            "reason": f"cadence phase is '{cad_state.phase}', pausing feature advance",
+            "cadence": cad_state.model_dump(by_alias=True),
+            "next_epic": selected.get("item", {}).get("id"),
+            "done_ids": selected.get("done_ids"),
+        }
+        if marked is not None:
+            out_blocked["mark_done"] = marked
+        return out_blocked
+
+    # 4. Idle phase: normal roadmap arm
+    item = selected.get("item") or selected.get("entry") or {}
+    item_kind = str(item.get("kind") or "feature").strip().lower()
+    if item_kind == "refactor":
+        out_deny = {
+            "ok": False,
+            "armed": False,
+            "complete": False,
+            "halt": True,
+            "error": "refactor_in_idle_denied",
+            "stop": "NEED_HUMAN: refactor_in_idle_denied",
+            "reason": "cannot select or arm refactor epic while cadence phase is 'idle'",
+            "phase": "idle",
+        }
+        if marked is not None:
+            out_deny["mark_done"] = marked
+        return out_deny
+
     armed = arm_roadmap_entry(cwd, selected)
     armed["done_ids"] = selected.get("done_ids")
     armed["blocked"] = selected.get("blocked")
@@ -883,7 +1143,6 @@ def roadmap_advance(
 
 
 CANON_QUEUE_BASENAME = "queue.yaml"
-CANON_MD_BASENAME = "roadmap-epics.md"  # deprecated; never written by default
 
 ROLE_ROADMAP_DIRS: dict[str, str] = {
     "back": "memory-bank/back/roadmap",
@@ -905,19 +1164,12 @@ def canon_queue_rel(role: str = "back") -> str:
     return f"{base}/{CANON_QUEUE_BASENAME}"
 
 
-def canon_md_rel(role: str = "back") -> str:
-    """Deprecated md mirror path (not written). Kept for API compat."""
-    role_key = str(role or "back").strip().lower()
-    base = ROLE_ROADMAP_DIRS.get(role_key) or ROLE_ROADMAP_DIRS["back"]
-    return f"{base}/{CANON_MD_BASENAME}"
-
-
 def is_source_queue_name(name: str) -> bool:
-    if name in {CANON_QUEUE_BASENAME, "roadmap-epics.queue.yaml"}:
+    if name == CANON_QUEUE_BASENAME:
         return False
-    if name.endswith(".queue.yaml") and name.startswith("roadmap-"):
+    if name.endswith("-epics.queue.yaml") and name.startswith("roadmap-") and len(name) > len("roadmap--epics.queue.yaml"):
         return True
-    if name.endswith(".yaml") and not name.startswith(".") and name != CANON_QUEUE_BASENAME:
+    if name.endswith(".yaml") and not name.startswith(".") and name != CANON_QUEUE_BASENAME and not name.endswith(".queue.yaml"):
         # batches/<slug>.yaml under roadmap/
         return True
     return False
@@ -953,7 +1205,7 @@ def discover_source_queues(cwd: str | Path, role: str = "back") -> list[Path]:
                     p.is_file()
                     and p.name.startswith("roadmap-")
                     and p.name.endswith("-epics.queue.yaml")
-                    and p.name != "roadmap-epics.queue.yaml"
+                    and len(p.name) > len("roadmap--epics.queue.yaml")
                 ):
                     found.append(p)
 
@@ -983,6 +1235,7 @@ def _dump_queue_yaml(
             "plan": item.get("plan")
             or f"plan-{item.get('epic_id') or item['id']}.md",
             "deps": list(item.get("deps") or []),
+            "kind": item.get("kind") or "feature",
         }
         if item.get("batch"):
             row["batch"] = item["batch"]
@@ -991,6 +1244,7 @@ def _dump_queue_yaml(
         row = {
             "id": item["id"],
             "epic_id": item.get("epic_id") or plan_stem_from_name(item.get("plan") or ""),
+            "kind": item.get("kind") or "feature",
         }
         if item.get("plan"):
             row["plan"] = item["plan"]
@@ -1000,44 +1254,6 @@ def _dump_queue_yaml(
     if batches:
         doc["batches"] = batches
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
-
-
-def _render_merged_roadmap_md(
-    *,
-    role: str,
-    queue: list[dict[str, Any]],
-    sources: list[str],
-    skipped_done: list[str],
-    queue_rel: str,
-) -> str:
-    """Deprecated — md mirrors are no longer generated. Kept for dry-run preview."""
-    role_u = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(
-        role, role.upper()
-    )
-    qname = Path(queue_rel).as_posix()
-    rows = []
-    for i, item in enumerate(queue, start=1):
-        deps = item.get("deps") or []
-        deps_s = ", ".join(deps) if deps else "—"
-        rows.append(
-            f"| {i} | {item['id']} | {item.get('epic_id') or item.get('plan')} | {deps_s} |"
-        )
-    src_lines = "\n".join(f"- `{s}`" for s in sources) if sources else "- (inline batches only)"
-    done_lines = (
-        "\n".join(f"- `{d}`" for d in skipped_done) if skipped_done else "- (нет)"
-    )
-    return (
-        f"# Roadmap (deprecated md mirror)\n\n"
-        f"**Роль:** {role_u}\n"
-        f"**Machine SoT:** `{qname}`\n\n"
-        f"## Sources\n\n{src_lines}\n\n"
-        f"## Done\n\n{done_lines}\n\n"
-        f"## Queue\n\n"
-        f"| # | ID | epic_id | Hard deps |\n"
-        f"|---|----|---------|-----------|\n"
-        + "\n".join(rows)
-        + "\n"
-    )
 
 
 def _topo_merge_order(
@@ -1113,7 +1329,6 @@ def roadmap_merge(
     road_rel = ROLE_ROADMAP_DIRS[role_key]
     plan_rel = ROLE_PLAN_DIRS[role_key]
     queue_rel = canon_queue_rel(role_key)
-    md_rel = canon_md_rel(role_key)
     sources = discover_source_queues(root, role_key)
 
     by_id: dict[str, dict[str, Any]] = {}
@@ -1125,10 +1340,6 @@ def roadmap_merge(
     prior_done: list[dict[str, Any]] = []
 
     existing = parse_roadmap_queue(root, queue_rel=queue_rel)
-    if not existing.get("ok"):
-        # try legacy canon under plan/
-        legacy_rel = f"{plan_rel}/roadmap-epics.queue.yaml"
-        existing = parse_roadmap_queue(root, queue_rel=legacy_rel)
     if existing.get("ok"):
         batches_meta = dict(existing.get("batches") or {})
         prior_done = list(existing.get("done") or [])
@@ -1140,6 +1351,7 @@ def roadmap_merge(
                 "epic_id": item.get("epic_id") or plan_stem_from_name(item["plan"]),
                 "deps": list(item.get("deps") or []),
                 "batch": item.get("batch"),
+                "kind": item.get("kind") or "feature",
             }
             source_of[eid] = existing["path"]
             preferred.append(eid)
@@ -1201,6 +1413,7 @@ def roadmap_merge(
                     "epic_id": epic_fs,
                     "deps": deps,
                     "batch": batch,
+                    "kind": item.get("kind") or "feature",
                 }
                 source_of[eid] = rel
             if eid not in preferred:
@@ -1239,6 +1452,7 @@ def roadmap_merge(
                 "epic_id": item.get("epic_id"),
                 "deps": [],
                 "batch": item.get("batch"),
+                "kind": item.get("kind") or "feature",
             }
             continue
         active[eid] = item
@@ -1296,6 +1510,7 @@ def roadmap_merge(
             "epic_id": active[eid].get("epic_id")
             or plan_stem_from_name(active[eid]["plan"]),
             "deps": list(active[eid].get("deps") or []),
+            "kind": active[eid].get("kind") or "feature",
             **(
                 {"batch": active[eid]["batch"]}
                 if active[eid].get("batch")
@@ -1312,18 +1527,10 @@ def roadmap_merge(
         done=done_list,
         batches=batches_meta,
     )
-    md_body = _render_merged_roadmap_md(
-        role=role_key,
-        queue=ordered,
-        sources=source_rels,
-        skipped_done=skipped_done,
-        queue_rel=queue_rel,
-    )
     out: dict[str, Any] = {
         "ok": True,
         "role": role_key,
         "path": queue_rel,
-        "md_path": md_rel,
         "sources": source_rels,
         "skipped_done": skipped_done,
         "queue": ordered,
@@ -1336,16 +1543,12 @@ def roadmap_merge(
     }
     if dry_run:
         out["queue_yaml"] = body
-        out["roadmap_md"] = md_body
         return out
 
     qpath = root / queue_rel
     qpath.parent.mkdir(parents=True, exist_ok=True)
     atomic_write_text(qpath, body)
     out["written"] = True
-    if write_md:
-        atomic_write_text(root / md_rel, md_body)
-        out["md_written"] = True
 
     if archive_sources and source_rels:
         arch = root / road_rel / "archive"
@@ -1371,18 +1574,6 @@ def roadmap_merge(
                     archived.append(md_dest.relative_to(root).as_posix())
         out["archived"] = archived
 
-    # remove legacy canon under plan/ if we wrote new path
-    legacy_q = root / plan_rel / "roadmap-epics.queue.yaml"
-    legacy_md = root / plan_rel / "roadmap-epics.md"
-    removed: list[str] = []
-    if legacy_q.is_file() and legacy_q.resolve() != qpath.resolve():
-        legacy_q.unlink()
-        removed.append(legacy_q.relative_to(root).as_posix())
-    if legacy_md.is_file():
-        legacy_md.unlink()
-        removed.append(legacy_md.relative_to(root).as_posix())
-    if removed:
-        out["removed_legacy"] = removed
     return out
 
 
@@ -1430,6 +1621,7 @@ def roadmap_upsert_batch(
             "epic_id": norm["epic_id"],
             "deps": norm["deps"],
             "batch": batch_key,
+            "kind": norm["kind"],
         }
         by_id[row["id"]] = row
         if row["id"] not in preferred:
@@ -1455,3 +1647,109 @@ def roadmap_upsert_batch(
         "batch": batch_key,
         "written": True,
     }
+
+
+
+def upsert_refactor_epic(
+    cwd: str | Path,
+    epic_spec: dict[str, Any] | str,
+    *,
+    role: str | None = None,
+    queue_rel: str | None = None,
+    cadence_state: Any = None,
+) -> dict[str, Any]:
+    """Insert or update a refactor epic (kind: refactor) at the front of queue.yaml."""
+    root = Path(cwd)
+    if cadence_state is None:
+        from loop.roadmap_cadence import load_cadence
+        cad_state = load_cadence(cwd=root)
+    else:
+        cad_state = cadence_state
+
+    if cad_state.phase != "refactor":
+        raise ValueError(
+            f"cannot start refactor phase: current cadence phase is {cad_state.phase!r}, expected 'refactor'"
+        )
+
+    role_key = str(role or "back").strip().lower()
+    qrel = queue_rel or canon_queue_rel(role_key)
+    parsed = parse_roadmap_queue(root, queue_rel=qrel)
+    queue: list[dict[str, Any]] = []
+    done: list[dict[str, Any]] = []
+    batches: dict[str, Any] = {}
+    if parsed.get("ok"):
+        role_key = str(parsed.get("role") or role_key).strip().lower()
+        queue = list(parsed.get("queue") or [])
+        done = list(parsed.get("done") or [])
+        batches = dict(parsed.get("batches") or {})
+
+    if isinstance(epic_spec, str):
+        item_dict = {
+            "id": epic_spec,
+            "epic_id": epic_spec,
+            "plan": f"plan-{epic_spec}.md",
+            "deps": [],
+            "kind": "refactor",
+        }
+    elif isinstance(epic_spec, dict):
+        item_dict = dict(epic_spec)
+        item_dict["kind"] = "refactor"
+        if "deps" not in item_dict:
+            item_dict["deps"] = []
+    else:
+        return {
+            "ok": False,
+            "error": "invalid_epic_spec",
+            "reason": "epic_spec must be a string or dict",
+            "path": qrel,
+        }
+
+    norm = _normalize_queue_item(item_dict, index=0, path=qrel)
+    if not norm.get("ok"):
+        return norm
+
+    row = {
+        "id": norm["id"],
+        "plan": norm["plan"],
+        "epic_id": norm["epic_id"],
+        "deps": norm["deps"],
+        "kind": "refactor",
+    }
+    if "batch" in norm and norm["batch"]:
+        row["batch"] = norm["batch"]
+
+    # Filter out existing matching row from queue and insert at head
+    queue = [q for q in queue if q["id"] != row["id"]]
+    queue.insert(0, row)
+
+    body = _dump_queue_yaml(
+        role=role_key, queue=queue, done=done, batches=batches or None
+    )
+    qpath = root / qrel
+    qpath.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(qpath, body)
+
+    return {
+        "ok": True,
+        "path": qrel,
+        "id": row["id"],
+        "epic_id": row["epic_id"],
+        "kind": "refactor",
+        "written": True,
+    }
+
+
+def start_refactor_phase(
+    cwd: str | Path,
+    epic_spec: dict[str, Any] | str,
+    *,
+    role: str | None = None,
+    queue_rel: str | None = None,
+) -> dict[str, Any]:
+    """Queue helper to start refactor phase by upserting a refactor epic."""
+    return upsert_refactor_epic(
+        cwd=cwd,
+        epic_spec=epic_spec,
+        role=role,
+        queue_rel=queue_rel,
+    )

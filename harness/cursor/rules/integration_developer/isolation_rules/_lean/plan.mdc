@@ -8,6 +8,7 @@ alwaysApply: false
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
 **Multi-epic:** research multi-axis → epic cut + N rows в `memory-bank/integration/roadmap/queue.yaml` + N× plan; single-epic также обязан иметь одну row; **FORBIDDEN** slug roadmap в `plan/`; next = DECOMPOSE
 **SUSPENSION GUARD** §0.0 — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — L3+ `Done when` + `Forbidden after`; contract FR → enforce entrypoint
 
 ## Gates
 

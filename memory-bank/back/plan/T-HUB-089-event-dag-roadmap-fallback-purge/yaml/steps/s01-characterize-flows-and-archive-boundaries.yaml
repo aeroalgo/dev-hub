@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-089-event-dag-roadmap-fallback-purge
+title: Characterize v2 event, DAG, and roadmap contracts, denial diagnostics, and archive migration boundaries
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать baseline characterization tests для canonical v2 event log, v2 DAG execution manifests и v2 roadmap queue,
+  а также определить негативные тесты и диагностику отказа при передаче устаревших v1 структур в live context_loop / reducer / arm.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - read_event_log_result
+    - _arm_dag_next
+    - QUEUE_VERSION_V1
+    - loop-event/v2
+    - loop-dag/v2
+    - roadmap-queue/v2
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/decompose-index.yaml
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/yaml/steps/s01-characterize-flows-and-archive-boundaries.yaml
+  ac_quotes:
+    - "v2 replay passes, v1 live file is rejected, archived dead event remains harmless."
+    - "v2 arm succeeds; v1 manifest fails before execution."
+    - "v2 queue advance/merge passes; legacy queue/md mirror is not read/written by default."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:31-76"
+    - "memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md:120-141"
+
+context:
+  consumes:
+    - harness/hooks/epic_events.py
+    - loop/dag.py
+    - loop/context_loop.py
+    - loop/roadmap_queue.py
+    - memory-bank/back/plan/T-HUB-089-event-dag-roadmap-fallback-purge/md/plan.md
+  produces:
+    - loop/tests/test_event_v2_characterization.py
+    - loop/tests/test_dag_v2_characterization.py
+  plan_refs:
+    - FR-001
+    - FR-004
+    - FR-005
+    - SC-002
+    - SC-003
+    - US-001
+    - US-002
+    - US-003
+  files:
+    - loop/tests/test_event_v2_characterization.py
+    - loop/tests/test_dag_v2_characterization.py
+
+as_built:
+  - "harness/hooks/epic_events.py содержит read_event_log_result с fallback на adapt_v1_event"
+  - "loop/dag.py и loop/context_loop.py содержат _arm_dag_next с fallback на adapt_manifest"
+  - "loop/roadmap_queue.py поддерживает QUEUE_VERSION_V1 и поиск LEGACY_DEFAULT_QUEUE"
+
+delta:
+  - "Добавить characterization tests для live v2 event replay и фиксации отказа v1 без адаптации в loop/tests/test_event_v2_characterization.py"
+  - "Добавить characterization tests для строгого v2 DAG arm и denial v1 manifest в loop/tests/test_dag_v2_characterization.py"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление adapt_v1_event из live reader (шаг s02)"
+  - "Удаление adapt_manifest из _arm_dag_next (шаг s03)"
+  - "Удаление QUEUE_VERSION_V1 и markdown mirror (шаг s04)"
+  - "Full regression suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Characterization тесты подтверждают валидный v2 event stream и baseline diagnostic при невалидном v1
+    verify: "bin/pytest loop/tests/test_event_v2_characterization.py loop/tests/test_event_stream.py -q"
+  - id: cp2
+    criterion: Characterization тесты фиксируют выполнение v2 DAG manifest и отказ v1 manifest без адаптации
+    verify: "bin/pytest loop/tests/test_dag_v2_characterization.py loop/tests/test_dag_manifest.py -q"
+
+verify: []
+tdd: []

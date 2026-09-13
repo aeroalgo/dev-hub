@@ -1,0 +1,48 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+date: '2026-09-12'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: c052811c9c2495af9114786a0c6fa5d0a9c92c7630b355c9d3c711e18246c674
+verify_scope: full
+
+scope:
+  - "task: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "epic: T-HUB-093-roadmap-cadence-replan-refactor-block"
+  - "steps: s01–s06"
+  - "files: loop/roadmap_cadence.py, loop/roadmap_queue.py, .cursor/rules/back_developer/workflow-replan.mdc, .cursor/rules/back_developer/workflow-plan-refactor.mdc"
+
+ac_plus:
+  - "cannot arm refactor in replan; after pair skip/complete -> refactor or noop; tests enforce order; rules state REPLAN->Refactor."
+
+ac_minus:
+  - "no refactor-before-replan path; no replan-of-replan; no carry FR steps; no implementing from-queue resync here (094)."
+
+section_011:
+  - "no regressions in full test suite (2871 tests pass); clean cutover from legacy replan/refactor patterns."
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2871 passed, 3 skipped in 95.09s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL (3 eligible blockers)"
+
+issues: []
+
+blockers:
+  - "ac_gap: повторный REPLAN того же pair_id разрешён · loop/roadmap_cadence.py:300, loop/roadmap_cadence.py:386 · отклонять уже terminal outcome."
+  - "ac_gap: resync пропускает non-feature из queue к arm · loop/roadmap_queue.py:1025, loop/roadmap_queue.py:1047 · fail-closed для всей фазы."
+  - "ac_gap: idle-путь не запрещает kind: refactor до cadence refactor · loop/roadmap_queue.py:1047 · добавить проверку kind/phase."
+
+fix_plan:
+  - "BACK BUGFIX отклонять повторный REPLAN для pair_id с уже зафиксированным terminal outcome в loop/roadmap_cadence.py bin/pytest loop/tests/test_roadmap_cadence.py -q --tb=line"
+  - "BACK BUGFIX обеспечить fail-closed поведение фазы resync в roadmap_advance для non-feature в loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line"
+  - "BACK BUGFIX запретить arm kind: refactor в idle-пути до перехода в фазу cadence refactor в loop/roadmap_queue.py bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 2871 passed, 3 skipped"

@@ -1,0 +1,258 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-094-roadmap-cadence-resync-tail
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+date: '2026-09-13'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Implement full queue reconcile tail, resync evidence recording, fail-closed
+    resume gate on HIGH drift, cadence reset to idle, and Kind I documentation.
+  source: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 0
+  layout_paths_total: 10
+  layout_paths_closed: 10
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: reconcile_queue_epics and CLI reconcile-spec --from-queue iterate over
+    all queue.yaml epics and aggregate reconcile reports.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: roadmap_advance blocks advancing to next feature when phase is resync
+    and high_count > 0 without valid resync_evidence on cadence SoT.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: on_resync_done and reset_cadence_idle transition cadence phase back to
+    idle, reset completed_feature_count to 0, and unblock feature lane.
+  remaining_work: ''
+- source_ref: US-004
+  status: satisfied
+  evidence: Kind I workflow rules in mainrule.mdc, finish-doc-router.mdc, and loop
+    documentation define strict 4-phase cadence and forbid sliding window carryover.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: reconcile_queue_epics in harness/hooks/epic/reconcile.py inspects queue.yaml
+    epics, supported by reconcile-spec CLI option.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: ResyncEvidence schema added to loop/schemas/roadmap_cadence.py; record_resync_evidence
+    and CadencePhase.RESYNC implemented in loop/roadmap_cadence.py.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: roadmap_advance in loop/roadmap_queue.py validates resync gate before
+    arming feature epics, blocking on unmitigated HIGH drift.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: on_resync_done and reset_cadence_idle APIs in loop/roadmap_cadence.py
+    reset cadence state machine to idle upon successful resync.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: Unit and E2E tests in test_roadmap_cadence.py and test_reconcile_spec.py
+    verify from-queue sweep, resume gate, reset idle, and complete cadence lifecycle.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: Kind I documentation in loop/WORKFLOW.md, loop/README.md, mainrule.mdc,
+    and finish-doc-router.mdc specifies cadence every-2 and no sliding window.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: mark_plan_stale helper in loop/roadmap_cadence.py marks plan HOW stale
+    during resync without mutating prompt §Epic.
+  remaining_work: ''
+- source_ref: layout:.cursor/rules/back_developer/mainrule.mdc
+  status: satisfied
+  evidence: Workflow router updated with cadence resync phase references and anti-carry
+    policy prohibiting sliding window.
+  remaining_work: ''
+- source_ref: layout:.cursor/rules/shared/finish-doc-router.mdc
+  status: satisfied
+  evidence: Finish doc router documents 4-phase cadence flow and resync evidence requirement.
+  remaining_work: ''
+- source_ref: layout:harness/hooks/epic/reconcile.py
+  status: satisfied
+  evidence: Implements reconcile_queue_epics function to iterate over queue.yaml epics.
+  remaining_work: ''
+- source_ref: layout:loop/README.md
+  status: satisfied
+  evidence: Documents cadence block sequence (REPLAN -> Refactor -> Resync) and tail
+    reconcile verification.
+  remaining_work: ''
+- source_ref: layout:loop/WORKFLOW.md
+  status: satisfied
+  evidence: Documents full cadence lifecycle and explains fail-closed resume gate
+    on HIGH drift.
+  remaining_work: ''
+- source_ref: layout:loop/context_loop.py
+  status: satisfied
+  evidence: Integrates cadence resync status display and advance error handling.
+  remaining_work: ''
+- source_ref: layout:loop/roadmap_cadence.py
+  status: satisfied
+  evidence: Implements record_resync_evidence, mark_plan_stale, on_resync_done, and
+    reset_cadence_idle.
+  remaining_work: ''
+- source_ref: layout:loop/roadmap_queue.py
+  status: satisfied
+  evidence: Enforces fail-closed resume gate in roadmap_advance when phase is resync
+    and HIGH drift is present.
+  remaining_work: ''
+- source_ref: layout:loop/tests/test_reconcile_spec.py
+  status: satisfied
+  evidence: Tests reconcile_queue_epics and CLI --from-queue argument.
+  remaining_work: ''
+- source_ref: layout:loop/tests/test_roadmap_cadence.py
+  status: satisfied
+  evidence: Tests resync evidence recording, resume gate blocking on HIGH drift, reset
+    to idle, and full lifecycle E2E.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST principles from constitution audited and verified across implementation
+    steps.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed with comprehensive unit and E2E coverage across
+    all cadence steps.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback respected with explicit fail-closed exceptions
+    and gates.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 Backend-only cadence implementation; no unauthorized frontend test
+    execution.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution across all implementation
+    shards.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration verified; invalid phase transitions
+    fail explicitly.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; unambiguous error codes and diagnostics
+    emitted.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema
+    validation.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority verified; roadmap advance gates act as authoritative
+    boundaries.
+  remaining_work: ''
+architecture_parity:
+- layout_path: .cursor/rules/back_developer/mainrule.mdc
+  status: present
+  evidence: Defines workflow router with cadence phase definitions and anti-carry
+    policy.
+- layout_path: .cursor/rules/shared/finish-doc-router.mdc
+  status: present
+  evidence: Documents 4-phase cadence flow and resync evidence requirement.
+- layout_path: harness/hooks/epic/reconcile.py
+  status: present
+  evidence: Implements reconcile_queue_epics function for queue sweep.
+- layout_path: loop/README.md
+  status: present
+  evidence: Documents cadence block sequence and tail reconcile verification.
+- layout_path: loop/WORKFLOW.md
+  status: present
+  evidence: Documents full cadence lifecycle and fail-closed resume gate.
+- layout_path: loop/context_loop.py
+  status: present
+  evidence: Integrates cadence resync status and advance error handling.
+- layout_path: loop/roadmap_cadence.py
+  status: present
+  evidence: Implements record_resync_evidence, mark_plan_stale, on_resync_done, and
+    reset_cadence_idle.
+- layout_path: loop/roadmap_queue.py
+  status: present
+  evidence: Implements fail-closed resume gate in roadmap_advance.
+- layout_path: loop/tests/test_reconcile_spec.py
+  status: present
+  evidence: Contains tests for reconcile_queue_epics and CLI from-queue sweep.
+- layout_path: loop/tests/test_roadmap_cadence.py
+  status: present
+  evidence: Contains unit and E2E tests for cadence resync, resume gate, and reset
+    to idle.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-094-roadmap-cadence-resync-tail/s01-reconcile-from-queue-api-and-cli.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-094-roadmap-cadence-resync-tail/s02-cadence-resync-phase-and-evidence-schema.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-094-roadmap-cadence-resync-tail/s03-roadmap-resume-gate-and-advance-enforcement.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-094-roadmap-cadence-resync-tail/s04-cadence-reset-idle-api-and-feature-unblock.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-094-roadmap-cadence-resync-tail/s05-workflow-rules-and-kind-i-documentation.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-094-roadmap-cadence-resync-tail/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-13'
+  plan_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md#replacement--sunset
+  rows:
+  - symbol: Post-hygiene no tail check
+    kind: A
+    command: rg -n "allow_resume_unverified" loop/ || true
+    result: pass
+    prod_callers: []
+    notes: All cadence finishes require from-queue reconcile tail audit
+  - symbol: tasks.md-only sweep as cadence exit
+    kind: B
+    command: rg -n "ignore_high_drift" loop/ || true
+    result: pass
+    prod_callers: []
+    notes: Resume gate strictly blocks on raw HIGH drift without resync evidence
+  - symbol: tasks_only_exit
+    kind: C
+    command: rg -n "tasks_only_exit" harness/hooks/epic/ || true
+    result: pass
+    prod_callers: []
+    notes: Reconcile sweep extends beyond active tasks to all queue epics
+  - symbol: sliding window in documentation
+    kind: I
+    command: rg -n "FORBIDDEN.*sliding window" .cursor/rules/back_developer/ || true
+    result: pass
+    prod_callers: []
+    notes: Kind I rules strictly prohibit sliding window and neighbor carry
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

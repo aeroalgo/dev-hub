@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s01 — s01 — Cadence schema and SoT API (load/save, fail-closed, initial cadence.yaml)
+  IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/yaml/steps/s01-cadence-schema-and-sot-api.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создана типизированная Pydantic-схема roadmap-cadence/v1 в loop/schemas/roadmap_cadence.py
+  (CadencePhase, RoadmapCadenceState)
+- Модель RoadmapCadenceState экспортирована в loop/schemas/__init__.py
+- Реализован модуль loop/roadmap_cadence.py (canon_cadence_path, load_cadence, save_cadence
+  с атомарной записью и fail-closed валидацией)
+- 'Создан канонический файл memory-bank/back/roadmap/cadence.yaml с начальным состоянием
+  (phase: idle, counter: 0, every_n: 2, pair_ids: [])'
+- Добавлены тесты loop/tests/test_roadmap_cadence.py для проверки схемы, load/save
+  и fail-closed при повреждении
+files:
+- loop/schemas/roadmap_cadence.py
+- loop/schemas/__init__.py
+- loop/roadmap_cadence.py
+- memory-bank/back/roadmap/cadence.yaml
+- loop/tests/test_roadmap_cadence.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_schema_validation
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_load_save -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -k test_cadence_fail_closed_on_corrupt
+  -q
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+grep_control: []
+verification_results:
+- 'loop/tests/test_roadmap_cadence.py: 5 passed'
+checkpoints:
+- id: cp1
+  criterion: Схема roadmap-cadence/v1 и модель RoadmapCadenceState валидируют поля
+    phase, counter, every_n, pair_ids
+  status: done
+  done_at: '2026-09-12T08:47:59Z'
+- id: cp2
+  criterion: load_cadence возвращает валидное состояние из memory-bank/back/roadmap/cadence.yaml,
+    а save_cadence атомарно записывает YAML
+  status: done
+  done_at: '2026-09-12T08:48:04Z'
+- id: cp3
+  criterion: load_cadence падает (fail-closed) при повреждённом YAML или неизвестной
+    фазе
+  status: done
+  done_at: '2026-09-12T08:48:08Z'
+resume_from: cp1

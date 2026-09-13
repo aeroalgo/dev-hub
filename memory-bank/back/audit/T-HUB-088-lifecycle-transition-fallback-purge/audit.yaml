@@ -1,0 +1,241 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-088-lifecycle-transition-fallback-purge
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+date: '2026-09-11'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Purge legacy lifecycle transition fallbacks, unify phase arming under
+    single transition engine, enforce typed handoff frontmatter and strict verifier
+    receipt requirements.
+  source: memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 4
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Single phase transition owner loop.epic_transition.arm_phase handles all
+    phase arms; legacy direct arm shims removed.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: LoopHandoffFrontmatter enforces typed validation and fails closed; manual
+    authority receipt denied at gate boundary.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: QA->BUGFIX->DONE flow strictly requires valid verifier receipt; artifact-only
+    finish compatibility removed.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: All production callers switched to loop.epic_transition.arm_phase and
+    canonical arm_epic API.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: arm_active_context_from_decompose, arm_pre_implement_context, and _legacy_warn
+    deleted with 0 callers.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: epic_resolve.py --decompose resolves canonical epic id or fails closed
+    without invoking legacy body.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: Handoff parser strictly validates loop-handoff/v1 frontmatter; raw dict/markdown
+    fallback removed.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: Manual BUGFIX authority rejected; finish transaction requires typed verifier
+    receipt and active BUGFIX phase.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: Legacy REFLECT events treated as dead events without causing phase change
+    or reopening compatibility.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Obsolete transition and manual BUGFIX tests rewritten or replaced with
+    canonical fail-closed coverage.
+  remaining_work: ''
+- source_ref: SC-001
+  status: satisfied
+  evidence: Zero production callers or imports for legacy arm functions verified via
+    codebase grep control.
+  remaining_work: ''
+- source_ref: SC-002
+  status: satisfied
+  evidence: Invalid/manual evidence cannot finish BUGFIX; verified by receipt integrity
+    and capability tests.
+  remaining_work: ''
+- source_ref: SC-003
+  status: satisfied
+  evidence: Canonical phase transition engine behaves consistently across all supported
+    roles and lifecycle phases.
+  remaining_work: ''
+- source_ref: SC-004
+  status: satisfied
+  evidence: No raw Markdown handoff salvage or fallback dict in runtime consumers
+    and handlers.
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Zero production import/call sites for arm_active_context_from_decompose
+    and arm_pre_implement_context.
+  remaining_work: ''
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Zero acceptance of authority == manual as valid verifier evidence in stop-gate
+    and subagent-stop.
+  remaining_work: ''
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Zero raw dict salvage fallback returned from LoopHandoffFrontmatter parse
+    methods.
+  remaining_work: ''
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Zero artifact-only finish path for active BUGFIX in finish transaction
+    and mb-finish handler.
+  remaining_work: ''
+- source_ref: AC-:5
+  status: satisfied
+  evidence: All test suites asserting old arm/handoff/BUGFIX fallback contracts removed
+    or updated to canonical contracts.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: 'Constitution requirements audited: all transitions and phase changes
+    respect MUST specifications.'
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first respected with characterization tests and fail-closed
+    regression assertions.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback respected by purging legacy fallback paths and
+    asserting fail-closed behavior.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected across backend transition refactoring.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution and shard decomposition.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration enforced on invalid frontmatter and
+    unauthorized receipts.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: 'MUST-6 No-guess markers respected: unambiguous error codes and diagnostics
+    emitted.'
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema
+    validation.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: 'MUST-9 Phase authority verified: arm_phase is single authority for phase
+    advancement.'
+  remaining_work: ''
+architecture_parity: []
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-088-lifecycle-transition-fallback-purge/s01-contracts-and-characterization.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-088-lifecycle-transition-fallback-purge/s02-canonicalize-transition-owner-and-callers.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-088-lifecycle-transition-fallback-purge/s03-typed-handoff-and-fail-closed-parsing.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-088-lifecycle-transition-fallback-purge/s04-enforce-verifier-receipt-and-bugfix-transaction.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-088-lifecycle-transition-fallback-purge/s05-obsolete-test-and-instruction-rewrite.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-088-lifecycle-transition-fallback-purge/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-11'
+  plan_ref: memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md#replacement--sunset
+  rows:
+  - symbol: harness/hooks/epic/core.py:arm_active_context_from_decompose
+    kind: A
+    command: rg -n arm_active_context_from_decompose harness/ loop/
+    result: pass
+    prod_callers: []
+    notes: 0 callers found, symbol purged
+  - symbol: harness/hooks/epic/core.py:arm_pre_implement_context
+    kind: A
+    command: rg -n arm_pre_implement_context harness/ loop/
+    result: pass
+    prod_callers: []
+    notes: 0 callers found, symbol purged
+  - symbol: loop/epic_transition.py:_legacy_warn
+    kind: A
+    command: rg -n _legacy_warn loop/ harness/
+    result: pass
+    prod_callers: []
+    notes: 0 callers found, symbol purged
+  - symbol: manual BUGFIX evidence branch (authority == manual)
+    kind: A
+    command: rg -n authority.*manual harness/hooks/
+    result: pass
+    prod_callers: []
+    notes: Manual authority branch removed
+  - symbol: artifact-only BUGFIX finish compatibility
+    kind: A
+    command: rg -n artifact_only.*finish loop/
+    result: pass
+    prod_callers: []
+    notes: Finish requires typed verifier receipt
+  - symbol: epic_resolve.py --decompose legacy fallback invocation
+    kind: B
+    command: rg -n def_main harness/hooks/epic_resolve.py
+    result: pass
+    prod_callers: []
+    notes: CLI resolves canonical epic id
+  - symbol: typed handoff failure raw dict fallback
+    kind: C
+    command: rg -n except.*return.*dict loop/schemas_handoff.py
+    result: pass
+    prod_callers: []
+    notes: LoopHandoffFrontmatter fails closed on parse error
+  - symbol: instructions calling old arm functions
+    kind: I
+    command: rg -n arm_active_context_from_decompose loop/WORKFLOW.md
+    result: pass
+    prod_callers: []
+    notes: Instructions updated to canonical arm_phase
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true

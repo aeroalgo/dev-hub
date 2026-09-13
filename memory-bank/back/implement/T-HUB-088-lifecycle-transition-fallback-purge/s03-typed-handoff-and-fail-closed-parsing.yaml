@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: s03 — Enforce typed loop-handoff/v1 frontmatter and remove raw dict / markdown
+  parsing fallbacks IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s03-typed-handoff-and-fail-closed-parsing.yaml
+skills_used: []
+discovery:
+- parse_handoff_meta in loop/schemas/active_context.py returned raw dict fallback
+  on validation errors
+- _handoff_mode_from_legacy_markdown had zero callers across active codebase
+gaps:
+  status: none
+done:
+- Updated parse_handoff_meta in loop/schemas/active_context.py to return LoopHandoffFrontmatter
+  | None with fail-closed behavior on schema mismatch or ValidationError
+- Removed unused helper _handoff_mode_from_legacy_markdown from loop/schemas/active_context.py
+- Added fail-closed frontmatter parsing unit tests in loop/tests/test_schemas_handoff.py
+files:
+- loop/schemas/active_context.py
+- loop/tests/test_schemas_handoff.py
+deletes:
+- loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown
+- raw dict fallback branch inside parse_handoff_meta
+tests:
+- bin/pytest loop/tests/test_schemas_handoff.py loop/tests/test_handoff_strict_flag.py
+  -q
+integration_check:
+- bin/pytest loop/tests/test_schemas_handoff.py loop/tests/test_handoff_strict_flag.py
+  -q
+grep_control:
+- back: rg -n _handoff_mode_from_legacy_markdown loop/schemas/active_context.py
+  front: n/a
+verification_results:
+- '{''checkpoint'': ''cp1'', ''status'': ''pass'', ''command'': ''bin/pytest loop/tests/test_schemas_handoff.py
+  loop/tests/test_handoff_strict_flag.py -q''}'
+- '{''checkpoint'': ''cp2'', ''status'': ''pass'', ''command'': ''python3 -c "import
+  subprocess, sys; out = subprocess.run([\''rg\'', \''-n\'', \''_handoff_mode_from_legacy_markdown\'',
+  \''loop/schemas/active_context.py\''], capture_output=True, text=True); sys.exit(1
+  if out.stdout else 0)"''}'
+checkpoints:
+- id: cp1
+  criterion: parse_handoff_meta отклоняет невалидный frontmatter и не возвращает сырой
+    нетипизированный dict
+  status: done
+- id: cp2
+  criterion: В loop/schemas/active_context.py отсутствуют fallback-функции разбора
+    markdown
+  status: done

@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s01 — s01 — Reconcile from-queue API, CLI option and drift aggregation IMPLEMENT
+status: completed
+date: '2026-09-13'
+decompose_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/yaml/steps/s01-reconcile-from-queue-api-and-cli.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Add reconcile_queue_epics and list_queue_epic_ids in harness/hooks/epic/reconcile.py
+- Add --from-queue flag to reconcile-spec in harness/hooks/epic_resolve.py
+- Add unit and CLI tests in loop/tests/test_reconcile_spec.py
+files:
+- harness/hooks/epic/reconcile.py
+- harness/hooks/epic_resolve.py
+- loop/tests/test_reconcile_spec.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_reconcile_spec.py -q
+integration_check:
+- python3 .claude/hooks/epic_resolve.py --cwd . reconcile-spec --from-queue returns
+  exit_code=0 against roadmap queue.yaml
+grep_control: []
+verification_results:
+- All 20 tests in loop/tests/test_reconcile_spec.py passed (100% green)
+checkpoints:
+- id: cp1
+  criterion: reconcile_queue_epics correctly parses queue.yaml and returns drift findings
+    per epic
+  status: done
+  done_at: '2026-09-12T21:26:51Z'
+- id: cp2
+  criterion: reconcile CLI with --from-queue executes successfully against queue
+  status: done
+  done_at: '2026-09-12T21:26:56Z'
+resume_from: cp1

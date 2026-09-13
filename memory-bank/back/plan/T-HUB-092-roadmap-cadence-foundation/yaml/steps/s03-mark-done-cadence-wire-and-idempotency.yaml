@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-092-roadmap-cadence-foundation
+title: s03 — mark_queue_epic_done cadence hook wire and idempotent counter protection
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Связать mark_queue_epic_done в loop/roadmap_queue.py с вызовом хуков cadence
+  (on_feature_done / on_non_feature_done) в зависимости от kind завершаемого эпика,
+  гарантируя строгую идемпотентность: повторный вызов mark_queue_epic_done для уже
+  завершённого эпика не приводит к повторному инкременту счётчика или переходу фазы.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - NFR-002
+    - US-002
+    - US-003
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - mark_queue_epic_done
+    - on_feature_done
+    - on_non_feature_done
+    - idempotency
+    - EPIC_DONE
+  layout_paths:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "US-002: feature ++ / refactor no ++ (P0) — mark_done matrix"
+    - "US-003: 2 done → phase replan, pair len 2 (P0) — state after two marks"
+    - "FR-004: Wire mark_done → cadence hook"
+    - "NFR-002: Idempotent mark"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md:45-105"
+
+context:
+  consumes:
+    - loop/roadmap_cadence.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+  produces:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_queue.py
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#user-stories
+    - plan.md#fr--nfr
+    - plan.md#target-layout
+  files:
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "mark_queue_epic_done перемещает строку из queue в done в queue.yaml без вызова cadence"
+  - "loop/context_loop.py при обработке EPIC_DONE вызывает mark_queue_epic_done"
+
+delta:
+  - "Интегрировать вызов cadence хука в mark_queue_epic_done: при переносе активного эпика в done определять его kind и вызывать on_feature_done / on_non_feature_done"
+  - "Зафиксировать защиту от двойного инкремента: если эпик уже был в списке done: или отсутствовал в queue, вызов хука cadence пропускается"
+  - "Обновить обработку EPIC_DONE в loop/context_loop.py для логирования статуса обновления cadence"
+  - "Добавить интеграционные тесты в loop/tests/test_roadmap_queue.py на проверку mark_queue_epic_done с cadence хуками и проверку идемпотентности"
+
+deletes: []
+
+out_of_scope:
+  - "Блокировка выбора feature в roadmap_advance -> s04"
+  - "CLI команды статуса -> s05"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "mark_queue_epic_done для feature эпика вызывает on_feature_done и обновляет cadence.yaml"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_mark_queue_epic_done_invokes_cadence_feature -q"
+  - id: cp2
+    criterion: "Повторный вызов mark_queue_epic_done для того же эпика возвращает ok/skipped и не изменяет счётчик cadence"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_mark_queue_epic_done_idempotent -q"
+  - id: cp3
+    criterion: "mark_queue_epic_done для refactor эпика вызывает on_non_feature_done и не инкрементирует счётчик"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_mark_queue_epic_done_refactor_no_increment -q"
+
+verify:
+  - "bin/pytest loop/tests/test_roadmap_queue.py -q"
+tdd: []

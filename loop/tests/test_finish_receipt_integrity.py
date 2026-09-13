@@ -325,3 +325,34 @@ def test_finish_succeeds_with_valid_current_verifier_receipt(epic_finish_env: Pa
     finish_res = finish_implement_step(req)
     assert finish_res.ok is True
     assert finish_res.finished_step == "s01"
+
+
+def test_match_gate_evidence_rejects_manual_authority() -> None:
+    from harness.hooks._lib import match_gate_evidence
+
+    matched, diag = match_gate_evidence({"authority": "manual"}, {})
+    assert matched is False
+    assert diag == "manual_authority_rejected"
+
+
+def test_verify_pass_ready_for_step_rejects_manual_authority(epic_finish_env: Path) -> None:
+    from harness.hooks.epic.core import _verify_pass_ready_for_step, load_epic_state, save_epic_state
+
+    st = load_epic_state(epic_finish_env)
+    st["last_verify_verdict"] = "PASS"
+    st["last_verify_evidence"] = {
+        "schema": "loop-verifier-receipt/v1",
+        "verifier_identity": "verify-bugfix",
+        "verdict": "PASS",
+        "authority": "manual",
+        "step": "BUGFIX",
+    }
+    save_epic_state(epic_finish_env, st)
+
+    res_bugfix = _verify_pass_ready_for_step(epic_finish_env, "BUGFIX")
+    assert res_bugfix.get("ok") is False
+    assert res_bugfix.get("diagnostic") == "manual_authority_rejected"
+
+    res_s01 = _verify_pass_ready_for_step(epic_finish_env, "s01")
+    assert res_s01.get("ok") is False
+    assert res_s01.get("diagnostic") == "manual_authority_rejected"

@@ -1,0 +1,37 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-replan-gap-evidence-and-advance-api.yaml
+  title: s01 — Replan gap evidence schema, state tracking and advance_replan API
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-refactor-phase-api-and-queue-upsert.yaml
+  title: s02 — Refactor phase API, queue upsert with kind refactor and noop transition
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-arm-replan-and-plan-refactor-command-wire.yaml
+  title: s03 — Wire roadmap_advance and context_loop to arm REPLAN and PLAN REFACTOR
+    commands
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-workflow-rules-and-anti-carry-policy.yaml
+  title: s04 — Kind I workflow rules update and strict anti-carry policy enforcement
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-cadence-status-cli-and-block-e2e-tests.yaml
+  title: s05 — Extend cadence-status CLI and end-to-end cadence block progression
+    tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: completed

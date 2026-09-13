@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-090-boundary-compatibility-shim-purge
+title: s05 — Purge dead public aliases, rewrite obsolete test suites, and clean up
+  instruction surfaces IMPLEMENT
+status: completed
+date: '2026-09-12'
+decompose_ref: memory-bank/back/plan/T-HUB-090-boundary-compatibility-shim-purge/yaml/steps/s05-dead-alias-purge-and-obsolete-test-rewrite.yaml
+skills_used: []
+discovery:
+- Confirmed ABORT_PATTERNS in session_resilience.py was a dead alias with no production
+  callers.
+- Confirmed validate_shard_yaml and checkpoint_prompt_lines in epic_yaml.py were unused
+  legacy aliases with all active callers using validate_shard_yaml_full and step_context_prompt_lines.
+- Confirmed _handoff_mode_from_legacy_markdown was already purged in T-HUB-088.
+gaps:
+  status: none
+done:
+- Purged ABORT_PATTERNS definition from harness/hooks/session_resilience.py while
+  retaining _FATAL_ABORT_PATTERNS and _TRANSIENT_ABORT_PATTERNS.
+- Purged validate_shard_yaml and checkpoint_prompt_lines definitions from harness/hooks/epic_yaml.py.
+- Rewrote loop/tests/test_session_wrapper.py to assert absence of ABORT_PATTERNS alias
+  and test operational resilience patterns.
+- Rewrote harness/hooks/tests/test_epic_yaml.py to test canonical validate_shard_yaml_full
+  and step_context_prompt_lines, asserting absence of legacy aliases.
+files:
+- harness/hooks/session_resilience.py
+- harness/hooks/epic_yaml.py
+- loop/schemas/active_context.py
+- loop/tests/test_session_wrapper.py
+- harness/hooks/tests/test_epic_yaml.py
+deletes:
+- harness/hooks/session_resilience.py:ABORT_PATTERNS
+- harness/hooks/epic_yaml.py:validate_shard_yaml
+- harness/hooks/epic_yaml.py:checkpoint_prompt_lines
+- loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown
+wire_complete:
+  call_sites:
+  - harness/hooks/session_resilience.py:_FATAL_ABORT_PATTERNS, _TRANSIENT_ABORT_PATTERNS
+  - harness/hooks/epic_yaml.py:validate_shard_yaml_full, step_context_prompt_lines
+  enforce_path: harness/hooks/session_resilience.py, harness/hooks/epic_yaml.py
+  dual_path_rg: rg -n "\\b(ABORT_PATTERNS|validate_shard_yaml|checkpoint_prompt_lines)\\b"
+    harness/hooks/session_resilience.py harness/hooks/epic_yaml.py -> 0 matches
+  instruction_rg: rg -n "\\b(validate_shard_yaml|checkpoint_prompt_lines|ABORT_PATTERNS)\\b"
+    .cursor/ .claude/ docs/ -> 0 matches
+  deny_old_proven: true
+tests:
+- bin/pytest loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py
+  -q
+integration_check:
+- Session resilience pattern matching works via canonical _FATAL_ABORT_PATTERNS and
+  _TRANSIENT_ABORT_PATTERNS.
+- Epic YAML validation and prompt generation run cleanly via validate_shard_yaml_full
+  and step_context_prompt_lines.
+- Purged aliases do not exist in production modules or instruction surfaces.
+grep_control:
+- back: rg -n "\\b(ABORT_PATTERNS|validate_shard_yaml|checkpoint_prompt_lines)\\b"
+    harness/hooks/session_resilience.py harness/hooks/epic_yaml.py
+  front: n/a
+verification_results:
+- 'cp1: rg -n (ABORT_PATTERNS|validate_shard_yaml|checkpoint_prompt_lines) in session_resilience.py
+  and epic_yaml.py -> 0 matches (PASS)'
+- 'cp2: bin/pytest loop/tests/test_session_wrapper.py harness/hooks/tests/test_epic_yaml.py
+  -q -> 55 passed in session_wrapper, 2 passed in test_epic_yaml (PASS)'
+checkpoints:
+- id: cp1
+  criterion: Устаревшие алиасы ABORT_PATTERNS, validate_shard_yaml, checkpoint_prompt_lines
+    удалены из исходного кода
+  status: done
+  done_at: '2026-09-12T03:35:00Z'
+- id: cp2
+  criterion: Тесты resilience и epic_yaml проходят без импорта удаленных алиасов
+  status: done
+  done_at: '2026-09-12T03:35:10Z'
+resume_from: cp2

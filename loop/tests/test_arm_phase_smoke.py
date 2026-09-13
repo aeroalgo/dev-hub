@@ -209,7 +209,7 @@ def test_arm_phase_anti_loop_diagnostics_characterization(tmp_path: Path):
     )
 
     with patch(
-        "epic.core.arm_epic",
+        "loop.epic_transition.arm_epic",
         return_value={"ok": True, "step_id": "s02", "epic_id": "T-CHAR-LOOP"},
     ):
         res = arm_phase(tmp_path, "T-CHAR-LOOP", "IMPLEMENT", "back")
@@ -223,10 +223,50 @@ def test_arm_phase_locked_context_diagnostic_characterization(tmp_path: Path):
     from _lib import ActiveContextLocked
 
     with patch(
-        "epic.core.arm_epic",
+        "loop.epic_transition.arm_epic",
         side_effect=ActiveContextLocked("ActiveContext locked by another process"),
     ):
         res = arm_phase(tmp_path, "T-CHAR-LOCK", "IMPLEMENT", "back")
         assert res.get("ok") is False
         assert res.get("diagnostic_code") == "runner_owns_active_context"
         assert res.get("epic_id") == "T-CHAR-LOCK"
+
+
+def test_arm_epic_done_routes_to_done_not_implement(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """DONE epic with decompose_rel must arm DONE/complete, not re-enter IMPLEMENT."""
+    from loop.epic_transition import arm_epic
+    from loop.board_sync.epic_resolver import EpicNextAction
+
+    calls: list[tuple[str, str]] = []
+
+    def _fake_arm_phase(cwd, epic_id, phase, role, **kwargs):
+        calls.append((str(epic_id), str(phase).upper()))
+        return {
+            "ok": True,
+            "complete": True,
+            "stop": "EPIC_DONE",
+            "phase": "DONE",
+            "epic_id": epic_id,
+            "role": role,
+        }
+
+    monkeypatch.setattr(
+        "loop.board_sync.epic_resolver.resolve_epic_next_action",
+        lambda *a, **k: EpicNextAction(
+            epic_id="T-DONE-001",
+            role="back",
+            phase="DONE",
+            reason_code="epic_done",
+            next_command="BACK DONE T-DONE-001",
+            plan_rel="memory-bank/back/plan/T-DONE-001/md/plan.md",
+            decompose_rel="memory-bank/back/plan/T-DONE-001/yaml/decompose-index.yaml",
+            next_step_id=None,
+            diagnostic=None,
+        ),
+    )
+    monkeypatch.setattr("loop.epic_transition.arm_phase", _fake_arm_phase)
+
+    out = arm_epic(tmp_path, "T-DONE-001", role="back")
+    assert out.get("complete") is True
+    assert out.get("stop") == "EPIC_DONE"
+    assert calls == [("T-DONE-001", "DONE")]

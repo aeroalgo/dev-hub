@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-094-roadmap-cadence-resync-tail
+title: s05 — Kind I workflow rules update and no-sliding-window documentation
+status: completed
+date: '2026-09-13'
+decompose_ref: memory-bank/back/plan/T-HUB-094-roadmap-cadence-resync-tail/yaml/steps/s05-workflow-rules-and-kind-i-documentation.yaml
+skills_used: []
+discovery:
+- 'WORKFLOW.md and README.md updated with 4-phase cadence lifecycle (every-2: REPLAN
+  -> Refactor -> Resync -> Reset/Idle)'
+- mainrule.mdc and finish-doc-router.mdc updated with cadence order and resync tail
+  handling
+- Verified zero sliding window terminology across active Kind I instruction surfaces
+gaps:
+  status: none
+done:
+- Documented full cadence lifecycle in loop/WORKFLOW.md and loop/README.md
+- Updated .cursor/rules/back_developer/mainrule.mdc and .cursor/rules/shared/finish-doc-router.mdc
+  with cadence lifecycle and anti-carry policy
+- Verified anti-carry policy and no sliding window across documentation surfaces
+files:
+- loop/WORKFLOW.md
+- loop/README.md
+- .cursor/rules/back_developer/mainrule.mdc
+- .cursor/rules/shared/finish-doc-router.mdc
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_roadmap_cadence.py -q` — 26 passed'
+- '`python3 -c ''import re; assert not re.search(r"sliding.?window", open("loop/WORKFLOW.md").read(),
+  re.I)''` — PASS'
+integration_check:
+- bin/pytest loop/tests/test_roadmap_cadence.py -q
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py loop/tests/test_sunset_kind_i.py
+  loop/tests/test_kind_i_boundary_prompts.py loop/tests/test_kind_i_runtime_entrypoint.py
+  -q
+grep_control: []
+verification_results:
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: WORKFLOW.md and README.md document every-2 REPLAN -> Refactor -> Resync
+    -> Reset cycle
+  status: done
+- id: cp2
+  criterion: no sliding window terminology in active Kind I instruction surfaces
+  status: done
+resume_from: completed
