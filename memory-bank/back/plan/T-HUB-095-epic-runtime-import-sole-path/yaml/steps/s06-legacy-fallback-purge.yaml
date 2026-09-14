@@ -1,0 +1,227 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести полное сканирование инвентаря Replacement / sunset A+B+C+I,
+  подтвердить нулевые вызовы удалённого фасада `epic_lib`, удалённых алиасов `auto_finish_after_gate`,
+  `DEFAULT_ROADMAP`, `find_qa_pass_artifact`, перехвата `_legacy_mock_intercept`, отсутствие fallback
+  try/except в загрузчике состояния и успешное прохождение freeze oracle.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-010
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - harness/hooks/epic_lib.py
+    - auto_finish_after_gate
+    - DEFAULT_ROADMAP
+    - find_qa_pass_artifact
+    - _legacy_mock_intercept
+    - sunset_inventory
+    - grep_control
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "AC− 1: Нет dual live import surface (epic_lib + epic) для одних helpers"
+    - "AC− 2: Нет silent try/except module fallback"
+    - "AC− 3: Нет zero-caller public aliases из inventory"
+    - "AC− 4: Нет obsolete tests, требующих удалённый facade"
+    - "AC− 5: Нет роста public symbols/owners (concept budget <= 0)"
+    - "SC-001: 0 prod epic_lib imports"
+    - "SC-002: single state-load import"
+    - "SC-003: dead aliases gone"
+    - "SC-004: freeze oracle green"
+  plan_jumps:
+    - "back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md:120-250"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - доказательства выполнения всех grep_control проверок
+    - подтверждение удаления всех устаревших символов и файлов
+    - отчет о прохождении freeze oracle тест-сьюта
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-010
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  files: []
+
+as_built: []
+delta: []
+
+sunset_inventory:
+  - symbol: harness/hooks/epic_lib.py
+    kind: A
+    replacement: harness/hooks/epic/core.py (package epic)
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: file deleted; zero live imports
+  - symbol: auto_finish_after_gate
+    kind: A
+    replacement: gate_atomic_finish
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero definitions and callers
+  - symbol: DEFAULT_ROADMAP
+    kind: A
+    replacement: DEFAULT_QUEUE
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero definitions and callers
+  - symbol: find_qa_pass_artifact
+    kind: A
+    replacement: latest_qa_pass_artifact_for_reference
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/ loop/
+    expect: zero definitions and callers
+  - symbol: _legacy_mock_intercept
+    kind: A
+    replacement: direct monkeypatch on epic.core
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: function and invocations deleted
+  - symbol: PYTHONPATH docs teaching epic_lib
+    kind: B
+    replacement: epic package documentation
+    policy: delete in-epic
+    rg_scope: loop/ docs/ harness/
+    expect: zero epic_lib pythonpath references
+  - symbol: pretool_policy._load_epic_state triple try/except chain
+    kind: C
+    replacement: single direct import from canonical module
+    policy: delete in-epic
+    rg_scope: harness/hooks/pretool_policy.py
+    expect: single import statement; no fallback chain
+  - symbol: implement/plan shards from epic_lib import … OK
+    kind: I
+    replacement: canonical epic import
+    policy: delete in-epic
+    rg_scope: harness/agents/ .cursor/rules/
+    expect: zero instruction references to epic_lib
+  - symbol: workflow examples naming facade
+    kind: I
+    replacement: epic package references
+    policy: delete in-epic
+    rg_scope: harness/agents/
+    expect: zero epic_lib references in agent instructions
+
+deletes: []
+
+out_of_scope: []
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: harness/hooks/epic_lib.py
+    command: 'test ! -f harness/hooks/epic_lib.py'
+    expect: file does not exist
+  - id: inv-a-02
+    kind: A
+    symbol: from epic_lib / import epic_lib in prod
+    command: 'rg -n "from epic_lib|import epic_lib" loop/ harness/hooks/ --glob "*.py" | rg -v "tests/" || true'
+    expect: zero prod imports
+  - id: inv-a-03
+    kind: A
+    symbol: auto_finish_after_gate
+    command: 'rg -n "auto_finish_after_gate" loop/ harness/ || true'
+    expect: zero matches
+  - id: inv-a-04
+    kind: A
+    symbol: DEFAULT_ROADMAP
+    command: 'rg -n "DEFAULT_ROADMAP" loop/ harness/ || true'
+    expect: zero matches
+  - id: inv-a-05
+    kind: A
+    symbol: find_qa_pass_artifact
+    command: 'rg -n "find_qa_pass_artifact" harness/hooks/epic/ loop/ || true'
+    expect: zero matches
+  - id: inv-a-06
+    kind: A
+    symbol: _legacy_mock_intercept
+    command: 'rg -n "_legacy_mock_intercept" loop/ harness/ || true'
+    expect: zero matches
+  - id: inv-b-01
+    kind: B
+    symbol: PYTHONPATH epic_lib
+    command: 'rg -n "PYTHONPATH.*epic_lib" loop/ harness/ || true'
+    expect: zero matches
+  - id: inv-c-01
+    kind: C
+    symbol: _load_epic_state fallback chain
+    command: 'rg -n "except ImportError:.*load_epic_state" harness/hooks/pretool_policy.py || true'
+    expect: zero fallback branches
+  - id: inv-i-01
+    kind: I
+    symbol: epic_lib in instructions
+    command: 'rg -n "epic_lib" harness/agents/ || true'
+    expect: zero occurrences
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по всем строкам sunset_inventory kind=A:
+      0 prod callers; файл epic_lib.py удален; алиасы и перехватчик удалены.
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'auto_finish_after_gate|DEFAULT_ROADMAP|find_qa_pass_artifact|_legacy_mock_intercept', 'loop/', 'harness/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: |
+      Kind B — entrypoint/deploy inventory: нет ссылок на epic_lib в скриптах и конфигурациях.
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'epic_lib', 'loop/runner/config.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp3
+    criterion: |
+      Kind C — anti-fallback rg: нет цепочки fallback в _load_epic_state.
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'except ImportError', 'harness/hooks/pretool_policy.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp4
+    criterion: |
+      Kind I — instruction surfaces: нет упоминаний epic_lib в harness/agents/.
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'epic_lib', 'harness/agents/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp5
+    criterion: |
+      Obsolete tests на фасад epic_lib удалены или переписаны; негативный тест подтверждает отсутствие модуля.
+    verify: "bin/pytest loop/tests/test_epic_lib.py -q"
+  - id: cp6
+    criterion: |
+      Freeze oracle тест-сьют (finish integrity, epic transition, creative phase, state recovery) зеленый.
+    verify: "bin/pytest loop/tests/test_finish_integrity.py loop/tests/test_epic_transition.py loop/tests/test_creative_phase.py loop/tests/test_state_recovery.py -q"
+
+verify: []
+tdd: []

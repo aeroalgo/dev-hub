@@ -1,0 +1,135 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s02 — rewire-prod-epic-lib-and-state-load — rewire prod callers to canonical epic package and collapse state loader
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переключить все рабочие (production) импорты `epic_lib` на канонический пакет `epic` / `harness.hooks.epic.core`
+  в хуках и модулях рантайма loop (`loop/janitor/gc.py`, `loop/runner/config.py`, `loop/codex_collab_verdict.py`,
+  `loop/mb_finish/verify_hint.py`, `harness/hooks/epic_resolve.py`, `harness/hooks/user-prompt.py`,
+  `harness/hooks/context-scope-pretool.py`, `harness/hooks/posttool_policy.py`, `harness/hooks/session-start.py`,
+  `harness/hooks/_lib.py`, `harness/hooks/subagent-stop.py`), и схлопнуть `pretool_policy._load_epic_state`
+  до одного импорта без silent try/except fallback-цепочки.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - SC-001
+    - SC-002
+    - US-001
+    - US-002
+  nouns:
+    - harness/hooks/pretool_policy.py
+    - loop/janitor/gc.py
+    - loop/runner/config.py
+    - loop/codex_collab_verdict.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/user-prompt.py
+    - harness/hooks/context-scope-pretool.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/session-start.py
+    - harness/hooks/_lib.py
+    - harness/hooks/subagent-stop.py
+    - _load_epic_state
+  layout_paths:
+    - harness/hooks/pretool_policy.py
+    - loop/janitor/gc.py
+    - loop/runner/config.py
+    - loop/codex_collab_verdict.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/user-prompt.py
+    - harness/hooks/context-scope-pretool.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/session-start.py
+    - harness/hooks/_lib.py
+    - harness/hooks/subagent-stop.py
+  ac_quotes:
+    - "US-001: Как maintainer, я импортирую helpers только из canonical epic package"
+    - "US-002: Как runtime, я не маскирую ImportError цепочкой facade"
+    - "FR-001: Rewire all production epic_lib imports to canonical epic / harness.hooks.epic.core"
+    - "FR-003: Collapse pretool_policy._load_epic_state to one import; remove silent except chain"
+    - "SC-001: 0 prod epic_lib imports"
+    - "SC-002: single state-load import"
+  plan_jumps:
+    - "back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md:120-180"
+
+context:
+  consumes:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic/__init__.py
+  produces:
+    - harness/hooks/pretool_policy.py
+    - loop/janitor/gc.py
+    - loop/runner/config.py
+    - loop/codex_collab_verdict.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/user-prompt.py
+    - harness/hooks/context-scope-pretool.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/session-start.py
+    - harness/hooks/_lib.py
+    - harness/hooks/subagent-stop.py
+  plan_refs:
+    - FR-001
+    - FR-003
+    - SC-001
+    - SC-002
+    - US-001
+    - US-002
+  files:
+    - harness/hooks/pretool_policy.py
+    - loop/janitor/gc.py
+    - loop/runner/config.py
+    - loop/codex_collab_verdict.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/user-prompt.py
+    - harness/hooks/context-scope-pretool.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/session-start.py
+    - harness/hooks/_lib.py
+    - harness/hooks/subagent-stop.py
+
+as_built:
+  - "Prod modules import epic_lib directly: loop/janitor/gc.py, loop/runner/config.py, loop/codex_collab_verdict.py, loop/mb_finish/verify_hint.py, harness/hooks/epic_resolve.py, user-prompt.py, context-scope-pretool.py, posttool_policy.py, session-start.py, _lib.py, subagent-stop.py"
+  - "harness/hooks/pretool_policy.py _load_epic_state tries harness.hooks.epic.core -> epic.core -> epic_lib in a silent except chain"
+
+delta:
+  - "Rewire all production imports from epic_lib to canonical from epic import ... or from harness.hooks.epic.core import ..."
+  - "Refactor _load_epic_state in harness/hooks/pretool_policy.py to use single canonical import and fail-closed handling"
+  - "Update loop/runner/config.py to remove epic_lib.py from watched paths list"
+
+deletes:
+  - "Triple-try fallback branches in harness/hooks/pretool_policy.py::_load_epic_state"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "delete harness/hooks/epic_lib.py (handled in s05)"
+  - "collapse find_qa_pass_artifact (handled in s03)"
+  - "rewrite test monkeypatches (handled in s04)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "pretool policy single import state loader functions properly"
+    verify: "bin/pytest harness/hooks/tests/test_no_hardcoded_paths.py -q"
+  - id: cp2
+    criterion: "janitor gc and finish verify hints operate cleanly with canonical epic imports"
+    verify: "bin/pytest loop/tests/test_finish_integrity.py -q"
+  - id: cp3
+    criterion: "Static check confirms zero occurrences of epic_lib in modified production files"
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'from epic_lib|import epic_lib', 'loop/janitor/', 'loop/runner/config.py', 'loop/codex_collab_verdict.py', 'loop/mb_finish/', 'harness/hooks/epic_resolve.py', 'harness/hooks/user-prompt.py', 'harness/hooks/context-scope-pretool.py', 'harness/hooks/posttool_policy.py', 'harness/hooks/session-start.py', 'harness/hooks/_lib.py', 'harness/hooks/subagent-stop.py', 'harness/hooks/pretool_policy.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []

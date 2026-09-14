@@ -1,6 +1,24 @@
 version: roadmap-queue/v2
 role: back
-queue: []
+queue:
+- id: T-HUB-095
+  epic_id: T-HUB-095-epic-runtime-import-sole-path
+  plan: plan-T-HUB-095-epic-runtime-import-sole-path.md
+  deps: []
+  kind: refactor
+  batch: plan-refactor-leftover-20260914
+- id: T-HUB-096
+  epic_id: T-HUB-096-layout-resolve-sole-path
+  plan: plan-T-HUB-096-layout-resolve-sole-path.md
+  deps: []
+  kind: refactor
+  batch: plan-refactor-leftover-20260914
+- id: T-HUB-097
+  epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
+  plan: plan-T-HUB-097-event-dag-offline-adapter-hygiene.md
+  deps: []
+  kind: refactor
+  batch: plan-refactor-leftover-20260914
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -412,11 +430,6 @@ done:
   kind: feature
   plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
   batch: legacy-fallback-purge-20260908
-- id: T-HUB-091
-  epic_id: T-HUB-091-gate-identity-sot-consolidation
-  kind: feature
-  plan: plan-T-HUB-091-gate-identity-sot-consolidation.md
-  batch: gate-identity-sot-20260910
 - id: T-HUB-088
   epic_id: T-HUB-088-lifecycle-transition-fallback-purge
   kind: feature
@@ -432,6 +445,11 @@ done:
   kind: feature
   plan: plan-T-HUB-090-boundary-compatibility-shim-purge.md
   batch: legacy-fallback-purge-20260908
+- id: T-HUB-091
+  epic_id: T-HUB-091-gate-identity-sot-consolidation
+  kind: feature
+  plan: plan-T-HUB-091-gate-identity-sot-consolidation.md
+  batch: gate-identity-sot-20260910
 - id: T-HUB-092
   epic_id: T-HUB-092-roadmap-cadence-foundation
   kind: feature
@@ -525,3 +543,8 @@ batches:
     title: 'Roadmap cadence: every 2 feature done — foundation, REPLAN→Refactor, resync'
     note: T-HUB-092 foundation; T-HUB-093 REPLAN then PLAN REFACTOR; T-HUB-094 reconcile/resync
       tail; no sliding window
+  plan-refactor-leftover-20260914:
+    title: Post-087–090 leftover dual-path / shim consolidation
+    note: T-HUB-095 epic-runtime import sole path; T-HUB-096 layout/plan resolve sole
+      path; T-HUB-097 offline event/DAG adapter + test hygiene; clarify clarify-20260912-plan-refactor;
+      details in plan/<epic_id>/md/plan.md; Covering in md/prompt.md

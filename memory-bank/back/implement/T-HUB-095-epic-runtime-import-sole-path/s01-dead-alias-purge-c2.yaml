@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s01 — s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP
+  IMPLEMENT
+status: in_progress
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s01-dead-alias-purge-c2.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- loop/runtime_adapters/subagent_lifecycle.py
+- loop/roadmap_queue.py
+- loop/tests/test_subagent_lifecycle.py
+- loop/tests/test_roadmap_queue.py
+deletes:
+- loop/runtime_adapters/subagent_lifecycle.py::auto_finish_after_gate
+- loop/roadmap_queue.py::DEFAULT_ROADMAP
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: auto_finish_after_gate is deleted and subagent lifecycle tests pass
+  status: pending
+- id: cp2
+  criterion: DEFAULT_ROADMAP is deleted and roadmap queue tests pass
+  status: pending
+- id: cp3
+  criterion: Static check confirms zero occurrences of deleted symbols in loop and
+    harness
+  status: pending
+resume_from: cp1

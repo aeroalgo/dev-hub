@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s03 — collapse-qa-artifact-alias-and-epic-facades — unify QA artifact lookup name and simplify epic facades
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Устранить алиас `find_qa_pass_artifact`, объединив вызовы вокруг канонического имени
+  `latest_qa_pass_artifact_for_reference` в `harness/hooks/epic/core.py`, `loop/epic_transition.py`,
+  `harness/hooks/epic/__init__.py`, и упростить обёртки `discover_epic` / `mark_index_step_status` в `epic/__init__.py`
+  (достижение `copies_removed ≥ 1` и `net_symbol_delta ≤ 0`).
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - FR-008
+    - US-001
+  nouns:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic/__init__.py
+    - loop/epic_transition.py
+    - latest_qa_pass_artifact_for_reference
+    - find_qa_pass_artifact
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic/__init__.py
+    - loop/epic_transition.py
+  ac_quotes:
+    - "FR-007: Collapse find_qa_pass_artifact alias to one public name after caller rewire"
+    - "FR-008: Simplify epic/__init__.py discover/mark facades so one definition lives in core (copies_removed >= 1)"
+    - "US-001: Symbols resolve from epic/epic.core only; behavior unchanged vs freeze oracle"
+  plan_jumps:
+    - "back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md:120-180"
+
+context:
+  consumes:
+    - harness/hooks/epic/core.py
+    - loop/epic_transition.py
+  produces:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic/__init__.py
+    - loop/epic_transition.py
+  plan_refs:
+    - FR-007
+    - FR-008
+    - US-001
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic/__init__.py
+    - loop/epic_transition.py
+
+as_built:
+  - "harness/hooks/epic/core.py defines find_qa_pass_artifact = latest_qa_pass_artifact_for_reference"
+  - "loop/epic_transition.py imports and calls find_qa_pass_artifact"
+  - "harness/hooks/epic/__init__.py re-exports both find_qa_pass_artifact and wrappers around core helpers"
+
+delta:
+  - "Rewire callers in harness/hooks/epic/core.py and loop/epic_transition.py to latest_qa_pass_artifact_for_reference"
+  - "Delete find_qa_pass_artifact alias from harness/hooks/epic/core.py and epic/__init__.py"
+  - "Simplify epic/__init__.py to re-export canonical definitions directly from .core without duplicate wrapper functions"
+
+deletes:
+  - "harness/hooks/epic/core.py::find_qa_pass_artifact"
+  - "harness/hooks/epic/__init__.py::find_qa_pass_artifact"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "rewrite test monkeypatches and remove _legacy_mock_intercept (handled in s04)"
+  - "delete epic_lib.py (handled in s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "latest_qa_pass_artifact_for_reference operates cleanly in transition and core lifecycle"
+    verify: "bin/pytest loop/tests/test_epic_transition.py -k test_transition -q"
+  - id: cp2
+    criterion: "epic package direct imports and exports match canonical core helpers"
+    verify: "python3 -c \"from harness.hooks.epic import latest_qa_pass_artifact_for_reference; assert callable(latest_qa_pass_artifact_for_reference)\""
+  - id: cp3
+    criterion: "Static check confirms zero occurrences of find_qa_pass_artifact in harness/hooks/epic/ and loop/epic_transition.py"
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'find_qa_pass_artifact', 'harness/hooks/epic/', 'loop/epic_transition.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []

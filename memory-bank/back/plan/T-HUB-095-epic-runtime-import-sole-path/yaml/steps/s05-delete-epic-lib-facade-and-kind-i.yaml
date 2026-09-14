@@ -1,0 +1,140 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s05 — delete-epic-lib-facade-and-kind-i — delete epic_lib module, rewire remaining tests, and purge instruction references
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить файл-фасад `harness/hooks/epic_lib.py`, перевести оставшиеся тестовые модули с динамической загрузки
+  `epic_lib.py` на канонический пакет `epic` / `harness.hooks.epic.core`, обновить инструкции Kind I
+  (`harness/agents/verify-implement.md`) и добавить проверку fail-closed при попытке импорта `epic_lib`.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-010
+    - SC-001
+    - US-001
+  nouns:
+    - harness/hooks/epic_lib.py
+    - harness/agents/verify-implement.md
+    - loop/tests/test_epic_lib.py
+    - loop/tests/test_state_recovery.py
+    - loop/tests/test_state_schema.py
+    - loop/tests/test_identity_resolution.py
+    - loop/tests/test_projection_identity.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+    - loop/tests/test_reducer_qa_bugfix.py
+    - loop/tests/test_epic_lib_advance.py
+    - loop/tests/test_t035_acceptance.py
+    - loop/tests/test_active_context_recovery.py
+    - loop/tests/test_event_revision_reconciliation.py
+    - loop/tests/test_hooks_llm_counter.py
+    - loop/tests/test_event_stream.py
+    - loop/tests/test_reserved_role_epic_id.py
+  layout_paths:
+    - harness/hooks/epic_lib.py
+    - harness/agents/verify-implement.md
+    - loop/tests/test_epic_lib.py
+    - loop/tests/test_state_recovery.py
+    - loop/tests/test_state_schema.py
+    - loop/tests/test_identity_resolution.py
+    - loop/tests/test_projection_identity.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+    - loop/tests/test_reducer_qa_bugfix.py
+    - loop/tests/test_epic_lib_advance.py
+    - loop/tests/test_t035_acceptance.py
+    - loop/tests/test_active_context_recovery.py
+    - loop/tests/test_event_revision_reconciliation.py
+    - loop/tests/test_hooks_llm_counter.py
+    - loop/tests/test_event_stream.py
+    - loop/tests/test_reserved_role_epic_id.py
+  ac_quotes:
+    - "FR-002: Delete harness/hooks/epic_lib.py after rewire or reduce to fail-closed stub that raises (prefer delete)"
+    - "FR-010: Kind I: prompts/rules/memory-bank implement shards that teach from epic_lib import -> rewrite in-epic"
+    - "SC-001: 0 prod epic_lib imports"
+    - "AC− 1: Нет dual live import surface (epic_lib + epic) для одних helpers"
+    - "AC− 4: Нет obsolete tests, требующих удалённый facade"
+  plan_jumps:
+    - "back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md:120-245"
+
+context:
+  consumes:
+    - harness/hooks/epic_lib.py
+    - harness/agents/verify-implement.md
+  produces:
+    - harness/agents/verify-implement.md
+    - loop/tests/test_epic_lib.py
+    - loop/tests/test_state_recovery.py
+    - loop/tests/test_state_schema.py
+    - loop/tests/test_identity_resolution.py
+    - loop/tests/test_projection_identity.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+    - loop/tests/test_reducer_qa_bugfix.py
+    - loop/tests/test_epic_lib_advance.py
+    - loop/tests/test_t035_acceptance.py
+    - loop/tests/test_active_context_recovery.py
+    - loop/tests/test_event_revision_reconciliation.py
+    - loop/tests/test_hooks_llm_counter.py
+    - loop/tests/test_event_stream.py
+    - loop/tests/test_reserved_role_epic_id.py
+  plan_refs:
+    - FR-002
+    - FR-010
+    - SC-001
+    - US-001
+  files:
+    - harness/agents/verify-implement.md
+    - loop/tests/test_epic_lib.py
+    - loop/tests/test_state_recovery.py
+    - loop/tests/test_state_schema.py
+    - loop/tests/test_identity_resolution.py
+    - loop/tests/test_projection_identity.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+    - loop/tests/test_reducer_qa_bugfix.py
+    - loop/tests/test_epic_lib_advance.py
+    - loop/tests/test_t035_acceptance.py
+    - loop/tests/test_active_context_recovery.py
+    - loop/tests/test_event_revision_reconciliation.py
+    - loop/tests/test_hooks_llm_counter.py
+    - loop/tests/test_event_stream.py
+    - loop/tests/test_reserved_role_epic_id.py
+
+as_built:
+  - "harness/hooks/epic_lib.py is a 23-line re-export facade"
+  - "Various test modules load epic_lib.py directly via importlib or import epic_lib"
+  - "harness/agents/verify-implement.md mentions epic_lib.validate_implement_step_format"
+
+delta:
+  - "Delete harness/hooks/epic_lib.py"
+  - "Update all test helpers to load canonical harness.hooks.epic.core or import from epic"
+  - "Rewrite loop/tests/test_epic_lib.py to assert that import epic_lib fails with ModuleNotFoundError and test canonical package"
+  - "Update harness/agents/verify-implement.md to reference epic.validate_implement_step_format"
+
+deletes:
+  - "harness/hooks/epic_lib.py"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "legacy-fallback-purge full scan (handled in s06)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "state recovery, schema, and projection tests pass using canonical epic package"
+    verify: "bin/pytest loop/tests/test_state_recovery.py loop/tests/test_state_schema.py loop/tests/test_projection_identity.py -q"
+  - id: cp2
+    criterion: "checkpoint advance and reducer tests pass without epic_lib"
+    verify: "bin/pytest loop/tests/test_checkpoint_next_step_advance.py loop/tests/test_reducer_qa_bugfix.py -q"
+  - id: cp3
+    criterion: "negative test confirms epic_lib is deleted and import fails"
+    verify: "bin/pytest loop/tests/test_epic_lib.py -q"
+
+verify: []
+tdd: []

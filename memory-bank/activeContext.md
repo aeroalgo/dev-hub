@@ -1,13 +1,17 @@
 ---
 schema: loop-handoff/v1
 role: BACK
-mode: DONE
-epic_id: T-HUB-094-roadmap-cadence-resync-tail
+mode: IMPLEMENT
+epic_id: T-HUB-095-epic-runtime-import-sole-path
+step_id: s01
 ---
 
 ## load_now
-1. [memory-bank/back/qa/T-HUB-094-roadmap-cadence-resync-tail/qa-20260913-roadmap-cadence-resync-tail-02.yaml](memory-bank/back/qa/T-HUB-094-roadmap-cadence-resync-tail/qa-20260913-roadmap-cadence-resync-tail-02.yaml) — QA report.
+1. [back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s01-dead-alias-purge-c2.yaml](back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s01-dead-alias-purge-c2.yaml) — текущий work shard (BACK IMPLEMENT s01).
+2. [back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/decompose-index.yaml](back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
 
-## Handoff BACK DONE
-- **Дальше:** EPIC_DONE
-- **Context Telemetry:** unique_reads=0, duplicate_reads=0, bytes_read=0, ranges_read=0, monolith_attempts=0, search_exceptions=0, highest_repeat=none (green)
+## Handoff BACK IMPLEMENT — s01
+- **Дальше:** выполнить atomic шаг → FINISH (seed-implement → flush cp → suite → evidence in_progress → validate-step → Handoff → @verify → finalize-step)
+- **Эпик:** T-HUB-095-epic-runtime-import-sole-path (BACK); armed из `back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/decompose-index.yaml` (прошлый activeContext игнорирован).
+- **Текущий шаг:** s01 — s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP (status=pending в index.yaml).
+- **Команда:** `BACK IMPLEMENT @s01`

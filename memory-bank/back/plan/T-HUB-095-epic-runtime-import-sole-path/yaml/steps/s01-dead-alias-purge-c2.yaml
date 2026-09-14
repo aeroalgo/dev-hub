@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить неиспользуемые мёртвые алиасы кластера C2 (`auto_finish_after_gate` и `DEFAULT_ROADMAP`),
+  сохранив канонические определения (`gate_atomic_finish` и `DEFAULT_QUEUE`), и зафиксировать отсутствие
+  алиасов в тестах `test_subagent_lifecycle.py` и `test_roadmap_queue.py`.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - SC-003
+    - US-003
+  nouns:
+    - loop/runtime_adapters/subagent_lifecycle.py
+    - loop/roadmap_queue.py
+    - gate_atomic_finish
+    - DEFAULT_QUEUE
+    - auto_finish_after_gate
+    - DEFAULT_ROADMAP
+  layout_paths:
+    - loop/runtime_adapters/subagent_lifecycle.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_subagent_lifecycle.py
+    - loop/tests/test_roadmap_queue.py
+  ac_quotes:
+    - "US-003: zero-caller aliases удалены; auto_finish_after_gate / DEFAULT_ROADMAP absent; owners remain"
+    - "FR-005: Delete auto_finish_after_gate; keep gate_atomic_finish"
+    - "FR-006: Delete DEFAULT_ROADMAP; keep DEFAULT_QUEUE"
+    - "SC-003: dead aliases gone (rg symbol = 0)"
+  plan_jumps:
+    - "back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md:120-180"
+
+context:
+  consumes:
+    - loop/runtime_adapters/subagent_lifecycle.py
+    - loop/roadmap_queue.py
+  produces:
+    - loop/runtime_adapters/subagent_lifecycle.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_subagent_lifecycle.py
+    - loop/tests/test_roadmap_queue.py
+  plan_refs:
+    - FR-005
+    - FR-006
+    - SC-003
+    - US-003
+  files:
+    - loop/runtime_adapters/subagent_lifecycle.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_subagent_lifecycle.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "loop/runtime_adapters/subagent_lifecycle.py defines auto_finish_after_gate as alias for gate_atomic_finish with 0 external callers"
+  - "loop/roadmap_queue.py defines DEFAULT_ROADMAP = 'memory-bank/back/roadmap/queue.yaml' identical to DEFAULT_QUEUE with 0 callers"
+
+delta:
+  - "Delete auto_finish_after_gate function definition from loop/runtime_adapters/subagent_lifecycle.py"
+  - "Delete DEFAULT_ROADMAP constant from loop/roadmap_queue.py"
+  - "Add test assertions in loop/tests/test_subagent_lifecycle.py verifying auto_finish_after_gate is not exported"
+  - "Add test assertions in loop/tests/test_roadmap_queue.py verifying DEFAULT_ROADMAP is absent and DEFAULT_QUEUE remains intact"
+
+deletes:
+  - "loop/runtime_adapters/subagent_lifecycle.py::auto_finish_after_gate"
+  - "loop/roadmap_queue.py::DEFAULT_ROADMAP"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "rewire epic_lib imports (handled in s02)"
+  - "collapse find_qa_pass_artifact (handled in s03)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "auto_finish_after_gate is deleted and subagent lifecycle tests pass"
+    verify: "bin/pytest loop/tests/test_subagent_lifecycle.py -q"
+  - id: cp2
+    criterion: "DEFAULT_ROADMAP is deleted and roadmap queue tests pass"
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q"
+  - id: cp3
+    criterion: "Static check confirms zero occurrences of deleted symbols in loop and harness"
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'auto_finish_after_gate|DEFAULT_ROADMAP', 'loop/', 'harness/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []

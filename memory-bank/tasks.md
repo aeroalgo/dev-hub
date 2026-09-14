@@ -2,11 +2,12 @@
 
 ## Active
 
-| T-HUB-092…094 | Roadmap cadence (every-2 REPLAN→Refactor→resync) | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · batch roadmap-cadence-20260911 · **092** foundation · **093** REPLAN→Refactor (deps 092) · **094** resync tail (deps 093) · next BACK DECOMPOSE T-HUB-092-roadmap-cadence-foundation |
-| T-HUB-092 | Cadence foundation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md) · [prompt](back/plan/T-HUB-092-roadmap-cadence-foundation/md/prompt.md) · SoT+counter+pause |
-| T-HUB-093 | Cadence REPLAN→Refactor block | L3 | PLAN done | queued | [plan](back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md) · deps T-HUB-092 |
-| T-HUB-094 | Cadence resync tail | L2–L3 | PLAN done | queued | [plan](back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md) · deps T-HUB-093 |
-| T-HUB-091 | GateIdentity SoT consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md) · Claude+Codex one SoT · no DSH · next BACK DECOMPOSE · batch gate-identity-sot-20260910 |
+| T-HUB-095…097 | PLAN REFACTOR leftover dual-path/shim (post 087–090) | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · batch plan-refactor-leftover-20260914 · kind=refactor · **095** epic-runtime import · **096** layout resolve · **097** offline event/DAG hygiene · next BACK DECOMPOSE T-HUB-095-epic-runtime-import-sole-path |
+| T-HUB-095 | Epic runtime import sole path | L3 | PLAN done | queued | [plan](back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md) · [prompt](back/plan/T-HUB-095-epic-runtime-import-sole-path/md/prompt.md) · C1+C2 |
+| T-HUB-096 | Layout/plan resolve sole path | L3 | PLAN done | queued | [plan](back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md) · [prompt](back/plan/T-HUB-096-layout-resolve-sole-path/md/prompt.md) · C4 |
+| T-HUB-097 | Offline event/DAG adapter hygiene | L2–L3 | PLAN done | queued | [plan](back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md) · [prompt](back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/prompt.md) · C3+C5 |
+| T-HUB-092…094 | Roadmap cadence (every-2 REPLAN→Refactor→resync) | L3 | PLAN done | done | [queue](back/roadmap/queue.yaml) · batch roadmap-cadence-20260911 · moved to done |
+| T-HUB-091 | GateIdentity SoT consolidation | L3 | PLAN done | done | [plan](back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md) · in done |
 | T-HUB-081…084 | Workflow Read-chain consolidation | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · hot path → shared lean → role core → graph hygiene · next BACK DECOMPOSE T-HUB-081 |
 | T-HUB-085 | Hook event dispatcher consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md) · deps T-HUB-063,065,077,079 · event-specific dispatchers, shared policy/evidence, no mega-hook |
 | T-HUB-086 | Python loop supervisor cutover | L4 | PLAN done | queued | [plan](back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md) · hard dep T-HUB-079 · Python supervisor, shell compatibility shim, runtime/session parity and legacy purge |

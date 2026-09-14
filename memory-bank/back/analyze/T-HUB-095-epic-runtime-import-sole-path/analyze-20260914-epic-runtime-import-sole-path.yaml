@@ -1,0 +1,220 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+slug: epic-runtime-import-sole-path
+date: '2026-09-14'
+status: complete
+index_fingerprint: sha256:8af5efd2b5bd0ea83b41be9376efdb0736cc15986d75ffa1592a118c10256e04
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как maintainer, я импортирую helpers только из canonical epic
+    package
+- requirement_id: US-002
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Как runtime, я не маскирую ImportError цепочкой facade
+- requirement_id: US-003
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: Как maintainer, zero-caller aliases удалены
+- requirement_id: FR-001
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Rewire all production epic_lib imports to canonical epic / harness.hooks.epic.core.
+- requirement_id: FR-002
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Delete harness/hooks/epic_lib.py after rewire or reduce to fail-closed
+    stub that raises (prefer delete).
+- requirement_id: FR-003
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Collapse pretool_policy._load_epic_state to one import; remove
+    silent except chain.
+- requirement_id: FR-004
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Remove or justify _legacy_mock_intercept only if tests patch
+    canonical owner; rewrite tests first.
+- requirement_id: FR-005
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: Delete auto_finish_after_gate; keep gate_atomic_finish.
+- requirement_id: FR-006
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: Delete DEFAULT_ROADMAP; keep DEFAULT_QUEUE.
+- requirement_id: FR-007
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Collapse find_qa_pass_artifact alias to one public name (or
+    keep one name, delete the other) after caller rewire.
+- requirement_id: FR-008
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Simplify epic/__init__.py discover/mark facades so one definition
+    lives in core (copies_removed ≥ 1).
+- requirement_id: FR-009
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Rewrite/delete obsolete tests that require epic_lib or multi-module
+    monkeypatch; freeze behavior via targeted suite.
+- requirement_id: FR-010
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'Kind I: prompts/rules/memory-bank implement shards that teach
+    from epic_lib import → rewrite in-epic (only paths in shard files: at IMPLEMENT).'
+- requirement_id: SC-001
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 0 prod epic_lib imports
+- requirement_id: SC-002
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: single state-load import
+- requirement_id: SC-003
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: dead aliases gone
+- requirement_id: SC-004
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: freeze oracle green
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s02
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет dual live import surface (epic_lib + epic) для одних helpers.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Нет silent try/except module fallback.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Нет zero-caller public aliases из inventory.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет obsolete tests, требующих удалённый facade.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Нет роста public symbols/owners (concept budget ≤ 0).
+- requirement_id: TM-095-01
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: no prod epic_lib
+- requirement_id: TM-095-02
+  step_ids:
+  - s02
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: finish integrity
+- requirement_id: TM-095-03
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: subagent lifecycle alias gone
+- requirement_id: TM-095-04
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: roadmap queue const
+- requirement_id: TM-095-05
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: epic transition patches
+- requirement_id: TM-095-06
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: pretool single import
+- requirement_id: TM-095-07
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: AC− symbol scan
+- requirement_id: TM-095-08
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: full suite (QA only)
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

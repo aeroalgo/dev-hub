@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s04 — rewrite-tests-and-delete-mock-intercept — rewire test monkeypatches to canonical owner and remove legacy intercept
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать monkeypatch в тестах перехода эпиков, фаз и целостности финиша
+  (`loop/tests/test_epic_transition.py`, `loop/tests/test_creative_phase.py`,
+  `loop/tests/test_episode_correlation.py`, `loop/tests/test_finish_integrity.py`)
+  на канонического владельца `epic.core` / `epic`, и удалить функцию `_legacy_mock_intercept`
+  из `loop/epic_transition.py`.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-009
+    - SC-004
+    - US-001
+  nouns:
+    - loop/epic_transition.py
+    - _legacy_mock_intercept
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_creative_phase.py
+    - loop/tests/test_episode_correlation.py
+    - loop/tests/test_finish_integrity.py
+  layout_paths:
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_creative_phase.py
+    - loop/tests/test_episode_correlation.py
+    - loop/tests/test_finish_integrity.py
+  ac_quotes:
+    - "FR-004: Remove or justify _legacy_mock_intercept only if tests patch canonical owner; rewrite tests first"
+    - "FR-009: Rewrite/delete obsolete tests that require epic_lib or multi-module monkeypatch; freeze behavior via targeted suite"
+    - "SC-004: freeze oracle green (targeted pytest listed in QA consumes)"
+  plan_jumps:
+    - "back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md:120-215"
+
+context:
+  consumes:
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+  produces:
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_creative_phase.py
+    - loop/tests/test_episode_correlation.py
+    - loop/tests/test_finish_integrity.py
+  plan_refs:
+    - FR-004
+    - FR-009
+    - SC-004
+    - US-001
+  files:
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_creative_phase.py
+    - loop/tests/test_episode_correlation.py
+    - loop/tests/test_finish_integrity.py
+
+as_built:
+  - "loop/epic_transition.py contains _legacy_mock_intercept checking sys.modules for mock overrides on multiple module names"
+  - "Tests in test_epic_transition.py, test_creative_phase.py, test_episode_correlation.py patch epic_lib or rely on intercept"
+
+delta:
+  - "Rewrite monkeypatch targets in test suites to patch harness.hooks.epic.core or epic directly"
+  - "Remove _legacy_mock_intercept and its arm-path invocation in loop/epic_transition.py"
+  - "Verify all transition and lifecycle test suites run green without multi-module intercept fallback"
+
+deletes:
+  - "loop/epic_transition.py::_legacy_mock_intercept"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "delete harness/hooks/epic_lib.py (handled in s05)"
+  - "rewire remaining test helpers importing epic_lib (handled in s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "test_epic_transition suite runs green without _legacy_mock_intercept"
+    verify: "bin/pytest loop/tests/test_epic_transition.py -q"
+  - id: cp2
+    criterion: "creative phase and episode correlation suites pass on canonical package imports"
+    verify: "bin/pytest loop/tests/test_creative_phase.py loop/tests/test_episode_correlation.py -q"
+  - id: cp3
+    criterion: "Static check confirms zero occurrences of _legacy_mock_intercept in loop/ and harness/"
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', '_legacy_mock_intercept', 'loop/', 'harness/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []
