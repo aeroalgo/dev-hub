@@ -1,13 +1,19 @@
 ---
-schema: loop-handoff/v1
+schema: loop-handoff/v1 # handoff
 role: BACK
-mode: DONE
-epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
+mode: DECOMPOSE
+epic_id: T-HUB-098-managed-capability-sole-path
+step_id: DECOMPOSE
 ---
 
 ## load_now
-1. [memory-bank/back/qa/T-HUB-097-event-dag-offline-adapter-hygiene/qa-20260914-event-dag-offline-adapter-hygiene.yaml](memory-bank/back/qa/T-HUB-097-event-dag-offline-adapter-hygiene/qa-20260914-event-dag-offline-adapter-hygiene.yaml) — QA report.
+1. [plan.md](back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md) — source plan/artifact for pre-implement phase DECOMPOSE.
+2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (layout v2: md/decompose-index.md + yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).
+3. `.cursor/rules/back_developer/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.
+4. Target decompose: [`decompose-index.yaml`](back/plan/T-HUB-098-managed-capability-sole-path/yaml/decompose-index.yaml) (layout v2: `back/plan/T-HUB-098-managed-capability-sole-path/md/decompose-index.md` + `back/plan/T-HUB-098-managed-capability-sole-path/yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml`).
 
-## Handoff BACK DONE
-- **Дальше:** EPIC_DONE
-- **Context Telemetry:** unique_reads=0, duplicate_reads=0, bytes_read=0, ranges_read=0, monolith_attempts=0, search_exceptions=0, highest_repeat=none (green)
+## Handoff DECOMPOSE
+- # epic_id: T-HUB-098-managed-capability-sole-path — NOT short queue id
+- **Эпик:** T-HUB-098-managed-capability-sole-path (BACK).
+- **Режим/шаг:** `BACK DECOMPOSE`.
+- **Дальше:** выполнить `BACK DECOMPOSE`.

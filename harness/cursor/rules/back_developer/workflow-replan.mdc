@@ -1,5 +1,5 @@
 ---
-description: "Режим BACK REPLAN — независимое перепланирование outcome между тремя итерациями"
+description: "Режим BACK REPLAN — spawn follow-up эпиков от parent Epic prompt (не overwrite)"
 alwaysApply: false
 ---
 ### Команда: BACK REPLAN
@@ -9,66 +9,122 @@ alwaysApply: false
 
 ## Назначение
 
-REPLAN выполняется только после PASS в `BACK QA`. Он заново строит план от
-неизменяемого исходного user prompt и фактического состояния кода. Предыдущие
-plan, decompose и audit artifacts — контекст для исключения уже сделанного, но
-не источник готовности и не ограничитель поиска gaps.
+REPLAN выполняется только после PASS в `BACK QA`. Он сверяет неизменяемый
+`## Epic` из parent `md/prompt.md` с фактическим кодом и либо фиксирует
+`skip`, либо **создаёт новые follow-up эпики** (spawn) под critical gaps.
 
-## Бюджет итераций
+Предыдущие plan / decompose / audit / QA parent — контекст «что уже сделано»,
+не доказательство достижения outcome и не шаблон для overwrite.
 
-Для одного Outcome допустимы ровно три iteration:
+## Бюджет итераций (outcome lineage)
+
+Для одного исходного Outcome допустимы ровно три delivery hops:
 
 ```text
-I1 PLAN → DECOMPOSE → ANALYZE → IMPLEMENT → AUDIT → QA
-I2 REPLAN → DECOMPOSE → ANALYZE → IMPLEMENT → AUDIT → QA
-I3 REPLAN → DECOMPOSE → ANALYZE → IMPLEMENT → AUDIT → QA
-FINAL OUTCOME REVIEW
+I1 parent PLAN → DECOMPOSE → … → QA PASS  (parent остаётся в done:)
+I2 REPLAN → spawn new epic(s) → DECOMPOSE → … → QA
+I3 REPLAN(spawn) → spawn new epic(s) → DECOMPOSE → … → QA
+FINAL OUTCOME REVIEW (по parent prompt)
 ```
 
-Номер iteration фиксируется в plan и Handoff. REPLAN после I1 создаёт I2,
-после I2 — I3. После I3 он не создаёт I4.
+- REPLAN **parent I1** → marker `iteration: 2` + spawn с `iteration: 2`.
+- REPLAN **spawned I2** (после его QA PASS) → marker `iteration: 3` + spawn с `iteration: 3`.
+- После I3 — только FINAL OUTCOME REVIEW / точечный BUGFIX. **FORBIDDEN** I4.
 
-## Процесс для I2 и I3
+`iteration` живёт в marker parent и в шапке spawned `plan.md` / Handoff.
+Parent `prompt.md` **никогда** не переписывается.
 
-1. Загрузить секцию `## Epic` из `memory-bank/{role}/plan/<epic_id>/md/prompt.md`
-   (иммутабелен; не Covering, не plan.md HOW, не Handoff). Нет файла / нет Epic /
-   пустой dump / файл не начинается с `## Epic` → `NEED_HUMAN: outcome_prompt_missing`.
-   **FORBIDDEN:** читать соседние `plan/` из-за prompt (Covering/deps/ID живут в queue + шапке **этого** `plan.md`).
-   Канон: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc.
-2. Исследовать фактический код и сценарии outcome. Не считать прежний plan,
-   completed shard, существующий файл или зелёный QA evidence доказательством
-   достижения outcome.
-3. Создать новый самостоятельный plan этой iteration. Включать только:
-   `outcome_gap` — требуемый исходным prompt сценарий отсутствует/частичен;
-   `legacy_removal` — старый путь противоречит outcome или оставляет dual-path;
-   `hardening` — минимальная работа, без которой outcome ненадёжен.
-4. Явно вынести улучшения, не требуемые outcome, в `backlog_candidates`; они не
-   блокируют iteration и не становятся shard.
-5. Передать новый plan в `BACK DECOMPOSE` с его собственным `plan_id` и
-   `iteration: 2|3`.
+## HARD — spawn, не overwrite
+
+| Правило | |
+|---|---|
+| Parent `plan.md` / `prompt.md` / decompose / implement / events | **не** перезаписывать, не сбрасывать, не archive-for-reuse |
+| Parent roadmap status | остаётся в `done:` |
+| Critical gaps | **новые** `T-HUB-NNN` epic_id + `plan/<new>/` + upsert в голову `queue:` |
+| Нет critical gaps | только marker `outcome: skip` под parent; queue не трогать |
+| Папка `memory-bank/*/replan/` | **FORBIDDEN** как SoT (маркер только рядом с parent plan) |
+
+## Трекинг: кто прошёл REPLAN
+
+| Сигнал | Значение |
+|---|---|
+| Есть `plan/<parent>/md/replan-i2.yaml` (или `replan-i3.yaml`) | parent подвергался REPLAN |
+| Нет такого файла | REPLAN ещё не делали |
+| `outcome: skip` + `spawned_epic_ids: []` | gaps нет; lineage закрыта на этом hop |
+| `outcome: complete` + `spawned_epic_ids` | gaps есть; работа ушла в spawn |
+
+Обязательные поля marker (`schema: replan-outcome/v1`):
+
+- `epic_id` (parent) · `iteration: 2|3` · `outcome: skip|complete`
+- `parent_prompt:` путь к parent `md/prompt.md`
+- `spawned_epic_ids:` (список; пуст при skip)
+- при `complete`: `spawned[].epic_id|plan|prompt|parent_prompt`
+- `plan_overwritten: false` (всегда)
+
+## Процесс (I2 / I3)
+
+1. Загрузить `## Epic` из **parent** `memory-bank/{role}/plan/<parent_epic_id>/md/prompt.md`
+   (иммутабелен). Нет файла / нет Epic / пустой / не начинается с `## Epic` →
+   `NEED_HUMAN: outcome_prompt_missing`.
+   **FORBIDDEN:** читать Covering как SoT; читать соседние `plan/` «из-за prompt».
+   Канон prompt: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc.
+2. Исследовать фактический код vs Done when / Forbidden after. Не считать
+   зелёный QA / completed shard / наличие файла доказательством outcome.
+3. Классифицировать только critical:
+   `outcome_gap` · `legacy_removal` · `hardening`.
+   Прочее → `backlog_candidates` (не shard, не spawn).
+4. **Skip path:** записать `plan/<parent>/md/replan-i{2|3}.yaml` с
+   `outcome: skip`, `parent_prompt`, пустым `spawned_epic_ids`. FINISH.
+5. **Complete path:**
+   - выбрать свободные `T-HUB-NNN` (не reuse parent id);
+   - для каждого spawn-пакета gaps: `plan/<new>/md/plan.md` + `md/prompt.md`
+     (`## Epic` = срез gaps / outcome-инвариант **без** ID в prompt);
+   - шапка spawned `plan.md` **обязана** содержать:
+     - `**iteration:** 2|3`
+     - `**Replan-of:** \`<parent_epic_id>\``
+     - `**Parent-prompt:**` ссылка на parent `md/prompt.md`
+     - `**Parent-replan:**` ссылка на marker yaml
+   - upsert spawn rows в голову `memory-bank/{role}/roadmap/queue.yaml` + batch note;
+   - `roadmap-merge --role <role>`;
+   - записать parent marker `outcome: complete` + `spawned_*` + `parent_prompt`.
+6. Next: `BACK DECOMPOSE <first_spawned>` (или cadence arm). **Не** DECOMPOSE parent.
 
 ## FINAL OUTCOME REVIEW после I3
 
-Сверить исходный prompt с реальным поведением и необходимыми legacy surfaces.
-Открыть только точечный `BACK BUGFIX`, если найден дефект, прямо нарушающий
-outcome. Архитектурные улучшения, расширение функциональности и новые идеи
-фиксируются в backlog и не открывают четвёртый plan.
+Сверить **исходный parent** `## Epic` с реальным поведением и legacy surfaces.
+Точечный `BACK BUGFIX` только если дефект прямо ломает outcome.
+Новые идеи / архитектура → backlog, не I4 и не silent neighbor carry.
 
-## Cadence-блок (Kind I) и интеграция с cadence.yaml
+## Cadence-блок (Kind I)
 
-Каденс-блок (`memory-bank/back/roadmap/cadence.yaml`) запускается автоматически каждые N завершённых feature-эпиков и выполняется в строгом порядке:
-1. `phase=replan`: REPLAN для `pair_ids` (завершённой пары feature-эпиков).
-2. `phase=refactor`: PLAN REFACTOR (строго после завершения фазы `replan` для всех `pair_ids`).
-3. `phase=resync`: синхронизация roadmap tail.
+SoT: `memory-bank/back/roadmap/cadence.yaml`. Порядок:
 
-### Правила исполнения REPLAN в cadence-блоке
+1. `phase=replan`: REPLAN для каждого `pair_ids` (one-hop).
+2. `phase=refactor`: PLAN REFACTOR после терминальных `complete|skip` всех pair_ids.
+3. `phase=resync` → idle.
 
-- **Critical gaps only:** В рамках фазы `replan` анализируются только критические расхождения (`filter_critical_gaps`). Косметические замечания (`cosmetic`) не создают работу в REPLAN и фиксируются в backlog.
-- **Skip evidence:** При отсутствии критических gaps для эпика фиксируется `skip` с явным evidence (`record_replan_skip` / `outcome="skip"`). Запрещено создавать пустой или фиктивный план.
-- **Правило One-hop per ID:** Для каждого `epic_id` из `pair_ids` в рамках одного cadence-блока допустим максимум один REPLAN. **FORBIDDEN:** replan-of-replan (повторный REPLAN перепланированного эпика в том же блоке).
-- **Завершение фазы replan:** Фаза `replan` считается завершённой только тогда, когда для всех `pair_ids` зафиксирован терминальный статус (`complete` или `skip`). После этого происходит переход в фазу `refactor` (`phase=refactor`).
+### Cadence REPLAN rules
 
-## Anti-carry policy & Sliding window (HARD)
+- **Critical gaps only** (`filter_critical_gaps`); cosmetic → backlog / skip evidence.
+- **Skip evidence обязателен** при отсутствии critical gaps (`outcome: skip` + marker).
+  **FORBIDDEN** пустой/фиктивный spawn plan.
+- **One-hop per parent id** в одном cadence-блоке. **FORBIDDEN:** replan-of-replan
+  того же parent в том же блоке. Spawned epic — новый id; его будущий REPLAN
+  после QA — следующий hop lineage, не «replan-of-replan» внутри блока.
+- **complete** = marker + spawn upsert в queue (если gaps); parent остаётся done.
+- Фаза `replan` закрыта, когда все `pair_ids` имеют терминальный marker outcome.
 
-- **FORBIDDEN:** перенос незакрытых требований (FR) или незавершённых шагов в соседние feature-эпики (anti-carry policy / no neighbor carry). Незакрытые требования должны либо устраняться в рамках REPLAN текущего эпика (с учётом one-hop), либо фиксироваться как отдельные follow-up/backlog задачи, но никогда не переносятся скрыто в следующий плановый feature-эпик.
-- **FORBIDDEN:** использование скользящих окон (sliding window) через границы cadence-блока.
+## Anti-carry & Sliding window (HARD)
+
+- **FORBIDDEN:** скрытый перенос незакрытых FR в соседний плановый feature без
+  marker/spawn. Explicit spawn follow-up **разрешён** и является каноном.
+- **FORBIDDEN:** sliding window через границы cadence-блока.
+- **FORBIDDEN:** сброс parent decompose/events «чтобы loop снова взял тот же id».
+
+## FINISH
+
+- `code_changed: no` (только memory-bank + queue; rules — только если в scope / `implement this`).
+- `load_now`: parent `replan-i{N}.yaml` + при complete — first spawned `plan.md` +
+  spawned `prompt.md` + **Parent-prompt** path.
+- Cadence `phase=replan`: после терминала всех pair_ids → next `BACK PLAN REFACTOR`.
+- Вне cadence / manual batch: next `BACK DECOMPOSE <queue[0] spawned>`.

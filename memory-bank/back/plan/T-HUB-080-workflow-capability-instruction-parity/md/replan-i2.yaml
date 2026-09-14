@@ -1,0 +1,19 @@
+schema: replan-outcome/v1
+role: back
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+iteration: 2
+date: "2026-09-14"
+outcome: complete
+reason: >
+  Critical gaps found against parent Epic prompt; I2 work spawned as new epic(s).
+  Parent plan.md / prompt.md / decompose / done status unchanged.
+parent_prompt: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/prompt.md
+spawned_epic_ids:
+  - T-HUB-102-agents-instruction-corpus
+spawned:
+  - epic_id: T-HUB-102-agents-instruction-corpus
+    plan: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md
+    prompt: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/md/prompt.md
+    parent_prompt: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/prompt.md
+gap_ids: G080-I2-01,G080-I2-02,G080-I2-03
+plan_overwritten: false

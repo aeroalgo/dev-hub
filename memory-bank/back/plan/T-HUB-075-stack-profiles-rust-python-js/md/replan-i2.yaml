@@ -1,0 +1,14 @@
+schema: replan-outcome/v1
+role: back
+epic_id: T-HUB-075-stack-profiles-rust-python-js
+iteration: 2
+date: "2026-09-14"
+outcome: skip
+reason: >
+  No critical gaps vs parent Epic prompt Done when / Forbidden after.
+parent_prompt: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/prompt.md
+spawned_epic_ids: []
+plan_overwritten: false
+evidence:
+  critical_gaps: []
+  prompt_outcome_checked: true

@@ -1,0 +1,19 @@
+schema: replan-outcome/v1
+role: back
+epic_id: T-HUB-077-gate-evidence-integrity
+iteration: 2
+date: "2026-09-14"
+outcome: complete
+reason: >
+  Critical gaps found against parent Epic prompt; I2 work spawned as new epic(s).
+  Parent plan.md / prompt.md / decompose / done status unchanged.
+parent_prompt: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/prompt.md
+spawned_epic_ids:
+  - T-HUB-099-execution-evidence-write-deny
+spawned:
+  - epic_id: T-HUB-099-execution-evidence-write-deny
+    plan: memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md
+    prompt: memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/prompt.md
+    parent_prompt: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/prompt.md
+gap_ids: G077-1,G077-2
+plan_overwritten: false

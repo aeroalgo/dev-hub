@@ -1,6 +1,36 @@
 version: roadmap-queue/v2
 role: back
-queue: []
+queue:
+- id: T-HUB-098
+  epic_id: T-HUB-098-managed-capability-sole-path
+  plan: plan-T-HUB-098-managed-capability-sole-path.md
+  deps: []
+  kind: feature
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-099
+  epic_id: T-HUB-099-execution-evidence-write-deny
+  plan: plan-T-HUB-099-execution-evidence-write-deny.md
+  deps: []
+  kind: feature
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-100
+  epic_id: T-HUB-100-context-fingerprint-search-wire
+  plan: plan-T-HUB-100-context-fingerprint-search-wire.md
+  deps: []
+  kind: feature
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-101
+  epic_id: T-HUB-101-incident-clear-on-start-removal
+  plan: plan-T-HUB-101-incident-clear-on-start-removal.md
+  deps: []
+  kind: feature
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-102
+  epic_id: T-HUB-102-agents-instruction-corpus
+  plan: plan-T-HUB-102-agents-instruction-corpus.md
+  deps: []
+  kind: feature
+  batch: replan-spawn-075-080-20260914
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -545,3 +575,8 @@ batches:
     note: T-HUB-095 epic-runtime import sole path; T-HUB-096 layout/plan resolve sole
       path; T-HUB-097 offline event/DAG adapter + test hygiene; clarify clarify-20260912-plan-refactor;
       details in plan/<epic_id>/md/plan.md; Covering in md/prompt.md
+  replan-spawn-075-080-20260914:
+    title: REPLAN spawn follow-ups for 075–080
+    note: Parents 075–080 stay in done:. Tracking via plan/<parent>/md/replan-i2.yaml
+      (skip|complete + parent_prompt + spawned_epic_ids). Spawned 098–102 link Parent-prompt
+      in plan header. 075=skip; 076→098, 077→099, 078→100, 079→101, 080→102.

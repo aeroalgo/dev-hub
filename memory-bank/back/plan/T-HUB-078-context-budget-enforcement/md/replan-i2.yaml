@@ -1,0 +1,19 @@
+schema: replan-outcome/v1
+role: back
+epic_id: T-HUB-078-context-budget-enforcement
+iteration: 2
+date: "2026-09-14"
+outcome: complete
+reason: >
+  Critical gaps found against parent Epic prompt; I2 work spawned as new epic(s).
+  Parent plan.md / prompt.md / decompose / done status unchanged.
+parent_prompt: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/prompt.md
+spawned_epic_ids:
+  - T-HUB-100-context-fingerprint-search-wire
+spawned:
+  - epic_id: T-HUB-100-context-fingerprint-search-wire
+    plan: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md
+    prompt: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/prompt.md
+    parent_prompt: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/prompt.md
+gap_ids: G078-1,G078-2
+plan_overwritten: false

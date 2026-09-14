@@ -1,0 +1,19 @@
+schema: replan-outcome/v1
+role: back
+epic_id: T-HUB-076-stack-profile-capability-execution
+iteration: 2
+date: "2026-09-14"
+outcome: complete
+reason: >
+  Critical gaps found against parent Epic prompt; I2 work spawned as new epic(s).
+  Parent plan.md / prompt.md / decompose / done status unchanged.
+parent_prompt: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/prompt.md
+spawned_epic_ids:
+  - T-HUB-098-managed-capability-sole-path
+spawned:
+  - epic_id: T-HUB-098-managed-capability-sole-path
+    plan: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md
+    prompt: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/prompt.md
+    parent_prompt: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/prompt.md
+gap_ids: G076-1,G076-2
+plan_overwritten: false
