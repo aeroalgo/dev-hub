@@ -1,12 +1,6 @@
 version: roadmap-queue/v2
 role: back
-queue:
-- id: T-HUB-097
-  epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
-  plan: plan-T-HUB-097-event-dag-offline-adapter-hygiene.md
-  deps: []
-  kind: chore
-  batch: plan-refactor-leftover-20260914
+queue: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -462,6 +456,11 @@ done:
   epic_id: T-HUB-096-layout-resolve-sole-path
   kind: chore
   plan: plan-T-HUB-096-layout-resolve-sole-path.md
+  batch: plan-refactor-leftover-20260914
+- id: T-HUB-097
+  epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
+  kind: chore
+  plan: plan-T-HUB-097-event-dag-offline-adapter-hygiene.md
   batch: plan-refactor-leftover-20260914
 batches:
   workflow-loop-hardening:

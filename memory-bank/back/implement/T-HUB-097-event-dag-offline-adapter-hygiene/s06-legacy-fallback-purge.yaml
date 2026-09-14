@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Scanned codebase for live adapt call sites in loop/context_loop.py and harness/hooks/
+  (0 callers found)
+- Verified no validation fallback exception handlers calling adapt_manifest or adapt_v1_event
+- Audited docstrings and instructions across loop/ and harness/ for live adapt references
+- Verified offline characterization test oracle preserving migration behavior
+gaps:
+  status: none
+done:
+- Performed full sunset inventory verification across Kind A, B, C, and I items
+- Verified zero live callers to adapt_manifest and adapt_v1_event
+- Confirmed offline migration freeze oracle and regression test suite pass
+files:
+- loop/dag.py
+- harness/hooks/epic_events.py
+- loop/roadmap_queue.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_event_v2_characterization.py loop/tests/test_event_legacy_adapter.py
+  -q`'
+- '`bin/pytest loop/tests/test_dag_manifest.py loop/tests/test_dag_scheduler.py -q`'
+integration_check:
+- bin/pytest loop/tests/test_event_v2_characterization.py loop/tests/test_event_legacy_adapter.py
+  loop/tests/test_dag_manifest.py loop/tests/test_dag_scheduler.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 9 passed in test_event_v2_characterization.py
+- 5 passed in test_event_legacy_adapter.py
+- 7 passed in test_dag_manifest.py
+- 'AC+ quote 1 (''Нет live call sites to adapt_*.''): loop/dag.py:38, harness/hooks/epic_events.py:27;
+  inv-a-01 and inv-a-02 produced no output'
+- 'AC+ quote 2 (''Нет N files asserting identical «adapt succeeds as runtime» without
+  offline label.''): inv-c-01 and inv-i-01 produced no output; loop/tests/test_dag_manifest.py:1'
+- 'AC+ quote 3 (''Behavior of migrate algorithms unchanged (freeze oracle offline
+  tests).''): loop/tests/test_event_v2_characterization.py:1 (9 passed) and loop/tests/test_event_legacy_adapter.py:1
+  (5 passed)'
+checkpoints:
+- id: cp1
+  criterion: Kind A — 0 вызовов adapt_* из live arm и runtime путей
+  status: done
+- id: cp2
+  criterion: Kind C — zero fallback to adapt upon validation failure
+  status: done
+- id: cp3
+  criterion: Kind I — zero docstrings / instructions claiming adapt as live SoT
+  status: done
+- id: cp4
+  criterion: Офлайн-миграции сохраняют исходное поведение (freeze oracle)
+  status: done
+- id: cp5
+  criterion: Targeted регрессионный сьют проходит без ошибок
+  status: done
+resume_from: cp5

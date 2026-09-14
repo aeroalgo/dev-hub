@@ -1,4 +1,4 @@
-"""Canonical loop event v2 records and the v1 history adapter."""
+"""Canonical loop event v2 records and offline v1 history migration."""
 from __future__ import annotations
 
 import hashlib

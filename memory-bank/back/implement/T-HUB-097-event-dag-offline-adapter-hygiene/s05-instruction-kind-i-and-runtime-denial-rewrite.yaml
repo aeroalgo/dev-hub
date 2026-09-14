@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s05 — instruction-kind-i-and-runtime-denial-rewrite — rewrite Kind I instructions
+  and strengthen live v2 denial IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s05-instruction-kind-i-and-runtime-denial-rewrite.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Inspected docstrings and comments in loop/dag.py and harness/hooks/epic_events.py
+- Verified fail-closed denial on v1 manifests in test_dag_manifest.py and test_dag_scheduler.py
+- Verified live read_event_log_result never calls adapt_v1_event in test_event_v2_characterization.py
+gaps:
+  status: none
+done:
+- 'Kind I: docstrings and comments updated to reflect offline-only migration status
+  and clarify bridge roles'
+- Verified strict live fail-closed denial for v1 manifests and event logs
+files:
+- loop/dag.py
+- harness/hooks/epic_events.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_event_v2_characterization.py
+  -q`'
+- '`bin/pytest loop/tests/test_dag_manifest.py -q`'
+integration_check:
+- bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_event_v2_characterization.py
+  loop/tests/test_dag_manifest.py -q
+grep_control: []
+verification_results:
+- 13 passed
+- 7 passed
+checkpoints:
+- id: cp1
+  criterion: Инструкции и docstrings не содержат указаний на adapt_* как live runtime
+    путь
+  status: done
+- id: cp2
+  criterion: Live runtime падает при передаче некорректного v1 манифеста без silent
+    adapt
+  status: done
+resume_from: cp2

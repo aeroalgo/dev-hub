@@ -4,7 +4,7 @@ step_id: s04
 plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
 title: s04 — s04 — offline-adapter-classification-and-queue-rel-policy — classify
   adapt/migrate as offline-only and resolve queue_rel policy IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-14'
 decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s04-offline-adapter-classification-and-queue-rel-policy.yaml
 skills_used:

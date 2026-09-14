@@ -1,0 +1,55 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-097-event-dag-offline-adapter-hygiene
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
+date: '2026-09-14'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 92f699862dad4805c490717a778d2e469d12c7c118795bd6f4f2d1aad95db10e
+verify_scope: full
+scope:
+- 'task: T-HUB-097-event-dag-offline-adapter-hygiene'
+- 'epic: T-HUB-097-event-dag-offline-adapter-hygiene'
+- 'steps: s01–s06'
+- 'files: loop/dag.py, harness/hooks/epic_events.py, loop/roadmap_queue.py, loop/tests/test_dag_scheduler.py,
+  loop/tests/test_dag_v2_characterization.py, loop/tests/test_event_v2_characterization.py,
+  loop/tests/test_event_legacy_adapter.py, loop/tests/test_migration_compatibility.py'
+ac_plus:
+- 'AC+1 (FR-001): Re-assert live read_event_log / DAG arm never call adapt_* (control
+  tests remain: test_dag_scheduler.py:149, test_event_v2_characterization.py:261).'
+- 'AC+2 (FR-002): Classify adapt_manifest / migrate_manifest / adapt_v1_event / migrate_event_log
+  as offline-only; extract to loop/migrate/ only if that removes >=1 duplicate ownership
+  surface (copies_removed >= 1) — else keep-split in place with hard comments + Kind
+  I (no new module without deletion).'
+- 'AC+3 (FR-003): Consolidate overlapping characterization tests into one offline
+  suite; delete redundant cases (copies_removed_count >= 1 of same assertion meaning).'
+- 'AC+4 (FR-004): queue_rel_from_roadmap md->queue map: delete if no CLI/docs callers;
+  else keep-split with explicit legacy CLI contract.'
+- 'AC+5 (FR-005): Kind I: instructions must not present adapt_* as live success path.'
+- 'AC+6 (FR-006): No restoration of live v1 fallbacks; live path strictly fail-closed
+  on v2.'
+ac_minus:
+- 'AC-1: Нет live call sites to adapt_*.'
+- 'AC-2: Нет N files asserting identical «adapt succeeds as runtime» without offline
+  label.'
+- 'AC-3: Нет нового migrate package без удаления старого owner surface.'
+- 'AC-4: Behavior of migrate algorithms unchanged (freeze oracle offline tests).'
+section_011:
+- '§0.11-1: No unrequested abstractions / zero new config/files without deletion budget
+  compliance.'
+- '§0.11-2: Root cause fix, not symptom; live path fail-closed on v2.'
+- '§0.11-3: Strict fail-closed on invalid schemas without fallback to adapt_*.'
+- '§0.11-4: Touch ledger compliance: zero unauthorized scope mutation.'
+checks:
+- 'full suite green (dev-hub self-test): bin/pytest -q --tb=line (2899 passed, 3 skipped
+  in 171.40s)'
+- 'control tests pass: live event log reading and DAG arm never call adapt_*'
+- characterization tests consolidated into test_dag_v2_characterization.py and test_event_v2_characterization.py
+- 'reviewer gate (verify-qa): VERDICT PASS'
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+suite:
+- 'bin/pytest -q --tb=line  # 2899 passed, 3 skipped in 171.40s'

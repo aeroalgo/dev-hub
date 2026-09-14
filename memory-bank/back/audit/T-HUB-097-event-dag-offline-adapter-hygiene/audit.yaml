@@ -1,0 +1,190 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+date: '2026-09-14'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Offline migrate tools and DAG/event adapters hygiene, live path fail-closed
+    v2, consolidated tests.
+  source: plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 9
+  fr_satisfied: 9
+  sc_checked: 0
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Live read_event_log_result in harness/hooks/epic_events.py:165 and _arm_dag_next
+    in loop/dag_scheduler.py do not invoke adapt_* methods; zero live callers confirmed
+    via rg analysis in s01 and s06.
+- source_ref: US-002
+  status: satisfied
+  evidence: Legacy DAG and event characterization assertions consolidated into canonical
+    modules loop/tests/test_dag_v2_characterization.py and loop/tests/test_event_v2_characterization.py;
+    redundant duplicates in canary, manifest, and t035 purged.
+- source_ref: US-003
+  status: satisfied
+  evidence: Offline migrate entrypoints migrate_manifest and migrate_event_log retained
+    strictly for offline conversion with clear offline-only Kind I docstrings and
+    explicit compatibility_mode flag.
+- source_ref: FR-001
+  status: satisfied
+  evidence: Control assertions test_arm_dag_next_rejects_v1_manifest_without_adaptation
+    in loop/tests/test_dag_scheduler.py:61 and test_read_event_log_result_never_calls_adapt_v1_event
+    in loop/tests/test_event_v2_characterization.py:20 confirm zero adapt_* calls.
+- source_ref: FR-002
+  status: satisfied
+  evidence: Functions adapt_manifest, migrate_manifest in loop/dag.py and adapt_v1_event,
+    migrate_event_log in harness/hooks/epic_events.py are classified as offline-only;
+    keep-split retained without duplicate ownership surface.
+- source_ref: FR-003
+  status: satisfied
+  evidence: Consolidated overlapping characterization tests into canonical test_dag_v2_characterization.py
+    and test_event_v2_characterization.py; purged redundant assertions from secondary
+    test files removing duplicate assertion count.
+- source_ref: FR-004
+  status: satisfied
+  evidence: queue_rel_from_roadmap in loop/roadmap_queue.py retained for explicit
+    roadmap queue mapping contract without markdown parsing regressions and with direct
+    unit test verification.
+- source_ref: FR-005
+  status: satisfied
+  evidence: Kind I docstrings updated in loop/dag.py:38 and harness/hooks/epic_events.py:27
+    clarifying offline-only migration status and forbidding live adapt reliance.
+- source_ref: FR-006
+  status: satisfied
+  evidence: Live runtime strictly enforces v2 format without restoring live v1 fallback
+    paths; validation failures raise errors rather than falling back to adapt_*.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Zero live call sites to adapt_manifest or adapt_v1_event across loop/context_loop.py,
+    loop/dag_scheduler.py, and harness/hooks/ (verified in s01/s06 grep control).
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Secondary test files test_dag_canary.py, test_dag_manifest.py, test_t035_invariants.py,
+    test_migration_compatibility.py no longer assert adapt as live runtime SoT; characterization
+    isolated to dedicated offline tests.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: No new package was created; adapters kept-split in place with clear docstrings
+    without expanding concept budget.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Behavior of offline migrate algorithms preserved and frozen via canonical
+    characterization tests test_dag_v2_characterization.py and test_event_legacy_adapter.py.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: MUST sections verified; all implementation steps followed test-driven
+    verification and explicit acceptance criteria.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed across steps s01-s06 with test characterization
+    before duplicate purge.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback enforced; live manifest and event readers fail-closed
+    on invalid input without falling back to adapt_*.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected; epic scope is strictly backend.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to; bounded context and files loaded per step.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration verified; invalid schemas reject immediately.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; all references and paths resolved from
+    source plan and files.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step generated across all completed shards.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Integration parity preserved across CLI and scheduler entrypoints.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority respected; AUDIT strictly verifies contract parity
+    before QA transition.
+architecture_parity: []
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-097-event-dag-offline-adapter-hygiene/s01-control-live-adapt-isolation-and-test-inventory.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-097-event-dag-offline-adapter-hygiene/s02-consolidate-legacy-dag-adapter-tests.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-097-event-dag-offline-adapter-hygiene/s03-consolidate-legacy-event-adapter-tests.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-097-event-dag-offline-adapter-hygiene/s04-offline-adapter-classification-and-queue-rel-policy.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-097-event-dag-offline-adapter-hygiene/s05-instruction-kind-i-and-runtime-denial-rewrite.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-097-event-dag-offline-adapter-hygiene/s06-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+- step_id: s06
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-14'
+  plan_ref: plan.md#replacement--sunset
+  rows:
+  - symbol: adapt_manifest in live arm
+    kind: A
+    command: rg -n "adapt_manifest" loop/context_loop.py loop/dag_scheduler.py
+    result: pass
+    prod_callers: 0
+  - symbol: adapt_v1_event in live arm
+    kind: A
+    command: rg -n "adapt_v1_event" loop/context_loop.py harness/hooks/epic/
+    result: pass
+    prod_callers: 0
+  - symbol: redundant DAG characterization assertions
+    kind: A
+    command: rg -n "adapt_manifest" loop/tests/test_dag_canary.py loop/tests/test_dag_manifest.py
+      loop/tests/test_t035_invariants.py
+    result: pass
+    prod_callers: 0
+  - symbol: redundant event migration assertions
+    kind: A
+    command: rg -n "adapt_v1_event" loop/tests/test_migration_compatibility.py
+    result: pass
+    prod_callers: 0
+  - symbol: adapt if validate fails
+    kind: C
+    command: rg -n "except.*adapt_manifest" loop/
+    result: pass
+    prod_callers: 0
+  - symbol: instructions claiming adapt as runtime SoT
+    kind: I
+    command: rg -n "adapt_manifest in live|adapt_v1_event in live" loop/ harness/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

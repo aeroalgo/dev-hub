@@ -216,7 +216,7 @@ def adapt_manifest(legacy: Mapping[str, Any] | None) -> dict[str, Any]:
 
 
 def _arm_dag_next(cwd: Any, epic_id: str, role: str) -> dict[str, Any]:
-    """Adapter connecting DAG epic scheduling to Transition Engine.
+    """Connect DAG epic scheduling to Transition Engine.
 
     Evaluates next phase for (epic_id, role) via loop.epic_transition.resolve_next
     and arms it via loop.epic_transition.arm_phase.

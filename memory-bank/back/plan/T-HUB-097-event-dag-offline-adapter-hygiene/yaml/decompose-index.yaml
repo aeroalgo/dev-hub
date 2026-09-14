@@ -32,15 +32,15 @@ steps:
   title: s04 — offline-adapter-classification-and-queue-rel-policy — classify adapt/migrate
     as offline-only and resolve queue_rel policy
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-instruction-kind-i-and-runtime-denial-rewrite.yaml
   title: s05 — instruction-kind-i-and-runtime-denial-rewrite — rewrite Kind I instructions
     and strengthen live v2 denial
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-legacy-fallback-purge.yaml
   title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
