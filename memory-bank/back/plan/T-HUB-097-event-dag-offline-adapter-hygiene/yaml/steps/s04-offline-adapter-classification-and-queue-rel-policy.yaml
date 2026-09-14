@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s04 — offline-adapter-classification-and-queue-rel-policy — classify adapt/migrate as offline-only and resolve queue_rel policy
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Явно классифицировать `adapt_manifest`, `migrate_manifest`, `adapt_v1_event` и `migrate_event_log`
+  как offline-only инструменты (keep-split с чёткой документацией/аннотациями без создания новых
+  избыточных модулей), провести аудит использования `queue_rel_from_roadmap` в `loop/roadmap_queue.py`
+  и формализовать единый канонический путь для `queue.yaml`.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-004
+    - US-003
+  nouns:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s04-offline-adapter-classification-and-queue-rel-policy.yaml
+  ac_quotes:
+    - "Classify adapt_manifest / migrate_manifest / adapt_v1_event / migrate_event_log as offline-only; extract to loop/migrate/ only if that removes >=1 duplicate ownership surface (copies_removed >= 1) — else keep-split in place with hard comments + Kind I (no new module without deletion)."
+    - "queue_rel_from_roadmap md->queue map: delete if no CLI/docs callers; else keep-split with explicit legacy CLI contract."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md:75-135
+
+context:
+  consumes:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+  produces:
+    - явная классификация адаптеров как offline-only в docstrings и сигнатурах
+    - аудит и фиксация контракта резолва queue_rel в loop/roadmap_queue.py
+  plan_refs:
+    - plan.md#FR-002
+    - plan.md#FR-004
+    - plan.md#US-003
+  files:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+
+as_built:
+  - "loop/dag.py: содержит adapt_manifest и migrate_manifest рядом с live DAG логикой"
+  - "harness/hooks/epic_events.py: содержит adapt_v1_event и migrate_event_log"
+  - "loop/roadmap_queue.py: содержит вспомогательную функцию queue_rel_from_roadmap"
+
+delta:
+  - "Добавление явных offline-only пометок и комментариев к адаптерам в dag.py и epic_events.py"
+  - "Аудит вызывающих мест queue_rel_from_roadmap и фиксация контракта DEFAULT_QUEUE"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: live control isolation"
+  - "s02: слияние DAG characterization тестов"
+  - "s03: слияние event characterization тестов"
+  - "s05: Kind I и denial"
+  - "s06: sunset purge scan"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Офлайн-адаптеры в loop/dag.py и epic_events.py имеют явную offline-only классификацию
+    verify: "bin/pytest loop/tests/test_dag_v2_characterization.py loop/tests/test_event_legacy_adapter.py -q"
+  - id: cp2
+    criterion: Контракт roadmap_queue и queue_rel_from_roadmap работает стабильно
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q"
+
+verify: []
+tdd: []

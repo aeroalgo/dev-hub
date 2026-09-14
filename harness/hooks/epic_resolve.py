@@ -38,7 +38,7 @@ from epic.traceability import (
     build_report,
     format_report,
 )
-from epic_lib import (  # noqa: E402
+from epic.core import (  # noqa: E402
     _decompose_index_path,
     finalize_step,
     halt_epic,

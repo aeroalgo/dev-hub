@@ -1,0 +1,157 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: полное сканирование инвентаря A+B+C+I и верификация полного удаления устаревших
+  веток резолва, swallow pass, устаревших схем и docstrings, подтверждение чистоты кодовой базы через rg и тесты.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-010
+    - US-001
+    - US-002
+    - US-003
+    - SC-001
+    - SC-002
+    - SC-003
+  nouns:
+    - loop/roadmap_queue.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic_paths.py
+    - loop/paths/epic_layout.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "SC-001: plan_path body: <=1 resolve owner; no swallow-pass"
+    - "SC-002: yaml-prefer index load"
+    - "SC-003: stale 'falling back to v1' prose = 0 in scoped hooks"
+    - "AC-: no dual machine resolve; no silent PASS via flat-after-exception; no obsolete multi-path tests"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md:160-240
+
+context:
+  consumes:
+    - plan.md#replacement--sunset
+    - decompose-index.md#replacement-cleanup
+  produces:
+    - подтверждение полного удаления устаревших символов/веток/схем
+    - чистые результаты grep_control по категориям A, B, C, I
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#SC-001
+    - plan.md#SC-002
+    - plan.md#SC-003
+    - plan.md#AC−
+  files:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/decompose-index.md
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml
+
+as_built:
+  - "Предыдущие шаги s01–s05 удалили и заменили компоненты C4"
+
+delta:
+  - "Финальный аудит удаления устаревших веток и артефактов"
+
+sunset_inventory:
+  - symbol: multi-branch plan_path
+    kind: A
+    replacement: loop.paths.epic_layout.resolve
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: single resolve owner without fallback chains
+  - symbol: validate_decompose_yaml
+    kind: A
+    replacement: harness.hooks.epic_yaml.validate_decompose_full
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: 0 definitions and calls in prod
+  - symbol: SCHEMA_DECOMPOSE_LEGACY / SCHEMA_IMPLEMENT_LEGACY
+    kind: A
+    replacement: SCHEMA_EPIC_DECOMPOSE / SCHEMA_EPIC_IMPLEMENT
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_yaml.py
+    expect: legacy constants removed
+  - symbol: arm decompose-
+    kind: B
+    replacement: layout v2 arm paths
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: no arm support for deprecated decompose- prefix
+  - symbol: except Exception pass in plan_path
+    kind: C
+    replacement: fail-closed layout resolve
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: zero silent swallow passes
+  - symbol: falling back to legacy v1 paths
+    kind: I
+    replacement: layout v2 canon
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: zero occurrences of v1 fallback docstring
+
+deletes: []
+
+out_of_scope:
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-097-event-dag-offline-adapter-hygiene"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: validate_decompose_yaml
+    command: 'rg -n "def validate_decompose_yaml" harness/hooks/ || true'
+    expect: no output
+  - id: inv-a-02
+    kind: A
+    symbol: SCHEMA_DECOMPOSE_LEGACY
+    command: 'rg -n "SCHEMA_DECOMPOSE_LEGACY" harness/hooks/ || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: swallow pass in plan_path
+    command: 'rg -n "except Exception:\\s*pass" loop/roadmap_queue.py || true'
+    expect: no output in plan_path / resolve_epic_slug
+  - id: inv-i-01
+    kind: I
+    symbol: falling back to legacy v1
+    command: 'rg -n "falling back to (legacy )?v1" harness/hooks/ || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — 0 вызовов validate_decompose_yaml и 0 определений устаревших схем
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'def validate_decompose_yaml|SCHEMA_DECOMPOSE_LEGACY', 'harness/hooks/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Kind B — переход эпиков и arm используют исключительно v2 пути
+    verify: "bin/pytest loop/tests/test_epic_layout_v2_denial.py -q"
+  - id: cp3
+    criterion: Kind C — zero silent swallow passes в loop/roadmap_queue.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'except Exception:\\s*pass', 'loop/roadmap_queue.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp4
+    criterion: Kind I — zero упоминаний v1 fallback в docstrings
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'falling back to (legacy )?v1', 'harness/hooks/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp5
+    criterion: Targeted регрессионный сьют проходит без ошибок
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_index_fail_closed.py harness/hooks/tests/test_epic_paths.py loop/tests/test_epic_paths.py harness/hooks/tests/test_epic_yaml.py loop/tests/test_validate_decompose.py harness/hooks/tests/test_epic_layout_v2_denial.py -q"
+
+verify: []
+tdd: []

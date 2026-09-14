@@ -516,7 +516,7 @@ class AgentPostToolAdapter:
 
         if record_key == "verify" and matched:
             try:
-                from epic_lib import mirror_verify_verdict
+                from epic.core import mirror_verify_verdict
                 mirror_verify_verdict(
                     cwd,
                     verdict,

@@ -6,7 +6,7 @@ import sys
 
 import yaml
 
-from loop.dag import adapt_manifest, validate_manifest
+from loop.dag import validate_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 CANARY_MANIFEST = ROOT / "loop" / "dag" / "canary-finish-integrity.yaml"
@@ -33,10 +33,8 @@ def _write_artifact(cwd: Path, name: str) -> None:
 def test_canary_manifest_validate_and_order(tmp_path: Path) -> None:
     manifest = yaml.safe_load(CANARY_MANIFEST.read_text(encoding="utf-8"))
 
-    adapted = adapt_manifest(manifest)
     validation = validate_manifest(manifest)
 
-    assert adapted["ok"] is True
     assert validation["ok"] is True
     assert [node["id"] for node in manifest["nodes"]] == [
         "validate_finish",

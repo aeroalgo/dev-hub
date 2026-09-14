@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s03 — collapse-qa-artifact-alias-and-epic-facades — unify QA artifact lookup
+  name and simplify epic facades IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s03-collapse-qa-artifact-alias-and-epic-facades.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Устранён алиас find_qa_pass_artifact в harness/hooks/epic/core.py и harness/hooks/epic/__init__.py
+  в пользу канонического имени latest_qa_pass_artifact_for_reference.
+- Переключены вызовы find_qa_pass_artifact на latest_qa_pass_artifact_for_reference
+  в harness/hooks/epic/core.py и loop/epic_transition.py.
+- 'Упрощён harness/hooks/epic/__init__.py: удалены дублирующие обёртки discover_epic_for_pipeline
+  и mark_index_step_status, экспорт канонических функций ведётся напрямую из .core.'
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/epic/__init__.py
+- loop/epic_transition.py
+deletes:
+- harness/hooks/epic/core.py::find_qa_pass_artifact
+- harness/hooks/epic/__init__.py::find_qa_pass_artifact
+tests:
+- bin/pytest loop/tests/test_epic_transition.py -q
+- python3 -c "from harness.hooks.epic import latest_qa_pass_artifact_for_reference;
+  assert callable(latest_qa_pass_artifact_for_reference)"
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', 'find_qa_pass_artifact',
+  'harness/hooks/epic/', 'loop/epic_transition.py'], capture_output=True, text=True);
+  sys.exit(0 if not res.stdout.strip() else 1)"
+integration_check:
+- Канонический пакет epic экспортирует функции напрямую из .core без промежуточных
+  обёрток-фасадов, а поиск QA артефакта унифицирован под именем latest_qa_pass_artifact_for_reference.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: latest_qa_pass_artifact_for_reference operates cleanly in transition
+  and core lifecycle'
+- 'cp2 PASS: epic package direct imports and exports match canonical core helpers'
+- 'cp3 PASS: Static check confirms zero occurrences of find_qa_pass_artifact in harness/hooks/epic/
+  and loop/epic_transition.py'
+checkpoints:
+- id: cp1
+  criterion: latest_qa_pass_artifact_for_reference operates cleanly in transition
+    and core lifecycle
+  status: done
+  done_at: '2026-09-14T10:55:00Z'
+- id: cp2
+  criterion: epic package direct imports and exports match canonical core helpers
+  status: done
+  done_at: '2026-09-14T10:55:00Z'
+- id: cp3
+  criterion: Static check confirms zero occurrences of find_qa_pass_artifact in harness/hooks/epic/
+    and loop/epic_transition.py
+  status: done
+  done_at: '2026-09-14T10:55:00Z'
+resume_from: cp1

@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s01 — s01 — control-live-adapt-isolation-and-test-inventory — assert zero live
+  adapt callers and inventory duplicate test assertions IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s01-control-live-adapt-isolation-and-test-inventory.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- 0 live callers for adapt_manifest and adapt_v1_event across live arm / reader (loop/context_loop.py,
+  loop/dag_scheduler.py, harness/hooks/epic_events.py read_event_log_result).
+- Control tests in test_dag_scheduler.py and test_event_v2_characterization.py confirm
+  live arm and read_event_log fail-closed without invoking adapt_* functions.
+- Detailed test duplicate inventory mapped for Cluster C5 (DAG assertions across test_dag_manifest.py,
+  test_dag_generate.py, test_t035_invariants.py, test_dag_v2_characterization.py;
+  Event assertions across test_event_legacy_adapter.py, test_migration_compatibility.py,
+  test_event_v2_characterization.py).
+gaps:
+  status: none
+done:
+- Добавлен и верифицирован control assertion test_read_event_log_result_never_calls_adapt_v1_event
+  в loop/tests/test_event_v2_characterization.py
+- Проверено выполнение контрольного теста test_arm_dag_next_rejects_v1_manifest_without_adaptation
+  в loop/tests/test_dag_scheduler.py
+- Проведен статический аудит вызовов adapt_* из loop/context_loop.py и loop/dag_scheduler.py
+  (ноль совпадений)
+- Сформирован инвентарь дублирующих assertion twins для шагов s02 и s03
+files:
+- loop/tests/test_dag_scheduler.py
+- loop/tests/test_event_v2_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_event_v2_characterization.py
+  -q
+integration_check:
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', 'adapt_manifest|adapt_v1_event',
+  'loop/context_loop.py', 'loop/dag_scheduler.py'], capture_output=True, text=True);
+  sys.exit(0 if not res.stdout.strip() else 1)"
+grep_control: []
+verification_results:
+- All 13 tests in test_dag_scheduler.py and test_event_v2_characterization.py passed.
+- Static analysis confirmed 0 live adapt invocations in context_loop.py and dag_scheduler.py.
+checkpoints:
+- id: cp1
+  criterion: Live arm и live event read гарантированно не вызывают adapt_* (control
+    test pass)
+  status: done
+- id: cp2
+  criterion: Статический аудит подтверждает ноль вызовов adapt_* из рабочих путей
+    runtime
+  status: done

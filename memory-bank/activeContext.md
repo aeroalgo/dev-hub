@@ -2,16 +2,16 @@
 schema: loop-handoff/v1
 role: BACK
 mode: IMPLEMENT
-epic_id: T-HUB-095-epic-runtime-import-sole-path
-step_id: s01
+epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
+step_id: s04
 ---
 
 ## load_now
-1. [back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s01-dead-alias-purge-c2.yaml](back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s01-dead-alias-purge-c2.yaml) — текущий work shard (BACK IMPLEMENT s01).
-2. [back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/decompose-index.yaml](back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
+1. [back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s04-offline-adapter-classification-and-queue-rel-policy.yaml](back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s04-offline-adapter-classification-and-queue-rel-policy.yaml) — текущий work shard (BACK IMPLEMENT s04).
+2. [back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/decompose-index.yaml](back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
 
-## Handoff BACK IMPLEMENT — s01
-- **Дальше:** выполнить atomic шаг → FINISH (seed-implement → flush cp → suite → evidence in_progress → validate-step → Handoff → @verify → finalize-step)
-- **Эпик:** T-HUB-095-epic-runtime-import-sole-path (BACK); armed из `back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/decompose-index.yaml` (прошлый activeContext игнорирован).
-- **Текущий шаг:** s01 — s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP (status=pending в index.yaml).
-- **Команда:** `BACK IMPLEMENT @s01`
+## Handoff BACK IMPLEMENT — s04
+- **Дальше:** продолжить с work shard `memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s04-offline-adapter-classification-and-queue-rel-policy.yaml`
+- **Эпик:** T-HUB-097-event-dag-offline-adapter-hygiene.
+- **Режим/шаг:** следующий BACK IMPLEMENT `s04`.
+- **Сделано:** предыдущий шаг отмечен `completed`.

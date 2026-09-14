@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 1–2
+  cut_list:
+  - epic runtime import sole path (T-HUB-095)
+  - layout resolve sole path (T-HUB-096)
+  - behavior change migrate algorithms
+steps:
+- id: s01
+  file: s01-control-live-adapt-isolation-and-test-inventory.yaml
+  title: s01 — control-live-adapt-isolation-and-test-inventory — assert zero live
+    adapt callers and inventory duplicate test assertions
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-consolidate-legacy-dag-adapter-tests.yaml
+  title: s02 — consolidate-legacy-dag-adapter-tests — consolidate overlapping DAG
+    characterization tests and purge duplicates
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-consolidate-legacy-event-adapter-tests.yaml
+  title: s03 — consolidate-legacy-event-adapter-tests — consolidate overlapping event
+    legacy migration tests and eliminate duplicates
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-offline-adapter-classification-and-queue-rel-policy.yaml
+  title: s04 — offline-adapter-classification-and-queue-rel-policy — classify adapt/migrate
+    as offline-only and resolve queue_rel policy
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-instruction-kind-i-and-runtime-denial-rewrite.yaml
+  title: s05 — instruction-kind-i-and-runtime-denial-rewrite — rewrite Kind I instructions
+    and strengthen live v2 denial
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: pending

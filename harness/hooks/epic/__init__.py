@@ -1,43 +1,169 @@
-"""Curated epic package API backing the legacy epic_lib facade."""
+"""Curated epic package API."""
 
-from .core import _event_log_path, logger, INDEX_IMPLEMENT_CONFLICT, MARK_INDEX_MISSING, FINISH_INTEGRITY_DECOMPOSE_MISSING, FINISH_INTEGRITY_DIAGNOSTIC_CODES, atomic_write_text, checkpoint_path, checkpoint_lock_path, clear_runner_checkpoint, validate_checkpoint, load_checkpoint, commit_checkpoint, checkpoint_lifecycle, progress_snapshot, resolve_checkpoint_resume, checkpoint_resume, utc_now, default_state, load_epic_state, save_epic_state, write_last_finish_tool, increment_drift_counter, _state_diagnostics, effective_phase, gates_from_phase, rebuild_epic_projection, reconcile_epic_events, reconcile_current_epic_events, halt_epic, read_active_context, extract_handoff_block, handoff_post_implement_phase, extract_load_now, fingerprint_context, validate_active_context_shape, session_start_payload, mirror_verify_verdict, mirror_gate_verdict, verify_pass_step_blockers, coerce_verify_verdict, gate_evidence_matches, load_decompose_steps_fail_closed, mark_index_step_status, finalize_step, validate_index_vs_implement, resolve_armed_decompose_for_integrity, validate_finish_integrity, repair_finish_desync, repair_index_mirror, repair_fingerprint_stall, repair_premature_completed_after_failed_finish, sync_cursor_from_index, validate_finish_integrity_with_repair, latest_qa_pass_artifact_for_reference, find_qa_pass_artifact, reduce_epic_lifecycle, post_implement_phase, resolve_pipeline_identity, discover_epic_for_pipeline, epic_complete_allowed, complete_archived_armed_epic, build_post_implement_active_context, find_next_decompose_step_from_queue, clear_reserved_role_arm, arm_epic, _decompose_index_path, _append_event, _declared_artifacts, parse_qa_verdict, lifecycle_arm_phase, validate_qa_finish_handoff, project_handoff_from_reducer, repair_post_implement_handoff_drift, clear_stale_verify_no_verdict_handoff
+from .core import (
+    _append_event,
+    _declared_artifacts,
+    _decompose_index_path,
+    _event_log_path,
+    _state_diagnostics,
+    arm_epic,
+    atomic_write_text,
+    build_post_implement_active_context,
+    checkpoint_lifecycle,
+    checkpoint_lock_path,
+    checkpoint_path,
+    checkpoint_resume,
+    clear_reserved_role_arm,
+    clear_runner_checkpoint,
+    clear_stale_verify_no_verdict_handoff,
+    coerce_verify_verdict,
+    commit_checkpoint,
+    complete_archived_armed_epic,
+    default_state,
+    discover_epic_for_pipeline,
+    effective_phase,
+    epic_complete_allowed,
+    extract_handoff_block,
+    extract_load_now,
+    finalize_step,
+    find_next_decompose_step_from_queue,
+    fingerprint_context,
+    gate_evidence_matches,
+    gates_from_phase,
+    halt_epic,
+    handoff_post_implement_phase,
+    increment_drift_counter,
+    latest_qa_pass_artifact_for_reference,
+    lifecycle_arm_phase,
+    load_checkpoint,
+    load_decompose_steps_fail_closed,
+    load_epic_state,
+    logger,
+    mark_index_step_status,
+    mirror_gate_verdict,
+    mirror_verify_verdict,
+    parse_qa_verdict,
+    post_implement_phase,
+    progress_snapshot,
+    project_handoff_from_reducer,
+    read_active_context,
+    rebuild_epic_projection,
+    reconcile_current_epic_events,
+    reconcile_epic_events,
+    reduce_epic_lifecycle,
+    repair_fingerprint_stall,
+    repair_finish_desync,
+    repair_index_mirror,
+    repair_post_implement_handoff_drift,
+    repair_premature_completed_after_failed_finish,
+    resolve_armed_decompose_for_integrity,
+    resolve_checkpoint_resume,
+    resolve_pipeline_identity,
+    save_epic_state,
+    session_start_payload,
+    sync_cursor_from_index,
+    utc_now,
+    validate_active_context_shape,
+    validate_checkpoint,
+    validate_finish_integrity,
+    validate_finish_integrity_with_repair,
+    validate_index_vs_implement,
+    validate_qa_finish_handoff,
+    verify_pass_step_blockers,
+    write_last_finish_tool,
+    FINISH_INTEGRITY_DECOMPOSE_MISSING,
+    FINISH_INTEGRITY_DIAGNOSTIC_CODES,
+    INDEX_IMPLEMENT_CONFLICT,
+    MARK_INDEX_MISSING,
+)
 from .convergence import ConvergenceFinding, ConvergenceReport, run_convergence_checks
-from epic_paths import is_reserved_role_epic_id, role_from_decompose_path, active_context_path
+from epic_paths import active_context_path, is_reserved_role_epic_id, role_from_decompose_path
 from epic_index import index_yaml_path, load_index_yaml, parse_steps_from_md
-
-
-def discover_epic_for_pipeline(cwd):
-    """Resolve through this facade so legacy monkeypatching remains effective."""
-    identity = resolve_pipeline_identity(cwd)
-    if identity.get("status") != "resolved":
-        return None
-    return {key: identity[key] for key in ("epic_id", "role", "role_dir", "decompose")}
-
-
-def mark_index_step_status(cwd, decompose, step_id, status, *, sync_checklist=True):
-    """Backward-compatible facade preserving a patchable atomic writer."""
-    from . import core
-
-    original = core.atomic_write_text
-    core.atomic_write_text = atomic_write_text
-    try:
-        return core.mark_index_step_status(
-            cwd, decompose, step_id, status, sync_checklist=sync_checklist
-        )
-    finally:
-        core.atomic_write_text = original
-
-
-_mark_index_step_status_impl = mark_index_step_status
-
-
-def _facade_mark_index_step_status(cwd, decompose, step_id, status, *, sync_checklist=True):
-    return _mark_index_step_status_impl(
-        cwd, decompose, step_id, status, sync_checklist=sync_checklist
-    )
-
-
-mark_index_step_status = _facade_mark_index_step_status
 from _lib import gate_identity
 
-__all__ = ['_event_log_path', 'logger', 'INDEX_IMPLEMENT_CONFLICT', 'MARK_INDEX_MISSING', 'FINISH_INTEGRITY_DECOMPOSE_MISSING', 'FINISH_INTEGRITY_DIAGNOSTIC_CODES', 'atomic_write_text', 'checkpoint_path', 'checkpoint_lock_path', 'clear_runner_checkpoint', 'validate_checkpoint', 'load_checkpoint', 'commit_checkpoint', 'checkpoint_lifecycle', 'resolve_checkpoint_resume', 'checkpoint_resume', 'utc_now', 'default_state', 'load_epic_state', 'save_epic_state', 'write_last_finish_tool', 'increment_drift_counter', '_state_diagnostics', 'effective_phase', 'gates_from_phase', 'rebuild_epic_projection', 'reconcile_epic_events', 'reconcile_current_epic_events', 'halt_epic', 'read_active_context', 'extract_handoff_block', 'handoff_post_implement_phase', 'extract_load_now', 'fingerprint_context', 'validate_active_context_shape', 'session_start_payload', 'mirror_verify_verdict', 'mirror_gate_verdict', 'verify_pass_step_blockers', 'coerce_verify_verdict', 'gate_evidence_matches', 'load_decompose_steps_fail_closed', 'mark_index_step_status', 'finalize_step', 'validate_index_vs_implement', 'resolve_armed_decompose_for_integrity', 'validate_finish_integrity', 'repair_finish_desync', 'repair_index_mirror', 'repair_fingerprint_stall', 'repair_premature_completed_after_failed_finish', 'sync_cursor_from_index', 'validate_finish_integrity_with_repair', 'latest_qa_pass_artifact_for_reference', 'find_qa_pass_artifact', 'reduce_epic_lifecycle', 'post_implement_phase', 'resolve_pipeline_identity', 'discover_epic_for_pipeline', 'epic_complete_allowed', 'build_post_implement_active_context', 'find_next_decompose_step_from_queue', 'clear_reserved_role_arm', 'arm_epic', '_decompose_index_path', '_append_event', '_declared_artifacts', 'parse_qa_verdict', 'lifecycle_arm_phase', 'validate_qa_finish_handoff', 'project_handoff_from_reducer', 'repair_post_implement_handoff_drift', 'is_reserved_role_epic_id', 'role_from_decompose_path', 'index_yaml_path', 'load_index_yaml', 'parse_steps_from_md', 'gate_identity', 'ConvergenceFinding', 'ConvergenceReport', 'run_convergence_checks']
+__all__ = [
+    '_append_event',
+    '_declared_artifacts',
+    '_decompose_index_path',
+    '_event_log_path',
+    '_state_diagnostics',
+    'active_context_path',
+    'arm_epic',
+    'atomic_write_text',
+    'build_post_implement_active_context',
+    'checkpoint_lifecycle',
+    'checkpoint_lock_path',
+    'checkpoint_path',
+    'checkpoint_resume',
+    'clear_reserved_role_arm',
+    'clear_runner_checkpoint',
+    'clear_stale_verify_no_verdict_handoff',
+    'coerce_verify_verdict',
+    'commit_checkpoint',
+    'complete_archived_armed_epic',
+    'ConvergenceFinding',
+    'ConvergenceReport',
+    'default_state',
+    'discover_epic_for_pipeline',
+    'effective_phase',
+    'epic_complete_allowed',
+    'extract_handoff_block',
+    'extract_load_now',
+    'finalize_step',
+    'find_next_decompose_step_from_queue',
+    'fingerprint_context',
+    'gate_evidence_matches',
+    'gate_identity',
+    'gates_from_phase',
+    'halt_epic',
+    'handoff_post_implement_phase',
+    'increment_drift_counter',
+    'index_yaml_path',
+    'is_reserved_role_epic_id',
+    'latest_qa_pass_artifact_for_reference',
+    'lifecycle_arm_phase',
+    'load_checkpoint',
+    'load_decompose_steps_fail_closed',
+    'load_epic_state',
+    'load_index_yaml',
+    'logger',
+    'mark_index_step_status',
+    'mirror_gate_verdict',
+    'mirror_verify_verdict',
+    'parse_qa_verdict',
+    'parse_steps_from_md',
+    'post_implement_phase',
+    'progress_snapshot',
+    'project_handoff_from_reducer',
+    'read_active_context',
+    'rebuild_epic_projection',
+    'reconcile_current_epic_events',
+    'reconcile_epic_events',
+    'reduce_epic_lifecycle',
+    'repair_fingerprint_stall',
+    'repair_finish_desync',
+    'repair_index_mirror',
+    'repair_post_implement_handoff_drift',
+    'repair_premature_completed_after_failed_finish',
+    'resolve_armed_decompose_for_integrity',
+    'resolve_checkpoint_resume',
+    'resolve_pipeline_identity',
+    'role_from_decompose_path',
+    'run_convergence_checks',
+    'save_epic_state',
+    'session_start_payload',
+    'sync_cursor_from_index',
+    'utc_now',
+    'validate_active_context_shape',
+    'validate_checkpoint',
+    'validate_finish_integrity',
+    'validate_finish_integrity_with_repair',
+    'validate_index_vs_implement',
+    'validate_qa_finish_handoff',
+    'verify_pass_step_blockers',
+    'write_last_finish_tool',
+    'FINISH_INTEGRITY_DECOMPOSE_MISSING',
+    'FINISH_INTEGRITY_DIAGNOSTIC_CODES',
+    'INDEX_IMPLEMENT_CONFLICT',
+    'MARK_INDEX_MISSING',
+]

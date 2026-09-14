@@ -256,3 +256,24 @@ def test_offline_migration_boundary_converts_v1_and_records_digest(tmp_path: Pat
     assert second_run["ok"] is True
     assert second_run["migrated"] == 0
     assert second_run["replay_digest"] == migration_res["replay_digest"]
+
+
+def test_read_event_log_result_never_calls_adapt_v1_event(tmp_path: Path, monkeypatch) -> None:
+    """Control assertion: live read_event_log_result never invokes adapt_v1_event."""
+    import epic_events
+
+    def _unexpected_adapt(*args, **kwargs):
+        raise AssertionError("adapt_v1_event should not be called in live event reader path")
+
+    monkeypatch.setattr(epic_events, "adapt_v1_event", _unexpected_adapt)
+
+    event_path = tmp_path / "memory-bank/back/events/T-HUB-089/events.jsonl"
+    event_path.parent.mkdir(parents=True, exist_ok=True)
+    v1_raw = [
+        {"kind": "qa_pass", "artifact": "memory-bank/back/qa/demo-1.yaml", "t": "2026-09-12T10:00:00+00:00"},
+    ]
+    _write_jsonl(event_path, v1_raw)
+
+    result = read_event_log_result(event_path, expected_epic_id="T-HUB-089", cwd=tmp_path)
+    assert result.valid is False
+    assert result.invalid_count == 1

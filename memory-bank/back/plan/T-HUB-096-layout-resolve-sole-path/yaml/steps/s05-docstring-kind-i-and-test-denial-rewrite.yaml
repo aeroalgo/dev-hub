@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s05 — docstring-kind-i-and-test-denial-rewrite — purge stale v1 docstrings, update Kind I, and strengthen denial tests
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить устаревшие docstring-упоминания «falling back to v1» из harness/hooks/epic_paths.py,
+  обновить инструкции Kind I и переписать/усилить тесты denial v2 для исключения ложных срабатываний.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-009
+    - FR-010
+    - US-003
+    - SC-003
+  nouns:
+    - harness/hooks/epic_paths.py
+    - harness/hooks/tests/test_epic_layout_v2_denial.py
+    - loop/tests/test_roadmap_queue.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s05-docstring-kind-i-and-test-denial-rewrite.yaml
+  ac_quotes:
+    - "Fix stale harness/hooks/epic_paths.py docstring claiming v1 fallback."
+    - "Rewrite obsolete tests asserting multi-path success; keep test_epic_layout_v2_denial strengthened."
+    - "Kind I rewrite for layout fallback prose."
+    - "US-003: Как maintainer, Kind I не учит v1 fallback"
+    - "SC-003: stale 'falling back to v1' prose = 0 in scoped hooks"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md:100-180
+
+context:
+  consumes:
+    - harness/hooks/epic_paths.py
+    - harness/hooks/tests/test_epic_layout_v2_denial.py
+    - loop/tests/test_roadmap_queue.py
+    - loop/tests/test_epic_paths.py
+  produces:
+    - чистые docstrings без упоминания v1 fallback
+    - усиленные тесты на запрет устаревших layout путей
+  plan_refs:
+    - plan.md#FR-006
+    - plan.md#FR-009
+    - plan.md#FR-010
+    - plan.md#US-003
+    - plan.md#SC-003
+    - plan.md#Refactor-inventory
+  files:
+    - harness/hooks/epic_paths.py
+    - harness/hooks/tests/test_epic_paths.py
+    - harness/hooks/tests/test_epic_layout_v2_denial.py
+    - loop/tests/test_roadmap_queue.py
+    - loop/tests/test_epic_paths.py
+
+as_built:
+  - "harness/hooks/epic_paths.py: docstring содержит 'Emits layout_v1_deprecated diagnostics when falling back to legacy v1 paths.'"
+  - "Тесты содержат сценарии, допускающие fallback"
+
+delta:
+  - "Удаление вводящих в заблуждение комментариев и docstrings"
+  - "Переписывание тестов на проверку строгого отказа (v2 denial)"
+
+deletes:
+  - "stale v1 fallback docstring в harness/hooks/epic_paths.py"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "s06: sunset purge scan"
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-097-event-dag-offline-adapter-hygiene"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: harness/hooks/epic_paths.py не содержит утверждений о fallback на v1
+    verify: "rg 'falling back to (legacy )?v1' harness/hooks/epic_paths.py || true"
+  - id: cp2
+    criterion: Усиленные тесты denial успешно выполняются
+    verify: "bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py harness/hooks/tests/test_epic_paths.py loop/tests/test_roadmap_queue.py -q"
+
+verify: []
+tdd: []

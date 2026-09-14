@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from loop.context_loop import _cmd_dag_generate
-from loop.dag import adapt_manifest
 
 
 def _write_gap(root: Path, body: str) -> None:
@@ -46,50 +45,3 @@ def test_generate_rejects_unsafe_structured_gap_source(tmp_path: Path) -> None:
     assert result["ok"] is False
     assert any(item["code"] == "path_invalid" for item in result["diagnostics"])
     assert not (tmp_path / "loop/dag/portal.yaml").exists()
-
-
-def test_legacy_links_are_compatible_but_cannot_arm_autonomous_fanout() -> None:
-    result = adapt_manifest(
-        {
-            "schema": "loop-dag/v1",
-            "pipeline_id": "portal",
-            "nodes": [
-                {
-                    "id": "back",
-                    "role_dir": "back",
-                    "decompose": "memory-bank/back/plan/decompose-demo/index.md",
-                    "depends_on": [],
-                },
-                {
-                    "id": "front",
-                    "role_dir": "front",
-                    "decompose": "memory-bank/front/plan/decompose-demo-front/index.md",
-                    "depends_on": [],
-                },
-            ],
-        }
-    )
-
-    assert result["ok"] is True
-    assert result["autonomous"] is False
-    assert any(item["code"] == "legacy_gap_inference" for item in result["diagnostics"])
-
-
-def test_validate_manifest_rejects_v1_legacy_manifest() -> None:
-    from loop.dag import validate_manifest
-    result = validate_manifest(
-        {
-            "schema": "loop-dag/v1",
-            "pipeline_id": "portal",
-            "nodes": [
-                {
-                    "id": "back",
-                    "role_dir": "back",
-                    "decompose": "memory-bank/back/plan/decompose-demo/index.md",
-                    "depends_on": [],
-                },
-            ],
-        }
-    )
-    assert result["ok"] is False
-    assert any(item["code"] == "schema_invalid" for item in result["diagnostics"])

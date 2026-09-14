@@ -10,7 +10,7 @@ if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
 from _lib import extract_verdict
-from epic_lib import default_state, load_epic_state, save_epic_state
+from epic import default_state, load_epic_state, save_epic_state
 from loop.schemas.state import DriftCounters
 
 

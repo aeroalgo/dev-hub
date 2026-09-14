@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s01 — characterize-and-role-map-path-apis — role-map path APIs and inventory legacy shards
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Определить строгие границы и разделение ответственности между тремя модулями путей:
+  loop.paths.epic_layout (канонический layout v2 resolver), loop.paths.epic_paths (workflow pack resolver),
+  и harness.hooks.epic_paths (хуки и CLI-хелперы), зафиксировать инвентарь устаревших схем/файлов.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+  nouns:
+    - loop/paths/epic_layout.py
+    - loop/paths/epic_paths.py
+    - harness/hooks/epic_paths.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s01-characterize-and-role-map-path-apis.yaml
+  ac_quotes:
+    - "Role-map loop.paths.epic_layout vs loop.paths.epic_paths vs harness/hooks/epic_paths: document keep-split or merge hooks helpers into layout; move without deleting sibling copy = FAIL."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md:100-145
+
+context:
+  consumes:
+    - loop/paths/epic_layout.py
+    - loop/paths/epic_paths.py
+    - harness/hooks/epic_paths.py
+  produces:
+    - чёткая спецификация зон ответственности модулей путей в docstrings/структуре
+    - зафиксированный baseline инвентаря схем и путей
+  plan_refs:
+    - plan.md#FR-004
+    - plan.md#Consolidation-clusters
+  files:
+    - loop/paths/epic_layout.py
+    - loop/paths/epic_paths.py
+    - harness/hooks/epic_paths.py
+
+as_built:
+  - "loop/paths/epic_layout.py: канонический резолвер layout v2 для loop и harness"
+  - "loop/paths/epic_paths.py: резолвер путей с поддержкой параметров workflow pack"
+  - "harness/hooks/epic_paths.py: тонкая обёртка и compat layer для хуков"
+
+delta:
+  - "Формализация контракта: epic_layout — единственный владелец FS layout v2"
+  - "Разграничение: epic_paths — pack-relative routing; hooks.epic_paths — хуки без v1 fallback"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "s02: схлопывание plan_path и resolve_epic_slug"
+  - "s03: load_steps_for_index yaml-prefer"
+  - "s04: отказ от SCHEMA_*_LEGACY"
+  - "s05: Kind I и arm decompose"
+  - "s06: sunset purge scan"
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-097-event-dag-offline-adapter-hygiene"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Модули путей имеют непротиворечивое разделение ответственности и документированный контракт
+    verify: "bin/pytest loop/tests/test_epic_paths.py harness/hooks/tests/test_epic_paths.py -q"
+  - id: cp2
+    criterion: Канонический layout v2 resolver проходит базовые проверки без регрессий
+    verify: "bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py -q"
+
+verify: []
+tdd: []

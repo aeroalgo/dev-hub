@@ -149,19 +149,27 @@ def test_legacy_v1_manifest_adapter_and_migration_boundary() -> None:
                 "role_dir": "back",
                 "decompose": "memory-bank/back/plan/decompose-core/index.md",
                 "depends_on": [],
-            }
+            },
+            {
+                "id": "front-ui",
+                "role_dir": "front",
+                "decompose": "memory-bank/front/plan/decompose-ui/index.md",
+                "depends_on": ["back-core"],
+            },
         ],
     }
 
-    # Direct validation rejects v1
+    # Direct validation strictly rejects v1
     val = validate_manifest(v1_manifest)
     assert val["ok"] is False
+    assert any(d["code"] == "schema_invalid" for d in val["diagnostics"])
 
     # adapt_manifest converts v1 but sets autonomous=False and marks legacy_gap_inference
     adapted = adapt_manifest(v1_manifest)
     assert adapted["ok"] is True
     assert adapted["autonomous"] is False
     assert adapted["manifest"]["schema"] == "loop-dag/v2"
+    assert len(adapted["manifest"]["nodes"]) == 2
     assert any(d["code"] == "legacy_gap_inference" for d in adapted["diagnostics"])
 
     # migrate_manifest requires compatibility_mode=True
@@ -173,6 +181,7 @@ def test_legacy_v1_manifest_adapter_and_migration_boundary() -> None:
     assert mig_compat["ok"] is True
     assert mig_compat["migrated"] is True
     assert mig_compat["manifest"]["schema"] == "loop-dag/v2"
+    assert len(mig_compat["manifest"]["nodes"]) == 2
 
 
 def test_context_loop_arm_dag_next_execution(tmp_path: Path) -> None:

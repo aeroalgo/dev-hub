@@ -33,12 +33,7 @@ def _write(path: Path, events: list[dict[str, object]]) -> None:
 
 
 def test_append_allocates_after_archived_highest_sequence(tmp_path: Path) -> None:
-    from importlib.util import module_from_spec, spec_from_file_location
-
-    spec = spec_from_file_location("epic_lib_event_stream", ROOT / ".claude/hooks/epic_lib.py")
-    assert spec and spec.loader
-    lib = module_from_spec(spec)
-    spec.loader.exec_module(lib)
+    import epic as lib
 
     for index in range(45):
         artifact = tmp_path / f"memory-bank/back/qa/event-{index}.yaml"
@@ -58,12 +53,7 @@ def test_append_allocates_after_archived_highest_sequence(tmp_path: Path) -> Non
 
 
 def test_append_does_not_rearchive_history_prefixes(tmp_path: Path) -> None:
-    from importlib.util import module_from_spec, spec_from_file_location
-
-    spec = spec_from_file_location("epic_lib_event_stream2", ROOT / ".claude/hooks/epic_lib.py")
-    assert spec and spec.loader
-    lib = module_from_spec(spec)
-    spec.loader.exec_module(lib)
+    import epic as lib
 
     for index in range(25):
         artifact = tmp_path / f"memory-bank/back/qa/rearch-{index}.yaml"
@@ -118,12 +108,7 @@ def test_archive_reader_reports_collision_only_for_conflicting_revisions(tmp_pat
 
 
 def test_append_refuses_existing_gap_or_collision(tmp_path: Path) -> None:
-    from importlib.util import module_from_spec, spec_from_file_location
-
-    spec = spec_from_file_location("epic_lib_event_stream_refuse", ROOT / ".claude/hooks/epic_lib.py")
-    assert spec and spec.loader
-    lib = module_from_spec(spec)
-    spec.loader.exec_module(lib)
+    import epic as lib
 
     event_path = tmp_path / "memory-bank/back/events/demo/events.jsonl"
     event_path.parent.mkdir(parents=True)
@@ -137,14 +122,7 @@ def test_append_refuses_existing_gap_or_collision(tmp_path: Path) -> None:
 
 
 def test_append_compacts_gate_sidecars_into_canonical_event_log(tmp_path: Path) -> None:
-    from importlib.util import module_from_spec, spec_from_file_location
-
-    spec = spec_from_file_location(
-        "epic_lib_event_stream_sidecars", ROOT / ".claude/hooks/epic_lib.py"
-    )
-    assert spec and spec.loader
-    lib = module_from_spec(spec)
-    spec.loader.exec_module(lib)
+    import epic as lib
 
     event_path = tmp_path / "memory-bank/back/events/demo/events.jsonl"
     event_path.parent.mkdir(parents=True, exist_ok=True)

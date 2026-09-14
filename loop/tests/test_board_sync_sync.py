@@ -19,7 +19,7 @@ def _card(ref: WorkspaceRef, epic: str, step: str) -> BoardTask:
         epic_id=epic,
         step_id=step,
         status="pending",
-        decompose_rel=f"memory-bank/back/plan/decompose-{epic}/index.yaml",
+        decompose_rel=f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml",
         title=step,
         workspace_ref=ref,
     )
@@ -27,9 +27,9 @@ def _card(ref: WorkspaceRef, epic: str, step: str) -> BoardTask:
 
 
 def _set_status(ref: WorkspaceRef, epic: str, statuses: list[str]) -> None:
-    ref.path.joinpath(
-        f"memory-bank/back/plan/decompose-{epic}/index.yaml"
-    ).write_text(
+    path = ref.path / f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
         yaml.safe_dump(
             {
                 "schema": "epic-decompose-index/v1",
@@ -54,8 +54,8 @@ def done_lifecycle(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _project(tmp_path: Path, *, statuses: list[str], epic: str = "T-DEMO") -> WorkspaceRef:
-    index = tmp_path / "memory-bank/back/plan" / f"decompose-{epic}/index.yaml"
-    index.parent.mkdir(parents=True)
+    index = tmp_path / f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
+    index.parent.mkdir(parents=True, exist_ok=True)
     index.write_text(
         yaml.safe_dump(
             {
@@ -69,9 +69,9 @@ def _project(tmp_path: Path, *, statuses: list[str], epic: str = "T-DEMO") -> Wo
         ),
         encoding="utf-8",
     )
-    (tmp_path / "memory-bank/back/plan/plan-T-DEMO.md").write_text(
-        "# T-DEMO\n", encoding="utf-8"
-    )
+    plan = tmp_path / f"memory-bank/back/plan/{epic}/md/plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text(f"# {epic}\n", encoding="utf-8")
     (tmp_path / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(
@@ -79,7 +79,7 @@ def _project(tmp_path: Path, *, statuses: list[str], epic: str = "T-DEMO") -> Wo
                 "version": "roadmap-queue/v2",
                 "role": "back",
                 "queue": [
-                    {"id": "T-DEMO", "plan": "plan-T-DEMO.md", "deps": []}
+                    {"id": epic, "plan": f"plan-{epic}.md", "deps": []}
                 ],
             }
         ),

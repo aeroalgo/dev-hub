@@ -1,23 +1,11 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-095
-  epic_id: T-HUB-095-epic-runtime-import-sole-path
-  plan: plan-T-HUB-095-epic-runtime-import-sole-path.md
-  deps: []
-  kind: refactor
-  batch: plan-refactor-leftover-20260914
-- id: T-HUB-096
-  epic_id: T-HUB-096-layout-resolve-sole-path
-  plan: plan-T-HUB-096-layout-resolve-sole-path.md
-  deps: []
-  kind: refactor
-  batch: plan-refactor-leftover-20260914
 - id: T-HUB-097
   epic_id: T-HUB-097-event-dag-offline-adapter-hygiene
   plan: plan-T-HUB-097-event-dag-offline-adapter-hygiene.md
   deps: []
-  kind: refactor
+  kind: chore
   batch: plan-refactor-leftover-20260914
 done:
 - id: T-HUB-002
@@ -465,6 +453,16 @@ done:
   kind: feature
   plan: plan-T-HUB-094-roadmap-cadence-resync-tail.md
   batch: roadmap-cadence-20260911
+- id: T-HUB-095
+  epic_id: T-HUB-095-epic-runtime-import-sole-path
+  kind: refactor
+  plan: plan-T-HUB-095-epic-runtime-import-sole-path.md
+  batch: plan-refactor-leftover-20260914
+- id: T-HUB-096
+  epic_id: T-HUB-096-layout-resolve-sole-path
+  kind: chore
+  plan: plan-T-HUB-096-layout-resolve-sole-path.md
+  batch: plan-refactor-leftover-20260914
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

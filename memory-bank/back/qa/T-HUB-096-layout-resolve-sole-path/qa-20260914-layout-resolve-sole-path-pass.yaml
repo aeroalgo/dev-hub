@@ -1,0 +1,34 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-096-layout-resolve-sole-path
+plan_id: T-HUB-096-layout-resolve-sole-path
+epic_id: T-HUB-096-layout-resolve-sole-path
+date: '2026-09-14'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 458c5bd978047ea854db4bb265b9133d122176a5cdb63a4cdee0a0063e2f5741
+verify_scope: prior_only
+scope:
+  - "task: T-HUB-096-layout-resolve-sole-path"
+  - "epic: T-HUB-096-layout-resolve-sole-path"
+  - "steps: s01–s06"
+  - "files: loop/roadmap_queue.py, harness/hooks/epic_paths.py, loop/paths/epic_layout.py, loop/paths/epic_paths.py, loop/epic_transition.py, loop/tests/test_board_sync_sync.py, loop/tests/test_board_sync_epic_regression.py"
+ac_plus:
+  - "SC-001: `plan_path` body: ≤1 resolve owner; no swallow-pass"
+  - "SC-002: yaml-prefer index load"
+  - "SC-003: stale «falling back to v1» prose = 0 in scoped hooks"
+ac_minus:
+  - "no action sentence interpretable as unqualified managed runner without hub-only marker"
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (2902 passed, 4 skipped in 97.20s)"
+  - "prior blockers resolved (BF-001, BF-002)"
+  - "integration rule (§0.11) — zero dangling references"
+  - "reviewer gate: VERDICT PASS"
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+suite:
+  - "bin/pytest -q --tb=line  # 2902 passed, 4 skipped in 97.20s"

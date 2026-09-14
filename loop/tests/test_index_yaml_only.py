@@ -12,12 +12,8 @@ def _load_lib():
     hooks = str(HOOKS)
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    spec = importlib.util.spec_from_file_location("epic_lib_test_index_yaml_only", HOOKS / "epic_lib.py")
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def _load_index():

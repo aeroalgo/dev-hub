@@ -209,7 +209,7 @@ def run_preflight_checks(
     smoke_files = [
         hub_root / "loop" / "context_loop.py",
         hub_root / "harness" / "hooks" / "session_resilience.py",
-        hub_root / "harness" / "hooks" / "epic_lib.py",
+        hub_root / "harness" / "hooks" / "epic" / "core.py",
         hub_root / "harness" / "hooks" / "stop-gate.py",
     ]
 

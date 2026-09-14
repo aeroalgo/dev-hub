@@ -11,26 +11,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def _load_context_loop():
-    path = ROOT / "loop" / "context_loop.py"
-    spec = importlib.util.spec_from_file_location("t035_acceptance_context_loop", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
+    if str(ROOT / "loop") not in sys.path:
+        sys.path.insert(0, str(ROOT / "loop"))
     hooks = str(ROOT / ".claude" / "hooks")
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    spec.loader.exec_module(module)
-    return module
+    import context_loop
+    return context_loop
 
 
 def _load_epic_lib():
     hooks = ROOT / ".claude" / "hooks"
     if str(hooks) not in sys.path:
         sys.path.insert(0, str(hooks))
-    spec = importlib.util.spec_from_file_location("t035_acceptance_epic_lib", hooks / "epic_lib.py")
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def _write(cwd: Path, rel: str, body: str) -> None:

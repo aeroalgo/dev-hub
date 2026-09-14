@@ -301,9 +301,10 @@ def validate_epic_shard(
     if kind == "security":
         return validate_security_yaml(path, finish=finish)
     if kind == "decompose":
-        from epic_yaml import validate_decompose_yaml
+        from epic_yaml import validate_decompose_full
 
-        return validate_decompose_yaml(path)
+        errors, _warnings = validate_decompose_full(path)
+        return errors
     if kind == "implement":
         from epic_yaml import validate_implement_yaml
 

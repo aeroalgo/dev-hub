@@ -1,0 +1,143 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+slug: event-dag-offline-adapter-hygiene
+date: '2026-09-14'
+status: complete
+index_fingerprint: sha256:ba42d6d51b939d8fe5809f952bf8c73c58ab658fc071b4cfec46be5cb0b31ac9
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как runtime, live event/DAG не вызывает adapt_*
+- requirement_id: US-002
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Как maintainer, одна offline characterization suite
+- requirement_id: US-003
+  step_ids:
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как оператор, migrate CLI (если retained) явно offline
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: Re-assert live `read_event_log` / DAG arm never call `adapt_*`
+    (control tests remain).
+- requirement_id: FR-002
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Classify `adapt_manifest` / `migrate_manifest` / `adapt_v1_event`
+    / `migrate_event_log` as offline-only; extract to `loop/migrate/` **only if**
+    that removes ≥1 duplicate ownership surface (copies_removed ≥ 1) — else keep-split
+    in place with hard comments + Kind I (no new module without deletion).
+- requirement_id: FR-003
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Consolidate overlapping characterization tests into one offline
+    suite; delete redundant cases (`copies_removed_count ≥ 1` of same assertion meaning).
+- requirement_id: FR-004
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: '`queue_rel_from_roadmap` md→queue map: delete if no CLI/docs
+    callers; else keep-split with explicit legacy CLI contract.'
+- requirement_id: FR-005
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'Kind I: instructions must not present adapt_* as live success
+    path.'
+- requirement_id: FR-006
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: No restoration of live v1 fallbacks.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет live call sites to adapt_*.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Нет N files asserting identical «adapt succeeds as runtime»
+    without offline label.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Нет нового migrate package без удаления старого owner surface.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Behavior of migrate algorithms unchanged (freeze oracle offline
+    tests).
+- requirement_id: TM-097-01
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: live not-called
+- requirement_id: TM-097-02
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: offline migrate retained behavior
+- requirement_id: TM-097-03
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: rg live adapt
+- requirement_id: TM-097-04
+  step_ids:
+  - s02
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: dup assertion count ↓
+- requirement_id: TM-097-05
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: full suite QA
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

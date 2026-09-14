@@ -1,0 +1,36 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-095-epic-runtime-import-sole-path
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+epic_id: T-HUB-095-epic-runtime-import-sole-path
+date: '2026-09-14'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 4d8b346138f4bb29cc170ff6965273648406489c3d5e6f2d10be265b83b1e680
+verify_scope: prior_only
+scope:
+  - "task: T-HUB-095-epic-runtime-import-sole-path"
+  - "epic: T-HUB-095-epic-runtime-import-sole-path"
+ac_plus:
+  - "SC-001: 0 prod `epic_lib` imports"
+  - "SC-002: single state-load import"
+  - "SC-003: dead aliases gone"
+  - "SC-004: freeze oracle green"
+ac_minus:
+  - "Нет dual live import surface (`epic_lib` + `epic`) для одних helpers."
+  - "Нет silent try/except module fallback."
+  - "Нет zero-caller public aliases из inventory."
+  - "Нет obsolete tests, требующих удалённый facade."
+  - "Нет роста public symbols/owners (concept budget ≤ 0)."
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+checks:
+  - "suite_pass: bin/pytest -q --tb=line (2887 passed, 4 skipped in 116.15s)"
+  - "prior_blockers: ok (BF-001, BF-002, BF-003 resolved in bugfix queue)"
+  - "verify_qa: PASS"
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+suite:
+  - "bin/pytest -q --tb=line  # PASSED (2887 passed, 4 skipped in 116.15s)"

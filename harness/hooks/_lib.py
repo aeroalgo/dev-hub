@@ -1674,7 +1674,7 @@ def mark_in_flight(
     from loop.gate_identity import GateIdentity
 
     if cwd:
-        from epic_lib import load_epic_state
+        from epic.core import load_epic_state
 
         epic_st = load_epic_state(cwd)
         sot = GateIdentity.expected(epic_st, session_id=session_id)
@@ -1870,7 +1870,7 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
     mb-finish does not invalidate BUGFIX/IMPLEMENT fences after arming QA.
     """
     try:
-        from epic_lib import load_epic_state
+        from epic.core import load_epic_state
 
         state = load_epic_state(cwd)
         runner_session = (
@@ -1935,7 +1935,7 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
                     pass
             return expected.to_dict()
         except ImportError:
-            from epic_lib import gate_identity as projection_identity
+            from epic.core import gate_identity as projection_identity
 
             identity = projection_identity(state, runner_session)
             try:

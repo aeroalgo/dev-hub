@@ -1,0 +1,398 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-096-layout-resolve-sole-path
+plan_id: T-HUB-096-layout-resolve-sole-path
+date: '2026-09-14'
+auditor: BACK AUDIT
+verdict: PASS
+plan_intent:
+  epic_goal: Establish sole canonical path resolver for epic plan/index artifacts,
+    purge legacy multi-resolve branches and swallow fallbacks, enforce yaml index
+    SoT, and eliminate obsolete schemas and docstrings.
+  source: memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 10
+  sc_checked: 3
+  layout_paths_total: 1
+  layout_paths_closed: 1
+  constitution_checked: true
+check_matrix:
+- source_ref: US-001
+  status: pass
+  evidence: Plan file resolution in loop.roadmap_queue.plan_path operates via sole
+    canonical resolver loop.paths.epic_layout.resolve with zero try/except swallow
+    branches.
+  verify: rg -n "def plan_path" loop/roadmap_queue.py -A 6
+- source_ref: US-002
+  status: pass
+  evidence: Index step loading in loop.roadmap_queue.load_steps_for_index checks index.yaml
+    first as authoritative source of truth.
+  verify: rg -n "def load_steps_for_index" loop/roadmap_queue.py -A 10
+- source_ref: US-003
+  status: pass
+  evidence: Module docstrings and comments in harness/hooks/epic_paths.py accurately
+    describe layout v2 with zero stale v1 fallback prose.
+  verify: rg -i "falling back to.*v1" harness/hooks/ loop/ || true
+- source_ref: FR-001
+  status: pass
+  evidence: plan_path collapsed to call resolve(role, stem, EpicLayoutKind.PLAN_MD,
+    project_root=cwd) directly with zero multi-branch fallbacks or swallow handlers.
+  verify: rg -A 5 "def plan_path" loop/roadmap_queue.py
+- source_ref: FR-002
+  status: pass
+  evidence: resolve_epic_slug uses canonical find_plan_md_path and epic_id_from_plan_path
+    for slug resolution without divergent search logic.
+  verify: rg -A 15 "def resolve_epic_slug" loop/roadmap_queue.py
+- source_ref: FR-003
+  status: pass
+  evidence: load_steps_for_index prioritizes yaml index directly when present, ensuring
+    yaml SoT over markdown sibling.
+  verify: rg -A 8 "def load_steps_for_index" loop/roadmap_queue.py
+- source_ref: FR-004
+  status: pass
+  evidence: Role mapping between loop.paths.epic_layout, loop.paths.epic_paths, and
+    harness.hooks.epic_paths clearly documented with single layout v2 owner.
+  verify: rg -n "Architecture and Role Mapping" loop/paths/epic_layout.py harness/hooks/epic_paths.py
+- source_ref: FR-005
+  status: pass
+  evidence: SCHEMA_DECOMPOSE_LEGACY and SCHEMA_IMPLEMENT_LEGACY constants purged from
+    harness/hooks/epic_yaml.py and rejected fail-closed during validation.
+  verify: python3 -c "from harness.hooks import epic_yaml; assert not hasattr(epic_yaml,
+    \"SCHEMA_DECOMPOSE_LEGACY\")"
+- source_ref: FR-006
+  status: pass
+  evidence: harness/hooks/epic_paths.py docstring updated to state layout v2 as canonical
+    architecture boundary without v1 claims.
+  verify: head -n 20 harness/hooks/epic_paths.py
+- source_ref: FR-007
+  status: pass
+  evidence: Arming and phase transitions in loop/epic_transition.py and loop/context_loop.py
+    enforce canonical layout v2 decompose-index.yaml without legacy decompose- layout
+    fallback.
+  verify: rg "decompose-index.yaml" loop/epic_transition.py
+- source_ref: FR-008
+  status: pass
+  evidence: validate_decompose_yaml alias removed from codebase; callers invoke validate_decompose_tree
+    / validate_shard_yaml_full.
+  verify: rg "validate_decompose_yaml" loop/ harness/ || true
+- source_ref: FR-009
+  status: pass
+  evidence: Obsolete multi-path tests rewritten into layout v2 denial tests in test_epic_layout_v2_denial.py
+    and test_epic_yaml.py.
+  verify: rg -n "test_legacy_flat_plan_denied" loop/tests/test_epic_layout_v2_denial.py
+- source_ref: FR-010
+  status: pass
+  evidence: Instruction surfaces and prompt files purged of layout fallback prose
+    and legacy schema mentions.
+  verify: rg -i "falling back to v1" harness/ || true
+- source_ref: SC-001
+  status: pass
+  evidence: plan_path body contains single resolve owner invocation and zero bare
+    except pass swallows.
+  verify: rg "except.*pass" loop/roadmap_queue.py || true
+- source_ref: SC-002
+  status: pass
+  evidence: load_steps_for_index loads from index.yaml/decompose-index.yaml before
+    any fallback loader.
+  verify: rg -n "load_index_yaml" loop/roadmap_queue.py
+- source_ref: SC-003
+  status: pass
+  evidence: Zero occurrences of stale falling back to v1 prose across hooks and loop
+    modules.
+  verify: rg -i "falling back to.*v1" harness/hooks/ loop/ || true
+- source_ref: AC+:1
+  status: pass
+  evidence: Given epic tree layout v2 under plan/<slug>/md/plan.md, plan_path resolves
+    exact path via sole owner without exception masking.
+  verify: python3 -c "from loop.roadmap_queue import plan_path; p = plan_path(\".\",
+    \"back\", \"T-HUB-096-layout-resolve-sole-path\"); assert p.is_file()"
+- source_ref: AC+:2
+  status: pass
+  evidence: Given index.yaml and sibling index.md, load_steps_for_index parses yaml
+    doc as authoritative source of truth.
+  verify: python3 -c "from loop.roadmap_queue import load_steps_for_index; from pathlib
+    import Path; res = load_steps_for_index(\".\", Path(\"memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml\"));
+    assert res[\"ok\"] and res[\"source\"] == \"yaml\""
+- source_ref: AC-:1
+  status: pass
+  evidence: Zero dual machine resolve paths, zero silent pass via flat-after-exception,
+    and zero obsolete multi-path test passes.
+  verify: rg "except.*pass" loop/roadmap_queue.py || true
+- source_ref: constitution:L7
+  status: pass
+  evidence: Constitution requirements audited; all refactoring actions adhere to MUST
+    rules.
+  verify: test -f memory-bank/constitution.md
+- source_ref: constitution:L9
+  status: pass
+  evidence: MUST-1 TDD first respected with denial characterization tests and fail-closed
+    schema checks.
+  verify: rg "test_legacy_schema_rejected" harness/hooks/tests/test_epic_yaml.py
+- source_ref: constitution:L13
+  status: pass
+  evidence: MUST-2 Architecture boundaries respected; loop.paths.epic_layout is sole
+    authoritative owner of layout v2.
+  verify: rg "Canonical filesystem layout v2 resolver" loop/paths/epic_layout.py
+- source_ref: constitution:L17
+  status: pass
+  evidence: MUST-3 No silent fallbacks verified; explicit error propagation and failure
+    without swallow branches.
+  verify: rg "except Exception:\s*pass" loop/roadmap_queue.py || true
+- source_ref: constitution:L21
+  status: pass
+  evidence: MUST-4 Lean load adhered to during execution.
+  verify: test -f memory-bank/activeContext.md
+- source_ref: constitution:L25
+  status: pass
+  evidence: MUST-5 Fail-closed misconfiguration verified; missing plan or invalid
+    schema fails explicitly.
+  verify: rg "test_missing_plan_raises" loop/tests/test_roadmap_queue.py
+- source_ref: constitution:L29
+  status: pass
+  evidence: MUST-6 No-guess markers respected; unambiguous error codes and diagnostics
+    emitted.
+  verify: rg "EpicLayoutResolveRequest" loop/paths/epic_layout.py
+- source_ref: constitution:L33
+  status: pass
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema
+    validation.
+  verify: 'rg "schema: loop-handoff/v1" memory-bank/activeContext.md'
+- source_ref: constitution:L37
+  status: pass
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  verify: rg "EpicLayoutKind" loop/schemas/epic_layout_schema.py
+- source_ref: constitution:L41
+  status: pass
+  evidence: MUST-9 Phase authority verified; transition engines act as authoritative
+    boundaries.
+  verify: rg "def arm_phase" loop/epic_transition.py
+- source_ref: layout:memory-bank/back/roadmap/queue.yaml
+  status: pass
+  evidence: Queue definition referenced by roadmap_queue maintains layout v2 structure.
+  verify: test -f memory-bank/back/roadmap/queue.yaml
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Plan file resolution in loop.roadmap_queue.plan_path operates via sole
+    canonical resolver loop.paths.epic_layout.resolve with zero try/except swallow
+    branches.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: Index step loading in loop.roadmap_queue.load_steps_for_index checks index.yaml
+    first as authoritative source of truth.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: Module docstrings and comments in harness/hooks/epic_paths.py accurately
+    describe layout v2 with zero stale v1 fallback prose.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: plan_path collapsed to call resolve(role, stem, EpicLayoutKind.PLAN_MD,
+    project_root=cwd) directly with zero multi-branch fallbacks or swallow handlers.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: resolve_epic_slug uses canonical find_plan_md_path and epic_id_from_plan_path
+    for slug resolution without divergent search logic.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: load_steps_for_index prioritizes yaml index directly when present, ensuring
+    yaml SoT over markdown sibling.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: Role mapping between loop.paths.epic_layout, loop.paths.epic_paths, and
+    harness.hooks.epic_paths clearly documented with single layout v2 owner.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: SCHEMA_DECOMPOSE_LEGACY and SCHEMA_IMPLEMENT_LEGACY constants purged from
+    harness/hooks/epic_yaml.py and rejected fail-closed during validation.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: harness/hooks/epic_paths.py docstring updated to state layout v2 as canonical
+    architecture boundary without v1 claims.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Arming and phase transitions in loop/epic_transition.py and loop/context_loop.py
+    enforce canonical layout v2 decompose-index.yaml without legacy decompose- layout
+    fallback.
+  remaining_work: ''
+- source_ref: FR-008
+  status: satisfied
+  evidence: validate_decompose_yaml alias removed from codebase; callers invoke validate_decompose_tree
+    / validate_shard_yaml_full.
+  remaining_work: ''
+- source_ref: FR-009
+  status: satisfied
+  evidence: Obsolete multi-path tests rewritten into layout v2 denial tests in test_epic_layout_v2_denial.py
+    and test_epic_yaml.py.
+  remaining_work: ''
+- source_ref: FR-010
+  status: satisfied
+  evidence: Instruction surfaces and prompt files purged of layout fallback prose
+    and legacy schema mentions.
+  remaining_work: ''
+- source_ref: SC-001
+  status: satisfied
+  evidence: plan_path body contains single resolve owner invocation and zero bare
+    except pass swallows.
+  remaining_work: ''
+- source_ref: SC-002
+  status: satisfied
+  evidence: load_steps_for_index loads from index.yaml/decompose-index.yaml before
+    any fallback loader.
+  remaining_work: ''
+- source_ref: SC-003
+  status: satisfied
+  evidence: Zero occurrences of stale falling back to v1 prose across hooks and loop
+    modules.
+  remaining_work: ''
+- source_ref: AC+:1
+  status: satisfied
+  evidence: Given epic tree layout v2 under plan/<slug>/md/plan.md, plan_path resolves
+    exact path via sole owner without exception masking.
+  remaining_work: ''
+- source_ref: AC+:2
+  status: satisfied
+  evidence: Given index.yaml and sibling index.md, load_steps_for_index parses yaml
+    doc as authoritative source of truth.
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Zero dual machine resolve paths, zero silent pass via flat-after-exception,
+    and zero obsolete multi-path test passes.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitution requirements audited; all refactoring actions adhere to MUST
+    rules.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first respected with denial characterization tests and fail-closed
+    schema checks.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 Architecture boundaries respected; loop.paths.epic_layout is sole
+    authoritative owner of layout v2.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 No silent fallbacks verified; explicit error propagation and failure
+    without swallow branches.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration verified; missing plan or invalid
+    schema fails explicitly.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; unambiguous error codes and diagnostics
+    emitted.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained with typed frontmatter and schema
+    validation.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved without legacy dual paths.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority verified; transition engines act as authoritative
+    boundaries.
+  remaining_work: ''
+- source_ref: layout:memory-bank/back/roadmap/queue.yaml
+  status: satisfied
+  evidence: Queue definition referenced by roadmap_queue maintains layout v2 structure.
+  remaining_work: ''
+architecture_parity:
+- layout_path: memory-bank/back/roadmap/queue.yaml
+  status: present
+  evidence: Roadmap queue configuration defines roadmap items and maps to canonical
+    layout v2 plans.
+findings: []
+replan_candidates: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-096-layout-resolve-sole-path/s01-characterize-and-role-map-path-apis.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-096-layout-resolve-sole-path/s02-collapse-plan-path-and-resolve-epic-slug.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-096-layout-resolve-sole-path/s03-yaml-prefer-index-load-and-validate-alias.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-096-layout-resolve-sole-path/s04-deny-legacy-schemas-and-arm-decompose.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-096-layout-resolve-sole-path/s05-docstring-kind-i-and-test-denial-rewrite.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-096-layout-resolve-sole-path/s06-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-14'
+  plan_ref: memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md#refactor-inventory
+  rows:
+  - symbol: loop.roadmap_queue.plan_path multi-branch
+    kind: C
+    command: rg -n "def plan_path" loop/roadmap_queue.py -A 6
+    result: pass
+    prod_callers: []
+    notes: Collapsed to single resolve owner loop.paths.epic_layout.resolve without
+      try/except swallow
+  - symbol: loop.roadmap_queue.load_steps_for_index md-prefer
+    kind: C
+    command: rg -n "def load_steps_for_index" loop/roadmap_queue.py -A 10
+    result: pass
+    prod_callers: []
+    notes: index.yaml checked first as authoritative SoT
+  - symbol: SCHEMA_*_LEGACY constants
+    kind: A
+    command: rg "SCHEMA_.*_LEGACY" harness/hooks/epic_yaml.py || true
+    result: pass
+    prod_callers: []
+    notes: Purged from epic_yaml.py; legacy schemas rejected fail-closed
+  - symbol: validate_decompose_yaml alias
+    kind: A
+    command: rg "validate_decompose_yaml" loop/ harness/ || true
+    result: pass
+    prod_callers: []
+    notes: 0 references across repo, thin alias collapsed
+  - symbol: harness/hooks/epic_paths.py stale docstring
+    kind: I
+    command: rg "falling back to.*v1" harness/hooks/ || true
+    result: pass
+    prod_callers: []
+    notes: Docstring rewritten to specify layout v2 without v1 fallback
+  - symbol: context_loop / arm decompose- legacy flag
+    kind: B
+    command: rg "decompose-" loop/epic_transition.py || true
+    result: pass
+    prod_callers: []
+    notes: Transitions enforce canonical layout v2 decompose-index.yaml
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

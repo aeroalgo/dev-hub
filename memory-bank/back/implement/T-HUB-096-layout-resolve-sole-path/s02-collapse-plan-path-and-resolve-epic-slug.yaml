@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s02 — s02 — collapse-plan-path-and-resolve-epic-slug — collapse plan_path and
+  resolve_epic_slug to single owner IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s02-collapse-plan-path-and-resolve-epic-slug.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Схлопнут plan_path в loop/roadmap_queue.py до прямого обращения к canonical layout
+  v2 resolver (loop.paths.epic_layout.resolve) без flat v1 веток и swallow pass
+- Схлопнут resolve_epic_slug до layout v2 resolver и канонического поиска без multi-try
+  fallbacks
+- Обновлены тесты test_roadmap_queue.py для layout v2
+files:
+- loop/roadmap_queue.py
+- loop/paths/epic_layout.py
+- loop/tests/test_roadmap_queue.py
+deletes:
+- параллельные ветки flat v1 и swallow pass в loop/roadmap_queue.py
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py harness/hooks/tests/test_epic_layout_v2_denial.py
+  -q
+integration_check:
+- plan_path и resolve_epic_slug используют единый канонический layout v2 resolver
+grep_control: []
+verification_results:
+- 'cp1 PASS: plan_path не содержит параллельных веток резолва и swallow pass (тесты
+  test_roadmap_queue.py проходят)'
+- 'cp2 PASS: resolve_epic_slug корректно резолвит v2 эпики (тесты test_roadmap_queue.py
+  и test_epic_layout_v2_denial.py проходят)'
+checkpoints:
+- id: cp1
+  criterion: plan_path не содержит параллельных веток резолва и swallow pass
+  status: done
+  done_at: '2026-09-14T09:55:00Z'
+- id: cp2
+  criterion: resolve_epic_slug корректно резолвит v2 эпики без лишних multi-try
+  status: done
+  done_at: '2026-09-14T09:55:00Z'
+resume_from: cp1

@@ -116,21 +116,7 @@ def _is_spawn_tool(tool_name: str) -> bool:
 
 def _load_epic_state(cwd: Path) -> dict[str, Any]:
     try:
-        from harness.hooks.epic.core import load_epic_state
-
-        state = load_epic_state(cwd)
-        return state if isinstance(state, dict) else {}
-    except (ImportError, OSError, TypeError, ValueError):
-        pass
-    try:
         from epic.core import load_epic_state
-
-        state = load_epic_state(cwd)
-        return state if isinstance(state, dict) else {}
-    except (ImportError, OSError, TypeError, ValueError):
-        pass
-    try:
-        from epic_lib import load_epic_state
 
         state = load_epic_state(cwd)
         return state if isinstance(state, dict) else {}

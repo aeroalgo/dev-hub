@@ -18,9 +18,6 @@ from test_run_canon import is_full_hub_pytest_command
 
 SCHEMA_EPIC_IMPLEMENT = "epic-implement/v1"
 SCHEMA_EPIC_DECOMPOSE = "epic-decompose/v1"
-# Read-time alias only (@model_validator before); files must store epic-* schema.
-SCHEMA_DECOMPOSE_LEGACY = "integ-decompose/v1"
-SCHEMA_IMPLEMENT_LEGACY = "integ-implement/v1"
 
 STEP_S_RE = re.compile(r"(?i)^((?:s)\d{2}-[a-z0-9][a-z0-9-]*)$")
 STEP_E_RE = re.compile(r"(?i)^((?:e)\d{2}-[a-z0-9][a-z0-9-]*)$")
@@ -184,15 +181,9 @@ class EpicImplementDoc(BaseModel):
             return data
         out = dict(data)
         schema = str(out.get("schema") or "")
-        if schema == SCHEMA_IMPLEMENT_LEGACY:
-            out["schema"] = SCHEMA_EPIC_IMPLEMENT
-            out.setdefault("role", "integ")
         if schema == SCHEMA_EPIC_IMPLEMENT and "role" not in out:
             sid = str(out.get("step_id") or "")
             out["role"] = "integ" if sid.lower().startswith("e") else "back"
-        if schema == SCHEMA_IMPLEMENT_LEGACY and "decompose_ref" not in out:
-            if out.get("element_ref"):
-                out["decompose_ref"] = out["element_ref"]
         vr = out.get("verification_results")
         if isinstance(vr, list):
             out["verification_results"] = [
@@ -248,9 +239,6 @@ class EpicDecomposeDoc(BaseModel):
             return data
         out = dict(data)
         schema = str(out.get("schema") or "")
-        if schema == SCHEMA_DECOMPOSE_LEGACY:
-            out["schema"] = SCHEMA_EPIC_DECOMPOSE
-            out.setdefault("role", "integ")
         if schema == SCHEMA_EPIC_DECOMPOSE and "role" not in out:
             sid = str(out.get("step_id") or "")
             out["role"] = "integ" if sid.lower().startswith("e") else "back"
@@ -1002,12 +990,6 @@ def validate_decompose_full(
             )
 
     return errors, warnings
-
-
-def validate_decompose_yaml(path: Path) -> list[str]:
-    """Back-compat errors-only (FAIL) view of validate_decompose_full."""
-    errors, _warnings = validate_decompose_full(path)
-    return errors
 
 
 _CREATIVE_NEED_SECTION_RE = re.compile(

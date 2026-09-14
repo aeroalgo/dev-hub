@@ -1,0 +1,50 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-095-epic-runtime-import-sole-path
+role: back
+source_qa: memory-bank/back/qa/T-HUB-095-epic-runtime-import-sole-path/qa.yaml
+checklist_sha256: 4d8b346138f4bb29cc170ff6965273648406489c3d5e6f2d10be265b83b1e680
+created_at: '2026-09-14T12:00:00Z'
+updated_at: '2026-09-14T12:20:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-14T12:20:00Z'
+  evidence: 2887 passed, 4 skipped in 98.07s
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: 'suite_red: test_tm_004_arm_phase_dsh_video_pack failed with ValueError: Unknown role dir ''script'''
+  blocker_ref: 'suite_red: test_tm_004_arm_phase_dsh_video_pack (loop/tests/test_workflow_pack_phase_router.py)'
+  fix_plan_ref: Investigate and fix test_tm_004_arm_phase_dsh_video_pack in loop/tests/test_workflow_pack_phase_router.py
+  targets:
+  - loop/tests/test_workflow_pack_phase_router.py
+  verify: bin/pytest loop/tests/test_workflow_pack_phase_router.py -q --tb=line
+  evidence: 18 passed in 1.34s
+  done_at: '2026-09-14T12:10:00Z'
+  notes: Updated mock target from epic.core.arm_epic to loop.epic_transition.arm_epic.
+- id: BF-002
+  status: done
+  class: suite_red
+  title: 'suite_red: test_runtime_sync_cli_check_full_set_succeeds failed with assert 1 == 0'
+  blocker_ref: 'suite_red: test_runtime_sync_cli_check_full_set_succeeds (loop/tests/test_runtime_sync_check.py)'
+  fix_plan_ref: Investigate and fix test_runtime_sync_cli_check_full_set_succeeds in loop/tests/test_runtime_sync_check.py
+  targets:
+  - loop/tests/test_runtime_sync_check.py
+  verify: bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line
+  evidence: 16 passed in 4.20s
+  done_at: '2026-09-14T12:11:00Z'
+  notes: Applied runtime sync for codex runtime to eliminate hash mismatch in verify-implement toml and policy.
+- id: BF-003
+  status: done
+  class: suite_red
+  title: 'suite_red: test_claude_settings_snapshot_unchanged_after_sync failed with drift/parity issues'
+  blocker_ref: 'suite_red: test_claude_settings_snapshot_unchanged_after_sync (loop/tests/test_codex_hooks_bridge.py)'
+  fix_plan_ref: Investigate and fix test_claude_settings_snapshot_unchanged_after_sync in loop/tests/test_codex_hooks_bridge.py
+  targets:
+  - loop/tests/test_codex_hooks_bridge.py
+  verify: bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=line
+  evidence: 9 passed in 6.60s
+  done_at: '2026-09-14T12:12:00Z'
+  notes: Re-synchronized codex materialized agents with parity check passing.

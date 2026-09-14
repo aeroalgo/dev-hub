@@ -27,7 +27,7 @@ from _lib import (
     sync_gate_identity,
     workflow_hooks_enabled,
 )
-from epic_lib import gates_from_phase, load_epic_state  # noqa: E402
+from epic.core import gates_from_phase, load_epic_state  # noqa: E402
 
 
 def main() -> None:

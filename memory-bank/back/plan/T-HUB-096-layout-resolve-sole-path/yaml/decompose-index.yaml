@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-096-layout-resolve-sole-path
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 2–3
+  cut_list:
+  - epic runtime import sole path (T-HUB-095)
+  - offline event/DAG adapter + test hygiene (T-HUB-097)
+  - new FS layout schemes
+steps:
+- id: s01
+  file: s01-characterize-and-role-map-path-apis.yaml
+  title: s01 — characterize-and-role-map-path-apis — role-map path APIs and inventory
+    legacy shards
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-collapse-plan-path-and-resolve-epic-slug.yaml
+  title: s02 — collapse-plan-path-and-resolve-epic-slug — collapse plan_path and resolve_epic_slug
+    to single owner
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-yaml-prefer-index-load-and-validate-alias.yaml
+  title: s03 — yaml-prefer-index-load-and-validate-alias — make index.yaml authoritative
+    in load_steps_for_index and collapse validate alias
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-deny-legacy-schemas-and-arm-decompose.yaml
+  title: s04 — deny-legacy-schemas-and-arm-decompose — deny SCHEMA_*_LEGACY and enforce
+    v2 in arm decompose
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-docstring-kind-i-and-test-denial-rewrite.yaml
+  title: s05 — docstring-kind-i-and-test-denial-rewrite — purge stale v1 docstrings,
+    update Kind I, and strengthen denial tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

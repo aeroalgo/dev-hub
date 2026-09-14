@@ -229,6 +229,7 @@ def adapt_v1_event(
     epic_id: str,
     cwd: str | Path | None = None,
 ) -> EventValidation:
+    """Offline-only adapter: transforms legacy loop-event/v1 into loop-event/v2 EventValidation."""
     if not isinstance(record, dict):
         return EventValidation(None, (_diagnostic("event_type", "event", "legacy event must be an object"),))
     kind = record.get("kind")
@@ -352,7 +353,7 @@ def migrate_event_log(
     epic_id: str,
     cwd: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Migrate legacy event files in deterministic physical order, once."""
+    """Offline-only migration tool: migrate legacy event files in deterministic physical order, once."""
     event_path = Path(path)
     root = Path(cwd) if cwd is not None else event_path.parent
     files = sorted(

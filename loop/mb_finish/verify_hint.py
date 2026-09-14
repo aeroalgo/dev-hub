@@ -59,7 +59,7 @@ def _resolve_implement_step(cwd: str | Path) -> str:
         hooks = Path(__file__).resolve().parents[2] / "harness" / "hooks"
         if str(hooks) not in sys.path:
             sys.path.insert(0, str(hooks))
-        from epic_lib import load_epic_state
+        from epic.core import load_epic_state
 
         st = load_epic_state(cwd) or {}
         armed = str(st.get("armed_step") or "").strip()

@@ -1,0 +1,71 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s06 — s06 — legacy-fallback-purge — full sunset inventory scan and deletion
+  verification IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Весь инвентарь Kind A, B, C, I полностью очищен и проверен.
+- 0 определений validate_decompose_yaml и SCHEMA_DECOMPOSE_LEGACY в кодовой базе.
+- 0 swallow except pass в loop/roadmap_queue.py.
+- 0 упоминаний fallback to v1 в docstrings harness/hooks.
+- Полный набор регрессионных и denial тестов проходит успешно.
+gaps:
+  status: none
+done:
+- Проведен аудит инвентаря устаревших веток Kind A, B, C, I
+- Проверена чистота grep_control критериев cp1-cp4
+- Выполнен запуск регрессионного сьюта тестов (cp5)
+files:
+- memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/decompose-index.md
+- memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml
+- loop/tests/test_epic_layout_v2_denial.py
+- harness/hooks/tests/test_epic_yaml.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_epic_layout_v2_denial.py -q
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_index_fail_closed.py
+  harness/hooks/tests/test_epic_paths.py loop/tests/test_epic_paths.py harness/hooks/tests/test_epic_yaml.py
+  loop/tests/test_validate_decompose.py harness/hooks/tests/test_epic_layout_v2_denial.py
+  -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_index_fail_closed.py
+  harness/hooks/tests/test_epic_paths.py loop/tests/test_epic_paths.py harness/hooks/tests/test_epic_yaml.py
+  loop/tests/test_validate_decompose.py harness/hooks/tests/test_epic_layout_v2_denial.py
+  -q
+grep_control: []
+verification_results:
+- 'cp1: PASS (0 validate_decompose_yaml / SCHEMA_DECOMPOSE_LEGACY in hooks)'
+- 'cp2: PASS (9 passed in test_epic_layout_v2_denial)'
+- 'cp3: PASS (0 swallow passes in loop/roadmap_queue.py)'
+- 'cp4: PASS (0 fallback v1 docstrings in harness/hooks)'
+- 'cp5: PASS (all regression suites passing)'
+checkpoints:
+- id: cp1
+  criterion: Kind A — 0 вызовов validate_decompose_yaml и 0 определений устаревших
+    схем
+  status: done
+  done_at: '2026-09-14'
+- id: cp2
+  criterion: Kind B — переход эпиков и arm используют исключительно v2 пути
+  status: done
+  done_at: '2026-09-14'
+- id: cp3
+  criterion: Kind C — zero silent swallow passes в loop/roadmap_queue.py
+  status: done
+  done_at: '2026-09-14'
+- id: cp4
+  criterion: Kind I — zero упоминаний v1 fallback в docstrings
+  status: done
+  done_at: '2026-09-14'
+- id: cp5
+  criterion: Targeted регрессионный сьют проходит без ошибок
+  status: done
+  done_at: '2026-09-14'

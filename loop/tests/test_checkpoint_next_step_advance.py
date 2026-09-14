@@ -13,19 +13,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / ".claude" / "hooks"
-EPIC_LIB_PATH = HOOKS / "epic_lib.py"
-
-
 def _load_epic_lib():
     hooks = str(HOOKS)
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    spec = importlib.util.spec_from_file_location("epic_lib_cp", EPIC_LIB_PATH)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def _write_checkpoint(

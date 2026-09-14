@@ -30,7 +30,8 @@
 - **refs:** `loop/dag.py` adapt/migrate; `harness/hooks/epic_events.py` adapt_v1_event; `queue_rel_from_roadmap` md map; audit T-HUB-089.
 - **Не:** возврат v1 в live arm; epic_lib; layout multi-resolve; behavior change migrate algorithms.
 
-**CREATIVE need:** нет.
+### CREATIVE need
+**нет**
 
 ---
 

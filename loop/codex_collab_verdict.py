@@ -235,7 +235,7 @@ def _last_collab_verdict_events(
 def _mb_finish_committed(cwd: str | Path) -> bool:
     """True when live auto-finish / mb-finish already closed the gate (Claude: stop)."""
     try:
-        from epic_lib import load_epic_state
+        from epic.core import load_epic_state
 
         st = load_epic_state(cwd) or {}
     except Exception:
@@ -310,7 +310,7 @@ def mirror_codex_collab_verdicts_from_log(
     sid = (session_id or "").strip()
     if not sid:
         try:
-            from epic_lib import load_epic_state
+            from epic.core import load_epic_state
 
             st = load_epic_state(cwd)
             sid = str(st.get("session_id") or "").strip()

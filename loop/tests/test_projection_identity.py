@@ -13,12 +13,8 @@ HOOKS = ROOT / ".claude" / "hooks"
 def _load_epic_lib():
     if str(HOOKS) not in sys.path:
         sys.path.insert(0, str(HOOKS))
-    path = HOOKS / "epic_lib.py"
-    spec = importlib.util.spec_from_file_location("epic_lib_projection", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def _write(cwd: Path, rel: str, body: str) -> None:

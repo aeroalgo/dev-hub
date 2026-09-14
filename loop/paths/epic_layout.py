@@ -1,4 +1,18 @@
-"""Epic layout resolver (layout v2) for loop and harness."""
+"""Canonical filesystem layout v2 resolver for memory-bank artifacts across loop and harness.
+
+Architecture and Role Mapping:
+- Sole authoritative owner of memory-bank FS layout v2 conventions (yaml/md structure).
+- Responsibilities:
+    1. Resolve absolute/relative paths for all epic artifact kinds (plan.md, decompose index,
+       steps, implement shards, qa, bugfix queue, analyze, audit).
+    2. Normalize role directory names (back, front, integration).
+    3. Validate path segments against directory traversal attacks.
+    4. Discover epics adhering to layout v2 in the repository.
+- Boundaries:
+    * Use loop.paths.epic_layout for standard project memory-bank artifact resolution.
+    * Use loop.paths.epic_paths when workflow pack configurations override the default mb root.
+    * Use harness.hooks.epic_paths for CLI target parsing and runtime/session state files.
+"""
 
 import os
 from pathlib import Path

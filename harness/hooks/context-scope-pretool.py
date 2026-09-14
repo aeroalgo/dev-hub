@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import emit, is_epic_loop_env, product_cwd, read_stdin
 from context_scope import ScopeResolver
-from epic_lib import extract_load_now, read_active_context
+from epic.core import extract_load_now, read_active_context
 
 
 READ_TOOLS = {"Read", "read", "ReadFile", "read_file", "View", "view", "cat"}

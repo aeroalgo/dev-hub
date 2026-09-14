@@ -10,7 +10,7 @@ _HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
 if str(_HOOKS) not in sys.path:
     sys.path.insert(0, str(_HOOKS))
 
-from epic_yaml import validate_decompose_full, validate_decompose_yaml  # noqa: E402
+from epic_yaml import validate_decompose_full  # noqa: E402
 
 _MINIMAL_DECOMPOSE_INDEX_MD = """\
 # decompose-demo
@@ -144,10 +144,10 @@ def test_d3_cp_equals_global_verify_is_warning(tmp_path: Path) -> None:
     assert any("identical to a global verify" in w for w in warnings)
 
 
-def test_back_compat_validate_decompose_yaml_errors_only(tmp_path: Path) -> None:
-    # returns only errors list (no warnings); FAIL still surfaces.
+def test_validate_decompose_full_errors_only(tmp_path: Path) -> None:
+    # returns errors and warnings; FAIL still surfaces in errors.
     p = _write(tmp_path / "e99.yaml", {"verify": ["a", "a"]})
-    errs = validate_decompose_yaml(p)
+    errs, _warnings = validate_decompose_full(p)
     assert isinstance(errs, list)
     assert any("duplicates another global verify" in e for e in errs)
 
@@ -402,3 +402,36 @@ def test_resolve_decompose_ref_for_gate_falls_back_to_find_index(tmp_path: Path)
     }
     ref = resolve_decompose_ref_for_gate(tmp_path, epic)
     assert ref == "memory-bank/back/plan/T-030/yaml/decompose-index.yaml"
+
+
+def test_load_steps_for_index_prefers_yaml_when_md_coexists(tmp_path: Path) -> None:
+    from loop.roadmap_queue import load_steps_for_index
+
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "T-DEMO" / "yaml"
+    dec.mkdir(parents=True)
+    yaml_file = dec / "decompose-index.yaml"
+    yaml_file.write_text(
+        """schema: epic-decompose-index/v1
+plan_id: T-DEMO
+steps:
+- id: s01
+  file: s01-demo.yaml
+  title: demo step from yaml
+  next_phase: BACK IMPLEMENT
+  status: completed
+""",
+        encoding="utf-8",
+    )
+    md_file = yaml_file.with_name("index.md")
+    md_file.write_text(
+        """| step_id | title | status |
+| :--- | :--- | :--- |
+| **s01** | demo step from md | pending |
+""",
+        encoding="utf-8",
+    )
+    loaded = load_steps_for_index(tmp_path, yaml_file)
+    assert loaded["ok"] is True
+    assert loaded["source"] == "yaml"
+    assert loaded["steps"][0]["title"] == "demo step from yaml"
+    assert loaded["steps"][0]["status"] == "completed"

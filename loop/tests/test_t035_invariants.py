@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from loop.dag import adapt_manifest, validate_manifest
+from loop.dag import validate_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,11 +29,8 @@ def _load_epic_lib():
     hooks = ROOT / ".claude" / "hooks"
     if str(hooks) not in sys.path:
         sys.path.insert(0, str(hooks))
-    spec = importlib.util.spec_from_file_location("t035_invariants_epic_lib", hooks / "epic_lib.py")
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def _write(cwd: Path, rel: str, body: str) -> None:
@@ -95,21 +92,6 @@ def test_invalid_graphs_never_ready(nodes: list[dict], codes: set[str]) -> None:
     assert codes <= {item["code"] for item in result["diagnostics"]}
 
 
-def test_legacy_manifest_is_compatibility_only_and_not_autonomous() -> None:
-    result = adapt_manifest(
-        {
-            "schema": "loop-dag/v1",
-            "pipeline_id": "portal",
-            "nodes": [{"id": "back", "role_dir": "back", "depends_on": []}],
-        },
-    )
-
-    assert result["ok"] is True
-    assert result["autonomous"] is False
-    assert result["manifest"]["schema"] == "loop-dag/v2"
-    assert any(item["code"] == "legacy_gap_inference" for item in result["diagnostics"])
-
-
 def test_checkpoint_projection_rebuild_is_idempotent_and_does_not_invent_pending(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
     _seed(tmp_path)
@@ -158,15 +140,3 @@ def test_checkpoint_conflict_halts_dag_without_promoting_cursor(tmp_path: Path) 
     assert result["node"] != "missing"
     state_after = ctx.load_epic_state(tmp_path)
     assert state_after.get("dag_cursor") == "back"
-
-
-def test_validate_manifest_rejects_v1_legacy_manifest_fail_closed() -> None:
-    result = validate_manifest(
-        {
-            "schema": "loop-dag/v1",
-            "pipeline_id": "portal",
-            "nodes": [{"id": "back", "role_dir": "back", "depends_on": []}],
-        },
-    )
-    assert result["ok"] is False
-    assert any(item["code"] == "schema_invalid" for item in result["diagnostics"])

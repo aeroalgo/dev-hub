@@ -438,22 +438,6 @@ def gate_atomic_finish(
         return {"ok": False, "diagnostic_codes": [code], "error": str(exc)}
 
 
-def auto_finish_after_gate(
-    cwd: str | Path,
-    *,
-    agent_type: str,
-    verdict: str,
-    session_id: str,
-) -> dict[str, Any] | None:
-    """Alias for gate_atomic_finish (backward-compatible)."""
-    return gate_atomic_finish(
-        cwd,
-        agent_type=agent_type,
-        verdict=verdict,
-        session_id=session_id,
-    )
-
-
 def _finish_status_from_stop(
     cwd: str | Path,
     *,

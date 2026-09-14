@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s04 — s04 — rewrite-tests-and-delete-mock-intercept — rewire test monkeypatches
+  to canonical owner and remove legacy intercept IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s04-rewrite-tests-and-delete-mock-intercept.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Deleted _legacy_mock_intercept definition and arm_epic invocation in loop/epic_transition.py
+- Rewired test_creative_phase.py and test_episode_correlation.py imports to canonical
+  epic package
+- Rewired test_finish_integrity.py monkeypatching and imports to canonical epic.core
+  / epic
+- Verified test_epic_transition.py, test_creative_phase.py, test_episode_correlation.py,
+  test_finish_integrity.py run green (68 passed)
+files:
+- loop/epic_transition.py
+- loop/tests/test_epic_transition.py
+- loop/tests/test_creative_phase.py
+- loop/tests/test_episode_correlation.py
+- loop/tests/test_finish_integrity.py
+deletes:
+- loop/epic_transition.py::_legacy_mock_intercept
+tests:
+- '`bin/pytest loop/tests/test_epic_transition.py -q` — PASS (37 passed)'
+- '`bin/pytest loop/tests/test_creative_phase.py loop/tests/test_episode_correlation.py
+  -q` — PASS (9 passed)'
+- '`bin/pytest loop/tests/test_finish_integrity.py -q` — PASS (22 passed)'
+- '`python3 -c "import subprocess, sys; res = subprocess.run([''rg'', ''-n'', ''_legacy_mock_intercept'',
+  ''loop/'', ''harness/''], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip()
+  else 1)"` — PASS'
+integration_check:
+- Zero occurrences of _legacy_mock_intercept across loop/ and harness/
+- All transition and lifecycle tests run green on canonical epic.core/epic
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: test_epic_transition suite runs green without _legacy_mock_intercept
+  status: done
+- id: cp2
+  criterion: creative phase and episode correlation suites pass on canonical package
+    imports
+  status: done
+- id: cp3
+  criterion: Static check confirms zero occurrences of _legacy_mock_intercept in loop/
+    and harness/
+  status: done
+resume_from: cp1

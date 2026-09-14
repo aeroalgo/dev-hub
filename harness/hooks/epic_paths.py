@@ -1,7 +1,15 @@
-"""Epic loop path/state utilities — thin wrapper and compat layer over loop.paths.epic_layout.
+"""Harness CLI helper and runtime session path utilities.
 
-Re-exports resolver API and maintains public helper functions for backwards compatibility.
-Emits layout_v1_deprecated diagnostics when falling back to legacy v1 paths.
+Architecture and Role Mapping:
+- Role: CLI parameter parsing, role discovery, and runtime session state path management.
+- Responsibilities:
+    1. Resolve runtime session directory and state files (state.json, next-prompt.txt).
+    2. Parse arm CLI inputs and targets to extract epic_id and role.
+    3. Provide discovery helpers (discover_epic_role, canonical_epic_id_for_decompose).
+    4. Re-export resolve and EpicLayoutKind from loop.paths.epic_layout for harness backward compatibility.
+- Boundaries:
+    * FS layout structure is owned by loop.paths.epic_layout; all resolution relies on layout v2.
+    * No legacy v1 fallback paths.
 """
 from __future__ import annotations
 

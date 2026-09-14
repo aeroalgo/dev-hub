@@ -13,12 +13,8 @@ from epic_events import read_event_log_result  # noqa: E402
 
 
 def _load_epic_lib():
-    path = ROOT / ".claude" / "hooks" / "epic_lib.py"
-    spec = importlib.util.spec_from_file_location("epic_lib_revision_reconciliation", path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def test_same_content_is_idempotent_and_changed_content_appends_revision(tmp_path: Path) -> None:

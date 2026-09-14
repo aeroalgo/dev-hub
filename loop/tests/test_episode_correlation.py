@@ -14,7 +14,7 @@ from loop.incidents.trace import (
     read_session_trace_tail,
 )
 from loop.context_loop import _run_tier0_check_after
-from epic_lib import save_epic_state, load_epic_state
+from epic.core import save_epic_state, load_epic_state
 
 
 def test_trace_entry_has_episode_id(tmp_path: Path) -> None:

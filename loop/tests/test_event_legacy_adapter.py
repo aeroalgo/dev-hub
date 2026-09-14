@@ -54,6 +54,31 @@ def test_v1_records_adapt_in_physical_legacy_order_without_mtime_sorting(tmp_pat
     assert all(event["schema"] == EVENT_SCHEMA for event in result.events)
 
 
+def test_offline_event_migration_is_idempotent_and_writes_replay_report(tmp_path: Path) -> None:
+    event_path = tmp_path / "memory-bank/back/events/demo/events.jsonl"
+    event_path.parent.mkdir(parents=True)
+    archive = event_path.parent / "archive-legacy.jsonl"
+    archive.write_text(
+        json.dumps({"kind": "qa_pass", "artifact": "memory-bank/back/qa/one.yaml"}) + "\n",
+        encoding="utf-8",
+    )
+    event_path.write_text(
+        json.dumps({"kind": "bugfix_done", "artifact": "memory-bank/back/bugfix/two.md"}) + "\n",
+        encoding="utf-8",
+    )
+
+    first = migrate_event_log(event_path, epic_id="demo", cwd=tmp_path)
+    second = migrate_event_log(event_path, epic_id="demo", cwd=tmp_path)
+
+    assert first["ok"] is True
+    assert first["migrated"] == 2
+    assert first["replay_digest"] == second["replay_digest"]
+    assert second["migrated"] == 0
+    assert [event["seq"] for event in first["events"]] == [1, 2]
+    assert all(event["metadata"]["migrated_from"] == "loop-event/v1" for event in first["events"])
+    assert json.loads((tmp_path / ".claude/runtime/epic/migration-v1.json").read_text())["replay_digest"] == first["replay_digest"]
+
+
 def test_v1_adapter_assigns_deterministic_identity_and_bounded_metadata() -> None:
     legacy = {
         "kind": "qa_fail",

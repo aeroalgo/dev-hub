@@ -1541,28 +1541,23 @@ def _step_context_extra_blocks(cwd: Path, load_now: list[str]) -> list[str]:
 
 
 def arm_session(cwd: str | Path, epic: str) -> dict[str, Any]:
-    """Switch epic via plan-centric arm_epic (resolver picks phase); legacy decompose path delegates."""
+    """Switch epic via plan-centric arm_epic (resolver picks phase); decompose path delegates."""
     from epic_paths import resolve_arm_epic_target
 
     resolved = resolve_arm_epic_target(epic, cwd)
     if resolved:
         epic_id, role = resolved
-        legacy_decompose = "decompose-" in str(epic).replace("\\", "/")  # layout_v1 legacy check
+        is_decompose_path = "/plan/" in str(epic).replace("\\", "/") or str(epic).endswith((".yaml", ".yml", ".md"))
         out = arm_epic(
             cwd,
             epic_id,
             role=role,
-            require_plan=not legacy_decompose,
+            require_plan=not is_decompose_path,
         )
-        if legacy_decompose:
-            out = dict(out)
-            out["deprecated"] = "arm via decompose path; prefer arm_epic(epic_id) or --epic-id"
     else:
         from epic_paths import epic_id_from_decompose_path
         epic_id = epic_id_from_decompose_path(str(epic)) or "unknown"
         out = arm_phase(cwd, epic_id, "IMPLEMENT", "back", decompose_rel=str(epic))
-    if not out.get("ok"):
-        return out
     if out.get("complete"):
         return out
     text = read_active_context(cwd)
@@ -1955,9 +1950,31 @@ def prepare_session(
         proj.get("phase") or projection.get("phase") or state.get("phase") or ""
     ).upper()
     # Reducer arm wins over stale AC handoff: qa_failed → BUGFIX must not be
-    # overwritten by a premature Handoff BACK QA / BACK AUDIT.
+    # overwritten by a premature Handoff BACK QA / BACK AUDIT. Inverse: after
+    # bugfix_done the reducer says QA — do not keep a stale BUGFIX arm.
     if proj_phase == "BUGFIX" and handoff_phase in {"AUDIT", "QA", None}:
-        handoff_phase = "BUGFIX"
+        epic_for_life = str(
+            state.get("armed_epic") or projection.get("epic_id") or ""
+        ).strip()
+        role_for_life = str(
+            state.get("role") or state.get("armed_role") or "back"
+        ).lower()
+        life_phase = ""
+        if epic_for_life:
+            try:
+                from epic.core import lifecycle_arm_phase, reduce_epic_lifecycle
+
+                life = reduce_epic_lifecycle(cwd_p, role_for_life, epic_for_life)
+                life_phase = lifecycle_arm_phase(
+                    str(life.get("phase") or "QA"), life
+                )
+            except Exception:
+                life_phase = ""
+        if life_phase == "QA":
+            handoff_phase = "QA"
+            proj_phase = "QA"
+        else:
+            handoff_phase = "BUGFIX"
     if (
         handoff_phase in {"AUDIT", "QA", "BUGFIX"}
         and proj_phase != "DONE"
@@ -3624,6 +3641,73 @@ def record_abort(
     kind = analysis["abort_kind"]
     cursor_sync: dict[str, Any] | None = None
     gate_runtime_repair = False
+    finish_fail_step: str | None = None
+    # Auto-finish / mb-finish receipt may already close the step while the
+    # session log still shows an earlier gate_integrity failure. Resolve that
+    # *before* same-phase rearm, or BUGFIX/QA will thrash forever.
+    if (
+        analysis.get("aborted")
+        and retryable
+        and isinstance(reason, str)
+        and reason.startswith("gate_integrity:")
+    ):
+        finish_fail_step = (
+            failed_finish_step_from_log(raw_session_log)
+            or (
+                str((frozen_start or {}).get("step_id") or "").strip()
+                if isinstance(frozen_start, dict)
+                else ""
+            )
+            or str(start_step or "").strip()
+            or None
+        )
+        finish_tool = st.get("last_finish_tool")
+        already_finished = bool(
+            finish_fail_step
+            and isinstance(finish_tool, dict)
+            and str(finish_tool.get("step_id") or "").strip().lower()
+            == str(finish_fail_step).lower()
+            and bool(finish_tool.get("fingerprint"))
+            and str(st.get("last_finished_step") or "").strip().lower()
+            == str(finish_fail_step).lower()
+            and st.get("armed_decompose")
+        )
+        if already_finished:
+            cursor_sync = sync_cursor_from_index(cwd_p)
+            st = load_epic_state(cwd_p)
+            if isinstance(frozen_start, dict) and frozen_start:
+                st["session_start_identity"] = frozen_start
+            st["gate_diagnostic"] = None
+            st.pop("finish_failed_step", None)
+            if str(st.get("repair_required") or "") == "gate-repair":
+                st["repair_required"] = None
+                st["halt_reason"] = None
+            save_epic_state(cwd_p, st)
+            close_id = resolve_session_close_identity(
+                st,
+                fallback_step_id=start_step or None,
+                fallback_phase=start_phase or None,
+                same_phase_retry=False,
+            )
+            step_id = close_id.record_step_id or step_id
+            resume_from = close_id.resume_from or resume_from
+            phase = close_id.record_phase or phase
+            analysis = dict(analysis)
+            analysis.update(
+                {
+                    "aborted": False,
+                    "retryable": False,
+                    "abort_kind": None,
+                    "reason": None,
+                    "outcome": "clean",
+                    "backoff_sec": 0,
+                    "gate_diagnostic": None,
+                }
+            )
+            reason = None
+            retryable = False
+            kind = None
+            finish_fail_step = None
     # Re-resolve close identity once we know retryable: same-phase restart.
     if analysis.get("aborted") and retryable:
         close_id = resolve_session_close_identity(
@@ -3640,68 +3724,20 @@ def record_abort(
         st = load_epic_state(cwd_p)
         if isinstance(frozen_start, dict) and frozen_start:
             st["session_start_identity"] = frozen_start
-    finish_fail_step: str | None = None
-    if reason == "gate_integrity:finish_command_failed":
-        finish_fail_step = (
-            failed_finish_step_from_log(raw_session_log)
-            or (
-                str((frozen_start or {}).get("step_id") or "").strip()
-                if isinstance(frozen_start, dict)
-                else ""
+    if reason and reason.startswith("gate_integrity:"):
+        integrity_diag = reason.split(":", 1)[1] or "gate_integrity_failure"
+        if finish_fail_step is None:
+            finish_fail_step = (
+                failed_finish_step_from_log(raw_session_log)
+                or (
+                    str((frozen_start or {}).get("step_id") or "").strip()
+                    if isinstance(frozen_start, dict)
+                    else ""
+                )
+                or str(start_step or "").strip()
+                or None
             )
-            or str(start_step or "").strip()
-            or None
-        )
-        already_finished = False
-        if finish_fail_step:
-            finish_tool = st.get("last_finish_tool")
-            already_finished = (
-                isinstance(finish_tool, dict)
-                and str(finish_tool.get("step_id") or "").strip().lower()
-                == finish_fail_step.lower()
-                and bool(finish_tool.get("fingerprint"))
-                and str(st.get("last_finished_step") or "").strip().lower()
-                == finish_fail_step.lower()
-            )
-        if already_finished and st.get("armed_decompose"):
-            # Parent redo failed after automatic gate finish succeeded.
-            # Do not reopen the step — sync cursor like a normal retryable abort.
-            cursor_sync = sync_cursor_from_index(cwd_p)
-            st = load_epic_state(cwd_p)
-            if isinstance(frozen_start, dict) and frozen_start:
-                st["session_start_identity"] = frozen_start
-            st["gate_diagnostic"] = None
-            st.pop("finish_failed_step", None)
-            if str(st.get("repair_required") or "") == "gate-repair":
-                st["repair_required"] = None
-                st["halt_reason"] = None
-            save_epic_state(cwd_p, st)
-            close_id = resolve_session_close_identity(
-                st,
-                fallback_step_id=start_step or None,
-                fallback_phase=start_phase or None,
-                same_phase_retry=True,
-            )
-            step_id = close_id.record_step_id or step_id
-            resume_from = close_id.resume_from or resume_from
-            phase = close_id.record_phase or phase
-            # Rewrite analysis: session is not a failed finish.
-            analysis = dict(analysis)
-            analysis.update(
-                {
-                    "aborted": False,
-                    "retryable": False,
-                    "abort_kind": None,
-                    "reason": None,
-                    "outcome": "clean",
-                    "backoff_sec": 0,
-                }
-            )
-            reason = None
-            retryable = False
-            kind = None
-            finish_fail_step = None
-        elif finish_fail_step and st.get("armed_decompose"):
+        if integrity_diag == "finish_command_failed" and finish_fail_step and st.get("armed_decompose"):
             finish_repair = repair_premature_completed_after_failed_finish(
                 cwd_p,
                 step_id=finish_fail_step,

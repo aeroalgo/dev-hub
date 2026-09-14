@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s03 — consolidate-legacy-event-adapter-tests — consolidate overlapping event legacy migration tests and eliminate duplicates
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сконсолидировать дублирующее тестирование `adapt_v1_event` и `migrate_event_log` между
+  `loop/tests/test_event_legacy_adapter.py`, `loop/tests/test_migration_compatibility.py`
+  и `loop/tests/test_event_v2_characterization.py`, устранив избыточные копии assertion-логики
+  (copies_removed_count >= 1) с сохранением freeze oracle.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-002
+  nouns:
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_migration_compatibility.py
+    - loop/tests/test_event_v2_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s03-consolidate-legacy-event-adapter-tests.yaml
+  ac_quotes:
+    - "Consolidate overlapping characterization tests into one offline suite; delete redundant cases (copies_removed_count >= 1 of same assertion meaning)."
+    - "Behavior of migrate algorithms unchanged (freeze oracle offline tests)."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md:80-130
+
+context:
+  consumes:
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_migration_compatibility.py
+    - loop/tests/test_event_v2_characterization.py
+  produces:
+    - консолидированный модуль офлайн-тестирования миграции событий
+    - устранение дублирующих проверок миграции логов событий
+  plan_refs:
+    - plan.md#FR-003
+    - plan.md#US-002
+    - plan.md#Consolidation-clusters
+  files:
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_migration_compatibility.py
+    - loop/tests/test_event_v2_characterization.py
+
+as_built:
+  - "loop/tests/test_event_legacy_adapter.py: проверяет базовую адаптацию v1 событий и миграцию логов"
+  - "loop/tests/test_migration_compatibility.py: дублирует проверку migrate_event_log и compatibility_mode"
+  - "loop/tests/test_event_v2_characterization.py: содержит независимую characterization проверку migrate_event_log"
+
+delta:
+  - "Консолидация проверок migrate_event_log в test_event_legacy_adapter.py / test_event_v2_characterization.py"
+  - "Удаление повторных assertion cases из test_migration_compatibility.py"
+
+deletes:
+  - "duplicate migrate_event_log test case in test_migration_compatibility.py"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: live control isolation"
+  - "s02: слияние DAG characterization тестов"
+  - "s04: классификация офлайн-адаптеров и queue_rel"
+  - "s05: Kind I и denial"
+  - "s06: sunset purge scan"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Офлайн-миграция событий полностью покрыта консолидированным набором тестов
+    verify: "bin/pytest loop/tests/test_event_legacy_adapter.py loop/tests/test_event_v2_characterization.py -q"
+  - id: cp2
+    criterion: Очищенный test_migration_compatibility.py проходит без дублирования assertion twins
+    verify: "bin/pytest loop/tests/test_migration_compatibility.py -q"
+
+verify: []
+tdd: []

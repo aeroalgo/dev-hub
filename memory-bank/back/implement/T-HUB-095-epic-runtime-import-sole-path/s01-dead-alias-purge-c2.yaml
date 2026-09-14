@@ -2,16 +2,20 @@ schema: epic-implement/v1
 role: back
 step_id: s01
 plan_id: T-HUB-095-epic-runtime-import-sole-path
-title: s01 — s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP
+title: s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP
   IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-14'
 decompose_ref: memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s01-dead-alias-purge-c2.yaml
 skills_used: []
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- Удалена функция auto_finish_after_gate из loop/runtime_adapters/subagent_lifecycle.py
+- Удалена константа DEFAULT_ROADMAP из loop/roadmap_queue.py
+- Добавлен тест test_dead_auto_finish_alias_removed в loop/tests/test_subagent_lifecycle.py
+- Добавлен тест test_dead_default_roadmap_alias_removed в loop/tests/test_roadmap_queue.py
 files:
 - loop/runtime_adapters/subagent_lifecycle.py
 - loop/roadmap_queue.py
@@ -20,19 +24,36 @@ files:
 deletes:
 - loop/runtime_adapters/subagent_lifecycle.py::auto_finish_after_gate
 - loop/roadmap_queue.py::DEFAULT_ROADMAP
-tests: []
-integration_check: []
-grep_control: []
-verification_results: []
+tests:
+- bin/pytest loop/tests/test_subagent_lifecycle.py -q
+- bin/pytest loop/tests/test_roadmap_queue.py -q
+- python3 -c "import subprocess, sys; res = subprocess.run(["rg", "-n", "auto_finish_after_gate|DEFAULT_ROADMAP",
+  "loop/", "harness/"], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip()
+  else 1)"
+integration_check:
+- gate_atomic_finish и DEFAULT_QUEUE остаются нетронутыми каноническими сущностями;
+  zero-caller aliases удалены
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: auto_finish_after_gate удалена, loop/tests/test_subagent_lifecycle.py
+  проходит'
+- 'cp2 PASS: DEFAULT_ROADMAP удалена, loop/tests/test_roadmap_queue.py проходит'
+- 'cp3 PASS: static check подтверждает 0 вхождений auto_finish_after_gate и DEFAULT_ROADMAP
+  в loop/ и harness/'
 checkpoints:
 - id: cp1
   criterion: auto_finish_after_gate is deleted and subagent lifecycle tests pass
-  status: pending
+  status: done
+  done_at: '2026-09-14T07:43:12Z'
 - id: cp2
   criterion: DEFAULT_ROADMAP is deleted and roadmap queue tests pass
-  status: pending
+  status: done
+  done_at: '2026-09-14T07:43:12Z'
 - id: cp3
   criterion: Static check confirms zero occurrences of deleted symbols in loop and
     harness
-  status: pending
+  status: done
+  done_at: '2026-09-14T07:43:13Z'
 resume_from: cp1

@@ -23,7 +23,8 @@ from epic import (  # noqa: E402
     post_implement_phase,
 )
 from epic.core import active_context_path, checkpoint_lock_path, checkpoint_path, load_checkpoint  # noqa: E402
-from epic_paths import epic_id_from_decompose_path  # noqa: E402
+from epic_paths import epic_id_from_decompose_path, epic_id_from_plan_path, find_plan_md_path  # noqa: E402
+from loop.paths.epic_layout import EpicLayoutKind, normalize_role_dir, resolve  # noqa: E402
 from _lib import merged_project_env_map  # noqa: E402
 from loop.decompose_gate import decompose_shards_diagnostic  # noqa: E402
 try:
@@ -37,8 +38,6 @@ SUPPORTED_QUEUE_VERSIONS = {QUEUE_VERSION}
 
 # Layout v2 SoT (yaml-only; no sibling .md)
 DEFAULT_QUEUE = "memory-bank/back/roadmap/queue.yaml"
-# Deprecated aliases (migration / old docs)
-DEFAULT_ROADMAP = "memory-bank/back/roadmap/queue.yaml"
 
 
 def queue_rel_from_roadmap(roadmap_rel: str) -> str:
@@ -273,14 +272,7 @@ def load_steps_for_index(cwd: str | Path, idx: Path) -> dict[str, Any]:
     root = Path(cwd)
     from epic_index import load_index_yaml, steps_from_doc
 
-    if idx.name == "index.yaml" and idx.is_file():
-        md = idx.with_name("index.md")
-        if md.is_file():
-            try:
-                rel = md.relative_to(root).as_posix()
-            except ValueError:
-                rel = str(md)
-            return load_decompose_steps_fail_closed(cwd, rel)
+    if (idx.name in ("index.yaml", "decompose-index.yaml") or idx.suffix in {".yaml", ".yml"}) and idx.is_file():
         doc = load_index_yaml(idx) or {}
         return {"ok": True, "steps": steps_from_doc(doc), "source": "yaml"}
     try:
@@ -291,44 +283,17 @@ def load_steps_for_index(cwd: str | Path, idx: Path) -> dict[str, Any]:
 
 
 def plan_path(cwd: str | Path, role: str, plan_name: str) -> Path:
-    """Resolve plan file: flat v1 ``plan-*.md`` or layout v2 ``{slug}/md/plan.md``."""
-    root = Path(cwd)
-    role_dir = str(role or "back").strip().lower()
-    if role_dir == "integ":
-        role_dir = "integration"
-    flat = root / "memory-bank" / role_dir / "plan" / plan_name
-    if flat.is_file():
-        return flat
-    stem = plan_stem_from_name(plan_name)
-    if stem:
-        try:
-            from epic_paths import find_plan_md_path
-
-            resolved = find_plan_md_path(root, role_dir, stem)
-            if resolved is not None and resolved.is_file():
-                return resolved
-        except Exception:
-            pass
-        v2 = root / "memory-bank" / role_dir / "plan" / stem / "md" / "plan.md"
-        if v2.is_file():
-            return v2
-        try:
-            from loop.paths.epic_layout import EpicLayoutKind, resolve
-
-            resolved = resolve(
-                role_dir, stem, EpicLayoutKind.PLAN_MD, project_root=root
-            )
-            if resolved.is_file():
-                return resolved
-            return resolved
-        except Exception:
-            return v2
-    return flat
+    """Resolve plan file via canonical layout v2 {stem}/md/plan.md."""
+    stem = plan_stem_from_name(plan_name) or str(plan_name).strip()
+    return resolve(role, stem, EpicLayoutKind.PLAN_MD, project_root=cwd)
 
 
 def plan_stem_from_name(plan_name: str) -> str:
     """Stem of plan-*.md without plan- prefix (FS epic_id with descriptive slug)."""
-    name = Path(str(plan_name or "").strip().replace("\\", "/")).name
+    raw = Path(str(plan_name or "").strip().replace(chr(92), "/"))
+    if raw.name == "plan.md" and raw.parent.name == "md":
+        return raw.parent.parent.name.strip()
+    name = raw.name
     if name.startswith("plan-"):
         name = name[len("plan-") :]
     if name.endswith(".md"):
@@ -344,47 +309,30 @@ def resolve_epic_slug(
 ) -> str:
     """Map queue id (T-HUB-023) to artifact epic slug (T-HUB-023-hooks-llm-fallbacks).
 
-    Source of truth for FS folders: plan file stem (queue ``plan:`` field or
-    ``plan-{queue_id}[-slug].md`` on disk). Short queue id alone is only a
+    Source of truth for FS folders: plan file stem (queue plan: field or
+    canonical layout v2 {queue_id}-*/md/plan.md on disk). Short queue id alone is only a
     fallback when no plan / decompose / qa artifact exists.
     """
     root = Path(cwd)
+    role_dir = normalize_role_dir(role)
     if plan_name:
         stem = plan_stem_from_name(plan_name)
         if stem:
-            try:
-                from epic_paths import epic_id_from_plan_path, find_plan_md_path
-
-                resolved = find_plan_md_path(root, role, stem)
-                canonical = epic_id_from_plan_path(resolved)
-                if canonical:
-                    return canonical
-            except Exception:
-                pass
-            return stem
-    plan_dir = root / "memory-bank" / role / "plan"
-    if plan_dir.is_dir():
-        try:
-            from epic_paths import epic_id_from_plan_path, find_plan_md_path
-
-            resolved = find_plan_md_path(root, role, queue_id)
+            resolved = find_plan_md_path(root, role_dir, stem)
             canonical = epic_id_from_plan_path(resolved)
             if canonical:
                 return canonical
-        except Exception:
-            pass
-        exact_plan = plan_dir / f"plan-{queue_id}.md"
-        slugged = sorted(plan_dir.glob(f"plan-{queue_id}-*.md"))
-        if slugged:
-            return plan_stem_from_name(slugged[0].name)
-        if exact_plan.is_file():
-            return queue_id
-    idx = find_decompose_index(cwd, role, queue_id)
+            return stem
+    resolved = find_plan_md_path(root, role_dir, queue_id)
+    canonical = epic_id_from_plan_path(resolved)
+    if canonical:
+        return canonical
+    idx = find_decompose_index(cwd, role_dir, queue_id)
     if idx is not None:
         slug = epic_id_from_decompose_path(str(idx))
         if slug:
             return slug
-    qa_dir = root / "memory-bank" / role / "qa"
+    qa_dir = root / "memory-bank" / role_dir / "qa"
     if qa_dir.is_dir():
         if (qa_dir / queue_id).is_dir():
             return queue_id

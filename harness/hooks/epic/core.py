@@ -1036,8 +1036,9 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                         needs_creative=_step_needs_creative(cwd_p, idx, step),
                     )
             elif armed_phase in {"AUDIT", "QA", "BUGFIX"} and epic_id and role_dir:
-                # Keep explicit post-implement arm, but demote premature QA when
-                # reducer still says qa_failed (no bugfix_done after latest qa_fail).
+                # Keep explicit post-implement arm, but:
+                # - demote premature QA when reducer still says qa_failed
+                # - promote BUGFIX → QA after bugfix_done reopens QA
                 lifecycle = reduce_epic_lifecycle(cwd_p, role_dir, epic_id)
                 life_phase = lifecycle_arm_phase(
                     str(lifecycle.get("phase") or "QA"), lifecycle
@@ -1046,6 +1047,8 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                     phase = "DONE"
                 elif armed_phase == "QA" and life_phase == "BUGFIX":
                     phase = "BUGFIX"
+                elif armed_phase == "BUGFIX" and life_phase == "QA":
+                    phase = "QA"
                 else:
                     phase = armed_phase
             if step and armed_phase in {
@@ -1072,7 +1075,7 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
             if phase == "QA" and _reason_code == "qa_failed":
                 phase = "BUGFIX"
             _qa, _reflection = (
-                find_qa_pass_artifact(cwd_p, role_dir, epic_id),
+                latest_qa_pass_artifact_for_reference(cwd_p, role_dir, epic_id),
                 None,
             )
 
@@ -4012,7 +4015,6 @@ def latest_bugfix_artifact_for_reference(
     return hits[0] if hits else None
 
 
-find_qa_pass_artifact = latest_qa_pass_artifact_for_reference
 
 
 def parse_qa_verdict(path: Path) -> str | None:
@@ -4211,11 +4213,12 @@ def project_handoff_from_reducer(
         projected = True
     elif phase == "QA" and (
         "mode: AUDIT" in text
-        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+AUDIT\b", text)
+        or "mode: BUGFIX" in text
+        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+(AUDIT|BUGFIX)\b", text)
     ):
-        text_new = re.sub(r"Handoff\s+BACK\s+AUDIT", "Handoff BACK QA", text)
-        text_new = re.sub(r"`BACK AUDIT`", "`BACK QA`", text_new)
-        text_new = re.sub(r"mode:\s*AUDIT", "mode: QA", text_new)
+        text_new = re.sub(r"Handoff\s+BACK\s+(AUDIT|BUGFIX)", "Handoff BACK QA", text)
+        text_new = re.sub(r"`BACK (AUDIT|BUGFIX)`", "`BACK QA`", text_new)
+        text_new = re.sub(r"mode:\s*(AUDIT|BUGFIX)", "mode: QA", text_new)
         if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:
             frontmatter = (
                 f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\n"
@@ -4400,7 +4403,7 @@ def post_implement_phase(
     """Reduce the ordered artifact events to AUDIT, QA, BUGFIX, or DONE."""
     decision = reduce_epic_lifecycle(cwd, role_dir, epic_id)
     phase = str(decision["phase"])
-    qa = find_qa_pass_artifact(cwd, role_dir, epic_id)
+    qa = latest_qa_pass_artifact_for_reference(cwd, role_dir, epic_id)
     if phase == "DONE":
         return phase, qa, None
     return phase, None, None
@@ -4988,7 +4991,7 @@ def arm_epic(
             mb_root_name = mb_root.name
         except Exception:
             mb_root_name = "memory-bank"
-        qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
+        qa_p = latest_qa_pass_artifact_for_reference(cwd_p, role, epic_id)
         rel_idx = action.decompose_rel
         if not rel_idx:
             resolved_idx = find_decompose_index_path(cwd_p, role, epic_id)

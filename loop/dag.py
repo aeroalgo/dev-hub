@@ -160,7 +160,7 @@ def migrate_manifest(
     *,
     compatibility_mode: bool = False,
 ) -> dict[str, Any]:
-    """Migrate a v1 manifest only when compatibility mode is explicit."""
+    """Migrate a v1 manifest only when compatibility mode is explicit (offline-only)."""
     if isinstance(legacy, Mapping) and legacy.get("schema") == "loop-dag/v1" and not compatibility_mode:
         return {
             "ok": False,
@@ -178,6 +178,7 @@ def migrate_manifest(
 
 
 def adapt_manifest(legacy: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Offline-only adapter: transforms legacy loop-dag/v1 manifest into loop-dag/v2 structure."""
     if not isinstance(legacy, Mapping):
         return {"ok": False, "manifest": {}, "autonomous": False, "diagnostics": [_diagnostic("dag_manifest_missing", "manifest is missing")]}
     if legacy.get("schema") != "loop-dag/v1":

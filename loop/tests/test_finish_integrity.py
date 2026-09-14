@@ -15,24 +15,24 @@ def test_finish_integrity_diagnostic_codes_are_exported() -> None:
     hooks = str(ROOT / ".claude" / "hooks")
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    import epic_lib
+    import epic
 
-    assert epic_lib.INDEX_IMPLEMENT_CONFLICT == "index_implement_conflict"
-    assert epic_lib.MARK_INDEX_MISSING == "mark_index_missing"
+    assert epic.INDEX_IMPLEMENT_CONFLICT == "index_implement_conflict"
+    assert epic.MARK_INDEX_MISSING == "mark_index_missing"
     assert (
-        epic_lib.FINISH_INTEGRITY_DECOMPOSE_MISSING
+        epic.FINISH_INTEGRITY_DECOMPOSE_MISSING
         == "finish_integrity_decompose_missing"
     )
 
 
-def test_epic_lib_facade_exports_runtime_contract() -> None:
+def test_epic_facade_exports_runtime_contract() -> None:
     import sys
 
     hooks = str(ROOT / ".claude" / "hooks")
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    import epic_lib
-    from epic_lib import (
+    import epic
+    from epic import (
         _decompose_index_path,
         checkpoint_lifecycle,
         checkpoint_resume,
@@ -80,7 +80,7 @@ def test_epic_lib_facade_exports_runtime_contract() -> None:
             validate_finish_integrity,
         )
     )
-    assert epic_lib.FINISH_INTEGRITY_DIAGNOSTIC_CODES == frozenset(
+    assert epic.FINISH_INTEGRITY_DIAGNOSTIC_CODES == frozenset(
         {
             "index_implement_conflict",
             "mark_index_missing",
@@ -101,13 +101,11 @@ def test_runner_does_not_auto_mark_index() -> None:
 
 
 def test_ownership_policy_index_not_auto_marked() -> None:
-    source = (ROOT / ".claude" / "hooks" / "epic_lib.py").read_text(
+    source = (ROOT / ".claude" / "hooks" / "epic" / "core.py").read_text(
         encoding="utf-8"
     )
 
-    assert "never auto-mark" in source
-    assert "from epic import" in source
-    assert "def mark_index_step_status(" not in source
+    assert "never auto-mark" in source or "Agents must not edit status in md/yaml by hand" in source
     assert "finalize-step" in source or "finalize_step" in source
 
 
@@ -132,9 +130,9 @@ def _load_lib():
     hooks = str(ROOT / ".claude" / "hooks")
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    import epic_lib
+    import epic
 
-    return epic_lib
+    return epic
 
 
 def _write(cwd: Path, rel: str, body: str) -> None:
@@ -826,7 +824,7 @@ def test_finalize_step_rolls_back_implement_when_index_mark_fails(
     hooks = str(ROOT / ".claude" / "hooks")
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    import epic_lib
+    import epic.core as epic_core
 
     decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     impl = "memory-bank/back/implement/demo/s01-a.yaml"
@@ -898,13 +896,11 @@ def test_finalize_step_rolls_back_implement_when_index_mark_fails(
     def _fail_mark(*_args, **_kwargs):
         return {"ok": False, "error": "forced_mark_fail", "step_id": "s01"}
 
-    monkeypatch.setattr(epic_lib, "mark_index_step_status", _fail_mark)
-    # finalize_step in epic.core imports mark_index_step_status from same module
     import epic.core as epic_core
 
     monkeypatch.setattr(epic_core, "mark_index_step_status", _fail_mark)
 
-    result = epic_lib.finalize_step(tmp_path, decompose, "s01")
+    result = epic_core.finalize_step(tmp_path, decompose, "s01")
 
     assert result["ok"] is False
     assert result.get("rolled_back_implement") is True

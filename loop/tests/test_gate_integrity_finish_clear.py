@@ -163,6 +163,64 @@ def test_last_mb_finish_still_reports_verdict_stale_when_unresolved(tmp_path: Pa
     assert result["reason"] == "gate_integrity:verdict_stale"
 
 
+def test_rg_mb_finish_search_does_not_poison_gate_integrity(tmp_path: Path) -> None:
+    """Exploratory `rg \"mb-finish\"` must not count as a terminal gate command."""
+    failed = _cmd_item(
+        "python harness/hooks/epic_resolve.py mb-finish bugfix",
+        {"ok": False, "diagnostic_codes": ["verdict_stale"]},
+        exit_code=2,
+        status="failed",
+    )
+    ok = _cmd_item(
+        "python harness/hooks/epic_resolve.py mb-finish bugfix",
+        {"ok": True, "finished_step": "BUGFIX", "next_phase": "QA"},
+        exit_code=0,
+        status="completed",
+    )
+    rg_hit = _cmd_item(
+        'rg "mb-finish" harness/ loop/',
+        "docs mention verdict_stale near mb-finish examples",
+        exit_code=0,
+        status="completed",
+    )
+    log = tmp_path / "rg-poison.log"
+    log.write_text(
+        "\n".join(
+            [
+                "SESSION_START session=s-rg",
+                failed,
+                ok,
+                rg_hit,
+                '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}',
+                "SESSION_END session=s-rg exit_code=0",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    result = analyze_session_log(log, exit_code=0, runtime="codex")
+    assert result["aborted"] is False
+    assert result.get("gate_diagnostic") is None
+    assert result["outcome"] == "clean"
+
+
+def test_mb_finish_bugfix_infers_step_id_for_integrity() -> None:
+    from harness.hooks.session_resilience import _finish_step_id_from_command
+
+    assert (
+        _finish_step_id_from_command(
+            "python harness/hooks/epic_resolve.py mb-finish bugfix"
+        )
+        == "BUGFIX"
+    )
+    assert (
+        _finish_step_id_from_command(
+            'rg "mb-finish" harness/ loop/'
+        )
+        is None
+    )
+
+
 def test_failed_finish_without_ok_true_still_aborts(tmp_path: Path) -> None:
     failed = _cmd_item(
         "python harness/hooks/epic_resolve.py mb-finish analyze",

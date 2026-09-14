@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s01 — control-live-adapt-isolation-and-test-inventory — assert zero live adapt callers and inventory duplicate test assertions
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Верифицировать полное отсутствие вызовов adapt_* из live arm (DAG next execution, context_loop, live event read),
+  зафиксировать baseline тестов-оракулов и сформировать структурированный инвентарь дублирующих assertion twins
+  по DAG и event legacy тестам для последующего слияния.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - US-001
+  nouns:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/tests/test_dag_scheduler.py
+    - loop/tests/test_event_v2_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s01-control-live-adapt-isolation-and-test-inventory.yaml
+  ac_quotes:
+    - "Re-assert live read_event_log / DAG arm never call adapt_* (control tests remain)."
+    - "Как runtime, live event/DAG не вызывает adapt_*"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md:70-115
+
+context:
+  consumes:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/tests/test_dag_scheduler.py
+    - loop/tests/test_event_v2_characterization.py
+  produces:
+    - подтверждение 0 live callers для adapt_manifest и adapt_v1_event
+    - инвентарь пересекающихся assertion twins для кластера C5
+  plan_refs:
+    - plan.md#FR-001
+    - plan.md#US-001
+    - plan.md#Consolidation-clusters
+  files:
+    - loop/tests/test_dag_scheduler.py
+    - loop/tests/test_event_v2_characterization.py
+
+as_built:
+  - "loop/dag.py: содержит adapt_manifest и migrate_manifest без вызовов из live arm"
+  - "harness/hooks/epic_events.py: содержит adapt_v1_event и migrate_event_log для офлайн-миграций"
+  - "loop/tests/test_dag_scheduler.py: содержит monkeypatch-проверку отсутствия adapt_manifest в arm"
+
+delta:
+  - "Закрепление control assertion: live read_event_log и arm_dag_next никогда не обращаются к adapt_*"
+  - "Формирование карты дубликатов тестов между test_dag_*, test_event_*, test_migration_compatibility"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "s02: слияние DAG characterization тестов"
+  - "s03: слияние event characterization тестов"
+  - "s04: классификация офлайн-адаптеров и queue_rel"
+  - "s05: Kind I и denial"
+  - "s06: sunset purge scan"
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-096-layout-resolve-sole-path"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Live arm и live event read гарантированно не вызывают adapt_* (control test pass)
+    verify: "bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_event_v2_characterization.py -q"
+  - id: cp2
+    criterion: Статический аудит подтверждает ноль вызовов adapt_* из рабочих путей runtime
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'adapt_manifest|adapt_v1_event', 'loop/context_loop.py', 'loop/dag_scheduler.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []

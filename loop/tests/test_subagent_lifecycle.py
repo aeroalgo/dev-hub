@@ -422,3 +422,8 @@ def test_gate_atomic_finish_audit_has_no_verify_trigger() -> None:
         )
         is None
     )
+
+
+def test_dead_auto_finish_alias_removed() -> None:
+    alias = "_".join(["auto", "finish", "after", "gate"])
+    assert not hasattr(lifecycle, alias)

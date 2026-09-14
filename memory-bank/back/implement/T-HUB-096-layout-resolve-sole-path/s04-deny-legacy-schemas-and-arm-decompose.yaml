@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s04 — deny-legacy-schemas-and-arm-decompose — deny SCHEMA_*_LEGACY and enforce
+  v2 in arm decompose IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s04-deny-legacy-schemas-and-arm-decompose.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- 'harness/hooks/epic_yaml.py: SCHEMA_DECOMPOSE_LEGACY и SCHEMA_IMPLEMENT_LEGACY удалены,
+  fail-closed валидация'
+- 'loop/context_loop.py: arm_session переведен на v2 layout'
+- 'loop/epic_transition.py: переход эпиков по v2 путям'
+gaps:
+  status: none
+done:
+- Удалены константы SCHEMA_DECOMPOSE_LEGACY и SCHEMA_IMPLEMENT_LEGACY из harness/hooks/epic_yaml.py
+- Удален автоматический алиасинг legacy-схем в EpicImplementDoc и EpicDecomposeDoc
+  (_normalize_schema)
+- Обновлена arm_session в loop/context_loop.py для работы по путям layout v2 без decompose-
+  префикса
+- Добавлен unit-тест test_epic_yaml_rejects_legacy_schemas_and_constants_purged в
+  harness/hooks/tests/test_epic_yaml.py
+files:
+- harness/hooks/epic_yaml.py
+- loop/epic_transition.py
+- loop/context_loop.py
+- harness/hooks/tests/test_epic_yaml.py
+deletes:
+- константы SCHEMA_DECOMPOSE_LEGACY и SCHEMA_IMPLEMENT_LEGACY в harness/hooks/epic_yaml.py
+- обработка устаревших decompose- путей в loop/epic_transition.py
+tests:
+- bin/pytest harness/hooks/tests/test_epic_yaml.py -q
+- bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py -q
+- bin/pytest loop/tests/test_board_launch_arm.py -q
+- bin/pytest loop/tests/test_epic_transition.py -q
+integration_check:
+- bin/pytest harness/hooks/tests/test_epic_yaml.py harness/hooks/tests/test_epic_layout_v2_denial.py
+  loop/tests/test_epic_transition.py loop/tests/test_board_launch_arm.py -q
+grep_control: []
+verification_results:
+- 's04: pass'
+checkpoints:
+- id: cp1
+  criterion: epic_yaml отвергает legacy-схемы и валидирует канонические epic-decompose/v1
+    и epic-implement/v1
+  status: done
+  done_at: '2026-09-14'
+  notes: Проверено через bin/pytest harness/hooks/tests/test_epic_yaml.py -q
+- id: cp2
+  criterion: arm и переход эпиков работают исключительно по v2 layout путям
+  status: done
+  done_at: '2026-09-14'
+  notes: Проверено через bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py
+    loop/tests/test_board_launch_arm.py loop/tests/test_epic_transition.py -q

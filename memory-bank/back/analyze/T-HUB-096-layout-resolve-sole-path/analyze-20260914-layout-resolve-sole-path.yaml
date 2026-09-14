@@ -1,0 +1,164 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-096-layout-resolve-sole-path
+slug: layout-resolve-sole-path
+date: '2026-09-14'
+status: complete
+index_fingerprint: sha256:3423a78b1bca61a180aa367ad6c3abbd1ddd5405d6a146d8ad3d90c0c6bdfb34
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: "Как loop, я резолвлю plan.md одним owner API"
+- requirement_id: US-002
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: "Как gate, yaml index — SoT при наличии yaml"
+- requirement_id: US-003
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "Как maintainer, Kind I не учит v1 fallback"
+- requirement_id: FR-001
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: "Collapse `plan_path` to one resolver owner (`epic_layout` and/or single `epic_paths` wrapper); remove bare `except: pass` swallow."
+- requirement_id: FR-002
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: "Align `resolve_epic_slug` with the same owner (no divergent multi-try)."
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: "`load_steps_for_index`: when `index.yaml` exists, do not load via md-prefer path as authoritative."
+- requirement_id: FR-004
+  step_ids:
+  - s01
+  - s06
+  status: covered
+  plan_text_verbatim: "Role-map `loop.paths.epic_layout` vs `loop.paths.epic_paths` vs `harness/hooks/epic_paths`: document keep-split **or** merge hooks helpers into layout; `move` without deleting sibling copy = FAIL."
+- requirement_id: FR-005
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: "`SCHEMA_*_LEGACY`: inventory live shards; deny unused legacy schema ids **or** keep-split with explicit migrate epic already in queue (none → deny after inventory)."
+- requirement_id: FR-006
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "Fix stale `harness/hooks/epic_paths.py` docstring claiming v1 fallback."
+- requirement_id: FR-007
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: "`context_loop` / arm `decompose-` deprecated branch: deny after migrate CLI proven; keep CLI migrate tool if separate."
+- requirement_id: FR-008
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: "Thin-forward `validate_decompose_yaml` → callers use full validator; delete alias if safe."
+- requirement_id: FR-009
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "Rewrite obsolete tests asserting multi-path success; keep `test_epic_layout_v2_denial` strengthened."
+- requirement_id: FR-010
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "Kind I rewrite for layout fallback prose."
+- requirement_id: SC-001
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: "`plan_path` body: ≤1 resolve owner; no swallow-pass"
+- requirement_id: SC-002
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: "yaml-prefer index load"
+- requirement_id: SC-003
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "stale «falling back to v1» prose = 0 in scoped hooks"
+- requirement_id: 'AC-'
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "no dual machine resolve; no silent PASS via flat-after-exception; no obsolete multi-path tests"
+- requirement_id: TM-096-01
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: "plan resolve v2"
+- requirement_id: TM-096-02
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: "index yaml SoT"
+- requirement_id: TM-096-03
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: "epic_paths denial"
+- requirement_id: TM-096-04
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: "epic_yaml schemas"
+- requirement_id: TM-096-05
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: "validate decompose"
+- requirement_id: TM-096-06
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: "AC− rg multi-resolve/swallow"
+- requirement_id: TM-096-07
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: "full suite QA"
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

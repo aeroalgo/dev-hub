@@ -11,12 +11,8 @@ if str(HOOKS) not in sys.path:
 
 
 def _load_epic_lib():
-    path = ROOT / ".claude" / "hooks" / "epic_lib.py"
-    spec = importlib.util.spec_from_file_location("epic_lib_reducer", path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def _write(cwd: Path, rel: str, body: str) -> Path:

@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import emit, product_cwd, read_stdin  # noqa: E402
-from epic_lib import session_start_payload  # noqa: E402
+from epic.core import session_start_payload  # noqa: E402
 
 
 def _check_preflight_drift(cwd: str) -> None:

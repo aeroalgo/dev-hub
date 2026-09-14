@@ -5,37 +5,41 @@ status_canon: decompose-index.yaml
 appetite:
   timebox_days: 2–3
   cut_list:
-    - "layout resolve (T-HUB-096)"
-    - "offline adapters (T-HUB-097)"
-    - "LLM env dedupe"
+  - layout resolve (T-HUB-096)
+  - offline adapters (T-HUB-097)
+  - LLM env dedupe
 steps:
-  - id: s01
-    file: s01-dead-alias-purge-c2.yaml
-    title: "s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s02
-    file: s02-rewire-prod-epic-lib-and-state-load.yaml
-    title: "s02 — rewire-prod-epic-lib-and-state-load — rewire prod callers to canonical epic package and collapse state loader"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s03
-    file: s03-collapse-qa-artifact-alias-and-epic-facades.yaml
-    title: "s03 — collapse-qa-artifact-alias-and-epic-facades — unify QA artifact lookup name and simplify epic facades"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s04
-    file: s04-rewrite-tests-and-delete-mock-intercept.yaml
-    title: "s04 — rewrite-tests-and-delete-mock-intercept — rewire test monkeypatches to canonical owner and remove legacy intercept"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s05
-    file: s05-delete-epic-lib-facade-and-kind-i.yaml
-    title: "s05 — delete-epic-lib-facade-and-kind-i — delete epic_lib module, rewire remaining tests, and purge instruction references"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s06
-    file: s06-legacy-fallback-purge.yaml
-    title: "s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification"
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-dead-alias-purge-c2.yaml
+  title: s01 — dead-alias-purge-c2 — remove auto_finish_after_gate and DEFAULT_ROADMAP
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-rewire-prod-epic-lib-and-state-load.yaml
+  title: s02 — rewire-prod-epic-lib-and-state-load — rewire prod callers to canonical
+    epic package and collapse state loader
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-collapse-qa-artifact-alias-and-epic-facades.yaml
+  title: s03 — collapse-qa-artifact-alias-and-epic-facades — unify QA artifact lookup
+    name and simplify epic facades
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-rewrite-tests-and-delete-mock-intercept.yaml
+  title: s04 — rewrite-tests-and-delete-mock-intercept — rewire test monkeypatches
+    to canonical owner and remove legacy intercept
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-delete-epic-lib-facade-and-kind-i.yaml
+  title: s05 — delete-epic-lib-facade-and-kind-i — delete epic_lib module, rewire
+    remaining tests, and purge instruction references
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

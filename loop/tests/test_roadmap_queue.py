@@ -718,9 +718,17 @@ def test_resolve_epic_slug_prefers_plan_name_and_disk_slug(tmp_path: Path) -> No
         )
         == "T-HUB-023-hooks-llm-fallbacks"
     )
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-023-hooks-llm-fallbacks.md").write_text("# p\n", encoding="utf-8")
+    plan_v2 = (
+        tmp_path
+        / "memory-bank"
+        / "back"
+        / "plan"
+        / "T-HUB-023-hooks-llm-fallbacks"
+        / "md"
+        / "plan.md"
+    )
+    plan_v2.parent.mkdir(parents=True)
+    plan_v2.write_text("# p\n", encoding="utf-8")
     assert rq.resolve_epic_slug(tmp_path, "back", "T-HUB-023") == (
         "T-HUB-023-hooks-llm-fallbacks"
     )
@@ -1596,3 +1604,10 @@ done: []
     assert out["halt"] is True
     assert out["error"] == "refactor_in_idle_denied"
     assert "idle" in out["reason"].lower()
+
+
+def test_dead_default_roadmap_alias_removed() -> None:
+    rq = _load_rq()
+    alias = "_".join(["DEFAULT", "ROADMAP"])
+    assert not hasattr(rq, alias)
+    assert getattr(rq, "DEFAULT_QUEUE") == "memory-bank/back/roadmap/queue.yaml"

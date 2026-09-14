@@ -13,7 +13,7 @@ HOOKS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
 if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
-from epic_lib import repair_index_mirror  # noqa: E402
+from epic.core import repair_index_mirror  # noqa: E402
 from loop.janitor.schema import JanitorFinding  # noqa: E402
 
 
@@ -115,7 +115,7 @@ class GcEngine:
                     details={"status": "dry_run_skipped_write"},
                 )
 
-            # Repair call using epic_lib repair_index_mirror
+            # Repair call using epic repair_index_mirror
             res = repair_index_mirror(self.cwd, target_path_str)
             return GcResult(
                 success=True,

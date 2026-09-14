@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s05 — delete-epic-lib-facade-and-kind-i — delete epic_lib module, rewire remaining
+  tests, and purge instruction references IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s05-delete-epic-lib-facade-and-kind-i.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Deleted harness/hooks/epic_lib.py facade module (FR-002)
+- Rewired all remaining test modules from epic_lib.py file loading to canonical epic
+  / epic.core package imports (FR-001, FR-009)
+- Rewrote loop/tests/test_epic_lib.py to test canonical epic package and added fail-closed
+  negative test asserting import epic_lib raises ModuleNotFoundError
+- Updated harness/agents/verify-implement.md to reference epic.validate_implement_step_format
+  (FR-010)
+files:
+- harness/agents/verify-implement.md
+- loop/tests/test_epic_lib.py
+- loop/tests/test_state_recovery.py
+- loop/tests/test_state_schema.py
+- loop/tests/test_identity_resolution.py
+- loop/tests/test_projection_identity.py
+- loop/tests/test_checkpoint_next_step_advance.py
+- loop/tests/test_reducer_qa_bugfix.py
+- loop/tests/test_epic_lib_advance.py
+- loop/tests/test_t035_acceptance.py
+- loop/tests/test_active_context_recovery.py
+- loop/tests/test_event_revision_reconciliation.py
+- loop/tests/test_hooks_llm_counter.py
+- loop/tests/test_event_stream.py
+- loop/tests/test_reserved_role_epic_id.py
+deletes:
+- harness/hooks/epic_lib.py
+tests:
+- '`bin/pytest loop/tests/test_state_recovery.py loop/tests/test_state_schema.py loop/tests/test_projection_identity.py
+  -q` — PASS (11 passed)'
+- '`bin/pytest loop/tests/test_checkpoint_next_step_advance.py loop/tests/test_reducer_qa_bugfix.py
+  -q` — PASS (12 passed)'
+- '`bin/pytest loop/tests/test_epic_lib.py -q` — PASS (14 passed)'
+- '`bin/pytest loop/tests/test_epic_lib.py loop/tests/test_state_recovery.py loop/tests/test_state_schema.py
+  loop/tests/test_identity_resolution.py loop/tests/test_projection_identity.py loop/tests/test_checkpoint_next_step_advance.py
+  loop/tests/test_reducer_qa_bugfix.py loop/tests/test_epic_lib_advance.py loop/tests/test_t035_acceptance.py
+  loop/tests/test_active_context_recovery.py loop/tests/test_event_revision_reconciliation.py
+  loop/tests/test_hooks_llm_counter.py loop/tests/test_event_stream.py loop/tests/test_reserved_role_epic_id.py
+  -q` — PASS (77 passed)'
+integration_check:
+- harness/hooks/epic_lib.py deleted from filesystem
+- Zero references to epic_lib in harness/agents/ (Kind I clean)
+- Negative test test_import_epic_lib_fails_closed passes
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: state recovery, schema, and projection tests pass using canonical epic
+    package
+  status: done
+- id: cp2
+  criterion: checkpoint advance and reducer tests pass without epic_lib
+  status: done
+- id: cp3
+  criterion: negative test confirms epic_lib is deleted and import fails
+  status: done
+resume_from: cp1

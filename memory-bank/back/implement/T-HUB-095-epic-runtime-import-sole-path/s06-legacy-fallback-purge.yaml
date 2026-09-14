@@ -1,0 +1,97 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-095-epic-runtime-import-sole-path
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-095-epic-runtime-import-sole-path/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+- Full sunset inventory scan verified across Kind A, Kind B, Kind C, and Kind I surfaces.
+- Zero prod callers and zero live imports of deleted epic_lib facade or removed aliases.
+- Zero fallback try/except chains in state loading.
+- Freeze oracle test suite green.
+gaps:
+  status: none
+done:
+- 'Kind A sunset inventory verified: 0 prod callers, epic_lib.py deleted, auto_finish_after_gate,
+  DEFAULT_ROADMAP, find_qa_pass_artifact, and _legacy_mock_intercept deleted (FR-001,
+  FR-002, FR-003, FR-004, FR-005, FR-007, FR-009).'
+- 'Kind B entrypoint inventory verified: zero references to epic_lib in runner configs
+  or execution entrypoints (FR-006).'
+- 'Kind C anti-fallback verified: single canonical import in pretool_policy._load_epic_state
+  without try/except fallback chains (FR-006).'
+- 'Kind I instruction surfaces verified: zero references to epic_lib in harness/agents/
+  (FR-010).'
+- 'Obsolete test rewrite verified: test_epic_lib.py tests canonical epic package and
+  asserts fail-closed import error on epic_lib.'
+- 'Freeze oracle verified: test_finish_integrity, test_epic_transition, test_creative_phase,
+  and test_state_recovery green.'
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/pretool_policy.py
+- loop/tests/test_epic_lib.py
+- loop/runner/config.py
+- harness/agents/verify-implement.md
+deletes:
+- harness/hooks/epic_lib.py
+- auto_finish_after_gate
+- DEFAULT_ROADMAP
+- find_qa_pass_artifact
+- _legacy_mock_intercept
+tests:
+- bin/pytest loop/tests/test_epic_lib.py -q
+- bin/pytest loop/tests/test_finish_integrity.py loop/tests/test_epic_transition.py
+  loop/tests/test_creative_phase.py loop/tests/test_state_recovery.py -q
+integration_check:
+- All sunset inventory checks (Kind A, B, C, I) pass with zero legacy matches.
+- Epic state loading and finish integrity verified with freeze oracle suites.
+grep_control: []
+verification_results:
+- 'cp1: Kind A sunset scan -> 0 prod matches for deleted symbols and epic_lib.py removed
+  (PASS)'
+- 'cp2: Kind B entrypoint scan -> 0 matches in config/entrypoints (PASS)'
+- 'cp3: Kind C anti-fallback scan -> 0 fallback branches in pretool_policy (PASS)'
+- 'cp4: Kind I instruction scan -> 0 matches in harness/agents/ (PASS)'
+- 'cp5: Obsolete test rewrite -> 14 passed in loop/tests/test_epic_lib.py (PASS)'
+- 'cp6: Freeze oracle -> 69 passed in test_finish_integrity, test_epic_transition,
+  test_creative_phase, test_state_recovery (PASS)'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по всем строкам sunset_inventory kind=A:
+
+    0 prod callers; файл epic_lib.py удален; алиасы и перехватчик удалены.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'Kind B — entrypoint/deploy inventory: нет ссылок на epic_lib в скриптах
+    и конфигурациях.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'Kind C — anti-fallback rg: нет цепочки fallback в _load_epic_state.
+
+    '
+  status: done
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: нет упоминаний epic_lib в harness/agents/.
+
+    '
+  status: done
+- id: cp5
+  criterion: 'Obsolete tests на фасад epic_lib удалены или переписаны; негативный
+    тест подтверждает отсутствие модуля.
+
+    '
+  status: done
+- id: cp6
+  criterion: 'Freeze oracle тест-сьют (finish integrity, epic transition, creative
+    phase, state recovery) зеленый.
+
+    '
+  status: done
+resume_from: cp6

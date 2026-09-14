@@ -189,25 +189,6 @@ def resolve_next(
     return resolve_epic_next_action(cwd, role, epic_id)
 
 
-def _legacy_mock_intercept(func_name: str, *args: Any, **kwargs: Any) -> tuple[bool, Any]:
-    """Honor mock if a test replaced a symbol on epic.core or epic."""
-    try:
-        import unittest.mock
-        for mod_name in ("epic.core", "epic", "harness.hooks.epic.core", "harness.hooks.epic"):
-            mod = sys.modules.get(mod_name)
-            if mod is not None:
-                fn = getattr(mod, func_name, None)
-                if fn is not None and (
-                    isinstance(fn, (unittest.mock.Mock, unittest.mock.MagicMock))
-                    or getattr(fn, "__module__", "") not in ("epic.core", "epic", "harness.hooks.epic.core", "harness.hooks.epic", "loop.epic_transition", "epic_transition")
-                    or getattr(fn, "__name__", "") != func_name
-                ):
-                    return True, fn(*args, **kwargs)
-    except Exception as exc:
-        raise exc
-    return False, None
-
-
 def _arm_post_implement(
     cwd: str | Path,
     *,
@@ -222,7 +203,7 @@ def _arm_post_implement(
         active_context_path,
         build_post_implement_active_context,
         clear_runner_checkpoint,
-        find_qa_pass_artifact,
+        latest_qa_pass_artifact_for_reference,
         load_epic_state,
         save_epic_state,
     )
@@ -235,7 +216,7 @@ def _arm_post_implement(
     except Exception:
         mb_root_name = "memory-bank"
 
-    qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
+    qa_p = latest_qa_pass_artifact_for_reference(cwd_p, role, epic_id)
     resolved_idx = find_decompose_index_path(cwd_p, role, epic_id)
     if resolved_idx is not None:
         rel_idx = resolved_idx.relative_to(cwd_p).as_posix()
@@ -753,17 +734,6 @@ def arm_epic(
     dsh_preset: str | None = None,
 ) -> dict[str, Any]:
     """Arm activeContext for epic via resolver (pre-implement / implement / post-implement)."""
-    is_mock, mock_val = _legacy_mock_intercept(
-        "arm_epic",
-        cwd,
-        epic_id,
-        role=role,
-        require_plan=require_plan,
-        dsh_preset=dsh_preset,
-    )
-    if is_mock:
-        return mock_val
-
     cwd_p = Path(cwd).resolve()
     from loop.board_sync.epic_resolver import resolve_epic_next_action
 

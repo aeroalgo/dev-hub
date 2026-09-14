@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / ".claude" / "hooks"
-def _load_epic_lib():
+def _load_epic():
     hooks = str(HOOKS)
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
@@ -84,7 +84,7 @@ def _mark(lib, tmp_path: Path, status: str = "completed") -> dict:
 
 
 def test_mark_index_advance_rewrites_active_context(tmp_path: Path) -> None:
-    lib = _load_epic_lib()
+    lib = _load_epic()
     _, active = _seed_index(tmp_path)
 
     result = _mark(lib, tmp_path)
@@ -99,7 +99,7 @@ def test_mark_index_advance_rewrites_active_context(tmp_path: Path) -> None:
 
 
 def test_mark_index_advance_updates_armed_step(tmp_path: Path) -> None:
-    lib = _load_epic_lib()
+    lib = _load_epic()
     _seed_index(tmp_path)
 
     result = _mark(lib, tmp_path)
@@ -113,7 +113,7 @@ def test_mark_index_advance_updates_armed_step(tmp_path: Path) -> None:
 
 
 def test_mark_index_advance_skips_when_no_next_step(tmp_path: Path) -> None:
-    lib = _load_epic_lib()
+    lib = _load_epic()
     _, active = _seed_index(tmp_path, next_step=False)
     before = active.read_text(encoding="utf-8")
 
@@ -125,7 +125,7 @@ def test_mark_index_advance_skips_when_no_next_step(tmp_path: Path) -> None:
 
 
 def test_mark_index_advance_skips_when_status_not_completed(tmp_path: Path) -> None:
-    lib = _load_epic_lib()
+    lib = _load_epic()
     _, active = _seed_index(tmp_path)
     before = active.read_text(encoding="utf-8")
 
@@ -139,13 +139,13 @@ def test_mark_index_advance_skips_when_status_not_completed(tmp_path: Path) -> N
 def test_mark_index_advance_soft_fail_on_write_error(
     tmp_path: Path, monkeypatch
 ) -> None:
-    lib = _load_epic_lib()
+    lib = _load_epic()
     _seed_index(tmp_path)
 
     def fail_write(*args, **kwargs):
         raise OSError("activeContext unavailable")
 
-    monkeypatch.setattr(lib, "atomic_write_text", fail_write)
+    monkeypatch.setattr(lib.core, "atomic_write_text", fail_write)
 
     result = _mark(lib, tmp_path)
 
@@ -156,7 +156,7 @@ def test_mark_index_advance_soft_fail_on_write_error(
 
 
 def test_mark_index_advance_result_keys(tmp_path: Path) -> None:
-    lib = _load_epic_lib()
+    lib = _load_epic()
     _seed_index(tmp_path)
 
     result = _mark(lib, tmp_path)

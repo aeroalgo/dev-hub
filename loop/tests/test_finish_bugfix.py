@@ -213,6 +213,69 @@ def test_prepare_session_keeps_bugfix_when_qa_failed(
     assert "Handoff BACK BUGFIX" in ac
 
 
+def test_prepare_session_promotes_qa_after_bugfix_done(
+    tmp_path: Path,
+) -> None:
+    """After bugfix_done, prepare must not thrash back to BUGFIX."""
+    import loop.context_loop as ctx
+    from epic import _append_event, load_epic_state, reduce_epic_lifecycle, save_epic_state
+
+    epic = "T-prepare-bugfix-done"
+    _seed_epic(tmp_path, epic)
+
+    # Seed already has a fail QA artifact; reconcile first so bugfix_done is after
+    # the latest qa_fail seq (otherwise filesystem reconcile re-appends qa_fail later).
+    decision = reduce_epic_lifecycle(tmp_path, "back", epic)
+    assert decision.get("reason_code") == "qa_failed", decision
+
+    bugfix = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-done.md"
+    bugfix.parent.mkdir(parents=True, exist_ok=True)
+    bugfix.write_text("# fixed\n", encoding="utf-8")
+    assert _append_event(tmp_path, "back", epic, "bugfix_done", bugfix)
+    reopened = reduce_epic_lifecycle(tmp_path, "back", epic)
+    assert reopened.get("reason_code") == "bugfix_reopens_qa", reopened
+
+    st = load_epic_state(tmp_path)
+    st.update(
+        {
+            "armed_epic": epic,
+            "armed_role": "BACK",
+            "armed_step": "BUGFIX",
+            "phase": "BUGFIX",
+            "active": True,
+            "status": "running",
+            "armed_decompose": f"memory-bank/back/plan/decompose-{epic}/index.yaml",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        f"epic_id: {epic}\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"## Handoff BACK QA — {epic}\n"
+        "- **Дальше:** `BACK QA`.\n",
+    )
+
+    prep = ctx.prepare_session(tmp_path, model="gpt")
+    assert prep.get("ok") is True, prep
+
+    st = load_epic_state(tmp_path)
+    assert st.get("armed_step") == "QA", st
+    assert st.get("phase") == "QA", st
+
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "mode: QA" in ac
+    assert "Handoff BACK QA" in ac
+    assert "mode: BUGFIX" not in ac
+
+
 def test_bugfix_cannot_finish_as_implement_or_handoff(tmp_path):
     from loop.mb_finish.impl import finish_handoff
     from loop.mb_finish.finish_implement import finish_implement_step

@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s05 — instruction-kind-i-and-runtime-denial-rewrite — rewrite Kind I instructions and strengthen live v2 denial
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Актуализировать инструкции, docstrings и комментарии (Kind I rewrite), устранив любое представление
+  adapt_* как живого runtime-пути, закрепить strict fail-closed поведение runtime на v2 артефактах
+  и обеспечить отсутствие скрытых попыток восстановления live v1 fallback.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - US-001
+    - US-003
+  nouns:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s05-instruction-kind-i-and-runtime-denial-rewrite.yaml
+  ac_quotes:
+    - "Kind I: instructions must not present adapt_* as live success path."
+    - "No restoration of live v1 fallbacks."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md:85-145
+
+context:
+  consumes:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+  produces:
+    - обновленные Kind I инструкции и docstrings
+    - закрепление fail-closed поведения при попытке передачи невалидных манифестов в arm
+  plan_refs:
+    - plan.md#FR-005
+    - plan.md#FR-006
+    - plan.md#US-001
+    - plan.md#US-003
+  files:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/dag.py: содержит комментарии по совместимости манифестов"
+  - "harness/hooks/epic_events.py: описывает правила миграции v1 в v2"
+  - "loop/context_loop.py: вызывает validate_manifest и arm_dag_next без adapt_*"
+
+delta:
+  - "Очистка устаревших формулировок, предполагающих live fallback на adapt_*"
+  - "Усиление тестов на строгий отказ (denial) при попытке runtime-вызова устаревших форматов"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: live control isolation"
+  - "s02: слияние DAG characterization тестов"
+  - "s03: слияние event characterization тестов"
+  - "s04: классификация офлайн-адаптеров и queue_rel"
+  - "s06: sunset purge scan"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Инструкции и docstrings не содержат указаний на adapt_* как live runtime путь
+    verify: "bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_event_v2_characterization.py -q"
+  - id: cp2
+    criterion: Live runtime падает при передаче некорректного v1 манифеста без silent adapt
+    verify: "bin/pytest loop/tests/test_dag_manifest.py -q"
+
+verify: []
+tdd: []

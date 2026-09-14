@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import importlib.util
 import logging
 import os
 import re
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / ".claude" / "hooks"
@@ -20,8 +21,17 @@ def _load_lib():
     return epic
 
 
+def test_import_epic_lib_fails_closed() -> None:
+    if "epic_lib" in sys.modules:
+        del sys.modules["epic_lib"]
+    with pytest.raises(ModuleNotFoundError):
+        import epic_lib  # noqa: F401
+
+
 def test_discover_epic_for_pipeline_returns_resolved_identity(monkeypatch) -> None:
     lib = _load_lib()
+    import epic.core
+
     identity = {
         "status": "resolved",
         "epic_id": "T-037-loop-gap-closure",
@@ -29,7 +39,7 @@ def test_discover_epic_for_pipeline_returns_resolved_identity(monkeypatch) -> No
         "role_dir": "back",
         "decompose": "memory-bank/back/plan/decompose-T-037-loop-gap-closure/index.yaml",
     }
-    monkeypatch.setattr(lib, "resolve_pipeline_identity", lambda _cwd: identity)
+    monkeypatch.setattr(epic.core, "resolve_pipeline_identity", lambda _cwd: identity)
 
     assert lib.discover_epic_for_pipeline(Path("/tmp/project")) == {
         key: identity[key] for key in ("epic_id", "role", "role_dir", "decompose")
@@ -38,8 +48,10 @@ def test_discover_epic_for_pipeline_returns_resolved_identity(monkeypatch) -> No
 
 def test_discover_epic_for_pipeline_returns_none_for_unresolved(monkeypatch) -> None:
     lib = _load_lib()
+    import epic.core
+
     monkeypatch.setattr(
-        lib,
+        epic.core,
         "resolve_pipeline_identity",
         lambda _cwd: {"status": "identity_not_found"},
     )
@@ -49,7 +61,9 @@ def test_discover_epic_for_pipeline_returns_none_for_unresolved(monkeypatch) -> 
 
 def test_rebuild_projection_logs_when_identity_is_missing(monkeypatch, tmp_path, caplog) -> None:
     lib = _load_lib()
-    monkeypatch.setattr(lib, "discover_epic_for_pipeline", lambda _cwd: None)
+    import epic.core
+
+    monkeypatch.setattr(epic.core, "discover_epic_for_pipeline", lambda _cwd: None)
 
     with caplog.at_level(logging.WARNING):
         state = lib.rebuild_epic_projection(tmp_path)
@@ -63,7 +77,9 @@ def test_reconcile_current_epic_events_logs_when_identity_is_missing(
     monkeypatch, tmp_path, caplog
 ) -> None:
     lib = _load_lib()
-    monkeypatch.setattr(lib, "discover_epic_for_pipeline", lambda _cwd: None)
+    import epic.core
+
+    monkeypatch.setattr(epic.core, "discover_epic_for_pipeline", lambda _cwd: None)
 
     with caplog.at_level(logging.WARNING):
         assert lib.reconcile_current_epic_events(tmp_path) == []
@@ -76,7 +92,9 @@ def test_epic_complete_allowed_halts_when_identity_is_missing(
     monkeypatch, tmp_path, caplog
 ) -> None:
     lib = _load_lib()
-    monkeypatch.setattr(lib, "discover_epic_for_pipeline", lambda _cwd: None)
+    import epic.core
+
+    monkeypatch.setattr(epic.core, "discover_epic_for_pipeline", lambda _cwd: None)
 
     with caplog.at_level(logging.WARNING):
         result = lib.epic_complete_allowed(tmp_path)
@@ -84,12 +102,6 @@ def test_epic_complete_allowed_halts_when_identity_is_missing(
     assert result["allowed"] is False
     assert result["phase"] is None
     assert "code=identity_unresolved" in caplog.text
-
-
-def test_find_qa_pass_artifact_is_backward_compatible_alias() -> None:
-    lib = _load_lib()
-
-    assert lib.find_qa_pass_artifact is lib.latest_qa_pass_artifact_for_reference
 
 
 def test_latest_qa_pass_artifact_docstring_is_reference_only() -> None:
@@ -190,8 +202,6 @@ def test_post_implement_done_keeps_standalone_epic_done(tmp_path) -> None:
 
     assert post_implement_handoff_violates_epic_done("DONE", body) is False
     assert re.search(r"(?m)^EPIC_DONE\s*$", body)
-
-
 
 
 def test_post_implement_done_forbids_archive_in_loop(tmp_path) -> None:

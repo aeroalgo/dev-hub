@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s03 — s03 — yaml-prefer-index-load-and-validate-alias — make index.yaml authoritative
+  in load_steps_for_index and collapse validate alias IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s03-yaml-prefer-index-load-and-validate-alias.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- В loop/roadmap_queue.py удалена ветка md-prefer в load_steps_for_index, обеспечив
+  авторитарную загрузку из index.yaml
+- В harness/hooks/epic_yaml.py удалена устаревшая функция-алиас validate_decompose_yaml
+- В harness/hooks/epic_shard_extra.py вызов validate_decompose_yaml заменён на validate_decompose_full
+- В loop/tests/test_validate_decompose.py обновлены тесты на использование validate_decompose_full
+  и добавлен тест test_load_steps_for_index_prefers_yaml_when_md_coexists
+files:
+- loop/roadmap_queue.py
+- harness/hooks/epic_yaml.py
+- harness/hooks/epic_shard_extra.py
+- loop/tests/test_validate_decompose.py
+deletes:
+- ветка md-prefer в load_steps_for_index
+- функция validate_decompose_yaml в harness/hooks/epic_yaml.py
+tests:
+- bin/pytest loop/tests/test_index_fail_closed.py -q
+- bin/pytest loop/tests/test_validate_decompose.py -q
+integration_check:
+- load_steps_for_index загружает шаги напрямую из index.yaml без предпочтения md,
+  а вызовы валидатора декомпозиции переведены на validate_decompose_full
+grep_control: []
+verification_results:
+- 'cp1 PASS: bin/pytest loop/tests/test_index_fail_closed.py -q'
+- 'cp2 PASS: bin/pytest loop/tests/test_validate_decompose.py -q'
+checkpoints:
+- id: cp1
+  criterion: load_steps_for_index использует index.yaml как SoT
+  status: done
+  done_at: '2026-09-14T10:00:00Z'
+- id: cp2
+  criterion: Валидация декомпозиции работает через validate_decompose_full без ошибок
+  status: done
+  done_at: '2026-09-14T10:00:00Z'
+resume_from: cp1

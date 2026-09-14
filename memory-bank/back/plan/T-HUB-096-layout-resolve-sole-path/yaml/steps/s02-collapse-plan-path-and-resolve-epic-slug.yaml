@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s02 — collapse-plan-path-and-resolve-epic-slug — collapse plan_path and resolve_epic_slug to single owner
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Схлопнуть roadmap_queue.plan_path и resolve_epic_slug до единственного владельца резолва (epic_layout),
+  полностью удалив ветвление через v1 flat, find_plan_md_path и замалчивание ошибок `except Exception: pass`.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - US-001
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/paths/epic_layout.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s02-collapse-plan-path-and-resolve-epic-slug.yaml
+  ac_quotes:
+    - "Collapse plan_path to one resolver owner (epic_layout and/or single epic_paths wrapper); remove bare except: pass swallow."
+    - "Align resolve_epic_slug with the same owner (no divergent multi-try)."
+    - "SC-001: plan_path body: <=1 resolve owner; no swallow-pass"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md:100-150
+
+context:
+  consumes:
+    - loop/roadmap_queue.py
+    - loop/paths/epic_layout.py
+  produces:
+    - sole-owner реализация plan_path без swallow
+    - единообразный resolve_epic_slug на базе канонического layout resolver
+  plan_refs:
+    - plan.md#FR-001
+    - plan.md#FR-002
+    - plan.md#US-001
+    - plan.md#SC-001
+    - plan.md#Refactor-inventory
+  files:
+    - loop/roadmap_queue.py
+    - loop/paths/epic_layout.py
+
+as_built:
+  - "loop/roadmap_queue.py: plan_path содержит 4 параллельные ветки с перехватом except Exception: pass"
+  - "loop/roadmap_queue.py: resolve_epic_slug выполняет каскадный fallback через find_plan_md_path, glob и find_decompose_index"
+
+delta:
+  - "Схлопывание plan_path до прямого вызова layout resolver с fail-closed обработкой"
+  - "Удаление bare `except Exception: pass` из plan_path и resolve_epic_slug"
+  - "Перевод resolve_epic_slug на единый контракт определения эпика"
+
+deletes:
+  - "параллельные ветки flat v1 и swallow pass в loop/roadmap_queue.py"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "s03: load_steps_for_index yaml-prefer"
+  - "s04: SCHEMA_*_LEGACY отказ"
+  - "s05: Kind I и arm decompose"
+  - "s06: legacy fallback purge scan"
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-097-event-dag-offline-adapter-hygiene"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: plan_path не содержит параллельных веток резолва и swallow pass
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q"
+  - id: cp2
+    criterion: resolve_epic_slug корректно резолвит v2 эпики без лишних multi-try
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py harness/hooks/tests/test_epic_layout_v2_denial.py -q"
+
+verify: []
+tdd: []

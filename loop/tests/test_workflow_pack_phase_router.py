@@ -218,7 +218,7 @@ def test_tm_004_arm_phase_dsh_video_pack(tmp_path: Path, monkeypatch: pytest.Mon
     def mock_arm_epic(cwd, epic_id, **kwargs):
         return {"ok": True, "armed_epic": epic_id, "kwargs": kwargs}
 
-    monkeypatch.setattr("epic.core.arm_epic", mock_arm_epic)
+    monkeypatch.setattr("loop.epic_transition.arm_epic", mock_arm_epic)
 
     res = arm_phase(
         tmp_path,

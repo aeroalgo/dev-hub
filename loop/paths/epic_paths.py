@@ -1,4 +1,14 @@
-"""Unified epic path resolver with workflow pack parameter support."""
+"""Unified workflow-pack-aware epic path resolver.
+
+Architecture and Role Mapping:
+- Role: Resolves artifact paths with custom workspace/pack roots via loop.paths.pack_layout.
+- Responsibilities:
+    1. Resolve pack-relative directory and artifact paths given a WorkflowPack configuration.
+    2. Support path resolution across hub_root and target project cwd.
+- Boundaries:
+    * Delegates root discovery to loop.paths.pack_layout.resolve_mb_root.
+    * For canonical layout v2 structure without pack overrides, prefer loop.paths.epic_layout.
+"""
 from __future__ import annotations
 
 from enum import Enum

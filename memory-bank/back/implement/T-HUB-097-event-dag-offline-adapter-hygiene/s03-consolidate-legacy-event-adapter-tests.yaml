@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s03 — s03 — consolidate-legacy-event-adapter-tests — consolidate overlapping
+  event legacy migration tests and eliminate duplicates IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s03-consolidate-legacy-event-adapter-tests.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Identified duplicate migrate_event_log idempotency / replay report assertion in
+  test_migration_compatibility.py that overlapped with characterization and adapter
+  tests.
+- Consolidated offline event migration replay report testing into test_event_legacy_adapter.py
+  and preserved comprehensive characterization in test_event_v2_characterization.py.
+- Cleaned test_migration_compatibility.py to focus on state and DAG migration boundaries
+  without duplicate event assertion twins.
+gaps:
+  status: none
+done:
+- Перенесен и объединен тест идемпотентности migrate_event_log с генерацией replay
+  report в loop/tests/test_event_legacy_adapter.py
+- Удален дублирующий тест test_event_migration_is_idempotent_and_writes_replay_report
+  из loop/tests/test_migration_compatibility.py
+- Проверено корректное выполнение всех тестов в test_event_legacy_adapter.py, test_migration_compatibility.py,
+  test_event_v2_characterization.py
+files:
+- loop/tests/test_event_legacy_adapter.py
+- loop/tests/test_migration_compatibility.py
+- loop/tests/test_event_v2_characterization.py
+deletes:
+- loop/tests/test_migration_compatibility.py::test_event_migration_is_idempotent_and_writes_replay_report
+tests:
+- bin/pytest loop/tests/test_event_legacy_adapter.py loop/tests/test_event_v2_characterization.py
+  -q
+- bin/pytest loop/tests/test_migration_compatibility.py -q
+integration_check:
+- bin/pytest loop/tests/test_event_legacy_adapter.py loop/tests/test_migration_compatibility.py
+  loop/tests/test_event_v2_characterization.py -q
+grep_control: []
+verification_results:
+- All 5 tests in test_event_legacy_adapter.py passed.
+- All 2 tests in test_migration_compatibility.py passed.
+- All 9 tests in test_event_v2_characterization.py passed.
+- 16 passed across consolidated event test suites.
+checkpoints:
+- id: cp1
+  criterion: Офлайн-миграция событий полностью покрыта консолидированным набором тестов
+  status: done
+- id: cp2
+  criterion: Очищенный test_migration_compatibility.py проходит без дублирования assertion
+    twins
+  status: done
+resume_from: cp1

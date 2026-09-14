@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from loop.dag import adapt_manifest, validate_manifest
+from loop.dag import validate_manifest
 
 
 def _valid_manifest() -> dict:
@@ -102,28 +102,6 @@ def test_dag_manifest_no_dup_ids() -> None:
     data = _load_integ_demo()
     ids = [n["id"] for n in data["nodes"]]
     assert len(ids) == len(set(ids))
-
-
-def test_legacy_manifest_is_read_only_and_not_autonomous() -> None:
-    legacy = {
-        "schema": "loop-dag/v1",
-        "pipeline_id": "portal",
-        "nodes": [
-            {
-                "id": "back",
-                "role_dir": "back",
-                "decompose": "memory-bank/back/plan/decompose-demo/index.md",
-                "depends_on": [],
-            }
-        ],
-    }
-
-    result = adapt_manifest(legacy)
-
-    assert result["ok"] is True
-    assert result["autonomous"] is False
-    assert result["manifest"]["schema"] == "loop-dag/v2"
-    assert any(item["code"] == "legacy_gap_inference" for item in result["diagnostics"])
 
 
 def test_validate_manifest_rejects_v1_schema_fail_closed() -> None:

@@ -141,9 +141,18 @@ sunset_inventory:
     rg_scope: harness/agents/
     expect: zero epic_lib references in agent instructions
 
-deletes: []
+deletes:
+  - harness/hooks/epic_lib.py
+  - auto_finish_after_gate
+  - DEFAULT_ROADMAP
+  - find_qa_pass_artifact
+  - _legacy_mock_intercept
 
-out_of_scope: []
+out_of_scope:
+  - PYTHONPATH docs teaching epic_lib
+  - pretool_policy._load_epic_state triple try/except chain
+  - implement/plan shards from epic_lib import … OK
+  - workflow examples naming facade
 
 grep_control:
   - id: inv-a-01

@@ -147,3 +147,20 @@ def test_canonical_v2_paths_have_no_wrapper_or_legacy_prefixes():
     impl_step = resolve("back", "T-HUB-087", EpicLayoutKind.IMPLEMENT_STEP, step_id="s01")
     assert "implement-T-HUB-087" not in str(impl_step)
     assert str(impl_step).endswith("memory-bank/back/implement/T-HUB-087/s01.yaml")
+
+def test_roadmap_queue_plan_path_denies_v1_fallback(tmp_path: Path):
+    """SC-001 / FR-009: roadmap_queue.plan_path strictly resolves v2 and refuses v1 fallback."""
+    from loop.roadmap_queue import plan_path
+
+    epic_id = "T-HUB-V1-ONLY"
+    # Create only legacy v1 flat plan
+    v1_plan = tmp_path / "memory-bank" / "back" / "plan" / f"plan-{epic_id}.md"
+    v1_plan.parent.mkdir(parents=True, exist_ok=True)
+    v1_plan.write_text("# Legacy Plan\n", encoding="utf-8")
+
+    entry = {"id": epic_id, "epic_id": epic_id, "plan": f"plan-{epic_id}.md"}
+    resolved = plan_path(tmp_path, "back", f"plan-{epic_id}.md")
+    # Must resolve to canonical v2 path even if only v1 file exists on disk, without silent pass
+    expected_v2 = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md" / "plan.md"
+    assert resolved == expected_v2
+    assert not resolved.exists()

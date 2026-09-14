@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s04 — deny-legacy-schemas-and-arm-decompose — deny SCHEMA_*_LEGACY and enforce v2 in arm decompose
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Запретить устаревшие legacy-схемы (SCHEMA_DECOMPOSE_LEGACY, SCHEMA_IMPLEMENT_LEGACY) в epic_yaml
+  после проверки отсутствия живых шардов на этих схемах, и перевести arm decompose на строгий v2 layout.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-007
+  nouns:
+    - harness/hooks/epic_yaml.py
+    - loop/epic_transition.py
+    - loop/context_loop.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s04-deny-legacy-schemas-and-arm-decompose.yaml
+  ac_quotes:
+    - "SCHEMA_*_LEGACY: inventory live shards; deny unused legacy schema ids or keep-split with explicit migrate epic already in queue."
+    - "context_loop / arm decompose- deprecated branch: deny after migrate CLI proven; keep CLI migrate tool if separate."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md:100-160
+
+context:
+  consumes:
+    - harness/hooks/epic_yaml.py
+    - loop/epic_transition.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_epic_yaml.py
+  produces:
+    - fail-closed отказ для устаревших схем integ-decompose/v1 и integ-implement/v1
+    - arm-логика без поддержки устаревшего префикса decompose-
+  plan_refs:
+    - plan.md#FR-005
+    - plan.md#FR-007
+    - plan.md#Refactor-inventory
+  files:
+    - harness/hooks/epic_yaml.py
+    - loop/epic_transition.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_epic_yaml.py
+
+as_built:
+  - "harness/hooks/epic_yaml.py: содержит константы SCHEMA_DECOMPOSE_LEGACY и SCHEMA_IMPLEMENT_LEGACY с алиасингом в model_validator"
+  - "loop/epic_transition.py: обрабатывает legacy decompose_rel пути"
+
+delta:
+  - "Удаление поддержки legacy-схем в epic_yaml (явный fail-closed при попытке использования)"
+  - "Отказ от decompose- префиксов в arm_active_context_from_decompose и epic_transition"
+
+deletes:
+  - "константы SCHEMA_DECOMPOSE_LEGACY и SCHEMA_IMPLEMENT_LEGACY в harness/hooks/epic_yaml.py"
+  - "обработка устаревших decompose- путей в loop/epic_transition.py"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "s05: Kind I и test denial rewrite"
+  - "s06: legacy fallback purge scan"
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-097-event-dag-offline-adapter-hygiene"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: epic_yaml отвергает legacy-схемы и валидирует канонические epic-decompose/v1 и epic-implement/v1
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml.py -q"
+  - id: cp2
+    criterion: arm и переход эпиков работают исключительно по v2 layout путям
+    verify: "bin/pytest loop/tests/test_epic_layout_v2_denial.py -q"
+
+verify: []
+tdd: []

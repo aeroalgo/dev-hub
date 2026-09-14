@@ -10,24 +10,22 @@ HOOKS = ROOT / ".claude" / "hooks"
 
 
 def _load_ctx():
-    path = ROOT / "loop" / "context_loop.py"
-    spec = importlib.util.spec_from_file_location("context_loop_reserved", path)
-    mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
+    if str(ROOT / "loop") not in sys.path:
+        sys.path.insert(0, str(ROOT / "loop"))
     hooks = str(HOOKS)
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    spec.loader.exec_module(mod)
-    return mod
+    import context_loop
+    return context_loop
 
 
 def _load_epic():
     hooks = str(HOOKS)
     if hooks not in sys.path:
         sys.path.insert(0, hooks)
-    import epic_lib
+    import epic
 
-    return epic_lib
+    return epic
 
 
 def _write(cwd: Path, rel: str, body: str) -> None:

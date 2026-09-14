@@ -126,7 +126,7 @@ def _handle_verify_finish_agent(
 
     if agent_type in COERCE_VERIFY_AGENTS and verdict == "PASS":
         try:
-            from epic_lib import coerce_verify_verdict, load_epic_state
+            from epic.core import coerce_verify_verdict, load_epic_state
 
             ownership_step = str(identity.get("step") or "").strip()
             armed_step = str((load_epic_state(cwd) or {}).get("armed_step") or "").strip()
@@ -228,7 +228,7 @@ def _handle_verify_finish_agent(
     mirrored_pass = False
     if matched:
         try:
-            from epic_lib import load_epic_state, mirror_gate_verdict, mirror_verify_verdict
+            from epic.core import load_epic_state, mirror_gate_verdict, mirror_verify_verdict
 
             if agent_type in COERCE_VERIFY_AGENTS:
                 mirror_verify_verdict(
@@ -271,7 +271,7 @@ def _handle_verify_finish_agent(
                 # obsolete YAML errors after the shard was already fixed.
                 live_blockers: list[str] = []
                 try:
-                    from epic_lib import verify_pass_step_blockers
+                    from epic.core import verify_pass_step_blockers
 
                     ownership_step = str(identity.get("step") or "").strip() or None
                     live_blockers = verify_pass_step_blockers(

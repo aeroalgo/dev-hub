@@ -23,12 +23,8 @@ from epic_events import (  # noqa: E402
 
 
 def _load_epic_lib():
-    path = ROOT / ".claude" / "hooks" / "epic_lib.py"
-    spec = importlib.util.spec_from_file_location("epic_lib_event_schema", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
 
 
 def test_valid_v2_event_round_trips_with_required_types() -> None:

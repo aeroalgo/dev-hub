@@ -682,12 +682,34 @@ def is_idle_timeout(reason: str | None) -> bool:
     return bool(reason and re.search(r"(?i)stream idle timeout", reason))
 
 
-_TERMINAL_GATE_CMD_RE = re.compile(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b")
+# Require an actual finish CLI invocation — not `rg "mb-finish"` / source dumps.
+_TERMINAL_GATE_CMD_RE = re.compile(
+    r"(?i)(?:"
+    r"\bmb-finish\s+(?:bugfix|implement|qa|analyze|decompose|handoff|plan|script|edit|publish)\b"
+    r"|\bfinalize-step\b"
+    r"|\bstop-gate\b"
+    r")"
+)
+_TERMINAL_GATE_HELP_RE = re.compile(r"(?i)(?:\s|^)(?:--help|-h)(?:\s|$)")
 _MB_FINISH_OK_TRUE_RE = re.compile(r'"ok"\s*:\s*true', re.I)
 _MB_FINISH_OK_FALSE_RE = re.compile(r'"ok"\s*:\s*false', re.I)
 _FINISH_STEP_RE = re.compile(
     r"(?i)(?:--step(?:-id)?|step_id)\s*[=\s]\s*([sera]\d{2}|[A-Z]{2,})",
 )
+_MB_FINISH_SUBCMD_RE = re.compile(
+    r"(?i)\bmb-finish\s+(bugfix|implement|qa|analyze|decompose|handoff|plan|script|edit|publish)\b"
+)
+_MB_FINISH_SUBCMD_STEP = {
+    "bugfix": "BUGFIX",
+    "qa": "QA",
+    "analyze": "ANALYZE",
+    "decompose": "DECOMPOSE",
+    "plan": "PLAN",
+    "handoff": "HANDOFF",
+    "script": "SCRIPT",
+    "edit": "EDIT",
+    "publish": "PUBLISH",
+}
 
 
 def _gate_integrity_token(text: str) -> str | None:
@@ -700,9 +722,15 @@ def _gate_integrity_token(text: str) -> str | None:
 
 def _finish_step_id_from_command(command: str) -> str | None:
     match = _FINISH_STEP_RE.search(command or "")
-    if not match:
+    if match:
+        return str(match.group(1) or "").strip() or None
+    sub = _MB_FINISH_SUBCMD_RE.search(command or "")
+    if not sub:
         return None
-    return str(match.group(1) or "").strip() or None
+    key = str(sub.group(1) or "").strip().lower()
+    if key == "implement":
+        return None
+    return _MB_FINISH_SUBCMD_STEP.get(key)
 
 
 def _terminal_integrity_failure(raw_log: str) -> tuple[str | None, str | None]:
@@ -737,6 +765,8 @@ def _terminal_integrity_failure(raw_log: str) -> tuple[str | None, str | None]:
             continue
         command = str(item.get("command") or "")
         if not _TERMINAL_GATE_CMD_RE.search(command):
+            continue
+        if _TERMINAL_GATE_HELP_RE.search(command):
             continue
         output = str(item.get("aggregated_output") or "")
         diag = _gate_integrity_token(output)
@@ -783,6 +813,8 @@ def _terminal_integrity_failure(raw_log: str) -> tuple[str | None, str | None]:
     last_ok_step = None
     for line in (raw_log or "").splitlines():
         if not _TERMINAL_GATE_CMD_RE.search(line):
+            continue
+        if _TERMINAL_GATE_HELP_RE.search(line):
             continue
         diag = _gate_integrity_token(line)
         ok_true = bool(_MB_FINISH_OK_TRUE_RE.search(line))

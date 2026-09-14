@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-096-layout-resolve-sole-path
+title: s03 — yaml-prefer-index-load-and-validate-alias — make index.yaml authoritative in load_steps_for_index and collapse validate alias
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сделать index.yaml единственным авторитетным источником шагов в load_steps_for_index при наличии yaml,
+  исключив преимущественную загрузку через index.md, и схлопнуть алиас validate_decompose_yaml в пользу
+  полного валидатора validate_decompose_full.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-008
+    - US-002
+    - SC-002
+  nouns:
+    - loop/roadmap_queue.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic_shard_extra.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/steps/s03-yaml-prefer-index-load-and-validate-alias.yaml
+  ac_quotes:
+    - "load_steps_for_index: when index.yaml exists, do not load via md-prefer path as authoritative."
+    - "Thin-forward validate_decompose_yaml -> callers use full validator; delete alias if safe."
+    - "US-002: Как gate, yaml index — SoT при наличии yaml"
+    - "SC-002: yaml-prefer index load"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md:100-150
+
+context:
+  consumes:
+    - loop/roadmap_queue.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic_shard_extra.py
+    - loop/tests/test_validate_decompose.py
+  produces:
+    - yaml-authoritative загрузка шагов декомпозиции
+    - унифицированный вызов валидатора декомпозиции без устаревшего алиаса
+  plan_refs:
+    - plan.md#FR-003
+    - plan.md#FR-008
+    - plan.md#US-002
+    - plan.md#SC-002
+    - plan.md#Refactor-inventory
+  files:
+    - loop/roadmap_queue.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic_shard_extra.py
+    - loop/tests/test_validate_decompose.py
+
+as_built:
+  - "loop/roadmap_queue.py: load_steps_for_index при наличии index.md рядом с index.yaml вызывает load_decompose_steps_fail_closed по md"
+  - "harness/hooks/epic_yaml.py: validate_decompose_yaml — тонкая обёртка над validate_decompose_full"
+
+delta:
+  - "Переписывание load_steps_for_index: при наличии index.yaml данные шагов берутся напрямую из yaml"
+  - "Перевод вызовов с validate_decompose_yaml на validate_decompose_full и удаление устаревшего алиаса"
+
+deletes:
+  - "ветка md-prefer в load_steps_for_index"
+  - "функция validate_decompose_yaml в harness/hooks/epic_yaml.py"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "s04: SCHEMA_*_LEGACY отказ"
+  - "s05: Kind I и arm decompose"
+  - "s06: legacy fallback purge scan"
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-097-event-dag-offline-adapter-hygiene"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: load_steps_for_index использует index.yaml как SoT
+    verify: "bin/pytest loop/tests/test_index_fail_closed.py -q"
+  - id: cp2
+    criterion: Валидация декомпозиции работает через validate_decompose_full без ошибок
+    verify: "bin/pytest loop/tests/test_validate_decompose.py -q"
+
+verify: []
+tdd: []

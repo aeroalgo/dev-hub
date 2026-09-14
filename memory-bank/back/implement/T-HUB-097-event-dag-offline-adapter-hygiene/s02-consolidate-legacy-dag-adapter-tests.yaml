@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s02 — consolidate-legacy-dag-adapter-tests — consolidate overlapping DAG characterization
+  tests and purge duplicates IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s02-consolidate-legacy-dag-adapter-tests.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Identified duplicate and overlapping legacy v1 DAG adaptation / rejection test cases
+  across test_dag_manifest.py, test_dag_canary.py, test_t035_invariants.py, and test_dag_generate.py.
+- Consolidated full offline characterization oracle in loop/tests/test_dag_v2_characterization.py
+  covering strict v1 rejection, multi-node v1 adaptation diagnostics with autonomous=False,
+  and compatibility_mode requirements for migrate_manifest.
+- Removed unused adapt_manifest imports and assertions from secondary modules, leaving
+  adapt_manifest referenced only in loop/dag.py, the canonical characterization test,
+  and the scheduler isolation test.
+gaps:
+  status: none
+done:
+- Усилен канонический test_legacy_v1_manifest_adapter_and_migration_boundary в loop/tests/test_dag_v2_characterization.py
+  (покрытие мульти-нод адаптации и строгой валидации)
+- Удален вызов adapt_manifest и импорт из loop/tests/test_dag_canary.py
+- Удалены тесты adapt_manifest и дублирующие проверки из loop/tests/test_dag_manifest.py
+- Удалены устаревшие проверки adapt_manifest и v1 schema из loop/tests/test_t035_invariants.py
+- Удален тест legacy links / adapt_manifest из loop/tests/test_dag_generate.py
+- Все 23 теста в затронутых DAG-модулях проходят успешно
+files:
+- loop/tests/test_dag_v2_characterization.py
+- loop/tests/test_dag_manifest.py
+- loop/tests/test_dag_canary.py
+- loop/tests/test_t035_invariants.py
+- loop/tests/test_dag_generate.py
+deletes:
+- loop/tests/test_dag_canary.py::test_dag_canary_v1_adapt_manifest_structure
+- loop/tests/test_dag_manifest.py::test_adapt_manifest_basic
+- loop/tests/test_t035_invariants.py::test_legacy_manifest_is_compatibility_only_and_not_autonomous
+- loop/tests/test_dag_generate.py::test_legacy_links_are_compatible_but_cannot_arm_autonomous_fanout
+tests:
+- bin/pytest loop/tests/test_dag_v2_characterization.py -q
+- bin/pytest loop/tests/test_dag_manifest.py loop/tests/test_dag_canary.py loop/tests/test_t035_invariants.py
+  loop/tests/test_dag_generate.py -q
+integration_check:
+- python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"adapt_manifest\",
+  \"loop/tests/test_dag_manifest.py\", \"loop/tests/test_dag_canary.py\", \"loop/tests/test_t035_invariants.py\",
+  \"loop/tests/test_dag_generate.py\"], capture_output=True, text=True); sys.exit(0
+  if not res.stdout.strip() else 1)"
+grep_control: []
+verification_results:
+- All 7 tests in loop/tests/test_dag_v2_characterization.py passed.
+- All 16 tests in loop/tests/test_dag_manifest.py, loop/tests/test_dag_canary.py,
+  loop/tests/test_t035_invariants.py, loop/tests/test_dag_generate.py passed.
+- Zero adapt_manifest references found in cleaned secondary test suites.
+checkpoints:
+- id: cp1
+  criterion: Канонический DAG characterization test suite проходит успешно
+  status: done
+- id: cp2
+  criterion: Очищенные модули тестов manifest и invariants проходят без регрессий
+  status: done

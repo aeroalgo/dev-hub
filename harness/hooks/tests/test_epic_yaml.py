@@ -78,3 +78,34 @@ def test_step_context_prompt_lines_and_legacy_checkpoint_prompt_lines_purged() -
     assert "- done: cp1" in lines
 
     assert not hasattr(epic_yaml, "checkpoint_prompt_lines"), "checkpoint_prompt_lines alias must be purged"
+
+
+def test_epic_yaml_rejects_legacy_schemas_and_constants_purged() -> None:
+    """Verify SCHEMA_*_LEGACY constants purged and legacy schema strings rejected fail-closed."""
+    assert not hasattr(epic_yaml, "SCHEMA_" + "DECOMPOSE_LEGACY"), "legacy constant must be purged"
+    assert not hasattr(epic_yaml, "SCHEMA_" + "IMPLEMENT_LEGACY"), "SCHEMA_IMPLEMENT_LEGACY constant must be purged"
+
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        EpicDecomposeDoc(
+            schema="integ-decompose/v1",
+            role="integ",
+            step_id="e01",
+            plan_id="T-DEMO",
+            title="demo",
+            next_phase="INTEG IMPLEMENT",
+        )
+
+    with pytest.raises(ValidationError):
+        EpicImplementDoc(
+            schema="integ-implement/v1",
+            role="integ",
+            step_id="e01",
+            plan_id="T-DEMO",
+            title="demo",
+            status="in_progress",
+            date="2026-09-14",
+            decompose_ref="path/to/shard.yaml",
+        )

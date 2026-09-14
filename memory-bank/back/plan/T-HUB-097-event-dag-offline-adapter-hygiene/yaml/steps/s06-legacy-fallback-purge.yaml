@@ -1,0 +1,158 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: полное сканирование инвентаря A+B+C+I и верификация полного удаления
+  дублирующих тестов, исключения вызовов adapt_* из live arm, очистки Kind I инструкций и docstrings,
+  подтверждение чистоты кодовой базы через rg и регрессионный сьют тестов.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+    - loop/context_loop.py
+    - loop/tests/test_dag_v2_characterization.py
+    - loop/tests/test_event_v2_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Нет live call sites to adapt_*."
+    - "Нет N files asserting identical «adapt succeeds as runtime» without offline label."
+    - "Behavior of migrate algorithms unchanged (freeze oracle offline tests)."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md:140-230
+
+context:
+  consumes:
+    - plan.md#replacement--sunset
+    - decompose index §Replacement cleanup
+  produces:
+    - верифицированный результат полного удаления дубликатов тестов и live adapt вызовов
+    - evidence rg и inventory проверок в implement shard
+  plan_refs:
+    - plan.md#FR-001
+    - plan.md#FR-002
+    - plan.md#FR-003
+    - plan.md#FR-004
+    - plan.md#FR-005
+    - plan.md#FR-006
+    - plan.md#US-001
+    - plan.md#US-002
+    - plan.md#US-003
+  files:
+    - loop/dag.py
+    - harness/hooks/epic_events.py
+    - loop/roadmap_queue.py
+
+as_built:
+  - "Предыдущие s01–s05 изолировали live arm, консолидировали тесты и очистили docstrings"
+
+delta:
+  - "Прогон полного sunset inventory и финальный аудит чистоты кодовой базы"
+
+sunset_inventory:
+  - symbol: adapt_manifest in live arm
+    kind: A
+    replacement: validate_manifest only
+    policy: delete in-epic
+    rg_scope: loop/context_loop.py loop/dag_scheduler.py
+    expect: zero live callers to adapt_manifest
+  - symbol: adapt_v1_event in live arm
+    kind: A
+    replacement: read_event_log validate v2
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero live callers to adapt_v1_event
+  - symbol: redundant DAG characterization assertions
+    kind: A
+    replacement: test_dag_v2_characterization.py
+    policy: delete in-epic
+    rg_scope: loop/tests/test_dag_canary.py loop/tests/test_dag_manifest.py loop/tests/test_t035_invariants.py
+    expect: duplicate cases removed
+  - symbol: redundant event migration assertions
+    kind: A
+    replacement: test_event_v2_characterization.py test_event_legacy_adapter.py
+    policy: delete in-epic
+    rg_scope: loop/tests/test_migration_compatibility.py
+    expect: duplicate cases removed
+  - symbol: adapt if validate fails
+    kind: C
+    replacement: fail-closed validation error
+    policy: delete in-epic
+    rg_scope: loop/dag.py loop/context_loop.py
+    expect: zero fallback to adapt upon validation failure
+  - symbol: instructions claiming adapt as runtime SoT
+    kind: I
+    replacement: offline migration only instructions
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero instructions presenting adapt as live path
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-095-epic-runtime-import-sole-path"
+  - "follow_up: T-HUB-096-layout-resolve-sole-path"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: adapt_manifest in live callers
+    command: 'rg -n "adapt_manifest" loop/context_loop.py loop/dag_scheduler.py || true'
+    expect: no output
+  - id: inv-a-02
+    kind: A
+    symbol: adapt_v1_event in live callers
+    command: 'rg -n "adapt_v1_event" loop/context_loop.py harness/hooks/epic/ || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: silent fallback to adapt
+    command: 'rg -n "except.*adapt_manifest" loop/ || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: adapt as live path instructions
+    command: 'rg -n "adapt_manifest in live|adapt_v1_event in live" loop/ harness/ || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — 0 вызовов adapt_* из live arm и runtime путей
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'adapt_manifest|adapt_v1_event', 'loop/context_loop.py', 'loop/dag_scheduler.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Kind C — zero fallback to adapt upon validation failure
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'except.*adapt_manifest', 'loop/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp3
+    criterion: Kind I — zero docstrings / instructions claiming adapt as live SoT
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'adapt_manifest in live|adapt_v1_event in live', 'loop/', 'harness/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp4
+    criterion: Офлайн-миграции сохраняют исходное поведение (freeze oracle)
+    verify: "bin/pytest loop/tests/test_dag_v2_characterization.py loop/tests/test_event_v2_characterization.py loop/tests/test_event_legacy_adapter.py -q"
+  - id: cp5
+    criterion: Targeted регрессионный сьют проходит без ошибок
+    verify: "bin/pytest loop/tests/test_dag_scheduler.py loop/tests/test_dag_manifest.py loop/tests/test_dag_v2_characterization.py loop/tests/test_event_legacy_adapter.py loop/tests/test_event_v2_characterization.py loop/tests/test_migration_compatibility.py loop/tests/test_roadmap_queue.py -q"
+
+verify: []
+tdd: []

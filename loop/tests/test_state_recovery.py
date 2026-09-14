@@ -12,22 +12,19 @@ HOOKS = ROOT / ".claude" / "hooks"
 def _load_epic_lib():
     if str(HOOKS) not in sys.path:
         sys.path.insert(0, str(HOOKS))
-    spec = importlib.util.spec_from_file_location("epic_lib_state_recovery", HOOKS / "epic_lib.py")
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    import epic
+    return epic
+
+
+if str(ROOT / "loop") not in sys.path:
+    sys.path.insert(0, str(ROOT / "loop"))
+if str(HOOKS) not in sys.path:
+    sys.path.insert(0, str(HOOKS))
+import context_loop
 
 
 def _load_context_loop():
-    path = ROOT / "loop" / "context_loop.py"
-    spec = importlib.util.spec_from_file_location("context_loop_state_recovery", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    if str(HOOKS) not in sys.path:
-        sys.path.insert(0, str(HOOKS))
-    spec.loader.exec_module(module)
-    return module
+    return context_loop
 
 
 def _write(cwd: Path, rel: str, body: str) -> None:
@@ -52,6 +49,13 @@ def _seed(cwd: Path) -> None:
     _write(
         cwd,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: demo\n"
+        "step_id: s01\n"
+        "---\n\n"
         "## load_now\n"
         "- `memory-bank/back/plan/demo/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"

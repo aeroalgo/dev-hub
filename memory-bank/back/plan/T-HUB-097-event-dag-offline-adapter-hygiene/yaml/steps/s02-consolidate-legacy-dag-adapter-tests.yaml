@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s02 — consolidate-legacy-dag-adapter-tests — consolidate overlapping DAG characterization tests and purge duplicates
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сконсолидировать разрозненные и дублирующие characterization тесты DAG адаптеров в канонический
+  модуль `loop/tests/test_dag_v2_characterization.py`, удалить избыточные тесты-дубли в test_dag_canary,
+  test_dag_manifest, test_dag_generate и test_t035_invariants, исключив трактовку adapt_* как runtime SoT.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-002
+  nouns:
+    - loop/tests/test_dag_v2_characterization.py
+    - loop/tests/test_dag_manifest.py
+    - loop/tests/test_dag_canary.py
+    - loop/tests/test_t035_invariants.py
+    - loop/tests/test_dag_generate.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s02-consolidate-legacy-dag-adapter-tests.yaml
+  ac_quotes:
+    - "Consolidate overlapping characterization tests into one offline suite; delete redundant cases (copies_removed_count >= 1 of same assertion meaning)."
+    - "Как maintainer, одна offline characterization suite"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md:75-125
+
+context:
+  consumes:
+    - loop/tests/test_dag_canary.py
+    - loop/tests/test_dag_manifest.py
+    - loop/tests/test_dag_generate.py
+    - loop/tests/test_t035_invariants.py
+    - loop/tests/test_dag_v2_characterization.py
+  produces:
+    - единый канонический набор тестов офлайн DAG-адаптера
+    - удаление дублирующих assertion twins из вторичных тестовых файлов
+  plan_refs:
+    - plan.md#FR-003
+    - plan.md#US-002
+    - plan.md#Consolidation-clusters
+  files:
+    - loop/tests/test_dag_v2_characterization.py
+    - loop/tests/test_dag_manifest.py
+    - loop/tests/test_dag_canary.py
+    - loop/tests/test_t035_invariants.py
+    - loop/tests/test_dag_generate.py
+
+as_built:
+  - "loop/tests/test_dag_manifest.py: содержит дублирующее тестирование adapt_manifest"
+  - "loop/tests/test_dag_canary.py: содержит тест adapt_manifest на устаревшем формате"
+  - "loop/tests/test_t035_invariants.py: проверяет инварианты adapt_manifest параллельно с characterization"
+  - "loop/tests/test_dag_v2_characterization.py: содержит characterization тесты для v2 DAG и миграции"
+
+delta:
+  - "Перенос необходимых freeze oracle проверок в test_dag_v2_characterization.py"
+  - "Удаление дублирующих тестов adapt_manifest из test_dag_canary, test_dag_manifest, test_t035_invariants"
+
+deletes:
+  - "loop/tests/test_dag_canary.py::test_dag_canary_v1_adapt_manifest_structure"
+  - "loop/tests/test_dag_manifest.py::test_adapt_manifest_basic"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: live control isolation"
+  - "s03: слияние event characterization тестов"
+  - "s04: классификация офлайн-адаптеров и queue_rel"
+  - "s05: Kind I и denial"
+  - "s06: sunset purge scan"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Канонический DAG characterization test suite проходит успешно
+    verify: "bin/pytest loop/tests/test_dag_v2_characterization.py -q"
+  - id: cp2
+    criterion: Очищенные модули тестов manifest и invariants проходят без регрессий
+    verify: "bin/pytest loop/tests/test_dag_manifest.py loop/tests/test_dag_canary.py loop/tests/test_t035_invariants.py loop/tests/test_dag_generate.py -q"
+
+verify: []
+tdd: []

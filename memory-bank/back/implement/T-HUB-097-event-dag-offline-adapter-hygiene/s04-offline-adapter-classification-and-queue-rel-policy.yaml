@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
+title: s04 — s04 — offline-adapter-classification-and-queue-rel-policy — classify
+  adapt/migrate as offline-only and resolve queue_rel policy IMPLEMENT
+status: in_progress
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/yaml/steps/s04-offline-adapter-classification-and-queue-rel-policy.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- adapt_manifest и migrate_manifest в loop/dag.py классифицированы как offline-only
+  адаптеры
+- adapt_v1_event и migrate_event_log в harness/hooks/epic_events.py классифицированы
+  как offline-only инструменты
+- queue_rel_from_roadmap в loop/roadmap_queue.py зафиксирован как legacy compatibility
+  helper для резолва путей к очередям
+gaps:
+  status: none
+done:
+- Добавлены явные offline-only docstrings для adapt_manifest и migrate_manifest в
+  loop/dag.py
+- Добавлены явные offline-only docstrings для adapt_v1_event и migrate_event_log в
+  harness/hooks/epic_events.py
+- Зафиксирован legacy compatibility статус queue_rel_from_roadmap в loop/roadmap_queue.py
+- Верифицирована работа тестов test_dag_v2_characterization.py, test_event_legacy_adapter.py
+  и test_roadmap_queue.py
+files:
+- loop/dag.py
+- harness/hooks/epic_events.py
+- loop/roadmap_queue.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_dag_v2_characterization.py loop/tests/test_event_legacy_adapter.py
+  -q
+- bin/pytest loop/tests/test_roadmap_queue.py -q
+integration_check:
+- python3 -c "from dag import adapt_manifest, migrate_manifest; from epic_events import
+  adapt_v1_event, migrate_event_log; from roadmap_queue import queue_rel_from_roadmap;
+  print("imports ok")"
+grep_control: []
+verification_results:
+- Offline adapter contract characterization and regression tests pass
+- Roadmap queue legacy compatibility and canonical queue path tests pass
+checkpoints:
+- id: cp1
+  criterion: Офлайн-адаптеры в loop/dag.py и epic_events.py имеют явную offline-only
+    классификацию
+  status: done
+- id: cp2
+  criterion: Контракт roadmap_queue и queue_rel_from_roadmap работает стабильно
+  status: done

@@ -1,0 +1,45 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-096-layout-resolve-sole-path
+role: back
+source_qa: memory-bank/back/qa/T-HUB-096-layout-resolve-sole-path/qa-20260914-layout-resolve-sole-path.yaml
+checklist_sha256: 458c5bd978047ea854db4bb265b9133d122176a5cdb63a4cdee0a0063e2f5741
+created_at: '2026-09-14T10:47:11Z'
+updated_at: '2026-09-14T10:55:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-14T10:55:00Z'
+  evidence: 2902 passed, 4 skipped in 96.63s
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_sync_sync.py failures (test_obsolete_step_card_deleted_on_epic_sync,
+    test_done_epic_archive_all, test_done_epic_preserves_unrelated_cards, test_sync_generation_increment)
+  blocker_ref: 'suite_red: loop/tests/test_board_sync_sync.py failures (test_obsolete_step_card_deleted_on_epic_sync,
+    test_done_epic_archive_all, test_done_epic_preserves_unrelated_cards, test_sync_generation_increment)'
+  fix_plan_ref: BACK BUGFIX investigate and fix test_board_sync_sync.py fixture setup
+    / layout v2 resolution
+  targets:
+  - loop/tests/test_board_sync_sync.py
+  verify: bin/pytest loop/tests/test_board_sync_sync.py -q --tb=line
+  evidence: 8 passed in loop/tests/test_board_sync_sync.py
+  done_at: '2026-09-14T10:55:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_sync_epic_regression.py failures (test_e2e_pending_steps_emit_single_epic_card_pending_to_epic,
+    test_e2e_step_era_cards_archived_on_sync, test_e2e_epic_done_maps_to_todo)
+  blocker_ref: 'suite_red: loop/tests/test_board_sync_epic_regression.py failures
+    (test_e2e_pending_steps_emit_single_epic_card_pending_to_epic, test_e2e_step_era_cards_archived_on_sync,
+    test_e2e_epic_done_maps_to_todo)'
+  fix_plan_ref: BACK BUGFIX investigate and fix test_board_sync_epic_regression.py
+    fixture setup / layout v2 resolution
+  targets:
+  - loop/tests/test_board_sync_epic_regression.py
+  verify: bin/pytest loop/tests/test_board_sync_epic_regression.py -q --tb=line
+  evidence: 6 passed in loop/tests/test_board_sync_epic_regression.py
+  done_at: '2026-09-14T10:55:00Z'
+  notes: ''
