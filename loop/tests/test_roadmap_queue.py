@@ -471,11 +471,11 @@ def test_repo_roadmap_queue_parses() -> None:
 
 
 def test_queue_rel_from_roadmap() -> None:
+    import pytest
+
     rq = _load_rq()
-    assert (
+    with pytest.raises(ValueError, match="legacy .md roadmap path is forbidden"):
         rq.queue_rel_from_roadmap("memory-bank/back/plan/roadmap-foo-epics.md")
-        == "memory-bank/back/plan/roadmap-foo-epics.queue.yaml"
-    )
     assert (
         rq.queue_rel_from_roadmap("memory-bank/back/roadmap")
         == "memory-bank/back/roadmap/queue.yaml"
@@ -506,6 +506,18 @@ def test_build_prompt_phase_done_forbids_archive(tmp_path: Path, monkeypatch) ->
     assert "IMPLEMENT FINISH" not in prompt
     assert "FORBIDDEN" in prompt and "ARCHIVE" in prompt
     assert "EPIC_DONE" in prompt
+
+
+def test_discover_source_queues_batches(tmp_path: Path) -> None:
+    rq = _load_rq()
+    batches_dir = tmp_path / "memory-bank" / "back" / "roadmap" / "batches"
+    batches_dir.mkdir(parents=True)
+    batch_file = batches_dir / "batch-01.yaml"
+    batch_file.write_text("dummy: true\n", encoding="utf-8")
+    canon_in_batch = batches_dir / "queue.yaml"
+    canon_in_batch.write_text("dummy: canon\n", encoding="utf-8")
+    discovered = rq.discover_source_queues(tmp_path, role="back")
+    assert discovered == [batch_file]
 
 
 def test_roadmap_merge_sources_into_canon(tmp_path: Path) -> None:

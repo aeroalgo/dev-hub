@@ -155,7 +155,7 @@ EPIC_RUNTIME=codex make loop
 | `Runtime sync drift detected` | Registry and runtime adapter definitions out of sync | Run `bin/runtime-sync --apply --runtime codex` to resync. |
 | `Doctor preflight failure` | Doctor runtime checks failed during startup | Run `bin/loop --cwd "$PROJECT_ROOT" doctor --json` (or `python3 -m loop.runner doctor --json`) to inspect failed runtime assertions. |
 | `Authentication error / Token expired` | Codex session unauthenticated or expired | Execute `codex login` or refresh `CODEX_API_KEY`. |
-| `RuntimeConfigError: EPIC_RUNTIME=invalid` | Invalid runtime specified | Ensure `EPIC_RUNTIME` is set to `codex`, `dsh`, or `claude`. |
+| `RuntimeConfigError: EPIC_RUNTIME=invalid` | Invalid runtime specified | Ensure `EPIC_RUNTIME` is set to `codex` or `claude`. |
 
 ---
 

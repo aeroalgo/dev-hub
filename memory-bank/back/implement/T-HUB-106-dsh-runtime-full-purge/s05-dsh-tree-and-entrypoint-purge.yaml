@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s05 — s05 — delete entire dsh tree and purge dsh case branch from bin/loop
+  IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s05-dsh-tree-and-entrypoint-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалено файловое дерево dsh/ из репозитория
+- 'Обновлен bin/loop: удалена ветка dsh, скрипт принимает только claude|codex'
+files:
+- bin/loop
+deletes:
+- dsh/
+tests:
+- '`test ! -d dsh`'
+- '`! bin/loop dsh > /dev/null 2>&1`'
+- '`bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line`'
+integration_check:
+- test ! -d dsh
+- '! bin/loop dsh > /dev/null 2>&1'
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line
+grep_control: []
+verification_results:
+- '{''command'': ''test ! -d dsh'', ''passed'': True}'
+- '{''command'': ''! bin/loop dsh > /dev/null 2>&1'', ''passed'': True}'
+- '{''command'': ''bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line'',
+  ''passed'': True}'
+checkpoints:
+- id: cp1
+  criterion: Каталог dsh/ отсутствует в репозитории
+  status: done
+  done_at: '2026-09-16T14:31:25Z'
+- id: cp2
+  criterion: bin/loop отвергает dsh и запускает только claude или codex
+  status: done
+  done_at: '2026-09-16T14:31:25Z'

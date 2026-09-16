@@ -6,7 +6,6 @@
 
 - Claude Code → `CLAUDE.md`
 - Codex → `AGENTS.md`
-- DSH → `AGENTS.md` with native `read`/`write`/`edit` tools
 
 Не читай другой runtime entrypoint.
 
@@ -36,10 +35,6 @@ role/mode chain или текущим shard (`skills.impl`, `skills.design`,
 `skills.design_skills`, audit skills). Если workflow или shard не назвал
 skill-путь, не загружай skills и не угадывай соседние. Явный запрос пользователя
 или runtime на конкретный skill имеет приоритет.
-
-Для DSH ссылки `@file` — это навигация, а не готовый system prompt: прочитай
-entrypoint, выбери текущую фазу, затем последовательно прочитай только файлы
-выбранной цепочки и явно перечисленные `SKILL.md`.
 
 ## Session context
 

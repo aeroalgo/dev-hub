@@ -141,10 +141,9 @@ def test_runtime_all_iterates(tmp_path: Path):
                         "materialize": True,
                         "target": ".codex/agents/test.toml",
                     },
-                    "dsh": {
-                        "materialize": True,
-                        "target": ".dsh/agents/test.toml",
-                    }
+                    "claude": {
+                        "copy_to": ".claude/agents/test.md",
+                    },
                 }
             }
         },
@@ -168,7 +167,7 @@ def test_runtime_all_iterates(tmp_path: Path):
     )
     assert res.returncode == 0
     assert (tmp_path / ".codex/agents/test.toml").exists()
-    assert (tmp_path / ".dsh/agents/test.toml").exists()
+    assert (tmp_path / ".claude/agents/test.md").exists()
 
 # Alias for cp3 matching -k all_runtimes
 test_all_runtimes = test_runtime_all_iterates

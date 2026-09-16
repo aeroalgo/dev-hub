@@ -1,0 +1,126 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s06 — purge DSH from live instruction surfaces, runbooks, and architecture docs
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать live инструкции, архитектурные документы и руководства так, чтобы DSH не упоминался
+  как поддерживаемый рантайм. Удалить DSH.md, docs/runbooks/dsh-loop-pilot.md,
+  memory-bank/architecture/dsh-runtime.md и вычистить упоминания из AGENTS.md, CLAUDE.md, README.md,
+  LOOP-RUNTIMES.md, loop/README.md, loop/WORKFLOW.md, memory-bank/architecture/index.md,
+  memory-bank/architecture/services.md, memory-bank/architecture/data-flow.md,
+  memory-bank/architecture/services-dataflow.md, docs/runbooks/codex-loop-pilot.md,
+  docs/runbooks/workflow-pack-authoring.md.
+
+plan_contract:
+  fr_ids:
+    - FR-008
+    - SC-004
+    - US-003
+  nouns:
+    - AGENTS.md
+    - CLAUDE.md
+    - README.md
+    - LOOP-RUNTIMES.md
+    - DSH.md
+    - docs/runbooks/dsh-loop-pilot.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/workflow-pack-authoring.md
+    - memory-bank/architecture/dsh-runtime.md
+    - memory-bank/architecture/index.md
+    - memory-bank/architecture/services.md
+    - memory-bank/architecture/data-flow.md
+    - memory-bank/architecture/services-dataflow.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s06-instruction-surfaces-and-kind-i-hygiene.yaml
+  ac_quotes:
+    - "Live Kind I не учит DSH как supported runtime; DSH.md и dsh-runbook/architecture dsh-runtime удалены."
+    - "rg Kind I live teaching patterns = 0."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:92-113
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:246-264
+
+context:
+  consumes:
+    - AGENTS.md
+    - CLAUDE.md
+    - README.md
+    - LOOP-RUNTIMES.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - memory-bank/architecture/index.md
+    - memory-bank/architecture/services.md
+    - memory-bank/architecture/data-flow.md
+    - memory-bank/architecture/services-dataflow.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/workflow-pack-authoring.md
+  produces:
+    - AGENTS.md
+    - CLAUDE.md
+    - README.md
+    - LOOP-RUNTIMES.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - memory-bank/architecture/index.md
+    - memory-bank/architecture/services.md
+    - memory-bank/architecture/data-flow.md
+    - memory-bank/architecture/services-dataflow.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/workflow-pack-authoring.md
+  plan_refs:
+    - FR-008
+    - SC-004
+    - US-003
+  files:
+    - AGENTS.md
+    - CLAUDE.md
+    - README.md
+    - LOOP-RUNTIMES.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - memory-bank/architecture/index.md
+    - memory-bank/architecture/services.md
+    - memory-bank/architecture/data-flow.md
+    - memory-bank/architecture/services-dataflow.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/workflow-pack-authoring.md
+
+as_built:
+  - "AGENTS.md и CLAUDE.md описывают DSH как поддерживаемый runtime"
+  - "README.md, LOOP-RUNTIMES.md и architecture содержат секции DSH"
+  - "Существуют DSH.md, docs/runbooks/dsh-loop-pilot.md, memory-bank/architecture/dsh-runtime.md"
+
+delta:
+  - "Удалить секции DSH и ссылки на DSH из AGENTS.md, CLAUDE.md, README.md, LOOP-RUNTIMES.md, loop/README.md, loop/WORKFLOW.md"
+  - "Обновить memory-bank/architecture/index.md, services.md, data-flow.md, services-dataflow.md"
+  - "Обновить docs/runbooks/codex-loop-pilot.md и docs/runbooks/workflow-pack-authoring.md"
+
+deletes:
+  - DSH.md
+  - docs/runbooks/dsh-loop-pilot.md
+  - memory-bank/architecture/dsh-runtime.md
+wire_complete_required: false
+
+out_of_scope:
+  - "Исторические memory-bank эпики и архивы (explicit out-of-scope)"
+  - "Правка тестовых файлов (шаг s07)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "DSH.md, dsh-loop-pilot.md и dsh-runtime.md удалены"
+    verify: "test ! -f DSH.md && test ! -f docs/runbooks/dsh-loop-pilot.md && test ! -f memory-bank/architecture/dsh-runtime.md"
+  - id: cp2
+    criterion: "rg по live instruction surfaces не находит live DSH teaching patterns"
+    verify: "! rg -n -i 'EPIC_RUNTIME=dsh|DSH.*entrypoint' AGENTS.md CLAUDE.md README.md LOOP-RUNTIMES.md"
+
+verify: []
+tdd: []

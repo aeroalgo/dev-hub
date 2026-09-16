@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s03 — s03 — purge DSH branches, presets, and CLI choices from Loop core IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s03-loop-core-call-sites-and-cli-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалена функция get_dsh_preset и параметр dsh_preset из loop/epic_transition.py
+- Удалены поля dsh_preset из всех фаз в loop/schemas/phase_registry.yaml
+- Удалены ветки dsh и алиасы deepseek из loop/prompt_builder.py с fail-closed валидацией
+- Удалена ветка dsh и DSH_HOOKS_BRIDGE из loop/runner/config.py
+- 'Обновлен loop/cli/runtime_sync.py (choices: codex, claude, all=codex+claude)'
+- Очищены loop/runtime/session_events.py, loop/context_loop.py, loop/board_sync/cli.py
+  и loop/bugfix_queue.py от dsh
+files:
+- loop/epic_transition.py
+- loop/schemas/phase_registry.yaml
+- loop/prompt_builder.py
+- loop/runner/config.py
+- loop/cli/runtime_sync.py
+- loop/runtime/session_events.py
+- loop/board_sync/cli.py
+- loop/context_loop.py
+- loop/bugfix_queue.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_epic_transition.py -q --tb=line`'
+- '`bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_prompt_builder.py -q
+  --tb=line`'
+integration_check:
+- bin/pytest loop/tests/test_epic_transition.py -q --tb=line
+- bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_prompt_builder.py -q
+  --tb=line
+grep_control: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_epic_transition.py -q --tb=line'', ''passed'':
+  True}'
+- '{''command'': ''bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_prompt_builder.py
+  -q --tb=line'', ''passed'': True}'
+checkpoints:
+- id: cp1
+  criterion: get_dsh_preset удален и phase_registry.yaml очищен от dsh_preset
+  status: done
+- id: cp2
+  criterion: runtime_sync и prompt_builder не принимают dsh и fail-closed отвергают
+    неподдерживаемый рантайм
+  status: done

@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s02 — cutover runtime registry and adapter factory to sole claude and codex
+  runtimes IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s02-runtime-registry-and-adapter-factory-fail-closed.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалена секция dsh и конфигурация DSH-рантайма из loop/runtime_registry.yaml (остались
+  только claude и codex).
+- Удален файл loop/runtime_adapters/dsh.py.
+- Очищены loop/runtime_adapters/base.py и collaboration.py от ссылок на DSH и DshAdapter.
+- Обновлены оракулы в test_dsh_purge_characterization.py, подтверждающие fail-closed
+  поведение фабрики get_adapter_for_runtime('dsh').
+files:
+- loop/runtime_registry.yaml
+- loop/runtime_adapters/base.py
+- loop/runtime_adapters/collaboration.py
+- loop/tests/test_dsh_purge_characterization.py
+deletes:
+- loop/runtime_adapters/dsh.py
+tests:
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -k test_registry_has_no_dsh
+  -q --tb=line
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -k test_adapter_factory_rejects_dsh
+  -q --tb=line
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line
+integration_check:
+- Проверено удаление dsh из loop/runtime_registry.yaml и fail-closed ошибка при вызове
+  get_adapter_for_runtime('dsh').
+grep_control: []
+verification_results:
+- cp1 PASS — loop/runtime_registry.yaml содержит только claude и codex
+- '{''cp2 PASS — loop/runtime_adapters/dsh.py удален и get_adapter_for_runtime(\''dsh\'')
+  выбрасывает ValueError("Unknown runtime'': ''dsh")''}'
+- suite PASS — 8 passed in test_dsh_purge_characterization.py
+checkpoints:
+- id: cp1
+  criterion: loop/runtime_registry.yaml содержит только claude и codex
+  status: done
+  done_at: '2026-09-16T14:00:00Z'
+- id: cp2
+  criterion: Модуль loop/runtime_adapters/dsh.py удален и get_adapter_for_runtime('dsh')
+    выбрасывает ошибку
+  status: done
+  done_at: '2026-09-16T14:00:00Z'
+resume_from: cp1

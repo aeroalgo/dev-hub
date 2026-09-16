@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s02 — cutover runtime registry and adapter factory to sole claude and codex runtimes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Вырезать DSH из реестра рантаймов loop/runtime_registry.yaml, удалить модуль loop/runtime_adapters/dsh.py,
+  очистить фабрику адаптеров loop/runtime_adapters/base.py и collaboration.py от ссылок на DSH.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-004
+    - SC-001
+    - US-001
+    - US-002
+  nouns:
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/dsh.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/collaboration.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s02-runtime-registry-and-adapter-factory-fail-closed.yaml
+  ac_quotes:
+    - "Registry и factory не отдают DSH adapter; dsh -> явная ошибка."
+    - "Prod-код без DshAdapter."
+    - "Нет prod dual-path registry с ключом dsh после эпика."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:38-50
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:204-226
+
+context:
+  consumes:
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/collaboration.py
+  produces:
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/collaboration.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-004
+    - SC-001
+    - US-001
+    - US-002
+  files:
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/collaboration.py
+
+as_built:
+  - "loop/runtime_registry.yaml содержит ключ dsh и класс loop.runtime_adapters.dsh.DshAdapter"
+  - "loop/runtime_adapters/collaboration.py содержит ветки для dsh"
+
+delta:
+  - "Удалить секцию dsh и алиасы dsh из loop/runtime_registry.yaml"
+  - "Очистить loop/runtime_adapters/base.py и collaboration.py от DSH-логики"
+
+deletes:
+  - loop/runtime_adapters/dsh.py
+wire_complete_required: false
+
+out_of_scope:
+  - "Harness hooks и manifest (шаг s04)"
+  - "Удаление дерева dsh/ (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/runtime_registry.yaml содержит только claude и codex"
+    verify: "bin/pytest loop/tests/test_dsh_purge_characterization.py -k test_registry_has_no_dsh -q --tb=line"
+  - id: cp2
+    criterion: "Модуль loop/runtime_adapters/dsh.py удален и get_adapter_for_runtime('dsh') выбрасывает ошибку"
+    verify: "bin/pytest loop/tests/test_dsh_purge_characterization.py -k test_adapter_factory_rejects_dsh -q --tb=line"
+
+verify: []
+tdd: []

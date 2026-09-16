@@ -570,3 +570,128 @@ def test_orchestrator_preserves_open_incidents_on_start(
     assert records_after[0].status == "open"
     assert records_after[0].incident_id == "inc-restart-persistence-001"
     assert records_after[0].metadata.get("persisted") is True
+
+
+def test_incident_tracker_record_trace_writes_trace(tmp_path: Path) -> None:
+    """Verify IncidentTracker.record_trace resolves canonical epic_dir and writes session-trace.jsonl."""
+    from loop.incidents.trace import read_session_trace_tail
+    try:
+        from epic_paths import epic_dir
+    except ImportError:
+        from harness.hooks.epic_paths import epic_dir
+
+    tracker = IncidentTracker()
+    tracker.record_trace(
+        tmp_path,
+        phase="BACK IMPLEMENT",
+        action="decide_after_action",
+        decide="continue",
+        episode_id="ep-42",
+        detail={"score": 100},
+    )
+
+    edir = epic_dir(tmp_path)
+    assert (edir / "session-trace.jsonl").is_file()
+    traces = read_session_trace_tail(edir)
+    assert len(traces) == 1
+    assert traces[0]["phase"] == "BACK IMPLEMENT"
+    assert traces[0]["action"] == "decide_after_action"
+    assert traces[0]["decide"] == "continue"
+    assert traces[0]["episode_id"] == "ep-42"
+    assert traces[0]["detail"] == {"score": 100}
+
+
+def test_incident_tracker_attempt_tier1_disabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify attempt_tier1 immediately returns False when disabled or disabled via env."""
+    tracker_disabled = IncidentTracker(tier1_enabled=False)
+    assert tracker_disabled.attempt_tier1(tmp_path) is False
+
+    tracker_enabled = IncidentTracker(tier1_enabled=True)
+    monkeypatch.setenv("EPIC_INCIDENT_TIER1", "0")
+    assert tracker_enabled.attempt_tier1(tmp_path) is False
+
+
+def test_incident_tracker_attempt_tier1_no_open_incidents(tmp_path: Path) -> None:
+    """Verify attempt_tier1 returns False when no open incidents exist."""
+    tracker = IncidentTracker(tier1_enabled=True)
+    assert tracker.attempt_tier1(tmp_path) is False
+
+
+def test_incident_tracker_attempt_tier1_success(tmp_path: Path) -> None:
+    """Verify attempt_tier1 runs tier1 session and resolves incident on success."""
+    from loop.incidents.schema import IncidentRecord, SCHEMA_LOOP_INCIDENT
+    from loop.incidents.store import append_incident, list_open_incidents
+    from loop.incidents.tier1_runner import Tier1Result
+    try:
+        from epic_paths import epic_dir
+    except ImportError:
+        from harness.hooks.epic_paths import epic_dir
+
+    edir = epic_dir(tmp_path)
+    inc = IncidentRecord(
+        schema=SCHEMA_LOOP_INCIDENT,
+        incident_id="inc-tier1-test-01",
+        status="open",
+        opened_at="2026-09-15T12:00:00Z",
+        project_root=str(tmp_path),
+        epic_id="T-HUB-101",
+        step_id="s01",
+        phase="BACK IMPLEMENT",
+        session_id="session-1",
+        source="check_after",
+        diagnostic_codes=["syntax_error"],
+        fingerprint="fp-1",
+    )
+    append_incident(edir, inc)
+    assert len(list_open_incidents(edir)) == 1
+
+    tracker = IncidentTracker(tier1_enabled=True)
+    with patch("loop.incidents.tier1_runner.should_attempt_tier1", return_value=True), patch(
+        "loop.incidents.tier1_runner.run_tier1_session", return_value=Tier1Result(success=True)
+    ):
+        result = tracker.attempt_tier1(tmp_path)
+        assert result is True
+
+    # Incident should now be resolved
+    assert len(list_open_incidents(edir)) == 0
+
+
+def test_incident_tracker_attempt_tier1_failure(tmp_path: Path) -> None:
+    """Verify attempt_tier1 returns False and leaves incident open when tier1 session fails."""
+    from loop.incidents.schema import IncidentRecord, SCHEMA_LOOP_INCIDENT
+    from loop.incidents.store import append_incident, list_open_incidents
+    from loop.incidents.tier1_runner import Tier1Result
+    try:
+        from epic_paths import epic_dir
+    except ImportError:
+        from harness.hooks.epic_paths import epic_dir
+
+    edir = epic_dir(tmp_path)
+    inc = IncidentRecord(
+        schema=SCHEMA_LOOP_INCIDENT,
+        incident_id="inc-tier1-test-02",
+        status="open",
+        opened_at="2026-09-15T12:00:00Z",
+        project_root=str(tmp_path),
+        epic_id="T-HUB-101",
+        step_id="s01",
+        phase="BACK IMPLEMENT",
+        session_id="session-1",
+        source="check_after",
+        diagnostic_codes=["syntax_error"],
+        fingerprint="fp-2",
+    )
+    append_incident(edir, inc)
+    assert len(list_open_incidents(edir)) == 1
+
+    tracker = IncidentTracker(tier1_enabled=True)
+    with patch("loop.incidents.tier1_runner.should_attempt_tier1", return_value=True), patch(
+        "loop.incidents.tier1_runner.run_tier1_session", return_value=Tier1Result(success=False)
+    ):
+        result = tracker.attempt_tier1(tmp_path)
+        assert result is False
+
+    # Incident should remain open
+    assert len(list_open_incidents(edir)) == 1

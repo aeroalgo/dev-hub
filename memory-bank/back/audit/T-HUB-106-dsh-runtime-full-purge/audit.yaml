@@ -1,0 +1,289 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-106-dsh-runtime-full-purge
+plan_id: T-HUB-106-dsh-runtime-full-purge
+date: '2026-09-16'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Full purge of DSH runtime, adapters, harness hooks, CLI choices, presets,
+    instructions, and tests in favor of sole claude and codex runtimes.
+  source: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md#WHAT
+summary:
+  total_steps: 8
+  implemented: 8
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 9
+  fr_satisfied: 9
+  sc_checked: 5
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+check_matrix:
+- source_ref: FR-001
+  status: pass
+  evidence: Registry, CLI, and factory reject runtime id dsh and historical aliases
+    with fail-closed ValueError.
+  verify: rg -n "Unknown runtime" loop/runtime_registry.py
+- source_ref: FR-002
+  status: pass
+  evidence: Runtime registry contains only claude and codex runtimes, plus claude-code
+    alias.
+  verify: rg -n "dsh:" loop/runtime_registry.yaml
+- source_ref: FR-003
+  status: pass
+  evidence: dsh directory tree including install scripts and bin entirely removed.
+  verify: test ! -d dsh
+- source_ref: FR-004
+  status: pass
+  evidence: DshAdapter module deleted and all production imports/callers purged.
+  verify: rg -n "DshAdapter" loop/ harness/ --glob "*.py"
+- source_ref: FR-005
+  status: pass
+  evidence: dsh_preset parameter, get_dsh_preset function, and phase config machine
+    fields removed from transition arm path.
+  verify: rg -n "get_dsh_preset" loop/ harness/
+- source_ref: FR-006
+  status: pass
+  evidence: Harness hooks purged of dsh_stream_filter, DSH resilience patterns, manifest
+    dsh blocks, and DSH_HOOKS_BRIDGE wiring.
+  verify: test ! -f harness/hooks/dsh_stream_filter.py
+- source_ref: FR-007
+  status: pass
+  evidence: Obsolete DSH dispatch and smoke tests deleted; mixed tests updated to
+    assert fail-closed rejection of dsh.
+  verify: test ! -f loop/tests/test_loop_dsh_dispatch.py && test ! -f loop/tests/test_dsh_e2e_smoke.py
+- source_ref: FR-008
+  status: pass
+  evidence: Live instruction surfaces updated; DSH.md, dsh-loop-pilot.md, dsh-runtime.md
+    deleted.
+  verify: test ! -f DSH.md && test ! -f docs/runbooks/dsh-loop-pilot.md && test !
+    -f memory-bank/architecture/dsh-runtime.md
+- source_ref: FR-009
+  status: pass
+  evidence: Requesting dsh via CLI or environment raises explicit error without silent
+    degradation or fallback to claude.
+  verify: rg -n "Unknown runtime" loop/runtime_registry.py
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Runtime registry and adapter factory strictly support only claude and
+    codex, rejecting dsh with fail-closed exception.
+- source_ref: US-002
+  status: satisfied
+  evidence: Loop core, transition logic, harness hooks, and CLI entrypoints operate
+    without DSH branches, presets, or bridge variables.
+- source_ref: US-003
+  status: satisfied
+  evidence: Instruction surfaces, documentation, and test suites teach and verify
+    only supported claude and codex workflows.
+- source_ref: FR-001
+  status: satisfied
+  evidence: Registry, CLI, and factory reject runtime id dsh and historical aliases
+    with fail-closed ValueError.
+- source_ref: FR-002
+  status: satisfied
+  evidence: Runtime registry contains only claude and codex runtimes, plus claude-code
+    alias.
+- source_ref: FR-003
+  status: satisfied
+  evidence: dsh directory tree including install scripts and bin entirely removed.
+- source_ref: FR-004
+  status: satisfied
+  evidence: DshAdapter module deleted and all production imports/callers purged.
+- source_ref: FR-005
+  status: satisfied
+  evidence: dsh_preset parameter, get_dsh_preset function, and phase config machine
+    fields removed from transition arm path.
+- source_ref: FR-006
+  status: satisfied
+  evidence: Harness hooks purged of dsh_stream_filter, DSH resilience patterns, manifest
+    dsh blocks, and DSH_HOOKS_BRIDGE wiring.
+- source_ref: FR-007
+  status: satisfied
+  evidence: Obsolete DSH dispatch and smoke tests deleted; mixed tests updated to
+    assert fail-closed rejection of dsh.
+- source_ref: FR-008
+  status: satisfied
+  evidence: Live instruction surfaces updated; DSH.md, dsh-loop-pilot.md, dsh-runtime.md
+    deleted.
+- source_ref: FR-009
+  status: satisfied
+  evidence: Requesting dsh via CLI or environment raises explicit error without silent
+    degradation or fallback to claude.
+- source_ref: SC-001
+  status: satisfied
+  evidence: Zero prod occurrences of DshAdapter, runtime_adapters.dsh, or registry
+    key dsh across loop and harness packages.
+- source_ref: SC-002
+  status: satisfied
+  evidence: The top-level dsh directory is completely absent from the repository.
+- source_ref: SC-003
+  status: satisfied
+  evidence: Executing CLI or session preparation with runtime dsh fails closed with
+    non-zero exit / exception.
+- source_ref: SC-004
+  status: satisfied
+  evidence: Zero Kind I live teaching patterns or entrypoint mentions of DSH across
+    AGENTS.md, CLAUDE.md, and documentation.
+- source_ref: SC-005
+  status: satisfied
+  evidence: Targeted DSH test files deleted and mixed characterization tests pass
+    without restoring legacy DSH components.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: No secondary agent-runtime entrypoint via DSH; bin/loop and CLI enforce
+    claude and codex only.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: No soft default or silent fallback from dsh to claude across adapter factory,
+    runner, and session initialization.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: EPIC_RUNTIME=dsh fails closed immediately upon session start rather than
+    stubbing or continuing.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: No production dual-path registry; loop/runtime_registry.yaml contains
+    no dsh key.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: No live tests requiring positive DSH execution or DshAdapter instantiation
+    exist in test suite.
+- source_ref: AC-:6
+  status: satisfied
+  evidence: No Kind I instruction surfaces declare or teach DSH as a valid or supported
+    runtime.
+- source_ref: AC-:7
+  status: satisfied
+  evidence: No deprecated or optional dsh runtime settings retained; all references
+    fully purged.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Repository maintains single source of truth in canonical runtime registry
+    and memory bank.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: All transitions and execution paths are typed, validated, and fail closed
+    on invalid inputs.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: Strict adherence to replace-not-wrap discipline with zero dead shims or
+    obsolete dual-paths remaining.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: Fail-closed validation across all CLI, environment, and adapter entrypoints.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: Atomic state management and deterministic step handoffs verified.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: Structured evidence logging and absence of silent error swallowing.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: Immutable audit trail and verified phase transitions.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: Complete test suite alignment with verified non-regression in target scopes.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: Kind I instruction alignment across runtime entrypoints and agent guides.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: Sunset inventory discipline applied and verified across all four categories.
+architecture_parity: []
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s01-characterization-and-freeze-oracle-baseline.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s02-runtime-registry-and-adapter-factory-fail-closed.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s03-loop-core-call-sites-and-cli-purge.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s04-harness-hooks-and-manifest-purge.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s05-dsh-tree-and-entrypoint-purge.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s06-instruction-surfaces-and-kind-i-hygiene.yaml
+- step_id: s07
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s07-test-suite-purge-and-rewrite.yaml
+- step_id: s08
+  implement_file: memory-bank/back/implement/T-HUB-106-dsh-runtime-full-purge/s08-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+- step_id: s06
+  status: completed
+- step_id: s07
+  status: completed
+- step_id: s08
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-16'
+  plan_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md#Replacement-/-sunset
+  rows:
+  - symbol: loop/runtime_adapters/dsh.py · DshAdapter
+    kind: A
+    command: rg -n "DshAdapter" loop/ harness/ --glob "*.py"
+    result: pass
+    prod_callers: 0
+  - symbol: loop/runtime_registry.yaml key dsh
+    kind: A
+    command: rg -n "^  dsh:" loop/runtime_registry.yaml
+    result: pass
+    prod_callers: 0
+  - symbol: loop.epic_transition.get_dsh_preset
+    kind: A
+    command: rg -n "get_dsh_preset" loop/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: harness/hooks/dsh_stream_filter.py
+    kind: A
+    command: test ! -f harness/hooks/dsh_stream_filter.py
+    result: pass
+    prod_callers: 0
+  - symbol: dsh directory tree
+    kind: A
+    command: test ! -d dsh
+    result: pass
+    prod_callers: 0
+  - symbol: bin/loop dsh case branch
+    kind: B
+    command: rg -n "dsh\)" bin/loop
+    result: pass
+    prod_callers: 0
+  - symbol: DSH_HOOKS_BRIDGE environment wiring in prod
+    kind: C
+    command: rg -n "DSH_HOOKS_BRIDGE" loop/ harness/hooks/
+    result: pass
+    prod_callers: 0
+  - symbol: DSH teaching in AGENTS.md / CLAUDE.md
+    kind: I
+    command: rg -n "DSH.*AGENTS\.md|DSH.*CLAUDE\.md" AGENTS.md CLAUDE.md
+    result: pass
+    prod_callers: 0
+  - symbol: DSH.md / dsh-loop-pilot.md / dsh-runtime.md files
+    kind: I
+    command: test ! -f DSH.md && test ! -f docs/runbooks/dsh-loop-pilot.md && test
+      ! -f memory-bank/architecture/dsh-runtime.md
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

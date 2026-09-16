@@ -8,14 +8,6 @@ runtimes:
       - stream_json
       - session_resume
       - raw_exec
-  dsh:
-    id: dsh
-    adapter_module: "loop.runtime_adapters.dsh"
-    binary_env: "DSH_PATH"
-    capabilities:
-      - stream_json
-      - profile_override
-      - session_resilience
   codex:
     id: codex
     adapter_module: "loop.runtime_adapters.codex"

@@ -537,9 +537,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
         for agent in optional_agents
     )
     runtime = os.environ.get("EPIC_RUNTIME") or os.environ.get("EPIC_RUNTIME_RESOLVED")
-    runtime_label = "DSH" if os.environ.get("DSH_HOOKS_BRIDGE") == "1" else (
-        "Codex" if runtime == "codex" else "Claude Code"
-    )
+    runtime_label = "Codex" if runtime == "codex" else "Claude Code"
     delegation = (
         "Делегирование — native Codex collaboration: spawn_agent → wait."
         if runtime == "codex"
@@ -925,7 +923,7 @@ def _get_supported_runtimes() -> set[str] | frozenset[str] | list[str]:
         from loop.runtime.registry import list_ids
         return list_ids()
     except Exception:
-        return frozenset({"claude", "dsh"})
+        return frozenset({"claude", "codex"})
 
 def _runtime_config_source(key: str, project: dict[str, str]) -> tuple[str | None, str]:
     if key in os.environ:
@@ -1866,7 +1864,7 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
     finalize-step after transient Claude retries / session aborts.
 
     Ownership comparisons for in-flight verify fences overlay prepare-time
-    session_start_identity (shared Claude/Codex/DSH rule) so mid-session
+    session_start_identity (shared Claude/Codex rule) so mid-session
     mb-finish does not invalidate BUGFIX/IMPLEMENT fences after arming QA.
     """
     try:

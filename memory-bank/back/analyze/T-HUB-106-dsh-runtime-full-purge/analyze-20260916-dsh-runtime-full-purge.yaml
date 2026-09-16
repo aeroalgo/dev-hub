@@ -1,0 +1,315 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-106-dsh-runtime-full-purge
+slug: dsh-runtime-full-purge
+date: '2026-09-16'
+status: complete
+index_fingerprint: sha256:c9efea2a91d5213b901c91ef68ac577fc9f962dc39ab7f5e7cec99a5281134f7
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: Как оператор loop, я хочу, чтобы поддерживались только Claude
+    Code и Codex, чтобы не поддерживать DSH.
+- requirement_id: US-002
+  step_ids:
+  - s02
+  - s04
+  - s05
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: Как разработчик hub, я хочу отсутствие дерева dsh/ и DSH-адаптера,
+    чтобы не тянуть Cordis/plugins.
+- requirement_id: US-003
+  step_ids:
+  - s06
+  - s08
+  status: covered
+  plan_text_verbatim: Как агент по AGENTS/CLAUDE, я не должен получать инструкцию
+    выбирать DSH runtime.
+- requirement_id: US-001 (AS)
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: 'Given: checkout после эпика, registry без dsh; When: EPIC_RUNTIME=dsh
+    или bin/loop dsh … или --runtime dsh; Then: non-zero / raise с явной ошибкой unknown/unsupported
+    runtime; процесс не стартует как claude'
+- requirement_id: US-002 (AS)
+  step_ids:
+  - s02
+  - s05
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: 'Given: repo root после эпика; When: проверка наличия dsh/ и
+    модуля loop.runtime_adapters.dsh; Then: директории/модуля нет; targeted suite
+    green без DSH fixtures'
+- requirement_id: US-003 (AS)
+  step_ids:
+  - s06
+  - s08
+  status: covered
+  plan_text_verbatim: 'Given: AGENTS.md, CLAUDE.md, harness/instructions/main.md,
+    README runtime table; When: поиск live «DSH → …» / EPIC_RUNTIME=dsh as supported;
+    Then: 0 hits (исторические epic trees memory-bank вне scope)'
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна отвергать runtime id dsh (и бывшие aliases на
+    dsh) на CLI, env и factory adapter с fail-closed ошибкой.
+- requirement_id: FR-002
+  step_ids:
+  - s02
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна иметь registry SoT только для claude и codex
+    (плюс documented alias claude-code).
+- requirement_id: FR-003
+  step_ids:
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна удалить пакет/дерево dsh/ включая scripts install-profiles
+    / install-cc-hooks / which-dsh.
+- requirement_id: FR-004
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна удалить DshAdapter и все prod call sites / imports.
+- requirement_id: FR-005
+  step_ids:
+  - s03
+  - s04
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна убрать machine field/API dsh_preset / get_dsh_preset
+    из live phase arm path (delete symbol или fail если передано — без no-op keep).
+- requirement_id: FR-006
+  step_ids:
+  - s04
+  - s08
+  status: covered
+  plan_text_verbatim: 'Система должна удалить harness DSH-only surfaces: dsh_stream_filter.py,
+    DSH abort/mismatch branches, manifest dsh blocks, DSH_HOOKS_BRIDGE wiring.'
+- requirement_id: FR-007
+  step_ids:
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна удалить или переписать тесты, которые требуют
+    DSH-контракт (включая test_loop_dsh_dispatch.py, test_dsh_e2e_smoke.py и кейсы
+    runtime="dsh").
+- requirement_id: FR-008
+  step_ids:
+  - s06
+  - s08
+  status: covered
+  plan_text_verbatim: Система должна переписать live Kind I (AGENTS/CLAUDE/instructions/README/LOOP-RUNTIMES/runbooks/architecture
+    index) так, чтобы DSH не был supported runtime; удалить DSH.md и docs/runbooks/dsh-loop-pilot.md
+    и memory-bank/architecture/dsh-runtime.md как live surfaces.
+- requirement_id: FR-009
+  step_ids:
+  - s01
+  - s03
+  - s08
+  status: covered
+  plan_text_verbatim: Misconfig / выбор dsh не должен молча деградировать в claude.
+- requirement_id: SC-001
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s08
+  status: covered
+  plan_text_verbatim: 'rg prod: нет DshAdapter / runtime_adapters.dsh / registry key
+    dsh:'
+- requirement_id: SC-002
+  step_ids:
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: test -d dsh → false
+- requirement_id: SC-003
+  step_ids:
+  - s01
+  - s03
+  - s08
+  status: covered
+  plan_text_verbatim: CLI/env dsh → fail
+- requirement_id: SC-004
+  step_ids:
+  - s06
+  - s08
+  status: covered
+  plan_text_verbatim: Kind I live teaching patterns = 0
+- requirement_id: SC-005
+  step_ids:
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: Targeted DSH-related suite deleted/rewritten; no restore-legacy
+    to green
+- requirement_id: AC-1
+  step_ids:
+  - s01
+  - s02
+  - s08
+  status: covered
+  plan_text_verbatim: Registry и factory не отдают DSH adapter; dsh → явная ошибка.
+- requirement_id: AC-2
+  step_ids:
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: Дерево dsh/ отсутствует в репо.
+- requirement_id: AC-3
+  step_ids:
+  - s01
+  - s03
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: bin/loop / runtime_sync / prepare_session не принимают dsh как
+    valid choice.
+- requirement_id: AC-4
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s08
+  status: covered
+  plan_text_verbatim: Prod-код без DshAdapter, get_dsh_preset live path, DSH_HOOKS_BRIDGE
+    dsh-only wiring.
+- requirement_id: AC-5
+  step_ids:
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: Obsolete DSH tests удалены; mixed tests переписаны на claude/codex
+    или deny.
+- requirement_id: AC-6
+  step_ids:
+  - s06
+  - s08
+  status: covered
+  plan_text_verbatim: Live Kind I не учит DSH как supported runtime; DSH.md и dsh-runbook/architecture
+    dsh-runtime удалены.
+- requirement_id: AC-7
+  step_ids:
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: Targeted pytest green без восстановления DSH.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s02
+  - s08
+  status: covered
+  plan_text_verbatim: Silent dsh→claude when binary missing / profile invalid (legacy
+    test scenarios) → raise / non-zero for unknown runtime; never substitute
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s03
+  - s04
+  - s08
+  status: covered
+  plan_text_verbatim: DSH_HOOKS_BRIDGE soft enable with claude paths → remove env
+    branch
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s02
+  - s08
+  status: covered
+  plan_text_verbatim: Keeping registry key dsh «deprecated» → delete key
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s02
+  - s03
+  - s08
+  status: covered
+  plan_text_verbatim: Optional flag «allow_dsh» default off → FORBIDDEN
+- requirement_id: TM-001
+  step_ids:
+  - s01
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: bin/loop rejects dsh token
+- requirement_id: TM-002
+  step_ids:
+  - s01
+  - s03
+  - s08
+  status: covered
+  plan_text_verbatim: EPIC_RUNTIME=dsh fail-closed, no claude substitute
+- requirement_id: TM-003
+  step_ids:
+  - s01
+  - s02
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: registry load has no dsh; factory unknown
+- requirement_id: TM-004
+  step_ids:
+  - s02
+  - s05
+  - s08
+  status: covered
+  plan_text_verbatim: no module loop.runtime_adapters.dsh; dsh/ gone
+- requirement_id: TM-005
+  step_ids:
+  - s06
+  - s08
+  status: covered
+  plan_text_verbatim: Kind I rg teaching patterns
+- requirement_id: TM-006
+  step_ids:
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: no obsolete DSH test files; mixed rewritten
+- requirement_id: TM-007
+  step_ids:
+  - s03
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: runtime_sync all = claude+codex only
+- requirement_id: TM-008
+  step_ids:
+  - s03
+  - s04
+  - s07
+  - s08
+  status: covered
+  plan_text_verbatim: phase arm without dsh_preset / get_dsh_preset gone
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

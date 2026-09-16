@@ -1,0 +1,322 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s08 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести полное сканирование инвентаря Replacement / sunset A+B+C+I.
+  Подтвердить нулевое присутствие DSH в коде, конфигурациях, CLI, хуках, тестах и инструкциях;
+  убедиться в прохождении всех targeted тестов и отсутствии регрессий.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - SC-005
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/
+    - loop/epic_transition.py
+    - harness/hooks/
+    - dsh/
+    - AGENTS.md
+    - CLAUDE.md
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s08-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Registry и factory не отдают DSH adapter; dsh -> явная ошибка."
+    - "Дерево dsh/ отсутствует в репо."
+    - "bin/loop / runtime_sync / prepare_session не принимают dsh как valid choice."
+    - "Prod-код без DshAdapter, get_dsh_preset live path, DSH_HOOKS_BRIDGE dsh-only wiring."
+    - "Obsolete DSH tests удалены; mixed tests переписаны на claude/codex или deny."
+    - "Live Kind I не учит DSH как supported runtime; DSH.md и dsh-runbook/architecture dsh-runtime удалены."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:38-50
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:204-265
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md#replacement--sunset
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/decompose-index.md
+  produces:
+    - evidence of complete DSH purge across code, manifests, entrypoints, docs and tests
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - SC-005
+    - US-001
+    - US-002
+    - US-003
+  files: []
+
+as_built:
+  - "Все компоненты (s01-s07) вычищены от DSH"
+
+delta:
+  - "Выполнить аудит и верификацию удаления всех элементов sunset инвентаря A+B+C+I"
+
+sunset_inventory:
+  - symbol: loop/runtime_adapters/dsh.py · DshAdapter
+    kind: A
+    replacement: ClaudeAdapter / CodexAdapter
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero prod callers; module absent
+  - symbol: loop/runtime_registry.yaml key dsh
+    kind: A
+    replacement: keys claude and codex only
+    policy: delete in-epic
+    rg_scope: loop/runtime_registry.yaml
+    expect: no dsh key or aliases
+  - symbol: loop.epic_transition.get_dsh_preset / dsh_preset field
+    kind: A
+    replacement: phase registry without dsh_preset
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: symbol absent
+  - symbol: loop.prompt_builder deepseek aliases
+    kind: A
+    replacement: normalize claude/codex only
+    policy: delete in-epic
+    rg_scope: loop/prompt_builder.py
+    expect: no deepseek aliases
+  - symbol: loop.runner.config DSH_HOOKS_BRIDGE / runtime == "dsh"
+    kind: A
+    replacement: non-dsh env only
+    policy: delete in-epic
+    rg_scope: loop/runner/config.py
+    expect: no dsh branches
+  - symbol: loop.cli.runtime_sync choice dsh
+    kind: A
+    replacement: choices codex, claude, all
+    policy: delete in-epic
+    rg_scope: loop/cli/runtime_sync.py
+    expect: no dsh choice
+  - symbol: loop.runtime.session_events dsh normalize
+    kind: A
+    replacement: claude/codex event normalize
+    policy: delete in-epic
+    rg_scope: loop/runtime/session_events.py
+    expect: no dsh normalize
+  - symbol: harness/hooks/dsh_stream_filter.py
+    kind: A
+    replacement: none
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: file deleted
+  - symbol: harness/hooks/session_resilience.py DSH patterns / detect_dsh_*
+    kind: A
+    replacement: claude/codex resilience only
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py
+    expect: no dsh patterns or imports
+  - symbol: harness/hooks/_lib.py dsh frozenset / DSH_HOOKS_BRIDGE
+    kind: A
+    replacement: claude / codex runtimes only
+    policy: delete in-epic
+    rg_scope: harness/hooks/_lib.py
+    expect: no dsh
+  - symbol: harness/hooks/epic/core.py dsh_preset
+    kind: A
+    replacement: remove parameter
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: no dsh_preset parameter
+  - symbol: harness/manifest.yaml dsh blocks
+    kind: A
+    replacement: remove dsh blocks
+    policy: delete in-epic
+    rg_scope: harness/manifest.yaml
+    expect: no dsh blocks
+  - symbol: dsh/ entire tree
+    kind: A
+    replacement: none
+    policy: delete in-epic
+    rg_scope: repo root
+    expect: directory absent
+  - symbol: loop/tests/test_loop_dsh_dispatch.py & test_dsh_e2e_smoke.py
+    kind: A
+    replacement: none
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: files absent
+  - symbol: bin/loop case dsh
+    kind: B
+    replacement: case claude|codex
+    policy: delete in-epic
+    rg_scope: bin/loop
+    expect: no dsh case
+  - symbol: EPIC_RUNTIME=dsh documented launch
+    kind: B
+    replacement: unsupported
+    policy: delete in-epic
+    rg_scope: bin/ docs/
+    expect: no dsh launch docs
+  - symbol: ./dsh/scripts/install-profiles.sh & install-cc-hooks.sh
+    kind: B
+    replacement: none
+    policy: delete in-epic
+    rg_scope: repo root
+    expect: files absent
+  - symbol: runtime_sync --runtime dsh
+    kind: B
+    replacement: all = claude+codex
+    policy: delete in-epic
+    rg_scope: loop/cli/
+    expect: no dsh option
+  - symbol: Silent dsh->claude fallback
+    kind: C
+    replacement: fail-closed exception
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero fallback matches
+  - symbol: DSH_HOOKS_BRIDGE soft enable
+    kind: C
+    replacement: fail-closed
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero matches
+  - symbol: Keeping registry key dsh deprecated
+    kind: C
+    replacement: delete key
+    policy: delete in-epic
+    rg_scope: loop/runtime_registry.yaml
+    expect: no dsh key
+  - symbol: DSH.md
+    kind: I
+    replacement: none
+    policy: delete in-epic
+    rg_scope: repo root
+    expect: file absent
+  - symbol: docs/runbooks/dsh-loop-pilot.md
+    kind: I
+    replacement: none
+    policy: delete in-epic
+    rg_scope: docs/runbooks/
+    expect: file absent
+  - symbol: memory-bank/architecture/dsh-runtime.md
+    kind: I
+    replacement: none
+    policy: delete in-epic
+    rg_scope: memory-bank/architecture/
+    expect: file absent
+  - symbol: AGENTS.md / CLAUDE.md DSH instructions
+    kind: I
+    replacement: Claude Code / Codex only
+    policy: delete in-epic
+    rg_scope: AGENTS.md CLAUDE.md harness/instructions/
+    expect: zero live DSH teaching matches
+  - symbol: README.md & LOOP-RUNTIMES.md DSH sections
+    kind: I
+    replacement: Claude and Codex only
+    policy: delete in-epic
+    rg_scope: README.md LOOP-RUNTIMES.md loop/README.md loop/WORKFLOW.md
+    expect: zero DSH sections
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Исторические memory-bank/back/plan/T-HUB-0*-dsh-* артефакты (explicit keep)"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: DshAdapter
+    command: 'rg -n "DshAdapter" loop/ harness/ --glob "*.py" || true'
+    expect: "no output"
+  - id: inv-a-02
+    kind: A
+    symbol: dsh in runtime_registry.yaml
+    command: 'rg -n "^  dsh:" loop/runtime_registry.yaml || true'
+    expect: "no output"
+  - id: inv-a-03
+    kind: A
+    symbol: get_dsh_preset
+    command: 'rg -n "get_dsh_preset" loop/ harness/ || true'
+    expect: "no output"
+  - id: inv-a-04
+    kind: A
+    symbol: dsh_stream_filter
+    command: 'test ! -f harness/hooks/dsh_stream_filter.py'
+    expect: "exit 0"
+  - id: inv-a-05
+    kind: A
+    symbol: dsh directory
+    command: 'test ! -d dsh'
+    expect: "exit 0"
+  - id: inv-b-01
+    kind: B
+    symbol: bin/loop dsh support
+    command: 'rg -n "dsh\)" bin/loop || true'
+    expect: "no output"
+  - id: inv-c-01
+    kind: C
+    symbol: DSH_HOOKS_BRIDGE in prod
+    command: 'rg -n "DSH_HOOKS_BRIDGE" loop/ harness/hooks/ || true'
+    expect: "no output"
+  - id: inv-i-01
+    kind: I
+    symbol: DSH teaching in AGENTS.md / CLAUDE.md
+    command: 'rg -n "DSH.*AGENTS\.md|DSH.*CLAUDE\.md" AGENTS.md CLAUDE.md || true'
+    expect: "no output"
+  - id: inv-i-02
+    kind: I
+    symbol: DSH.md presence
+    command: 'test ! -f DSH.md && test ! -f docs/runbooks/dsh-loop-pilot.md && test ! -f memory-bank/architecture/dsh-runtime.md'
+    expect: "exit 0"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — rg по всем строкам sunset_inventory kind=A: 0 prod callers, модули удалены"
+    verify: "rg -n 'DshAdapter|get_dsh_preset' loop/ harness/ || true"
+  - id: cp2
+    criterion: "Kind B — entrypoint inventory: bin/loop и CLI не содержат опций dsh"
+    verify: "rg -n 'dsh\\)' bin/loop || true"
+  - id: cp3
+    criterion: "Kind C — anti-fallback: нет fallback/soft default логики для dsh"
+    verify: "rg -n 'DSH_HOOKS_BRIDGE' loop/ harness/ || true"
+  - id: cp4
+    criterion: "Kind I — instruction surfaces: 0 упоминаний DSH как live runtime в инструкциях"
+    verify: "rg -n 'DSH.*AGENTS\\.md' AGENTS.md CLAUDE.md || true"
+  - id: cp5
+    criterion: "Устаревшие DSH тесты удалены, mixed тесты выполняются без ошибок"
+    verify: "bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line"
+  - id: cp6
+    criterion: "Targeted regression suite green"
+    verify: "bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_sync.py loop/tests/test_epic_transition.py -q --tb=line"
+
+verify: []
+tdd: []

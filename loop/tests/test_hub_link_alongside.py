@@ -23,8 +23,15 @@ def test_alongside_is_default(tmp_path: Path):
     assert (product_dir / ".dev-hub").is_file(), ".dev-hub must be created"
     assert (product_dir / ".cursor" / "rules.d" / "dev-hub-harness-router.mdc").is_file()
 
-    # Verify full mode artifacts were NOT created (.cursor/rules as a symlink to hub rules)
-    assert not (product_dir / ".cursor" / "rules").is_symlink(), "full-replace .cursor/rules symlink must not be created"
+    # Hub consumer-shell symlinks (same set as in dev-hub root)
+    assert (product_dir / ".cursor" / "rules").is_symlink()
+    assert (product_dir / ".cursor" / "rules").resolve() == (hub_dir / "harness" / "cursor" / "rules").resolve()
+    assert (product_dir / ".claude" / "agents").is_symlink()
+    assert (product_dir / ".claude" / "hooks").is_symlink()
+    assert (product_dir / ".claude" / "instructions").resolve() == (hub_dir / "harness" / "instructions").resolve()
+    assert (product_dir / ".cursor" / "hooks").is_symlink()
+    assert (product_dir / ".codex").is_symlink()
+    assert (product_dir / ".codex").resolve() == (hub_dir / ".codex").resolve()
 
 
 def test_alongside_clean_fixture(tmp_path: Path):
@@ -65,6 +72,24 @@ def test_alongside_clean_fixture(tmp_path: Path):
         entrypoint = product_dir / name
         assert entrypoint.is_symlink()
         assert entrypoint.resolve() == (hub_dir / name).resolve()
+
+    # Hub consumer-shell symlink set
+    expected = {
+        ".cursor/rules": hub_dir / "harness" / "cursor" / "rules",
+        ".cursor/templates": hub_dir / "harness" / "cursor" / "templates",
+        ".cursor/hooks": hub_dir / ".cursor" / "hooks",
+        ".claude/agents": hub_dir / "harness" / "agents",
+        ".claude/commands": hub_dir / "harness" / "claude" / "commands",
+        ".claude/hooks": hub_dir / "harness" / "hooks",
+        ".claude/instructions": hub_dir / "harness" / "instructions",
+        ".claude/rules": hub_dir / "harness" / "claude" / "rules",
+        ".claude/skills": hub_dir / "harness" / "claude" / "skills",
+        ".codex": hub_dir / ".codex",
+    }
+    for rel, target in expected.items():
+        link = product_dir / rel
+        assert link.is_symlink(), f"{rel} must be a symlink"
+        assert link.resolve() == target.resolve(), f"{rel} target mismatch"
 
 
 def test_alongside_links_runtime_entrypoints_to_hub(tmp_path: Path):
@@ -240,15 +265,15 @@ def test_alongside_unlink(tmp_path: Path):
     alongside_links = [
         ".cursor/rules",
         ".cursor/templates",
+        ".cursor/hooks",
+        ".claude/agents",
         ".claude/commands",
+        ".claude/hooks",
         ".claude/instructions",
         ".claude/rules",
         ".claude/skills",
+        ".codex",
     ]
-    # Older alongside installs also linked .cursor/rules directly.
-    (product_dir / ".cursor" / "rules").symlink_to(
-        hub_dir / "harness" / "cursor" / "rules", target_is_directory=True
-    )
     assert all((product_dir / link).is_symlink() for link in alongside_links)
 
     local_runtime = product_dir / ".claude" / "runtime"
@@ -321,11 +346,12 @@ def test_alongside_settings_hooks_point_to_harness(tmp_path: Path):
 
     resolved = (product_dir / "harness" / "hooks" / "session-start.py").resolve()
     assert resolved.is_file()
-    assert not (product_dir / ".claude" / "hooks").exists()
+    assert (product_dir / ".claude" / "hooks").is_symlink()
+    assert (product_dir / ".claude" / "hooks").resolve() == (hub_dir / "harness" / "hooks").resolve()
 
 
 def test_alongside_skips_cursor_rules(tmp_path: Path):
-    """TM-002: Pre-existing .cursor/rules and other files in .cursor/ are not touched."""
+    """TM-002: Pre-existing regular .cursor/rules fails closed (do not overwrite)."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "cursor_rules_product"
     product_dir.mkdir()
@@ -340,13 +366,12 @@ def test_alongside_skips_cursor_rules(tmp_path: Path):
     hub_link_bin = hub_dir / "bin" / "hub-link"
 
     res = subprocess.run([str(hub_link_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
-    assert res.returncode == 0, f"hub-link failed: {res.stderr}"
+    assert res.returncode == 2, f"expected exit 2, got {res.returncode}: {res.stderr}"
+    assert "ERROR:" in res.stderr
 
     # Verify custom rule exists and untouched
     assert custom_rule.is_file()
     assert custom_rule.read_text() == "User rule content here"
-
-    # .cursor/rules directory should not be a symlink or overwritten
     assert not user_rule_dir.is_symlink()
     assert user_rule_dir.is_dir()
 

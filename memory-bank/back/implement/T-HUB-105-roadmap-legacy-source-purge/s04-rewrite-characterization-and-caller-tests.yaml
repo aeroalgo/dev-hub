@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s04 — s04 — rewrite characterization and test assertions to expect md deny
+  IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s04-rewrite-characterization-and-caller-tests.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+- python-design-patterns
+- python-anti-patterns
+discovery:
+- В loop/tests/test_dag_v2_characterization.py ассерт на queue_rel_from_roadmap с
+  .md путем ожидал успешного маппинга
+gaps:
+  status: none
+done:
+- 'Обновлены ассерты в loop/tests/test_dag_v2_characterization.py: путь .md теперь
+  проверяется на возбуждение ValueError (pytest.raises(ValueError, match="legacy .md
+  roadmap path is forbidden"))'
+files:
+- loop/tests/test_dag_v2_characterization.py
+deletes:
+- loop/tests/test_dag_v2_characterization.py::legacy md success assert
+tests:
+- '`bin/pytest loop/tests/test_dag_v2_characterization.py -k test_v2_roadmap_queue_characterization
+  -q` — passed'
+- '`bin/pytest loop/tests/test_dag_v2_characterization.py -q` — passed'
+integration_check:
+- bin/pytest loop/tests/test_dag_v2_characterization.py loop/tests/test_roadmap_queue.py
+  loop/tests/test_roadmap_legacy_source_characterization.py -q
+grep_control:
+- back: rg -n "queue_rel_from_roadmap" loop/tests/test_dag_v2_characterization.py
+  front: n/a — backend shard.
+verification_results:
+- bin/pytest loop/tests/test_dag_v2_characterization.py -q -> PASSED
+checkpoints:
+- id: cp1
+  criterion: В test_dag_v2_characterization.py ассерт на .md путь ожидает ValueError
+  status: done
+- id: cp2
+  criterion: Полный сьют test_dag_v2_characterization.py выполняется успешно
+  status: done

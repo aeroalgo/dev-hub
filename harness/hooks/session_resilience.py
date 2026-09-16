@@ -28,7 +28,6 @@ sys.path.insert(0, _hub_s)
 from epic_yaml import all_checkpoints_done, compute_resume_from, load_implement
 from loop.runtime_adapters.base import AUTH_BANNED_PATTERNS, SessionContext
 from loop.runtime_adapters.common import get_adapter_for_runtime
-from loop.runtime_adapters.dsh import detect_dsh_model_mismatch
 from loop.lifecycle import TodoLifecycleManager
 
 # Match order: specific → broad. classify_abort() separates transient vs fatal.
@@ -57,22 +56,6 @@ _PERMANENT_FAILURE_PATTERNS = _AUTH_BANNED_PATTERNS + (
 
 _STRUCTURED_MODEL_SUBSTITUTION_RE = re.compile(
     r"(?i)model_substitution:\s*requested=\S+\s+actual=\S+"
-)
-
-_DSH_TRANSIENT_PATTERNS = (
-    re.compile(r"(?i)429\s*Too\s*Many\s*Requests"),
-    re.compile(r"(?i)503\s*Service\s*Unavailable"),
-    re.compile(r"(?i)5[0-9]{2}\s+(?:Server|Service|Gateway)\s+Error"),
-    re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
-    re.compile(r"(?i)(?:api[_ ]error|api error).*empty response"),
-)
-
-_DSH_PERMANENT_PATTERNS = AUTH_BANNED_PATTERNS + (
-    re.compile(r"(?i)API\s+Error:\s*terminated"),
-    re.compile(r"(?i)API\s+Error:\s*overloaded"),
-    re.compile(r"(?i)API\s+Error:.*rate.?limit"),
-    re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
-    re.compile(r"(?i)Invalid\s+API\s+key"),
 )
 
 _MODEL_RESTRICTED_RE = re.compile(
@@ -513,39 +496,6 @@ def detect_abort_in_text(text: str, *, exit_code: int | None = None) -> str | No
         if api_err:
             return api_err.group(0).strip()[:200]
     return None
-
-
-def detect_dsh_abort_in_log(text: str) -> str | None:
-    transient = _match_patterns(text or "", _DSH_TRANSIENT_PATTERNS)
-    if transient:
-        return f"dsh_transient: {transient}"
-    permanent = _match_patterns(text or "", _DSH_PERMANENT_PATTERNS)
-    if permanent:
-        return f"dsh_permanent: {permanent}"
-    return None
-
-
-def _detect_dsh_session_complete(text: str) -> bool:
-    last_nonempty = ""
-    for line in (text or "").splitlines():
-        normalized = line.strip()
-        if not normalized:
-            continue
-        last_nonempty = normalized
-        try:
-            event = json.loads(normalized)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(event, dict):
-            continue
-        candidates = [event]
-        nested = event.get("event")
-        if isinstance(nested, dict):
-            candidates.append(nested)
-        for item in candidates:
-            if item.get("type") == "session_end" and item.get("status") == "completed":
-                return True
-    return bool(re.search(r"(?i)(?:FINISH|END)\s*$", last_nonempty))
 
 
 def detect_abort_in_log(
@@ -1055,7 +1005,6 @@ def analyze_session_log(
         return payload
 
     reason = analysis.reason
-    dsh_abort_kind = analysis.dsh_abort_kind
 
     if reason and is_structured_model_substitution_reason(reason):
         return result_payload(
@@ -1065,21 +1014,6 @@ def analyze_session_log(
             abort_kind="fatal",
             reason=reason,
             backoff_sec=0,
-        )
-    if dsh_abort_kind:
-        outcome = (
-            SessionOutcome.PERMANENT_FAILURE
-            if dsh_abort_kind in ("fatal", "unknown")
-            else SessionOutcome.TRANSIENT_ABORT
-        )
-        abort_kind = "fatal" if dsh_abort_kind in ("fatal", "unknown") else dsh_abort_kind
-        return result_payload(
-            outcome=outcome.value,
-            aborted=True,
-            retryable=dsh_abort_kind == "transient",
-            abort_kind=abort_kind,
-            reason=reason,
-            backoff_sec=transient_backoff_sec(attempt) if dsh_abort_kind == "transient" else 0,
         )
 
     interrupted = exit_code in (130, 143)
@@ -1447,7 +1381,7 @@ def extract_paths_from_delta(delta: list[str]) -> list[str]:
     """Best-effort path extraction from delta bullet strings."""
     paths: list[str] = []
     pat = re.compile(
-        r"(?:frontend/|apps/|tests/|dsh/|harness/|loop/|\.claude/|memory-bank/)[^\s`'\"]+"
+        r"(?:frontend/|apps/|tests/|harness/|loop/|\.claude/|memory-bank/)[^\s`'\"]+"
     )
     for item in delta:
         for m in pat.finditer(str(item)):
@@ -1788,8 +1722,6 @@ def execute_session(
                         while "\n" in progress_line_buf:
                             progress_line, progress_line_buf = progress_line_buf.split("\n", 1)
                             progress_line = " ".join(progress_line.split())
-                            if progress_line.startswith("==> dsh:"):
-                                last_progress = progress_line[:200]
                         progress_line_buf = progress_line_buf[-512:]
                         if progress_mode == "codex_json":
                             collaboration_line_buf += chunk_txt
@@ -1977,7 +1909,7 @@ def _session_cli(argv: list[str]) -> int:
         "--progress-mode",
         choices=sorted(_PROGRESS_MODES),
         default="tool_json",
-        help="tool_json=Claude/DSH tool_use idle; stream_bytes=any stdout; codex_json=codex --json events",
+        help="tool_json=Claude tool_use idle; stream_bytes=any stdout; codex_json=codex --json events",
     )
     run_parser.add_argument("--log", type=Path, required=True)
     run_parser.add_argument(

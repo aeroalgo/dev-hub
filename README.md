@@ -64,14 +64,13 @@ PYTEST_WORKERS=8 bin/pytest loop/tests -q  # явное переопределе
 
 ---
 
-## Поддерживаемые агенты (Cursor / Codex / Claude Code / DSH)
+## Поддерживаемые агенты (Cursor / Codex / Claude Code)
 
 Один workflow (rules + `memory-bank/`) рассчитан на различные среды и runtimes. **Подключение продукта одинаковое** — `make hub-link`, открыть папку продукта.
 
 | Runtime ID | Loop support | Prerequisites | Runbook |
 |------------|--------------|---------------|---------|
 | **claude** | ✅ **default** | Claude CLI (`claude`), auth | [`loop/README.md`](loop/README.md) |
-| **dsh** | ✅ opt-in (`EPIC_RUNTIME=dsh`) | DSH CLI / environment | [`docs/runbooks/dsh-loop-pilot.md`](docs/runbooks/dsh-loop-pilot.md) |
 | **codex** | ✅ opt-in (`EPIC_RUNTIME=codex`) | `codex login`, `bin/runtime-sync --apply --runtime codex` | [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md) |
 
 **Codex CLI — поддерживается в loop:**
@@ -392,18 +391,6 @@ make hub-unlink
 | Нет `make hub-link` после клона | Rules/skills не видны в Cursor | `make hub-link` + Reload Window |
 | `DEV_HUB not found` в Make | Нет `.dev-hub`, нет `../dev-hub` | Создать `.dev-hub` или положить хаб рядом |
 | Ручной symlink `.claude` → hub | Конфликт с hub-link / runtime | Использовать `bin/hub-link` |
-
----
-
-## DSH Runtime (opt-in, preview)
-
-По умолчанию loop использует Claude Code runtime. Для DSH:
-
-```bash
-EPIC_RUNTIME=dsh ~/PyProject/dev-hub/bin/loop ~/PyProject/my-product gpt
-```
-
-Подробности: [`docs/runbooks/dsh-loop-pilot.md`](docs/runbooks/dsh-loop-pilot.md), [`dsh/README.md`](dsh/README.md).
 
 ---
 

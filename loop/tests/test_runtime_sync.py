@@ -24,9 +24,6 @@ def sample_manifest_path(tmp_path: Path) -> Path:
                     "claude": {
                         "copy_to": ".claude/agents/agent-a.md",
                     },
-                    "dsh": {
-                        "profile_preset": "agent-a",
-                    },
                 },
             }
         },
@@ -84,13 +81,15 @@ def test_collect_targets_codex_returns_materialize(sample_manifest_path: Path) -
     assert inst_targets[0].dest == root_dir / "AGENTS.md"
 
 
-def test_collect_targets_claude_native_skipped(sample_manifest_path: Path) -> None:
+def test_collect_targets_claude_native(sample_manifest_path: Path) -> None:
     root_dir = sample_manifest_path.parent.parent
     sync = ManifestSync.from_file(sample_manifest_path, root_dir=root_dir)
 
-    # dsh runtime has profile_preset, no target or copy_to
-    dsh_targets = sync.collect_targets("dsh")
-    assert len(dsh_targets) == 0
+    claude_targets = sync.collect_targets("claude")
+    assert len(claude_targets) == 2
+    agent_targets = [t for t in claude_targets if t.kind == "agent"]
+    assert len(agent_targets) == 1
+    assert agent_targets[0].dest == root_dir / ".claude/agents/agent-a.md"
 
 
 def test_check_drift_missing_dest(sample_manifest_path: Path) -> None:

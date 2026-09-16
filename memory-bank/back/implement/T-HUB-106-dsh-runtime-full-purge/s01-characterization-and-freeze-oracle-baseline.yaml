@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s01 — characterization & freeze oracle test matrix for runtime registry, CLI
+  and env IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s01-characterization-and-freeze-oracle-baseline.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан тестовый модуль loop/tests/test_dsh_purge_characterization.py с оракулами
+  fail-closed на явный отказ dsh (A1), startup failure/non-zero на env/CLI (A2), отсутствие
+  silent fallback на claude (A3), и проверками связей registry, адаптеров и CLI.
+files:
+- loop/tests/test_dsh_purge_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -k test_dsh_no_fallback
+  -q --tb=line
+integration_check:
+- Проверена изоляция characterization тестов от runtime registry и адаптеров перед
+  удалением.
+grep_control: []
+verification_results:
+- cp1 PASS — test_dsh_purge_characterization.py создан и фиксирует ожидаемое fail-closed
+  поведение для dsh
+- cp2 PASS — test_dsh_no_fallback_to_claude проверяет отсутствие silent fallback на
+  claude
+- suite PASS — 7 passed in 1.99s
+checkpoints:
+- id: cp1
+  criterion: Тест test_dsh_purge_characterization.py создан и фиксирует ожидаемое
+    fail-closed поведение для dsh
+  status: done
+  done_at: '2026-09-16T12:00:00Z'
+- id: cp2
+  criterion: Оракулы проверяют отсутствие silent fallback на claude при запросе dsh
+  status: done
+  done_at: '2026-09-16T12:00:00Z'
+resume_from: cp1

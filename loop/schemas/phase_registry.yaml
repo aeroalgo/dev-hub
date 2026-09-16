@@ -17,7 +17,6 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
-    dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -33,7 +32,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: verify-decompose
-    dsh_preset: decompose
     promotable_after_finish: true
     skip_index_sync: false
     board_column: In Progress
@@ -50,7 +48,6 @@ phases:
       need_reviewer: false
     verify_agent: analyze-verify
     verify_optional_env: PROJECT_LOOP_ANALYZE_VERIFY
-    dsh_preset: analyze
     promotable_after_finish: true
     skip_index_sync: false
     board_column: In Progress
@@ -66,7 +63,6 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
-    dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -79,7 +75,6 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
-    dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -95,7 +90,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: verify-implement
-    dsh_preset: implement
     promotable_after_finish: false
     skip_index_sync: true
     board_column: In Progress
@@ -111,7 +105,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: verify-implement
-    dsh_preset: implement
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -127,7 +120,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: verify-implement
-    dsh_preset: implement
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -143,7 +135,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: verify-bugfix
-    dsh_preset: bugfix
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -159,7 +150,6 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
-    dsh_preset: epic-audit
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -175,7 +165,6 @@ phases:
       need_verify: false
       need_reviewer: true
     verify_agent: verify-qa
-    dsh_preset: qa
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -188,7 +177,6 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
-    dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
     board_column: Done

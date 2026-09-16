@@ -303,14 +303,22 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 7. Link canonical Cursor and Claude extension trees while preserving
-  # product-local settings, router stubs, runtime, and worktrees.
+  # 7. Mirror hub consumer layout in the product:
+  #   harness shell symlinks + .codex (runtime-sync output in hub) + .cursor/hooks*
+  # Fail-closed if a destination already exists as a regular file/dir.
   for pair in \
+    ".cursor/rules:$DEV_HUB/harness/cursor/rules" \
     ".cursor/templates:$DEV_HUB/harness/cursor/templates" \
+    ".cursor/hooks:$DEV_HUB/.cursor/hooks" \
+    ".cursor/hooks-artifacts:$DEV_HUB/.cursor/hooks-artifacts" \
+    ".cursor/schemas:$DEV_HUB/.cursor/schemas" \
+    ".claude/agents:$DEV_HUB/harness/agents" \
     ".claude/commands:$DEV_HUB/harness/claude/commands" \
-    ".claude/instructions:$DEV_HUB/harness/claude/instructions" \
+    ".claude/hooks:$DEV_HUB/harness/hooks" \
+    ".claude/instructions:$DEV_HUB/harness/instructions" \
     ".claude/rules:$DEV_HUB/harness/claude/rules" \
-    ".claude/skills:$DEV_HUB/harness/claude/skills"; do
+    ".claude/skills:$DEV_HUB/harness/claude/skills" \
+    ".codex:$DEV_HUB/.codex"; do
     dest="${pair%%:*}"
     source="${pair#*:}"
     if [[ -d "$source" ]]; then

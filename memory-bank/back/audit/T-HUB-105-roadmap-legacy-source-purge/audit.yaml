@@ -1,0 +1,223 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-105-roadmap-legacy-source-purge
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+date: '2026-09-16'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Purge plan-dir roadmap-*-epics.queue.yaml legacy source discovery, fail-closed .md roadmap path mapping, and canonicalize orchestrator epic_dir import.
+  source: memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#WHAT
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 4
+  fr_satisfied: 4
+  sc_checked: 4
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+check_matrix:
+- source_ref: FR-001
+  status: pass
+  evidence: ROLE_PLAN_DIRS constant removed and discover_source_queues no longer scans plan directories for slug queues.
+  verify: rg -n "ROLE_PLAN_DIRS" loop/
+- source_ref: FR-002
+  status: pass
+  evidence: queue_rel_from_roadmap raises ValueError on .md input strings; caller tests updated to assert fail-closed rejection.
+  verify: rg -n "\.endswith\(\"\.md\"\)" loop/roadmap_queue.py
+- source_ref: FR-003
+  status: pass
+  evidence: loop/runner/orchestrator.py imports epic_dir directly from canonical epic_paths without bare exception swallowing block.
+  verify: rg -n "from loop.epic_paths" loop/runner/orchestrator.py
+- source_ref: FR-004
+  status: pass
+  evidence: roadmap/batches/*.yaml discovery retained and verified in discover_source_queues for supported batch merging.
+  verify: rg -n "batches" loop/roadmap_queue.py
+- source_ref: US-001
+  status: pass
+  evidence: Merge operations ignore obsolete plan-dir slug queues across all roles; only batches and canon are discovered.
+  verify: rg -n "discover_source_queues" loop/tests/test_roadmap_queue.py
+- source_ref: US-002
+  status: pass
+  evidence: Passing .md roadmap path to queue_rel_from_roadmap fails closed with explicit ValueError.
+  verify: rg -n "test_queue_rel_from_roadmap" loop/tests/test_roadmap_queue.py
+- source_ref: US-003
+  status: pass
+  evidence: Trace logging and Tier-1 self-healing invoke canonical epic_dir without swallowed import errors.
+  verify: rg -n "test_orchestrator" loop/tests/test_runner_orchestrator.py
+- source_ref: SC-001
+  status: pass
+  evidence: Scan loop for plan-dir removed completely from loop/roadmap_queue.py.
+  verify: rg -n "ROLE_PLAN_DIRS" loop/roadmap_queue.py
+- source_ref: SC-002
+  status: pass
+  evidence: Characterization and unit tests updated to assert explicit ValueError on .md roadmap paths.
+  verify: rg -n "pytest.raises\(ValueError" loop/tests/test_roadmap_queue.py
+- source_ref: SC-003
+  status: pass
+  evidence: Zero occurrences of from loop.epic_paths import epic_dir across orchestrator codebase.
+  verify: rg -n "from loop.epic_paths" loop/runner/orchestrator.py
+- source_ref: SC-004
+  status: pass
+  evidence: Net negative code LOC delta achieved while maintaining zero net new concept owners.
+  verify: git diff --shortstat
+- source_ref: AC-:1
+  status: pass
+  evidence: Zero live plan-dir slug-queue merge sources remaining in roadmap queue discovery.
+  verify: rg -n "ROLE_PLAN_DIRS" loop/
+- source_ref: AC-:2
+  status: pass
+  evidence: Zero silent exception swallowing around epic_dir imports in orchestrator.
+  verify: rg -n "except Exception:\s*pass" loop/runner/orchestrator.py
+- source_ref: AC-:3
+  status: pass
+  evidence: Dual machine map .md to queue without error eliminated in favor of explicit rejection.
+  verify: rg -n "queue_rel_from_roadmap" loop/roadmap_queue.py
+- source_ref: AC-:4
+  status: pass
+  evidence: Legacy tests requiring md map success eliminated and rewritten to verify denial.
+  verify: rg -n "test_queue_rel_from_roadmap" loop/tests/
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: ROLE_PLAN_DIRS constant removed and discover_source_queues no longer scans memory-bank/<role>/plan directories for slug queues.
+- source_ref: FR-002
+  status: satisfied
+  evidence: queue_rel_from_roadmap raises ValueError on .md input strings; caller tests updated to assert fail-closed rejection.
+- source_ref: FR-003
+  status: satisfied
+  evidence: loop/runner/orchestrator.py imports epic_dir directly from canonical epic_paths without bare exception swallowing block.
+- source_ref: FR-004
+  status: satisfied
+  evidence: roadmap/batches/*.yaml discovery retained and verified in discover_source_queues for supported batch merging.
+- source_ref: US-001
+  status: satisfied
+  evidence: Merge operations ignore obsolete plan-dir slug queues across all roles; only batches and canon are discovered.
+- source_ref: US-002
+  status: satisfied
+  evidence: Passing .md roadmap path to queue_rel_from_roadmap fails closed with explicit ValueError.
+- source_ref: US-003
+  status: satisfied
+  evidence: Trace logging and Tier-1 self-healing invoke canonical epic_dir without swallowed import errors.
+- source_ref: SC-001
+  status: satisfied
+  evidence: Scan loop for plan-dir removed completely from loop/roadmap_queue.py.
+- source_ref: SC-002
+  status: satisfied
+  evidence: Characterization and unit tests updated to assert explicit ValueError on .md roadmap paths.
+- source_ref: SC-003
+  status: satisfied
+  evidence: Zero occurrences of from loop.epic_paths import epic_dir across orchestrator codebase.
+- source_ref: SC-004
+  status: satisfied
+  evidence: Net negative code LOC delta achieved while maintaining zero net new concept owners.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Zero live plan-dir slug-queue merge sources remaining in roadmap queue discovery.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Zero silent exception swallowing around epic_dir imports in orchestrator.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Dual machine map .md to queue without error eliminated in favor of explicit rejection.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Legacy tests requiring md map success eliminated and rewritten to verify denial.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitution Section MUST satisfied across steps.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed during implementation.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback adhered to; .md path fails closed.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected (back epic).
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration respected.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step enforced.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority preserved.
+architecture_parity: []
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s01-characterization-and-freeze-oracle-baseline.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s02-purge-plan-dir-discovery-from-roadmap-queue.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s03-fail-closed-md-roadmap-path-mapping.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s04-rewrite-characterization-and-caller-tests.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s05-canonical-orchestrator-epic-dir-import.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s06-docs-and-instruction-kind-i-hygiene.yaml
+- step_id: s07
+  implement_file: memory-bank/back/implement/T-HUB-105-roadmap-legacy-source-purge/s07-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+- step_id: s06
+  status: completed
+- step_id: s07
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-16'
+  plan_ref: memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#Replacement-/-sunset
+  rows:
+  - symbol: loop/roadmap_queue.py ROLE_PLAN_DIRS and plan-dir discover arm
+    kind: A
+    command: rg -n "ROLE_PLAN_DIRS" loop/
+    result: pass
+    prod_callers: 0
+  - symbol: queue_rel_from_roadmap md map success path
+    kind: B
+    command: rg -n "\.endswith\(\"\.md\"\)" loop/roadmap_queue.py
+    result: pass
+    prod_callers: 0
+  - symbol: legacy characterization tests asserting md map success
+    kind: C
+    command: rg -n "queue_rel_from_roadmap.*\.md" loop/tests/
+    result: pass
+    prod_callers: 0
+  - symbol: docstrings and comments referencing plan/roadmap-*-epics.queue.yaml as live
+    kind: I
+    command: rg -n "plan/roadmap-.*queue\.yaml" loop/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s02 — purge plan-dir slug queue discovery from discover_source_queues
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Удалить логику сканирования legacy plan-dir (`plan/roadmap-*-epics.queue.yaml`)
+  и словарь `ROLE_PLAN_DIRS`
+
+  из `discover_source_queues` в `loop/roadmap_queue.py`, сохранив поддержку `roadmap/batches/*.yaml`
+  и канонический merge очередей.
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-001
+  - FR-004
+  - US-001
+  - SC-001
+  - SC-004
+  - AC−
+  nouns:
+  - loop/roadmap_queue.py
+  layout_paths:
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s02-purge-plan-dir-discovery-from-roadmap-queue.yaml
+  ac_quotes:
+  - Remove plan-dir roadmap-*-epics.queue.yaml discovery from live discover_source_queues.
+  - Keep roadmap/batches/*.yaml discovery if still part of supported merge ops.
+  - rg plan-dir scan loop absent.
+  plan_jumps:
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:40-70
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:120-140
+context:
+  consumes:
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#refactor-inventory
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+  produces:
+  - updated loop/roadmap_queue.py with plan_dir scanning removed
+  plan_refs:
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#fr-001
+  - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#fr-004
+  files:
+  - loop/roadmap_queue.py
+as_built:
+- discover_source_queues сканирует как batches, так и plan_dir через ROLE_PLAN_DIRS
+- В roadmap_merge переменная plan_rel используется для сообщения об ошибке отсутствия
+  источников
+delta:
+- Удаление ROLE_PLAN_DIRS и блока plan_dir.iterdir() из discover_source_queues
+- Очистка использования plan_rel в roadmap_merge
+deletes:
+- loop/roadmap_queue.py::ROLE_PLAN_DIRS
+- loop/roadmap_queue.py::discover_source_queues plan_dir scan loop
+wire_complete_required: false
+out_of_scope:
+- 'follow_up: T-HUB-103-event-schema-sot-unify'
+- 'follow_up: T-HUB-104-plan-path-classifier-dedup'
+skills:
+  code_surface: api
+  impl:
+  - writing-plans
+  - python-testing-patterns
+  - architecture-patterns
+  - python-design-patterns
+  - python-anti-patterns
+checkpoints:
+- id: cp1
+  criterion: В loop/roadmap_queue.py отсутствует сканирование plan_dir и словарь ROLE_PLAN_DIRS
+  verify: python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', 'ROLE_PLAN_DIRS',
+    'loop/roadmap_queue.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip()
+    else 1)"
+- id: cp2
+  criterion: discover_source_queues по-прежнему корректно находит файлы в batches/*.yaml
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -k discover -q
+- id: cp3
+  criterion: Freeze oracle и модульные тесты roadmap_queue проходят успешно
+  verify: bin/pytest loop/tests/test_roadmap_legacy_source_characterization.py loop/tests/test_roadmap_queue.py
+    -q
+verify: []
+tdd: []
+files:
+- loop/roadmap_queue.py
+- loop/tests/test_roadmap_queue.py
+- loop/tests/test_roadmap_legacy_source_characterization.py

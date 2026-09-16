@@ -557,35 +557,14 @@ def test_prepare_emits_runtime_claude_default(tmp_path: Path, monkeypatch) -> No
     assert out["runtime"] == "claude"
 
 
-def test_prepare_emits_runtime_dsh(tmp_path: Path, monkeypatch) -> None:
+def test_prepare_emits_runtime_codex(tmp_path: Path, monkeypatch) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+    monkeypatch.setenv("EPIC_RUNTIME", "codex")
 
     out = ctx.prepare_session(tmp_path, model="test-model")
 
-    assert out["runtime"] == "dsh"
-
-
-def test_prepare_emits_dsh_profile(tmp_path: Path, monkeypatch) -> None:
-    ctx = _load_ctx()
-    _seed_context(tmp_path)
-    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
-
-    out = ctx.prepare_session(tmp_path, model="test-model")
-
-    assert out["dsh_profile"].startswith("epic-")
-    assert out["runtime_extras"] == {"dsh_profile": "epic-implement"}
-
-
-def test_prepare_runtime_extras_via_adapter(tmp_path: Path, monkeypatch) -> None:
-    ctx = _load_ctx()
-    _seed_context(tmp_path)
-    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
-
-    out = ctx.prepare_session(tmp_path, model="test-model")
-
-    assert out["runtime_extras"] == {"dsh_profile": "epic-implement"}
+    assert out["runtime"] == "codex"
 
 
 def test_prepare_runtime_extras_claude(tmp_path: Path, monkeypatch) -> None:
@@ -600,31 +579,21 @@ def test_prepare_runtime_extras_claude(tmp_path: Path, monkeypatch) -> None:
 
 def test_argparse_choices_runtime_from_registry() -> None:
     from loop.runtime.registry import list_ids
-    import argparse
-    from loop.context_loop import main
 
     choices = list_ids()
     assert "claude" in choices
-    assert "dsh" in choices
+    assert "codex" in choices
+    assert "dsh" not in choices
 
 
 def test_context_loop_runtime_extras_generic_key(tmp_path: Path, monkeypatch) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
 
-    out = ctx.prepare_session(tmp_path, runtime="dsh", model="test-model")
+    out = ctx.prepare_session(tmp_path, runtime="codex", model="test-model")
 
     assert "runtime_extras" in out
     assert isinstance(out["runtime_extras"], dict)
-
-
-def test_prepare_emits_dsh_workspace(tmp_path: Path) -> None:
-    ctx = _load_ctx()
-    _seed_context(tmp_path)
-
-    out = ctx.prepare_session(tmp_path, runtime="dsh", model="test-model")
-
-    assert out["dsh_workspace"] == str(tmp_path)
 
 
 def test_prepare_cli_runtime_override(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -632,12 +601,11 @@ def test_prepare_cli_runtime_override(tmp_path: Path, monkeypatch, capsys) -> No
     _seed_context(tmp_path)
     monkeypatch.setenv("EPIC_RUNTIME", "claude")
 
-    rc = ctx.main(["--cwd", str(tmp_path), "prepare", "--runtime", "dsh", "--model", "test-model"])
+    rc = ctx.main(["--cwd", str(tmp_path), "prepare", "--runtime", "codex", "--model", "test-model"])
     out = json.loads(capsys.readouterr().out)
 
     assert rc == 0
-    assert out["runtime"] == "dsh"
-
+    assert out["runtime"] == "codex"
 
 def test_prepare_halts_without_explicit_model_ignores_stale_state(
     tmp_path: Path, monkeypatch

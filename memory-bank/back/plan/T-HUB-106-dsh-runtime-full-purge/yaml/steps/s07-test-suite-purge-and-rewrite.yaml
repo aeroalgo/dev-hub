@@ -1,0 +1,126 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s07 — delete obsolete DSH test files and rewrite mixed test assertions
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить устаревшие DSH тест-файлы (test_loop_dsh_dispatch.py, test_dsh_e2e_smoke.py)
+  и переписать mixed тесты (test_runtime_registry.py, test_runtime_sync*.py, test_epic_transition.py,
+  test_session_resilience_adapter.py, test_prompt_builder.py, test_board_sync_workspaces.py,
+  test_board_sync_host_url.py, test_runner_session.py, test_context_loop.py,
+  test_agent_contract_adapter.py, test_runtime_config.py, test_checkpoint_next_step_advance.py),
+  исключив предположения о поддержке DSH.
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - SC-005
+    - US-001
+    - US-002
+  nouns:
+    - loop/tests/test_loop_dsh_dispatch.py
+    - loop/tests/test_dsh_e2e_smoke.py
+    - loop/tests/test_runtime_registry.py
+    - loop/tests/test_runtime_sync.py
+    - loop/tests/test_runtime_sync_cli.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_board_sync_workspaces.py
+    - loop/tests/test_board_sync_host_url.py
+    - loop/tests/test_runner_session.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_agent_contract_adapter.py
+    - loop/tests/test_runtime_config.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s07-test-suite-purge-and-rewrite.yaml
+  ac_quotes:
+    - "Obsolete DSH tests удалены; mixed tests переписаны на claude/codex или deny."
+    - "Targeted pytest green без восстановления DSH."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:92-103
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:267-290
+
+context:
+  consumes:
+    - loop/tests/test_runtime_registry.py
+    - loop/tests/test_runtime_sync.py
+    - loop/tests/test_runtime_sync_cli.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_board_sync_workspaces.py
+    - loop/tests/test_board_sync_host_url.py
+    - loop/tests/test_runner_session.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_agent_contract_adapter.py
+    - loop/tests/test_runtime_config.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+  produces:
+    - loop/tests/test_runtime_registry.py
+    - loop/tests/test_runtime_sync.py
+    - loop/tests/test_runtime_sync_cli.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_board_sync_workspaces.py
+    - loop/tests/test_board_sync_host_url.py
+    - loop/tests/test_runner_session.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_agent_contract_adapter.py
+    - loop/tests/test_runtime_config.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+  plan_refs:
+    - FR-007
+    - SC-005
+    - US-001
+    - US-002
+  files:
+    - loop/tests/test_runtime_registry.py
+    - loop/tests/test_runtime_sync.py
+    - loop/tests/test_runtime_sync_cli.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_board_sync_workspaces.py
+    - loop/tests/test_board_sync_host_url.py
+    - loop/tests/test_runner_session.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_agent_contract_adapter.py
+    - loop/tests/test_runtime_config.py
+    - loop/tests/test_checkpoint_next_step_advance.py
+
+as_built:
+  - "loop/tests/test_loop_dsh_dispatch.py и test_dsh_e2e_smoke.py тестируют рантайм dsh"
+  - "Многие тесты используют фикстуры и ассерты с runtime='dsh' или путями dsh/"
+
+delta:
+  - "Удалить test_loop_dsh_dispatch.py и test_dsh_e2e_smoke.py"
+  - "Переписать смешанные тесты на использование рантаймов claude и codex"
+
+deletes:
+  - loop/tests/test_loop_dsh_dispatch.py
+  - loop/tests/test_dsh_e2e_smoke.py
+wire_complete_required: false
+
+out_of_scope:
+  - "Full repo pytest suite -> BACK QA phase"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "test_loop_dsh_dispatch.py и test_dsh_e2e_smoke.py удалены"
+    verify: "test ! -f loop/tests/test_loop_dsh_dispatch.py && test ! -f loop/tests/test_dsh_e2e_smoke.py"
+  - id: cp2
+    criterion: "Переписанные тесты реестра, sync, prompt builder и transition выполняются успешно"
+    verify: "bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_sync.py loop/tests/test_epic_transition.py loop/tests/test_prompt_builder.py -q --tb=line"
+
+verify: []
+tdd: []

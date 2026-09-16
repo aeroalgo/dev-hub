@@ -1,0 +1,42 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s06 — clean docstrings and comments referencing legacy plan-dir queues
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s06-docs-and-instruction-kind-i-hygiene.yaml
+skills_used:
+- writing-plans
+- architecture-patterns
+discovery:
+- rg -n 'scan legacy.*plan/roadmap' loop/roadmap_queue.py -> loop/roadmap_queue.py:1129
+gaps:
+  status: none
+done:
+- Очищены docstrings в queue_rel_from_roadmap, discover_source_queues и roadmap_merge
+  от упоминаний о сканировании legacy plan-dir очередей и .md маппинга
+files:
+- loop/roadmap_queue.py
+deletes: []
+tests:
+- '`python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"scan
+  legacy.*plan/roadmap\", \"loop/roadmap_queue.py\"], capture_output=True, text=True);
+  sys.exit(0 if not res.stdout.strip() else 1)"`'
+- '`bin/pytest loop/tests/test_roadmap_queue.py -q`'
+integration_check:
+- bin/pytest loop/tests/test_roadmap_queue.py -q
+grep_control:
+- back: rg -n "scan legacy.*plan/roadmap" loop/roadmap_queue.py
+  front: n/a — backend shard.
+verification_results:
+- 'cp1: 0 occurrences of scan legacy.*plan/roadmap in loop/roadmap_queue.py'
+- 'cp2: all roadmap_queue tests pass successfully'
+checkpoints:
+- id: cp1
+  criterion: В docstrings loop/roadmap_queue.py отсутствуют описания plan-dir slug
+    queues как активных источников
+  status: done
+- id: cp2
+  criterion: Тесты roadmap_queue выполняются успешно
+  status: done

@@ -16,7 +16,6 @@
 | S-HOOKS-CODEX-JSON | `.codex/hooks.json` | generated config | Codex hooks schema materialized by `loop.runtime_materializers.hooks_json` with parity validation in `loop.runtime_materializers.parity` and meta hash drift detection (`.codex/hooks.meta.json`) |
 | S-HUB-UNLINK | `bin/hub-unlink` | bash | Снять symlinks |
 | S-MAKE | `make/product.mk` | Make include | `hub-link`, `loop`, `loop-epic`, `loop-status` для product Makefile |
-| S-DSH | `dsh/profiles/epic-*` | DSH profile | Опциональный DSH session executor для loop (`EPIC_RUNTIME=dsh`), подробности в [dsh-runtime.md](dsh-runtime.md) |
 | S-HARNESS-SoT | `harness/` | canonical layer | Canonical Python hooks, agents, skills (`harness/skills`), commands (`harness/claude/commands`), rules (`harness/claude/rules`), and package harness layer (SoT); `.claude/*` and `.agents/skills` are symlink shells |
 | S-HOOKS-CC | `.claude/hooks/*.py` | symlink shell | Claude hooks shell (symlinks → `harness/hooks/`); pre/post tool, stop-gate, session, epic_resolve, stream filter, … |
 | S-COMMANDS-CC | `.claude/commands/` | symlink shell | Claude commands shell (symlinks → `harness/claude/commands/`) |
@@ -36,9 +35,8 @@ flowchart LR
   HubLink --> ProdTree[PROJECT_ROOT symlinks]
   BinLoop --> LoopSh[loop/loop.sh]
   LoopSh -->|EPIC_RUNTIME=claude| Sess[session_resilience + Claude CLI]
-  LoopSh -->|EPIC_RUNTIME=dsh| DSH[DSH + epic-profile]
-  DSH --> SessLog[dsh session log]
-  DSH --> Ctx[context_loop.py]
+  LoopSh -->|EPIC_RUNTIME=codex| CodexSess[Codex CLI session]
+  CodexSess --> Ctx[context_loop.py]
   Sess --> Ctx[context_loop.py]
   Ctx --> Idx[decompose index.yaml]
   LoopSh --> RT[runtime/slug/epic state]

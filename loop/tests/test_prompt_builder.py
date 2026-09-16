@@ -184,19 +184,13 @@ def test_claude_prompt_uses_shared_policy_and_claude_transport() -> None:
     assert "Agent" in prompt
     assert "spawn_agent" not in prompt
 
-def test_scope_selects_dsh_native_entrypoint_and_tool_dialect() -> None:
-    from prompt_builder import build_prompt_scope, render_prompt_scope
+def test_scope_rejects_dsh_and_unsupported_runtime() -> None:
+    from prompt_builder import build_prompt_scope
 
-    scope = build_prompt_scope(ROOT, command="BACK IMPLEMENT", runtime="dsh")
-
-    rendered = render_prompt_scope(scope)
-    assert scope.runtime == "dsh"
-    assert scope.entrypoint == "AGENTS.md"
-    assert "entrypoint: `AGENTS.md`" in rendered
-    assert "native DSH tool `read`" in rendered
-    assert "SKILL.md" in rendered
-    assert "Claude Code tools `Read`" in rendered
-    assert "CLAUDE.md" not in rendered
+    with pytest.raises(ValueError, match="unsupported runtime"):
+        build_prompt_scope(ROOT, command="BACK IMPLEMENT", runtime="dsh")
+    with pytest.raises(ValueError, match="unsupported runtime"):
+        build_prompt_scope(ROOT, command="BACK IMPLEMENT", runtime="deepseek")
 
 
 def test_scope_keeps_only_current_command_contract() -> None:

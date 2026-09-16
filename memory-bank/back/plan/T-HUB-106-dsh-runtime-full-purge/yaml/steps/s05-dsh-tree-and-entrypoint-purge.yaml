@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s05 — delete entire dsh tree and purge dsh case branch from bin/loop
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить файловое дерево dsh/ (включая profiles, presets, plugins, patches, scripts, bin, README)
+  и удалить поддержку рантайма dsh из скрипта bin/loop (оставить только claude и codex).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - SC-002
+    - US-001
+    - US-002
+  nouns:
+    - bin/loop
+    - dsh/
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s05-dsh-tree-and-entrypoint-purge.yaml
+  ac_quotes:
+    - "Дерево dsh/ отсутствует в репо."
+    - "bin/loop accepts claude|codex only."
+    - "test -d dsh -> false."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:38-50
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:204-236
+
+context:
+  consumes:
+    - bin/loop
+    - dsh/
+  produces:
+    - bin/loop
+  plan_refs:
+    - FR-001
+    - FR-003
+    - SC-002
+    - US-001
+    - US-002
+  files:
+    - bin/loop
+
+as_built:
+  - "bin/loop содержит ветку case claude|codex|dsh"
+  - "В репозитории присутствует каталог dsh/ с профилями, плагинами и скриптами"
+
+delta:
+  - "Обновить bin/loop: case принимает только claude и codex, на dsh возвращает ненулевой код"
+  - "Удалить каталог dsh/ целиком"
+
+deletes:
+  - dsh/
+wire_complete_required: false
+
+out_of_scope:
+  - "Инструкции и документация Kind I (шаг s06)"
+  - "Правка тестов (шаг s07)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Каталог dsh/ отсутствует в репозитории"
+    verify: "test ! -d dsh"
+  - id: cp2
+    criterion: "bin/loop отвергает dsh и запускает только claude или codex"
+    verify: "! bin/loop dsh > /dev/null 2>&1"
+
+verify: []
+tdd: []

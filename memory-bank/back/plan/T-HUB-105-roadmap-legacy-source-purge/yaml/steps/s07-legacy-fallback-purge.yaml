@@ -1,0 +1,169 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s07 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести полное сканирование инвентаря Replacement / sunset A+B+C+I.
+  Подтвердить отсутствие сканирования plan-dir очередей и словаря ROLE_PLAN_DIRS в `loop/roadmap_queue.py`,
+  отсутствие успешного маппинга `.md` в `queue_rel_from_roadmap`, отсутствие некорректного импорта `from loop.epic_paths`
+  в `loop/runner/orchestrator.py`, убедиться в прохождении всех тестов и отсутствии регрессий.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+    - AC− #1
+    - AC− #2
+    - AC− #3
+    - AC− #4
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/runner/orchestrator.py
+    - loop/tests/test_roadmap_legacy_source_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s07-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Нет live plan-dir slug-queue merge source."
+    - "Нет silent PASS на broken epic_dir import."
+    - "Нет dual machine map .md ↔ queue без ошибки."
+    - "Нет зелёных тестов, требующих legacy md map success."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:40-75
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:120-165
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#replacement--sunset
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+  produces:
+    - verified evidence of sunset inventory purge and complete regression test pass
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#replacement--sunset
+  files: []
+
+as_built:
+  - "Все предыдущие шаги s01-s06 удалили plan_dir сканирование, перевели .md маппинг в fail-closed, исправили импорт в orchestrator и обновили тесты"
+
+delta:
+  - "Исполнение проверок grep_control по категориям A, B, C, I"
+  - "Запуск регрессионного сьюта тестов roadmap_queue, orchestrator и dag_v2"
+
+sunset_inventory:
+  - symbol: loop/roadmap_queue.py::discover_source_queues plan_dir loop
+    kind: A
+    replacement: batches dir scan only
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: plan_dir loop absent; zero live plan-dir scan
+  - symbol: loop/roadmap_queue.py::ROLE_PLAN_DIRS
+    kind: A
+    replacement: ROLE_ROADMAP_DIRS only
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: dictionary deleted
+  - symbol: loop/runner/orchestrator.py::from loop.epic_paths import epic_dir
+    kind: A
+    replacement: from epic_paths import epic_dir
+    policy: delete in-epic
+    rg_scope: loop/runner/orchestrator.py
+    expect: zero matches for loop.epic_paths
+  - symbol: loop/roadmap_queue.py::queue_rel_from_roadmap .md branch
+    kind: B
+    replacement: fail-closed ValueError on .md
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: .md input raises ValueError; no .queue.yaml mapping for .md
+  - symbol: loop/tests/test_dag_v2_characterization.py:307 md success assert
+    kind: C
+    replacement: assert pytest.raises(ValueError)
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: tests expect deny on .md inputs
+  - symbol: loop/tests/test_roadmap_queue.py:476 md success assert
+    kind: C
+    replacement: assert pytest.raises(ValueError)
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: tests expect deny on .md inputs
+  - symbol: loop/roadmap_queue.py docstrings mentioning plan-dir slug queues
+    kind: I
+    replacement: updated docstrings (batches only)
+    policy: delete in-epic
+    rg_scope: loop/roadmap_queue.py
+    expect: zero references to live plan-dir slug queue scanning
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: loop/roadmap_queue.py ROLE_PLAN_DIRS
+    command: 'python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"ROLE_PLAN_DIRS\", \"loop/roadmap_queue.py\"], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)"'
+    expect: zero occurrences of ROLE_PLAN_DIRS
+  - id: inv-a-02
+    kind: A
+    symbol: loop/runner/orchestrator.py loop.epic_paths
+    command: 'python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"from loop.epic_paths\", \"loop/runner/orchestrator.py\"], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)"'
+    expect: zero occurrences of loop.epic_paths
+  - id: inv-b-01
+    kind: B
+    symbol: loop/roadmap_queue.py md map fail-closed
+    command: 'python3 -c "import pytest; from loop import roadmap_queue; pytest.raises(ValueError, roadmap_queue.queue_rel_from_roadmap, \"memory-bank/back/plan/roadmap-foo-epics.md\")"'
+    expect: raises ValueError on .md input
+  - id: inv-c-01
+    kind: C
+    symbol: test suites on new fail-closed contract
+    command: 'bin/pytest loop/tests/test_roadmap_legacy_source_characterization.py loop/tests/test_roadmap_queue.py loop/tests/test_dag_v2_characterization.py loop/tests/test_runner_orchestrator.py -q'
+    expect: all suites pass
+  - id: inv-i-01
+    kind: I
+    symbol: docstrings clean of plan-dir slug queues
+    command: 'python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"scan legacy.*plan/roadmap\", \"loop/roadmap_queue.py\"], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)"'
+    expect: zero matches
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — в коде отсутствуют ROLE_PLAN_DIRS и некорректный импорт loop.epic_paths в orchestrator
+    verify: "python3 -c \"import subprocess, sys; r1 = subprocess.run(['rg', '-n', 'ROLE_PLAN_DIRS', 'loop/roadmap_queue.py'], capture_output=True, text=True); r2 = subprocess.run(['rg', '-n', 'from loop.epic_paths', 'loop/runner/orchestrator.py'], capture_output=True, text=True); sys.exit(0 if not r1.stdout.strip() and not r2.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Kind B — вызов queue_rel_from_roadmap с .md путем возвращает явную ошибку (fail-closed)
+    verify: "python3 -c \"import pytest; from loop import roadmap_queue; pytest.raises(ValueError, roadmap_queue.queue_rel_from_roadmap, 'memory-bank/back/plan/roadmap-foo-epics.md')\""
+  - id: cp3
+    criterion: Kind C — freeze oracle и модульные тесты roadmap_queue и orchestrator проходят успешно
+    verify: "bin/pytest loop/tests/test_roadmap_legacy_source_characterization.py loop/tests/test_roadmap_queue.py loop/tests/test_dag_v2_characterization.py loop/tests/test_runner_orchestrator.py -q"
+  - id: cp4
+    criterion: Kind I — docstrings и комментарии очищены от устаревших форматов
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'scan legacy.*plan/roadmap', 'loop/roadmap_queue.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp5
+    criterion: Регрессионный сьют тестов loop проходит успешно
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_runner_orchestrator.py loop/tests/test_dag_v2_characterization.py loop/tests/test_incidents_integration.py -q"
+
+verify: []
+tdd: []

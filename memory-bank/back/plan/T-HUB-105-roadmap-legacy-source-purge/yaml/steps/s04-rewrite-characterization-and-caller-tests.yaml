@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s04 — rewrite characterization and test assertions to expect md deny
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать устаревшие ассерты в `loop/tests/test_dag_v2_characterization.py` (строки 306+), которые ранее
+  ожидали успешного маппинга `.md` в `.queue.yaml`, на явную проверку отказа (pytest.raises(ValueError)).
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - US-002
+    - SC-002
+    - AC− #3
+    - AC− #4
+  nouns:
+    - loop/tests/test_dag_v2_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s04-rewrite-characterization-and-caller-tests.yaml
+  ac_quotes:
+    - "characterization asserts on md map: rewrite to deny expectation."
+    - "Нет зелёных тестов, требующих legacy md map success."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:50-75
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:140-160
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#refactor-inventory
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+  produces:
+    - updated loop/tests/test_dag_v2_characterization.py with fail-closed assertions
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#fr-002
+  files:
+    - loop/tests/test_dag_v2_characterization.py
+
+as_built:
+  - "test_dag_v2_characterization.py проверяет roadmap_queue.queue_rel_from_roadmap('memory-bank/back/plan/roadmap-epics.md') == 'memory-bank/back/plan/roadmap-epics.queue.yaml'"
+
+delta:
+  - "Обновление ассертов в test_dag_v2_characterization.py для проверки pytest.raises(ValueError)"
+
+deletes:
+  - "loop/tests/test_dag_v2_characterization.py::legacy md success assert"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: В test_dag_v2_characterization.py ассерт на .md путь ожидает ValueError
+    verify: "bin/pytest loop/tests/test_dag_v2_characterization.py -k test_legacy_path_mapping -q || bin/pytest loop/tests/test_dag_v2_characterization.py -q"
+  - id: cp2
+    criterion: Полный сьют test_dag_v2_characterization.py выполняется успешно
+    verify: "bin/pytest loop/tests/test_dag_v2_characterization.py -q"
+
+verify: []
+tdd: []

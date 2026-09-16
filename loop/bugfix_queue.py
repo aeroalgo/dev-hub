@@ -19,7 +19,7 @@ from loop.schemas.bugfix_queue import (
 )
 
 _PATH_RE = re.compile(
-    r"(?<![\w.-])((?:loop|harness|bin|dsh|tests)(?:/[\w.{}-]+)+\.(?:py|sh|md|yaml|yml|toml|json))"
+    r"(?<![\w.-])((?:loop|harness|bin|tests)(?:/[\w.{}-]+)+\.(?:py|sh|md|yaml|yml|toml|json))"
 )
 _VERIFY_RE = re.compile(r"(?:^|\s)((?:timeout\s+\S+\s+)?bin/pytest\s+[^\n]+)", re.I)
 _CLASS_RE = re.compile(r"^([a-z_]+):\s*(.+)$", re.I)

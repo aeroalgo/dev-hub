@@ -19,7 +19,7 @@
 
 ## Grill pass (Phase 0 — mandatory)
 
-> Канон: @.agents/skills/grill-me/SKILL.md · shared-core §Phase 0
+> Канон: @.agents/skills/grill-me/SKILL.md · `grilling` · shared-core §Phase 0
 
 | Поле | Значение |
 |------|----------|
@@ -28,8 +28,7 @@
 | **Weakest link** | Главное хрупкое допущение |
 | **Anti-scope** | Явный out-of-scope этой итерации |
 | **Verdict** | `auto_resolved` (с Evidence) \| `needs_user_Q` |
-
-Grill-Q → первые слоты в Q→A log (≤5 total).
+| **Design tree (sketch)** | 3–8 узлов решений до первого frontier-раунда |
 
 ---
 
@@ -72,9 +71,24 @@ Grill-Q → первые слоты в Q→A log (≤5 total).
 
 ---
 
+## Frontier rounds
+
+> ≤3 раунда · ≤10 Q total · только независимые Q в раунде · канон: `grilling` + shared-core §Phase 0b
+
+### Round 1
+- Q… → A… · resolution: resolved | deferred
+
+### Round 2
+- …
+
+### Round 3
+- …
+
+---
+
 ## Q→A log
 
-Нумерованные вопросы (≤5 за сессию). Для каждого: варианты (если MC), Recommended/Suggested, ответ пользователя, resolution.
+Нумерованные вопросы (≤10 за сессию). Для каждого: варианты (если MC), Recommended/Suggested, ответ пользователя, resolution.
 
 ### Q1
 - **Question:** …?
@@ -83,6 +97,7 @@ Grill-Q → первые слоты в Q→A log (≤5 total).
 - **Options:** A … | B … | … (если MC)
 - **Answer:** …
 - **resolution:** resolved | deferred
+- **round:** 1|2|3
 
 ### Q2
 - …
@@ -101,9 +116,9 @@ CRITICAL без resolve или строки здесь → PLAN FINISH запр�
 
 ## Completion Report
 
-- **Grill:** done · verdict=… · grill_Q=N
-- **Asked:** N/5
+- **Grill:** done · verdict=… · rounds=N · grill_Q=M · mode=frontier
+- **Asked:** N/10
 - **Resolved:** …
 - **Deferred:** …
 - **Coverage:** scope=… · data=… · UX-API=… · NFR=… · integrations=… · edge=… · constraints=… · terminology=…
-- **Next action:** `BACK PLAN <slug>` | `continue CLARIFY` | `spike` (skip warning)
+- **Next action:** `BACK PLAN <slug>` | `continue CLARIFY` | `to-prd`/`to-spec` | `spike` (skip warning)

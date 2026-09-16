@@ -58,7 +58,6 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
-    dsh_preset: plan
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -74,7 +73,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: verify-implement
-    dsh_preset: implement
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress
@@ -90,7 +88,6 @@ phases:
       need_verify: true
       need_reviewer: false
     verify_agent: null
-    dsh_preset: implement
     promotable_after_finish: false
     skip_index_sync: false
     board_column: Done

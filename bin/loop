@@ -8,7 +8,7 @@ set -euo pipefail
 HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 case "${1:-}" in
-  claude|codex|dsh)
+  claude|codex)
     export EPIC_RUNTIME="$1"
     shift
     export PROJECT_ROOT="$(pwd)"

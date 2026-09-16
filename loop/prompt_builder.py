@@ -222,13 +222,13 @@ def _runtime_name(raw: object) -> str:
     value = str(raw or "claude-code").strip().lower().replace("_", "-")
     if value in {"codex", "codex-cli", "codex-app"}:
         return "codex"
-    if value in {"dsh", "deepseek-harness", "deepseek"}:
-        return "dsh"
-    return "claude-code"
+    if value in {"claude", "claude-code", "claude-cli"}:
+        return "claude-code"
+    raise ValueError(f"unsupported runtime {value!r}: only claude and codex are supported")
 
 
 def _runtime_entrypoint(runtime: str) -> str:
-    return "AGENTS.md" if runtime in {"codex", "dsh"} else "CLAUDE.md"
+    return "AGENTS.md" if runtime == "codex" else "CLAUDE.md"
 
 
 def _projection_value(projection: dict[str, Any], *keys: str) -> str:
@@ -427,26 +427,14 @@ def render_prompt_scope(scope: PromptScope) -> str:
         f"- step: `{scope.step}`",
         f"- epic: `{scope.epic}`",
     ]
-    if scope.runtime == "dsh":
-        lines.extend(
-            [
-                "- HARD READ: native DSH tool `read` — прочитай только указанный entrypoint.",
-                "- HARD READ: затем через `read` прочитай `.cursor/rules/mainrule.mdc`.",
-                workflow_read,
-                "- Skills: загружай только явно указанные `SKILL.md` из выбранной цепочки или текущего shard, также через `read`.",
-                "- DSH dialect: используй `read`, `write`, `edit`, `bash`; не вызывай Claude Code tools `Read`, `Write`, `Edit`, `Bash`, `Skill` или `Task`.",
-                "- Scope lock: не загружай инструкции других ролей, фаз, команд или skills.",
-            ]
-        )
-    else:
-        lines.extend(
-            [
-                "- HARD READ: прочитай только указанный entrypoint.",
-                "- HARD READ: затем прочитай `.cursor/rules/mainrule.mdc`.",
-                workflow_read,
-                "- Scope lock: не загружай инструкции других ролей, фаз или команд.",
-            ]
-        )
+    lines.extend(
+        [
+            "- HARD READ: прочитай только указанный entrypoint.",
+            "- HARD READ: затем прочитай `.cursor/rules/mainrule.mdc`.",
+            workflow_read,
+            "- Scope lock: не загружай инструкции других ролей, фаз или команд.",
+        ]
+    )
     lines.extend(
         [
             "## SKILLS LOAD POLICY (HARD)",

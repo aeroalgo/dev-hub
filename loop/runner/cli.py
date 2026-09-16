@@ -357,7 +357,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             sys.stdout.flush()
         arm_res = cl.arm_epic(project_root, target_epic)
         if not arm_res.get("ok"):
-            sys.stderr.write(f"==> ERROR: arming epic failed: {arm_res.get('error', 'unknown')}\n")
+            arm_err = (
+                arm_res.get("error")
+                or arm_res.get("reason")
+                or arm_res.get("diagnostic_code")
+                or "unknown"
+            )
+            sys.stderr.write(f"==> ERROR: arming epic failed: {arm_err}\n")
             sys.stderr.flush()
             return 1
         if arm_res.get("complete") or str(arm_res.get("stop") or "") == "EPIC_DONE":

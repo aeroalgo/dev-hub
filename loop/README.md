@@ -241,12 +241,6 @@ graph LR
 0 9 * * 1 cd $PROJECT_ROOT && python3 .claude/hooks/epic_resolve.py janitor-scan --cwd . > /tmp/janitor-report.txt
 ```
 
-## DSH Runtime (opt-in, developer preview)
-
-> **Note:** DSH Runtime is currently in developer preview and is not the production default.
-
-The system loop supports an alternative runtime execution engine powered by DSH (`EPIC_RUNTIME=dsh`). For pilot setup, configuration, and execution instructions, see [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) and [`dsh/README.md`](../dsh/README.md).
-
 ## Board sync enrichments & Epic-level board
 
 Board projection enriches tasks with structured card metadata, full description body loaders, phase-aware status mapping, and epic-level projection.

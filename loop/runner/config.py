@@ -103,13 +103,8 @@ def load_project_environment(
     os.environ["EPIC_LOOP"] = "1"
     os.environ.setdefault("CLAUDE_CODE_ENABLE_TASKS", "0")
 
-    runtime = runtime_name or os.environ.get("EPIC_RUNTIME", "claude")
-    if runtime == "dsh":
-        os.environ["DSH_HOOKS_BRIDGE"] = "1"
-        os.environ["CLAUDE_PROJECT_DIR"] = str(project_root)
-    else:
-        os.environ.pop("DSH_HOOKS_BRIDGE", None)
-        os.environ["CLAUDE_PROJECT_DIR"] = str(hub_root)
+    os.environ.pop("DSH_HOOKS_BRIDGE", None)
+    os.environ["CLAUDE_PROJECT_DIR"] = str(hub_root)
 
     applied_keys: list[str] = []
     # Load hub .claude/project.env

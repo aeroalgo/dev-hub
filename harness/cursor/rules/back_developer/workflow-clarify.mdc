@@ -10,7 +10,7 @@ alwaysApply: false
 **Шаблон**: @.cursor/templates/clarify.md
 
 **Скиллы (HARD):**
-- @.agents/skills/grill-me/SKILL.md — **Phase 0, mandatory**; Read **целиком** до taxonomy
+- @.agents/skills/grill-me/SKILL.md — **Phase 0, mandatory**; Read **целиком** (тянет `grilling` + companions)
 - @.agents/skills/brainstorming/SKILL.md — опционально при L3–4 / размытом scope **после** Grill (batch, без HARD-GATE пауз)
 
 ---
@@ -18,7 +18,7 @@ alwaysApply: false
 ## Когда запускать
 
 - **`BACK PLAN`** сам запускает Phase 0 Clarify при триггерах (orchestration) — отдельный `BACK CLARIFY` **не обязателен**
-- **Standalone `BACK CLARIFY`:** `continue` после 5/5 Q · CRITICAL после draft plan · IDEA PIPELINE / ANALYZE revisit · только ambiguity без plan в этой сессии
+- **Standalone `BACK CLARIFY`:** `continue` после 10/10 Q · CRITICAL после draft plan · IDEA PIPELINE / ANALYZE revisit · только ambiguity без plan в этой сессии
 
 ---
 
@@ -28,7 +28,7 @@ alwaysApply: false
 BACK CLARIFY <feature-slug>
 ```
 
-Опционально: ссылка на draft plan / brief / research. Без входа → спросить slug + 1–2 предложения цели (это не считается из квоты 5 Q таксономии, если только идентификация темы).
+Опционально: ссылка на draft plan / brief / research. Без входа → спросить slug + 1–2 предложения цели (это не считается из квоты 10 Q, если только идентификация темы).
 
 ---
 
@@ -50,9 +50,9 @@ BACK CLARIFY <feature-slug>
 4. **Read** `.agents/skills/grill-me/SKILL.md` → **Phase 0 Grill pass** → секция `## Grill pass` в артефакт
 5. Выполни shared/workflow-clarify-core.mdc:
    - §Таксономия → coverage map (внутренний)
-   - §Лимиты → ≤5 Q (grill-Q первые), sequential, Recommended/Suggested
-   - после каждого A → §Q→A запись в артефакт (+ patch draft plan секций при наличии)
-6. CRITICAL → resolve или явный defer-list (severity)
+   - §Phase 0b / §Лимиты → frontier rounds ≤3 · ≤10 Q · Recommended
+   - после каждого раунда → §Q→A + Frontier rounds (+ patch draft plan секций при наличии)
+6. CRITICAL → resolve или явный defer-list (owner)
 7. **Completion Report** в артефакт + кратко в чат
 
 ---
@@ -61,15 +61,15 @@ BACK CLARIFY <feature-slug>
 
 `memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md`
 
-Обязательные секции шаблона: Контекст и цель · **Grill pass** · Таксономия сканирования · Q→A log · Deferred / `[НУЖНО УТОЧНИТЬ]` · Completion Report.
+Обязательные секции шаблона: Контекст и цель · **Grill pass** · Таксономия сканирования · Frontier rounds · Q→A log · Deferred / `[НУЖНО УТОЧНИТЬ]` · Completion Report.
 
 ---
 
 ## Done When
 
-- [ ] **Grill pass** записан (verdict + premises); Completion Report содержит `Grill:`
+- [ ] **Grill pass** записан (verdict + premises); Completion Report содержит `Grill:` и `mode=frontier`
 - [ ] Completion Report написан
-- [ ] ≤5 Q обработаны (или early stop / «нет критичных ambiguity»)
+- [ ] ≤10 Q / ≤3 rounds обработаны (или early stop / «нет критичных ambiguity»)
 - [ ] Нет открытых **CRITICAL** blockers **или** они в defer-list с next/owner
 - [ ] Артефакт на диске; чат не единственный SoT
 

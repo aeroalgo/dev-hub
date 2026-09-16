@@ -87,8 +87,6 @@ def _event_type(runtime: str, raw_type: str, item_type: str | None, obj: dict[st
         return "stream"
     if item == "command_execution":
         return "tool_event"
-    if runtime == "dsh" and normalized == "session_end":
-        return "session_end"
     return "runtime_event"
 
 

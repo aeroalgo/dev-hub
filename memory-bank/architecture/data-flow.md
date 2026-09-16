@@ -30,7 +30,7 @@ flowchart TD
   D --> E[build next-prompt / arm step]
   E --> F{EPIC_RUNTIME}
   F -->|claude| G1[Claude session cwd=hub add-dir=product]
-  F -->|dsh| G2[DSH runner session]
+  F -->|codex| G2[Codex runner session]
   G1 --> H[Agent пишет memory-bank в PRODUCT_ROOT]
   G2 --> H
   H --> I[hooks: stop-gate / epic_resolve]
@@ -40,8 +40,6 @@ flowchart TD
   K -->|chain opt-in| L[roadmap_queue advance]
   K -->|halt| M[runtime state + logs]
 ```
-
-**DSH runtime data flow:** Подробности о dual-runtime ветке (`EPIC_RUNTIME=dsh`) см. в [dsh-runtime.md](dsh-runtime.md).
 
 **Данные на стороне хаба:** только `HUB_ROOT/runtime/<slug>/` — epic STATE_DIR = `runtime/<slug>/epic/` (`state.json`, `last-session.json`, checkpoint, locks, session log, `next-prompt.txt`).  
 **Данные на стороне продукта:** `memory-bank/**` (читает/пишет агент + hooks при `PROJECT_ROOT`).  

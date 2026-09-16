@@ -12,7 +12,6 @@ import yaml
 from loop.epic_transition import (
     _PHASE_REGISTRY_CACHE,
     arm_phase,
-    get_dsh_preset,
     get_phase_config,
     get_verify_agent,
     load_phase_registry,
@@ -39,7 +38,7 @@ def test_load_phase_registry_uses_pack_id(tmp_path: Path) -> None:
     custom_yaml = {
         "schema": "phase-registry/v1",
         "phases": {
-            "IMPLEMENT": {"verify_agent": "verify-implement", "dsh_preset": "implement"},
+            "IMPLEMENT": {"verify_agent": "verify-implement"},
             "QA": {"verify_agent": "verify-qa", "dsh_preset": "qa"},
         },
     }
@@ -181,8 +180,8 @@ def test_tm_003_normalize_no_prefix() -> None:
 # TM-004: arm_phase routes to custom dsh_preset from pack registry
 # ==============================================================================
 
-def test_tm_004_arm_phase_dsh_video_pack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """TM-004 / AC+4: arm_phase dsh + video pack -> dsh_preset from video phase_registry."""
+def test_tm_004_arm_phase_custom_pack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TM-004 / AC+4: arm_phase custom pack -> correct routing without dsh_preset."""
     (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
     video_reg_dir = tmp_path / "video" / "schemas"
     video_reg_dir.mkdir(parents=True, exist_ok=True)
@@ -192,7 +191,6 @@ def test_tm_004_arm_phase_dsh_video_pack(tmp_path: Path, monkeypatch: pytest.Mon
         "phases": {
             "IMPLEMENT": {
                 "arm_template": "implement",
-                "dsh_preset": "video-impl-preset",
             }
         },
     }
@@ -225,10 +223,11 @@ def test_tm_004_arm_phase_dsh_video_pack(tmp_path: Path, monkeypatch: pytest.Mon
         "T-VID-001",
         "SCRIPT IMPLEMENT",
         "script",
-        epic_runtime="dsh",
         pack_id="video-prod",
     )
-    assert res.get("kwargs", {}).get("dsh_preset") == "video-impl-preset"
+    assert res.get("ok") is True
+    assert res.get("armed_epic") == "T-VID-001"
+    assert "dsh_preset" not in res.get("kwargs", {})
 
 
 # ==============================================================================
@@ -238,6 +237,7 @@ def test_tm_004_arm_phase_dsh_video_pack(tmp_path: Path, monkeypatch: pytest.Mon
 def test_tm_005_session_start_pack_inject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """TM-005 / AC+5: EPIC_LOOP=1 + valid pack -> only current scope is injected."""
     monkeypatch.setenv("EPIC_LOOP", "1")
+    monkeypatch.setenv("EPIC_RUNTIME", "claude")
     save_epic_state(tmp_path, {"active": True, "status": "running", "armed_epic": "T-HUB-049"})
 
     # Create dummy phase registry and memory bank dir so path validation passes
@@ -258,6 +258,7 @@ def test_tm_005_session_start_pack_inject(tmp_path: Path, monkeypatch: pytest.Mo
 def test_session_start_pack_inject_fail_safe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """AC+2 / cp2: EPIC_LOOP=1 + full_resolve fails -> ctx contains warning or safe payload without crash."""
     monkeypatch.setenv("EPIC_LOOP", "1")
+    monkeypatch.setenv("EPIC_RUNTIME", "claude")
     save_epic_state(tmp_path, {"active": True, "status": "running", "armed_epic": "T-HUB-049"})
 
     # Broken dev-hub.project.yaml specifying non-existent pack
@@ -331,7 +332,7 @@ def test_gates_from_phase_video_pack(tmp_path: Path, monkeypatch: pytest.MonkeyP
                     "need_reviewer": True,
                 },
                 "verify_agent": "verify-video",
-                "dsh_preset": "video-impl",
+               
             }
         },
     }
@@ -420,7 +421,7 @@ def test_get_verify_agent_pack_id(tmp_path: Path) -> None:
     custom_yaml = {
         "schema": "phase-registry/v1",
         "phases": {
-            "IMPLEMENT": {"verify_agent": "verify-implement", "dsh_preset": "implement"},
+            "IMPLEMENT": {"verify_agent": "verify-implement"},
         },
     }
     (schema_dir / "phase_registry.yaml").write_text(yaml.dump(custom_yaml), encoding="utf-8")

@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s03 — fail-closed md roadmap path mapping in queue_rel_from_roadmap IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s03-fail-closed-md-roadmap-path-mapping.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+- python-design-patterns
+- python-anti-patterns
+discovery:
+- 'queue_rel_from_roadmap в loop/roadmap_queue.py переведена в fail-closed: выброс
+  ValueError на .md путях'
+- test_queue_rel_from_roadmap в loop/tests/test_roadmap_queue.py обновлен для проверки
+  pytest.raises(ValueError)
+gaps:
+  status: none
+done:
+- 'Переведена функция queue_rel_from_roadmap в loop/roadmap_queue.py в режим fail-closed:
+  запрещен неявный маппинг .md путей в .queue.yaml с выбросом ValueError'
+- Обновлен модульный тест test_queue_rel_from_roadmap в loop/tests/test_roadmap_queue.py
+  на ожидание pytest.raises(ValueError) при передаче .md путей
+- Сохранен канонический маппинг для bare roadmap директорий и явных queue.yaml
+files:
+- loop/roadmap_queue.py
+- loop/tests/test_roadmap_queue.py
+deletes:
+- loop/roadmap_queue.py::queue_rel_from_roadmap .md success branch
+tests:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_queue_rel_from_roadmap -q
+- python3 -c "from loop import roadmap_queue; assert roadmap_queue.queue_rel_from_roadmap('memory-bank/back/roadmap')
+  == 'memory-bank/back/roadmap/queue.yaml'; assert roadmap_queue.queue_rel_from_roadmap('memory-bank/back/roadmap/queue.yaml')
+  == 'memory-bank/back/roadmap/queue.yaml'"
+- bin/pytest loop/tests/test_roadmap_queue.py -q
+integration_check:
+- bin/pytest loop/tests/test_roadmap_queue.py -k test_queue_rel_from_roadmap -q
+- bin/pytest loop/tests/test_roadmap_queue.py -q
+grep_control:
+- back: rg -n "queue_rel_from_roadmap" loop/roadmap_queue.py loop/tests/test_roadmap_queue.py
+  front: n/a — backend shard.
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Вызов queue_rel_from_roadmap с .md путем выбрасывает ValueError
+  status: done
+- id: cp2
+  criterion: Канонические пути queue.yaml и bare roadmap dir по-прежнему успешно мапятся
+  status: done
+- id: cp3
+  criterion: Модульные тесты roadmap_queue проходят успешно
+  status: done

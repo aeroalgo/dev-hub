@@ -3,12 +3,11 @@
 Public contract:
   resolve_next(cwd, epic_id, role) -> EpicNextAction
   arm_phase(cwd, epic_id, phase, role, **kwargs) -> dict
-  arm_epic(cwd, epic_id, *, role="back", require_plan=True, dsh_preset=None) -> dict
+  arm_epic(cwd, epic_id, *, role="back", require_plan=True) -> dict
   promote_if_ready(cwd, epic_id, role) -> dict | None
   load_phase_registry(*, pack_id=None, cwd=None) -> dict
   get_phase_config(phase: str, *, pack_id=None, cwd=None) -> dict
   get_verify_agent(phase: str, *, pack_id=None, cwd=None) -> str | None
-  get_dsh_preset(phase: str, *, pack_id=None, cwd=None) -> str | None
 """
 from __future__ import annotations
 import os
@@ -48,7 +47,7 @@ _PHASE_REGISTRY_CACHE: dict[str, dict[str, Any]] = {}
 _COMPOSITE_PHASE_BASES = {
     "PLAN REFACTOR": "PLAN",
 }
-_ARM_EPIC_KWARGS = frozenset({"require_plan", "dsh_preset"})
+_ARM_EPIC_KWARGS = frozenset({"require_plan"})
 _LOOP_HANDOFF_SCHEMA = "loop-handoff/v1"
 _LOOP_HANDOFF_SCHEMA_LINE = f"schema: {_LOOP_HANDOFF_SCHEMA}"
 
@@ -169,17 +168,6 @@ def get_verify_agent(
     return cfg.get("verify_agent")
 
 
-def get_dsh_preset(
-    phase: str,
-    *,
-    pack_id: str | None = None,
-    cwd: Path | str | None = None,
-) -> str | None:
-    """Lookup dsh_preset for a phase from registry; unknown phase raises ValueError fail-closed."""
-    cfg = get_phase_config(phase, pack_id=pack_id, cwd=cwd)
-    return cfg.get("dsh_preset")
-
-
 def resolve_next(
     cwd: Path | str,
     epic_id: str,
@@ -281,7 +269,6 @@ def _arm_done(
     *,
     epic_id: str,
     role: str,
-    dsh_preset: str | None = None,
 ) -> dict[str, Any]:
     """Arm DONE state."""
     cwd_p = Path(cwd).resolve()
@@ -291,7 +278,7 @@ def _arm_done(
     st["status"] = "complete"
     st["halt_reason"] = None
     save_epic_state(cwd_p, st)
-    res = {
+    return {
         "ok": True,
         "complete": True,
         "stop": "EPIC_DONE",
@@ -299,9 +286,6 @@ def _arm_done(
         "epic_id": epic_id,
         "role": role,
     }
-    if dsh_preset:
-        res["dsh_preset"] = dsh_preset
-    return res
 
 
 def _arm_from_decompose(
@@ -731,7 +715,6 @@ def arm_epic(
     *,
     role: str = "back",
     require_plan: bool = True,
-    dsh_preset: str | None = None,
 ) -> dict[str, Any]:
     """Arm activeContext for epic via resolver (pre-implement / implement / post-implement)."""
     cwd_p = Path(cwd).resolve()
@@ -751,7 +734,6 @@ def arm_epic(
             "phase": "DONE",
             "epic_id": epic_id,
             "role": role,
-            **({"dsh_preset": dsh_preset} if dsh_preset else {}),
         }
     if phase in {"PLAN", "DECOMPOSE", "CLARIFY", "ANALYZE", "CREATIVE"}:
         return arm_phase(
@@ -817,14 +799,7 @@ def arm_phase(
         except Exception:
             pack_id = None
 
-    runtime_cfg = resolve_runtime_config(cwd_p)
-    epic_runtime = kwargs.get("epic_runtime") or runtime_cfg.epic_runtime
-    if epic_runtime == "dsh":
-        phase_config = get_phase_config(phase, pack_id=pack_id, cwd=cwd_p)
-        dsh_preset = phase_config.get("dsh_preset")
-        if dsh_preset is None:
-            raise ValueError(f"no DSH preset for phase {phase!r}: fail-closed")
-        kwargs["dsh_preset"] = dsh_preset
+
 
     phase_u = (phase or "").upper()
     lifecycle_phase_u = normalize_registry_phase(phase_u)
@@ -904,7 +879,7 @@ def arm_phase(
             }
         if (
             current_step == "DECOMPOSE"
-            or str(st_before.get("last_finished_step") or "").strip().upper() == "DECOMPOSE"
+            or (current_step != "ANALYZE" and str(st_before.get("last_finished_step") or "").strip().upper() == "DECOMPOSE")
             or decompose_gate_failed
         ):
             verify = decompose_verify_pass_ready(cwd_p, st_before)
@@ -1008,7 +983,6 @@ def arm_phase(
                     cwd_p,
                     epic_id=epic_id,
                     role=role,
-                    dsh_preset=kwargs.get("dsh_preset"),
                 )
         else:
             res = arm_epic(cwd_p, epic_id, role=role, **_arm_epic_kwargs(kwargs))
@@ -1107,10 +1081,7 @@ def promote_if_ready(
             "verify_runtime_collaboration_wait_timeout",
             "verify-decompose_pass_missing",
         } or str(st.get("repair_required") or "").strip() == "gate-repair"
-        if (
-            str(st.get("last_finished_step") or "").strip().upper() == "DECOMPOSE"
-            or decompose_transition_failed
-        ):
+        if decompose_transition_failed:
             from loop.decompose_gate import decompose_verify_pass_ready
 
             verify = decompose_verify_pass_ready(cwd_p, st)

@@ -1,0 +1,76 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s01 — characterization & freeze oracle test matrix for runtime registry, CLI and env
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать базовые characterization и fail-closed deny тесты для runtime registry, CLI и env.
+  Создать тестовые сценарии, проверяющие отказ на runtime 'dsh' и бывшие алиасы без fallback на claude.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-009
+    - SC-003
+    - US-001
+  nouns:
+    - loop/tests/test_dsh_purge_characterization.py
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/base.py
+    - bin/loop
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s01-characterization-and-freeze-oracle-baseline.yaml
+  ac_quotes:
+    - "Registry и factory не отдают DSH adapter; dsh -> явная ошибка."
+    - "Misconfig EPIC_RUNTIME=dsh -> fail at start (non-zero / raise), не stub."
+    - "Нет soft default / silent dsh -> claude."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:38-75
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:162-200
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md
+    - loop/runtime_registry.yaml
+    - loop/runtime_adapters/base.py
+  produces:
+    - loop/tests/test_dsh_purge_characterization.py
+  plan_refs:
+    - FR-001
+    - FR-009
+    - SC-003
+    - US-001
+  files:
+    - loop/tests/test_dsh_purge_characterization.py
+
+as_built:
+  - "loop/runtime_registry.yaml регистрирует ключ dsh и алиасы dsh"
+  - "loop/runtime_adapters/base.py загружает рантаймы из registry"
+
+delta:
+  - "Создать loop/tests/test_dsh_purge_characterization.py с оракулами на fail-closed отказ dsh"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Удаление dsh/ дерева (шаг s05)"
+  - "Правка продакшн-реестра и адаптеров (шаг s02)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Тест test_dsh_purge_characterization.py создан и фиксирует ожидаемое fail-closed поведение для dsh"
+    verify: "bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line"
+  - id: cp2
+    criterion: "Оракулы проверяют отсутствие silent fallback на claude при запросе dsh"
+    verify: "bin/pytest loop/tests/test_dsh_purge_characterization.py -k test_dsh_no_fallback -q --tb=line"
+
+verify: []
+tdd: []

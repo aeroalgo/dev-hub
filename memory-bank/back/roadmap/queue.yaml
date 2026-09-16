@@ -1,12 +1,12 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-105
-  epic_id: T-HUB-105-roadmap-legacy-source-purge
-  plan: plan-T-HUB-105-roadmap-legacy-source-purge.md
+- id: T-HUB-106
+  epic_id: T-HUB-106-dsh-runtime-full-purge
+  plan: plan-T-HUB-106-dsh-runtime-full-purge.md
   deps: []
-  kind: refactor
-  batch: plan-refactor-leftover-20260916
+  kind: feature
+  batch: dsh-runtime-full-purge-20260916
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -503,6 +503,11 @@ done:
   kind: refactor
   plan: plan-T-HUB-104-plan-path-classifier-dedup.md
   batch: plan-refactor-leftover-20260916
+- id: T-HUB-105
+  epic_id: T-HUB-105-roadmap-legacy-source-purge
+  kind: refactor
+  plan: plan-T-HUB-105-roadmap-legacy-source-purge.md
+  batch: plan-refactor-leftover-20260916
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
@@ -597,3 +602,8 @@ batches:
       helper; T-HUB-105 roadmap legacy source + orchestrator epic_dir; clarify skipped
       (user forced PLAN REFACTOR); details in plan/<epic_id>/md/plan.md; Covering
       in md/prompt.md
+  dsh-runtime-full-purge-20260916:
+    title: Remove DSH runtime implementation end-to-end
+    note: T-HUB-106 live purge of dsh/ tree, adapter, registry/CLI, harness bridge,
+      obsolete tests and Kind I; historical memory-bank epic trees out of scope; clarify
+      clarify-20260916-dsh-full-purge.md; details in plan/<epic_id>/md/plan.md

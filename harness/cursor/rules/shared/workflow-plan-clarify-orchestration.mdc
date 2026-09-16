@@ -5,11 +5,12 @@ alwaysApply: false
 # PLAN ↔ CLARIFY orchestration
 
 **Канон:** пользователь вводит **одну** команду `* PLAN <slug>`. Агент сам решает, нужен ли Phase 0 Clarify в **той же сессии**.
-**`* CLARIFY`** — отдельная команда для добора (квота 5/5), pipeline-revisit, CRITICAL после draft plan.
+**`* CLARIFY`** — отдельная команда для добора (квота 10/10), pipeline-revisit, CRITICAL после draft plan.
 
 **Shared clarify mechanics:** `workflow-clarify-core.mdc`
 **Role wrappers:** `workflow-clarify.mdc` (back/front/integration)
 **Шаблон:** `clarify.md`
+**Skills:** `grill-me` → `grilling` (+ situational companions)
 
 ---
 
@@ -17,14 +18,14 @@ alwaysApply: false
 
 | Фаза | Режим UX | Артефакт | Когда |
 |------|----------|----------|-------|
-| **Phase 0** | sequential, ≤5 Q, 1 вопрос за ход, Recommended/Suggested | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` | триггеры ниже |
+| **Phase 0** | frontier rounds, ≤10 Q / ≤3 rounds, Recommended | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` | триггеры ниже |
 | **Phase 1** | batch, plan unlimited (§0.0) | `plan-<task_id>.md` (+ roadmap/queue) | после Phase 0 gate OK |
 
 **Объявление в чат:**
 - Phase 0: `OK * PLAN — Phase 0 Clarify (<slug>)`
 - Phase 1: `OK * PLAN — Phase 1 Plan writing (<slug>)` + `SUSPENSION GUARD active — plan output unlimited`
 
-**FORBIDDEN в Phase 0:** batch dump вопросов; писать полный plan до Completion Report Phase 0 (кроме patch секций по Q→A).
+**FORBIDDEN в Phase 0:** dump **зависимых** Q одним списком; писать полный plan до Completion Report Phase 0 (кроме patch секций по Q→A).
 **FORBIDDEN в Phase 1:** повторный full Grill pass вместо ссылки на clarify-артефакт (spike skip → только mini grill §Product probe).
 
 ---
@@ -50,17 +51,18 @@ alwaysApply: false
 ## Phase 0 — исполнение (в сессии PLAN)
 
 1. Прочитать role **CLARIFY gates** (`isolation_rules/_lean/clarify.mdc`) + **shared-core**
-2. **Read** `.agents/skills/grill-me/SKILL.md` целиком → `## Grill pass` в clarify-артефакт
+2. **Read** `.agents/skills/grill-me/SKILL.md` целиком → тянет `grilling` → `## Grill pass` в clarify-артефакт
 3. Taxonomy scan → coverage map (в артефакт)
-4. ≤5 sequential Q; после каждого A → Q→A log + patch draft plan секций если draft уже есть
+4. Frontier rounds (≤3, ≤10 Q total); после каждого раунда → Q→A + Frontier rounds log + patch draft plan секций если draft уже есть
 5. CRITICAL → resolve или defer-list (owner/next)
 6. **Completion Report** в clarify-артефакт; `status: done` если ready for Phase 1
+7. Опционально предложить `to-prd`/`to-spec` (синтез) перед Phase 1 — не блокирует
 
 ### Phase 0 halt (не переходить к Phase 1)
 
-- Ожидается ответ пользователя на текущий Q
+- Ожидается ответ пользователя на текущий **раунд**
 - Открытый CRITICAL без resolve/defer-list
-- Квота 5/5 исчерпана с material gaps → FINISH с next `continue * CLARIFY` (новая сессия)
+- Квота 10/10 исчерпана с material gaps → FINISH с next `continue * CLARIFY` (новая сессия)
 
 ### Phase 0 → Phase 1 gate (в той же сессии, без отдельного чата)
 
@@ -83,10 +85,12 @@ alwaysApply: false
 
 | Сценарий | Команда |
 |----------|---------|
-| Добор после 5/5 Q | `continue * CLARIFY <slug>` |
+| Добор после 10/10 Q | `continue * CLARIFY <slug>` |
 | CRITICAL появились после draft plan | `* CLARIFY <slug>` (+ patch plan) |
 | IDEA PIPELINE / ANALYZE revisit | `* CLARIFY <slug>` |
 | Только снять ambiguity без plan в этой сессии | `* CLARIFY <slug>` → FINISH → позже `* PLAN` |
+| Ответы у stakeholder | `to-questionnaire` (из grill-me chain) |
+| Туманная multi-session идея | предложить `wayfinder` |
 
 **Не требовать** отдельный `* CLARIFY` перед `* PLAN`, если пользователь уже ввёл PLAN — orchestrator делает Phase 0 сам.
 

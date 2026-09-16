@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s06 — purge DSH from live instruction surfaces, runbooks, and architecture
+  docs IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s06-instruction-surfaces-and-kind-i-hygiene.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Deleted DSH.md, docs/runbooks/dsh-loop-pilot.md, and memory-bank/architecture/dsh-runtime.md
+- Purged DSH references from AGENTS.md, CLAUDE.md, README.md, LOOP-RUNTIMES.md, loop/README.md,
+  loop/WORKFLOW.md
+- 'Purged DSH references from architecture documents: memory-bank/architecture/index.md,
+  services.md, data-flow.md, services-dataflow.md'
+- 'Purged DSH references from runbooks: docs/runbooks/codex-loop-pilot.md and docs/runbooks/workflow-pack-authoring.md'
+files:
+- AGENTS.md
+- CLAUDE.md
+- README.md
+- LOOP-RUNTIMES.md
+- loop/README.md
+- loop/WORKFLOW.md
+- memory-bank/architecture/index.md
+- memory-bank/architecture/services.md
+- memory-bank/architecture/data-flow.md
+- memory-bank/architecture/services-dataflow.md
+- docs/runbooks/codex-loop-pilot.md
+- docs/runbooks/workflow-pack-authoring.md
+deletes:
+- DSH.md
+- docs/runbooks/dsh-loop-pilot.md
+- memory-bank/architecture/dsh-runtime.md
+tests:
+- test ! -f DSH.md && test ! -f docs/runbooks/dsh-loop-pilot.md && test ! -f memory-bank/architecture/dsh-runtime.md
+- '! rg -n -i ''EPIC_RUNTIME=dsh|DSH.*entrypoint'' AGENTS.md CLAUDE.md README.md LOOP-RUNTIMES.md'
+- bin/pytest loop/tests/test_operational_docs.py -q
+integration_check:
+- Kind I live teaching patterns count = 0 on all live instruction surfaces and architecture
+  files
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: DSH.md, dsh-loop-pilot.md и dsh-runtime.md удалены
+  status: done
+  done_at: '2026-09-16T14:37:18Z'
+- id: cp2
+  criterion: rg по live instruction surfaces не находит live DSH teaching patterns
+  status: done
+  done_at: '2026-09-16T14:37:23Z'
+resume_from: cp1

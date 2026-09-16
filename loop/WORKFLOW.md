@@ -49,12 +49,12 @@
 
 ## Runtime registry
 
-Конфигурация доступных runtimes автоцикла (`claude`, `dsh`, `codex`, …) и их адаптеров определяется в [`loop/runtime_registry.yaml`](runtime_registry.yaml).
+Конфигурация доступных runtimes автоцикла (`claude`, `codex`, …) и их адаптеров определяется в [`loop/runtime_registry.yaml`](runtime_registry.yaml).
 Слой конфигурации и правил под каждую платформу подключается через каталог `harness/` и переключается переменной окружения `EPIC_RUNTIME` или флагом `--runtime`.
 
 ## Production semantics
 
-- **Runtime engine:** `EPIC_RUNTIME` selects execution engine: `claude` (default) | `dsh` (developer preview, opt-in; not production default). See [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) for runbook details.
+- **Runtime engine:** `EPIC_RUNTIME` selects execution engine: `claude` (default) | `codex`. See [`docs/runbooks/codex-loop-pilot.md`](../docs/runbooks/codex-loop-pilot.md) for runbook details.
 - `.claude/project.env` is the checkout canon for runtime and permission values; `.claude/project.env.local` is the only local override. Do not create or synchronize values to a hypothetical example file.
 
 - `activeContext.md`, the decompose index and the implement step are the source of truth for the current agent transition. The runner owns session timeout, process kill grace, bounded retry, degraded status and machine-readable diagnostics.
@@ -119,7 +119,7 @@ promote_if_ready(cwd, epic_id, role)
 | `resolve_next(cwd, epic_id, role)` | Resolves next action and target phase based on current epic state and decompose index. |
 | `arm_phase(cwd, epic_id, phase, role, **kwargs)` | Arms activeContext and epic state for a specified phase. |
 | `promote_if_ready(cwd, epic_id, role)` | Evaluates readiness and gates (e.g. `analyze_gate`), promoting pre-implement phases (DECOMPOSE/ANALYZE) to IMPLEMENT. |
-| `load_phase_registry(path)` | Loads phase definitions, verify agents, and DSH presets from `loop/phase_registry.yaml`. |
+| `load_phase_registry(path)` | Loads phase definitions and verify agents from `loop/phase_registry.yaml`. |
 
 ### Legacy Deprecations
 

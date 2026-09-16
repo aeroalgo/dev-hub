@@ -1,0 +1,53 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-106-dsh-runtime-full-purge
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - history memory-bank epic scrub
+  - host uninstall of global dsh binary
+steps:
+- id: s01
+  file: s01-characterization-and-freeze-oracle-baseline.yaml
+  title: s01 — characterization & freeze oracle test matrix for runtime registry,
+    CLI and env
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-runtime-registry-and-adapter-factory-fail-closed.yaml
+  title: s02 — cutover runtime registry and adapter factory to sole claude and codex
+    runtimes
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-loop-core-call-sites-and-cli-purge.yaml
+  title: s03 — purge DSH branches, presets, and CLI choices from Loop core
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-harness-hooks-and-manifest-purge.yaml
+  title: s04 — purge DSH hooks, bridge wiring, resilience patterns, and manifest blocks
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-dsh-tree-and-entrypoint-purge.yaml
+  title: s05 — delete entire dsh tree and purge dsh case branch from bin/loop
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-instruction-surfaces-and-kind-i-hygiene.yaml
+  title: s06 — purge DSH from live instruction surfaces, runbooks, and architecture
+    docs
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-test-suite-purge-and-rewrite.yaml
+  title: s07 — delete obsolete DSH test files and rewrite mixed test assertions
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-legacy-fallback-purge.yaml
+  title: s08 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

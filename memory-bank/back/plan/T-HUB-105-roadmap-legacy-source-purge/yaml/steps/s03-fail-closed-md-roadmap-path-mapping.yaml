@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s03 — fail-closed md roadmap path mapping in queue_rel_from_roadmap
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перевести функцию `queue_rel_from_roadmap` в `loop/roadmap_queue.py` в режим fail-closed: запретить неявное
+  преобразование legacy `.md` путей в `.queue.yaml` (вызывать `ValueError`), разрешая только канонические `queue.yaml`
+  и директории roadmap. Обновить модульный тест `test_queue_rel_from_roadmap` в `loop/tests/test_roadmap_queue.py`.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - US-002
+    - SC-002
+    - SC-004
+    - AC− #3
+    - AC− #4
+  nouns:
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_queue.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s03-fail-closed-md-roadmap-path-mapping.yaml
+  ac_quotes:
+    - "Remove or fail-closed .md branch of queue_rel_from_roadmap; rewrite tests."
+    - "md map tests expect deny."
+    - "Нет dual machine map .md ↔ queue без ошибки."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:40-70
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:120-145
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#refactor-inventory
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+  produces:
+    - updated loop/roadmap_queue.py with fail-closed .md path rejection
+    - updated loop/tests/test_roadmap_queue.py expecting ValueError on .md paths
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#fr-002
+  files:
+    - loop/roadmap_queue.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - "queue_rel_from_roadmap преобразует пути с расширением .md в .queue.yaml"
+  - "test_queue_rel_from_roadmap проверяет успешное преобразование .md в .queue.yaml"
+
+delta:
+  - "Изменение queue_rel_from_roadmap для выброса ValueError при получении пути с расширением .md"
+  - "Обновление test_queue_rel_from_roadmap для проверки pytest.raises(ValueError) на .md путях"
+
+deletes:
+  - "loop/roadmap_queue.py::queue_rel_from_roadmap .md success branch"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Вызов queue_rel_from_roadmap с .md путем выбрасывает ValueError
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -k test_queue_rel_from_roadmap -q"
+  - id: cp2
+    criterion: Канонические пути queue.yaml и bare roadmap dir по-прежнему успешно мапятся
+    verify: "python3 -c \"from loop import roadmap_queue; assert roadmap_queue.queue_rel_from_roadmap('memory-bank/back/roadmap') == 'memory-bank/back/roadmap/queue.yaml'; assert roadmap_queue.queue_rel_from_roadmap('memory-bank/back/roadmap/queue.yaml') == 'memory-bank/back/roadmap/queue.yaml'\""
+  - id: cp3
+    criterion: Модульные тесты roadmap_queue проходят успешно
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q"
+
+verify: []
+tdd: []

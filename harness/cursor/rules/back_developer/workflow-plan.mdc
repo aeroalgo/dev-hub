@@ -45,7 +45,7 @@ alwaysApply: false
 **Batch (Phase 1 only):** шаги 2–8 за один проход; вопросы пакетом. **Phase 0** — sequential (orchestration).
 
 **Процесс**:
-0. **Phase 0 Clarify (orchestration):** прочитай **Phase 0 orchestration** + при триггерах выполни clarify mechanics (gates + shared-core). Sequential Q до Completion Report или halt. Skip → краткая запись в plan `§Product probe`. **Не** писать полный plan до Phase 0 gate OK.
+0. **Phase 0 Clarify (orchestration):** прочитай **Phase 0 orchestration** + при триггерах выполни clarify mechanics (gates + shared-core + `grill-me`→`grilling`). Frontier rounds (≤10 Q / ≤3) до Completion Report или halt. Skip → краткая запись в plan `§Product probe`. **Не** писать полный plan до Phase 0 gate OK.
 1. `OK BACK PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ token-economy-core.mdc §0.0)
 1a. Прочитай **Gates** (+ Hot path если ещё не)
 1b. **Clarify link:** если clarify-артефакт есть — ссылка в шапке plan + `## Clarifications` (summary, не весь Q→A)

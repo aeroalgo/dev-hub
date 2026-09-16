@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s08 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s08-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+- 'Kind A: 0 prod callers, DshAdapter, dsh_stream_filter, get_dsh_preset removed'
+- 'Kind B: bin/loop and CLI entrypoints contain no dsh options or choices'
+- 'Kind C: no fallback/soft default logic for dsh in registry, config, and runtime
+  resolution'
+- 'Kind I: DSH.md, dsh runbooks, architecture docs removed, 0 live instructions teaching
+  DSH'
+gaps:
+  status: none
+done:
+- Проведен полный инвентарный аудит Replacement / sunset по категориям A, B, C, I
+- Подтверждено нулевое присутствие DSH в коде, конфигурациях, CLI, хуках, тестах и
+  инструкциях
+- Пройдены все freeze-oracle и targeted regression тесты (test_dsh_purge_characterization.py,
+  test_runtime_registry.py, test_runtime_sync.py, test_epic_transition.py)
+files:
+- loop/runtime_registry.yaml
+- loop/epic_transition.py
+- AGENTS.md
+- CLAUDE.md
+- loop/tests/test_dsh_purge_characterization.py
+- loop/tests/test_runtime_registry.py
+- loop/tests/test_runtime_sync.py
+- loop/tests/test_epic_transition.py
+deletes: []
+tests:
+- rg -n "DshAdapter|get_dsh_preset" loop/ harness/ || true
+- rg -n "dsh\)" bin/loop || true
+- rg -n "DSH_HOOKS_BRIDGE" loop/ harness/ || true
+- rg -n "DSH.*AGENTS\.md" AGENTS.md CLAUDE.md || true
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line
+- bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_sync.py loop/tests/test_epic_transition.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_dsh_purge_characterization.py -q --tb=line
+- bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_sync.py loop/tests/test_epic_transition.py
+  -q --tb=line
+grep_control: []
+verification_results:
+- 'cp1: Kind A 0 prod callers, modules absent'
+- 'cp2: Kind B bin/loop and CLI options clean of dsh'
+- 'cp3: Kind C anti-fallback fail-closed validated'
+- 'cp4: Kind I instruction surfaces clean of DSH teaching'
+- 'cp5: obsolete tests removed and characterization suite green'
+- 'cp6: targeted regression suite green'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по всем строкам sunset_inventory kind=A: 0 prod callers,
+    модули удалены'
+  status: done
+- id: cp2
+  criterion: 'Kind B — entrypoint inventory: bin/loop и CLI не содержат опций dsh'
+  status: done
+- id: cp3
+  criterion: 'Kind C — anti-fallback: нет fallback/soft default логики для dsh'
+  status: done
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: 0 упоминаний DSH как live runtime в инструкциях'
+  status: done
+- id: cp5
+  criterion: Устаревшие DSH тесты удалены, mixed тесты выполняются без ошибок
+  status: done
+- id: cp6
+  criterion: Targeted regression suite green
+  status: done

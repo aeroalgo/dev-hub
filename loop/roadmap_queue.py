@@ -41,11 +41,11 @@ DEFAULT_QUEUE = "memory-bank/back/roadmap/queue.yaml"
 
 
 def queue_rel_from_roadmap(roadmap_rel: str) -> str:
-    """Map legacy roadmap path to machine queue.
+    """Map roadmap path to machine queue.
 
-    - ``…/roadmap/queue.yaml`` stays
-    - ``…/plan/roadmap-foo-epics.md`` → ``…/plan/roadmap-foo-epics.queue.yaml`` (legacy)
-    - bare ``…/roadmap`` → ``…/roadmap/queue.yaml``
+    - …/roadmap/queue.yaml stays
+    - bare …/roadmap → …/roadmap/queue.yaml
+    - legacy .md roadmap paths are forbidden and raise ValueError.
     """
     rel = str(roadmap_rel).replace("\\", "/")
     if rel.endswith("/queue.yaml") or rel.endswith("queue.yaml"):
@@ -53,7 +53,7 @@ def queue_rel_from_roadmap(roadmap_rel: str) -> str:
     if rel.endswith(".queue.yaml"):
         return rel
     if rel.endswith(".md"):
-        return rel[: -len(".md")] + ".queue.yaml"
+        raise ValueError(f"legacy .md roadmap path is forbidden: {roadmap_rel!r}")
     if rel.rstrip("/").endswith("/roadmap"):
         return f"{rel.rstrip('/')}/queue.yaml"
     return rel + ".queue.yaml"
@@ -1098,12 +1098,6 @@ ROLE_ROADMAP_DIRS: dict[str, str] = {
     "integration": "memory-bank/integration/roadmap",
 }
 
-# Legacy plan-dir (slug sources during migration)
-ROLE_PLAN_DIRS: dict[str, str] = {
-    "back": "memory-bank/back/plan",
-    "front": "memory-bank/front/plan",
-    "integration": "memory-bank/integration/plan",
-}
 
 
 def canon_queue_rel(role: str = "back") -> str:
@@ -1124,10 +1118,10 @@ def is_source_queue_name(name: str) -> bool:
 
 
 def discover_source_queues(cwd: str | Path, role: str = "back") -> list[Path]:
-    """Discover optional batch/legacy sources (migration + rare ops).
+    """Discover optional batch sources (migration + rare ops).
 
-    Prefer ``roadmap/batches/*.yaml``; also scan legacy ``plan/roadmap-*-epics.queue.yaml``.
-    Canon ``roadmap/queue.yaml`` is never a source.
+    Scan roadmap/batches/*.yaml.
+    Canon roadmap/queue.yaml is never a source.
     """
     role_key = str(role or "back").strip().lower()
     root = Path(cwd)
@@ -1144,18 +1138,7 @@ def discover_source_queues(cwd: str | Path, role: str = "back") -> list[Path]:
         # archive is provenance only — do not re-merge unless batches empty and no canon
         _ = archive
 
-    plan_rel = ROLE_PLAN_DIRS.get(role_key)
-    if plan_rel:
-        plan_dir = root / plan_rel
-        if plan_dir.is_dir():
-            for p in plan_dir.iterdir():
-                if (
-                    p.is_file()
-                    and p.name.startswith("roadmap-")
-                    and p.name.endswith("-epics.queue.yaml")
-                    and len(p.name) > len("roadmap--epics.queue.yaml")
-                ):
-                    found.append(p)
+
 
     return sorted(found, key=lambda p: (p.stat().st_mtime_ns, p.name))
 
@@ -1260,11 +1243,11 @@ def roadmap_merge(
     write_md: bool = False,
     archive_sources: bool = True,
 ) -> dict[str, Any]:
-    """Reconcile roadmap SoT: ``memory-bank/<role>/roadmap/queue.yaml``.
+    """Reconcile roadmap SoT: memory-bank/<role>/roadmap/queue.yaml.
 
-    Merges optional batch/legacy sources into one v2 file (queue + done + batches).
-    Does **not** write md by default. Legacy plan/ slug queues are archived under
-    ``roadmap/archive/`` after successful write.
+    Merges optional batch sources into one v2 file (queue + done + batches).
+    Does **not** write md by default. Sources are archived under
+    roadmap/archive/ after successful write.
     """
     root = Path(cwd)
     role_key = str(role or "back").strip().lower()
@@ -1275,7 +1258,6 @@ def roadmap_merge(
             "reason": f"unsupported role: {role_key!r}",
         }
     road_rel = ROLE_ROADMAP_DIRS[role_key]
-    plan_rel = ROLE_PLAN_DIRS[role_key]
     queue_rel = canon_queue_rel(role_key)
     sources = discover_source_queues(root, role_key)
 
@@ -1380,7 +1362,7 @@ def roadmap_merge(
             "ok": False,
             "error": "roadmap_merge_empty",
             "reason": (
-                f"no sources under {road_rel}/batches or {plan_rel} "
+                f"no sources under {road_rel}/batches "
                 f"and no existing {queue_rel}"
             ),
         }

@@ -64,46 +64,46 @@ class IncidentTracker:
     ) -> None:
         """Append a trace record for auditability."""
         try:
-            from loop.epic_paths import epic_dir
-            from loop.incidents.trace import append_trace
+            from epic_paths import epic_dir
+        except ImportError:
+            from harness.hooks.epic_paths import epic_dir
+        from loop.incidents.trace import append_trace
 
-            edir = epic_dir(project_root)
-            append_trace(
-                edir,
-                phase=phase,
-                action=action,
-                decide=decide,
-                episode_id=episode_id,
-                detail=dict(detail or {}),
-            )
-        except Exception:
-            pass
+        edir = epic_dir(project_root)
+        append_trace(
+            edir,
+            phase=phase,
+            action=action,
+            decide=decide,
+            episode_id=episode_id,
+            detail=dict(detail or {}),
+        )
 
     def attempt_tier1(self, project_root: Path) -> bool:
         """Attempt Tier-1 automated self-healing if eligible open incidents exist."""
         if not self.tier1_enabled or os.environ.get("EPIC_INCIDENT_TIER1") == "0":
             return False
         try:
-            from loop.epic_paths import epic_dir
-            from loop.incidents.store import list_open_incidents, resolve_incident
-            from loop.incidents.tier1_runner import run_tier1_session, should_attempt_tier1
+            from epic_paths import epic_dir
+        except ImportError:
+            from harness.hooks.epic_paths import epic_dir
+        from loop.incidents.store import list_open_incidents, resolve_incident
+        from loop.incidents.tier1_runner import run_tier1_session, should_attempt_tier1
 
-            edir = epic_dir(project_root)
-            open_incs = list_open_incidents(edir)
-            if not open_incs:
-                return False
-            inc = open_incs[0]
-            if should_attempt_tier1(inc, edir):
-                res = run_tier1_session(inc, edir, project_root)
-                if res.success:
-                    resolve_incident(
-                        edir,
-                        inc.incident_id,
-                        resolution={"resolution_tier": "tier1", "resolution_action": "tier1_autofix"},
-                    )
-                    return True
-        except Exception:
+        edir = epic_dir(project_root)
+        open_incs = list_open_incidents(edir)
+        if not open_incs:
             return False
+        inc = open_incs[0]
+        if should_attempt_tier1(inc, edir):
+            res = run_tier1_session(inc, edir, project_root)
+            if res.success:
+                resolve_incident(
+                    edir,
+                    inc.incident_id,
+                    resolution={"resolution_tier": "tier1", "resolution_action": "tier1_autofix"},
+                )
+                return True
         return False
 
 

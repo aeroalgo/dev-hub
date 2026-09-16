@@ -23,7 +23,6 @@ from loop.runtime_adapters.base import (
 )
 from loop.runtime_adapters.claude import ClaudeAdapter
 from loop.runtime_adapters.codex import CodexAdapter
-from loop.runtime_adapters.dsh import DshAdapter
 
 
 @pytest.fixture
@@ -44,7 +43,6 @@ def workspace(tmp_path: Path) -> dict[str, Path]:
     hooks_dir.mkdir(parents=True)
     (hooks_dir / "epic_stream_filter.py").write_text("import sys\nfor line in sys.stdin: sys.stdout.write(line)\n")
     (hooks_dir / "epic_codex_stream_filter.py").write_text("import sys\nfor line in sys.stdin: sys.stdout.write(line)\n")
-    (hooks_dir / "dsh_stream_filter.py").write_text("import sys\nfor line in sys.stdin: sys.stdout.write(line)\n")
 
     return {
         "hub_root": hub_root,
@@ -117,39 +115,6 @@ def test_invoke_providers_claude_delegation(workspace: dict[str, Path]):
         assert kwargs["stream_filter_cmd"] == [
             sys.executable,
             str(workspace["hub_root"] / "harness" / "hooks" / "epic_stream_filter.py"),
-        ]
-
-
-def test_invoke_providers_dsh_delegation(workspace: dict[str, Path]):
-    invoker = SessionInvoker()
-    req = _make_request(
-        workspace,
-        runtime_id="dsh",
-        model="deepseek-chat",
-        extras={"dsh_profile": "epic-implement"},
-    )
-
-    with patch("loop.runner.session.execute_session") as mock_exec,          patch.object(DshAdapter, "resolve_binary", return_value=["/usr/bin/dsh"]),          patch.object(DshAdapter, "ensure_profiles", return_value=RuntimePreparationResult(ok=True)):
-        mock_exec.return_value = SessionExecutionResult(
-            exit_code=0,
-            log_file=req.log_file,
-            interrupted=False,
-        )
-
-        res = invoker.invoke(req)
-
-        assert res.exit_code == 0
-        assert res.runtime_id == "dsh"
-
-        mock_exec.assert_called_once()
-        _, kwargs = mock_exec.call_args
-        assert kwargs["cwd"] == workspace["project_root"]
-        assert kwargs["progress_mode"] == "stream_bytes"
-        assert kwargs["stdin_text"] is None
-        assert kwargs["command"][:3] == ["/usr/bin/dsh", "--profile", "epic-implement"]
-        assert kwargs["stream_filter_cmd"] == [
-            sys.executable,
-            str(workspace["hub_root"] / "harness" / "hooks" / "dsh_stream_filter.py"),
         ]
 
 
@@ -341,40 +306,6 @@ def test_fail_closed_unknown_runtime_exits_fail_closed_no_claude_fallback(worksp
         assert "unknown or invalid runtime 'unknown_provider_xyz'" in log_content
 
 
-def test_fail_closed_missing_dsh_binary(workspace: dict[str, Path]):
-    invoker = SessionInvoker()
-    req = _make_request(workspace, runtime_id="dsh")
-
-    with patch.object(DshAdapter, "resolve_binary", return_value=None),          patch.object(ClaudeAdapter, "build_command") as mock_claude_build:
-        res = invoker.invoke(req)
-
-        assert res.exit_code == 127
-        assert res.runtime_id == "dsh"
-        mock_claude_build.assert_not_called()
-
-        log_content = workspace["log_file"].read_text(encoding="utf-8")
-        assert "dsh binary not found" in log_content
-
-
-def test_fail_closed_invalid_dsh_profile(workspace: dict[str, Path]):
-    invoker = SessionInvoker()
-    req = _make_request(
-        workspace,
-        runtime_id="dsh",
-        extras={"dsh_profile": "nonexistent-invalid-profile-xyz"},
-    )
-
-    with patch.object(DshAdapter, "resolve_binary", return_value=["/usr/bin/dsh"]),          patch.object(DshAdapter, "validate_profile", return_value=False),          patch.object(ClaudeAdapter, "build_command") as mock_claude_build:
-        res = invoker.invoke(req)
-
-        assert res.exit_code == 127
-        assert res.runtime_id == "dsh"
-        mock_claude_build.assert_not_called()
-
-        log_content = workspace["log_file"].read_text(encoding="utf-8")
-        assert "invalid dsh profile" in log_content
-
-
 def test_fail_closed_missing_codex_binary(workspace: dict[str, Path]):
     invoker = SessionInvoker()
     req = _make_request(workspace, runtime_id="codex")
@@ -417,3 +348,18 @@ def test_fail_closed_unreadable_prompt_file(workspace: dict[str, Path]):
         assert res.runtime_id == "claude"
         log_content = workspace["log_file"].read_text(encoding="utf-8")
         assert "cannot read prompt file" in log_content
+
+def test_fail_closed_dsh_runtime_rejected(workspace: dict[str, Path]):
+    invoker = SessionInvoker()
+    req = _make_request(workspace, runtime_id="dsh")
+
+    with patch.object(ClaudeAdapter, "build_command") as mock_claude_build:
+        res = invoker.invoke(req)
+
+        assert res.exit_code == 2
+        assert res.runtime_id == "dsh"
+        assert res.interrupted is False
+        mock_claude_build.assert_not_called()
+
+        log_content = workspace["log_file"].read_text(encoding="utf-8")
+        assert "unknown or invalid runtime 'dsh'" in log_content

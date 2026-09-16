@@ -13,9 +13,9 @@ alwaysApply: false
 
 1. `load_now` = только clarify artifact (если есть) + `activeContext.md`; не загружать весь frontend plan monolith без необходимости.
 2. Jump в brief или plan допустим только если ambiguity без этого контекста не снять.
-3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком; `## Grill pass` в артефакт не пустая
-4. Соблюдать shared core: ≤5 Q (grill-Q первые), sequential, Recommended/Suggested, CRITICAL policy.
-5. Каждый принятый ответ записывать в clarify-артефакт; диск — source of truth.
+3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком (тянет `grilling`); `## Grill pass` в артефакт не пустая
+4. Соблюдать shared core: frontier rounds ≤3 · ≤10 Q · Recommended, CRITICAL policy.
+5. Каждый принятый ответ / раунд записывать в clarify-артефакт; диск — source of truth.
 6. Completion Report обязателен перед Handoff → PLAN Phase 1 / continue.
 7. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list → не Phase 1 PLAN
 

@@ -1,5 +1,5 @@
 ---
-description: "CLARIFY core — shared taxonomy, ≤5 Q limits, CRITICAL markers, Completion Report (BACK/FRONT/INTEG)"
+description: "CLARIFY core — shared taxonomy, frontier ≤10 Q / ≤3 rounds, CRITICAL markers, Completion Report (BACK/FRONT/INTEG)"
 alwaysApply: false
 ---
 # CLARIFY — shared core
@@ -8,17 +8,51 @@ alwaysApply: false
 **Не** клонировать `spec-kit/templates/commands/clarify.md` целиком — адаптировать таксономию и лимиты под hub workflow.
 **Артефакт сессии:** `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` (шаблон `@.cursor/templates/clarify.md`).
 
-**Grill (HARD):** каждая CLARIFY-сессия **обязана** выполнить Phase 0 — @.agents/skills/grill-me/SKILL.md **целиком** до taxonomy. Секция `## Grill pass` в арtefact не пустая.
+**Grill (HARD):** каждая CLARIFY-сессия **обязана** выполнить Phase 0 — @.agents/skills/grill-me/SKILL.md **целиком** (внутри: Read `grilling` primitive) до taxonomy Q. Секция `## Grill pass` в артефакте не пустая.
+
+**Companion skills (situational, из grill-me):**
+| Skill | Когда |
+|-------|--------|
+| `grilling` | всегда (primitive; Read через grill-me) |
+| `grill-with-docs` + `domain-modeling` | brownfield; glossary/ADR только с согласия или после Q→A |
+| `wayfinder` | идея больше одной сессии — предложить, не авто |
+| `to-questionnaire` | ответы у другого человека |
+| `to-prd` / `to-spec` | после Completion Report — синтез без новых Q |
+| `ask-matt` | неясно какой skill |
 
 ---
 
 ## Phase 0 — Grill pass (mandatory)
 
-1. **Read** `.agents/skills/grill-me/SKILL.md` (full file).
-2. Записать `## Grill pass` в clarify-арtefact (Reframe · Premises · Weakest link · Anti-scope · Verdict).
+1. **Read** `.agents/skills/grill-me/SKILL.md` (full file) → он тянет `grilling` (+ companions по триггеру).
+2. Записать `## Grill pass` в clarify-артефакт (Reframe · Premises · Weakest link · Anti-scope · Verdict · Design tree sketch).
 3. `Verdict=auto_resolved` — только с Evidence на каждый premise из входа; иначе `needs_user_Q`.
-4. Grill-Q (0–2) — **первые** в `## Q→A log`, считаются в лимит ≤5.
-5. **FORBIDDEN:** переход к taxonomy без Grill pass на диске.
+4. **FORBIDDEN:** переход к taxonomy Q без Grill pass на диске.
+
+---
+
+## Phase 0b — Frontier interview (grilling rounds)
+
+После Grill pass + taxonomy scan (coverage map): провести **frontier-раунды** по дереву решений.
+
+| Параметр | Значение |
+|----------|----------|
+| **Total Q** | **≤10** на CLARIFY-сессию (все раунды суммарно) |
+| **Rounds** | **≤3** |
+| **Per round** | только **независимые** Q (frontier); зависимые → следующий раунд |
+| **Chat UX** | один **раунд** за ход (весь frontier раунда); ответы пользователя по номерам |
+| **Facts** | codebase/tools — не спрашивать пользователя |
+| **Stop** | frontier пуст · user `done`/`good`/`no more` · квота 10 · нет material candidates |
+
+Формат вопроса в раунде (как grilling + hub Recommended):
+
+```text
+❓ **Q1** - **<title>**: <body + MC options if any>
+**Why it matters:** <1 предложение>
+➡️ **Recommended:** <answer> — <reasoning>
+```
+
+После раунда → `## Frontier rounds` + `## Q→A log` на диске; при наличии draft plan — patch секций FR/scope/NFR/glossary.
 
 ---
 
@@ -35,15 +69,15 @@ Product probe проводится до WHAT, чтобы зафиксирова�
 6. **Future-fit** — Какие предполагаемые изменения в системе или продукте могут сделать это решение бессмысленным?
 
 ### Правила квоты и формата
-- **Квота CLARIFY:** продуктовые вопросы входят в общую квоту **≤5 total** за CLARIFY-сессию (задаются sequential).
-- **Batch vs sequential:** при пропуске CLARIFY в L3+ PLAN оператор заполняет обязательную **batch**-таблицу Product probe в плане; при CLARIFY — вопросы идут в Q→A log в рамках квоты.
+- **Квота CLARIFY:** продуктовые вопросы входят в общую квоту **≤10 total** (frontier rounds).
+- **Batch vs rounds:** при пропуске CLARIFY в L3+ PLAN оператор заполняет обязательную **batch**-таблицу Product probe в плане; при CLARIFY — вопросы в frontier / Q→A в рамках квоты.
 - **Output contract:** Reframe + Premises (3–5 falsifiable допущений) + Recommended wedge.
 
 ---
 
 ## Таксономия вопросов (8 категорий)
 
-Сканируй вход (draft plan / feature brief / activeContext) и помечай каждую категорию: **Clear** / **Partial** / **Missing**. Кандидаты в очередь только из Partial/Missing с материальным impact.
+Сканируй вход (draft plan / feature brief / activeContext) и помечай каждую категорию: **Clear** / **Partial** / **Missing**. Кандидаты в frontier только из Partial/Missing с материальным impact.
 
 | # | Категория | Что уточнять |
 |---|-----------|--------------|
@@ -56,27 +90,27 @@ Product probe проводится до WHAT, чтобы зафиксирова�
 | 7 | **constraints** | Технические ограничения (язык, storage, hosting), явные tradeoff / rejected alternatives |
 | 8 | **terminology** | Канонический glossary, запрещённые синонимы / deprecated terms |
 
-**Не спрашивать**, если: ответ не меняет architecture / data / decomposition / tests / UX-API / ops / compliance; или лучше отложить в PLAN (отметить Deferred).
+**Не спрашивать**, если: ответ не меняет architecture / data / decomposition / tests / UX-API / ops / compliance; или лучше отложить в PLAN (отметить Deferred); или факт читается из codebase.
 
 ---
 
 ## Лимиты и формат
 
-1. **≤5 вопросов** на всю сессию CLARIFY (не на категорию).
-2. **Sequential:** ровно **один** вопрос за ход; не раскрывать очередь заранее.
+1. **≤10 вопросов** на всю сессию CLARIFY (не на категорию); **≤3 раунда**.
+2. **Frontier rounds:** один раунд = все независимые Q сейчас; не dump зависимых вместе.
 3. Формат ответа пользователя:
    - MC: **2–5** взаимоисключающих опций **или**
-   - short: явно «Answer in ≤5 words».
-4. Перед опциями:
-   - MC → `**Recommended:** Option [X] — <reasoning 1–2 предложения>` + таблица Option|Description
+   - short: явно «Answer in ≤5 words»
+   - round reply: по номерам (`1 A, 2 yes, 3 …`)
+4. Перед опциями / в `➡️`:
+   - MC → `**Recommended:** Option [X] — <reasoning 1–2 предложения>` + таблица Option|Description (или inline в теле Q)
    - short → `**Suggested:** <ответ> — <brief reasoning>`
 5. Качество вопроса:
-   - Строка `**Question:** <полный вопросительный текст>?` (опц. `(FR-…)` после `?`)
-   - Затем одно предложение **Why it matters**
+   - Явный вопросительный текст + **Why it matters**
    - Нельзя подменять вопрос лейблом/ID секции
 6. После ответа: принять `yes` / `recommended` / `suggested` как выбор рекомендации; иначе проверить маппинг на опцию / ≤5 слов; при двусмысленности — disambiguation **той же** Q (счётчик не растёт).
 
-Стоп очереди: критичные ambiguity сняты · пользователь `done`/`good`/`no more` · задано 5 Q · нет валидных кандидатов → «критичных ambiguity нет».
+Стоп очереди: критичные ambiguity сняты · пользователь `done`/`good`/`no more` · задано 10 Q · frontier пуст → «критичных ambiguity нет».
 
 ---
 
@@ -102,9 +136,9 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 
 ## Q→A запись
 
-После каждого принятого ответа:
+После каждого принятого ответа / раунда:
 
-1. В `clarify-*.md` → `## Q→A log`: `- Q: … → A: …` + `resolution: resolved|deferred`
+1. В `clarify-*.md` → `## Frontier rounds` + `## Q→A log`: `- Q: … → A: …` + `resolution: resolved|deferred`
 2. Инкрементально патчить черновик plan/spec-секций, если они уже есть (FR / scope / NFR / glossary)
 3. При первой записи сессии: создать `## Clarifications` / session-дату в целевом черновике, если его правите
 
@@ -118,12 +152,12 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 
 ```markdown
 ## Completion Report
-- Grill: done · verdict=auto_resolved|needs_user_Q · grill_Q=N
-- Asked: N/5
+- Grill: done · verdict=auto_resolved|needs_user_Q · rounds=N · grill_Q=M · mode=frontier
+- Asked: N/10
 - Resolved: …
 - Deferred: … (severity + next)
 - Coverage: scope=… data=… UX-API=… NFR=… integrations=… edge=… constraints=… terminology=…
-- Next: BACK|FRONT|INTEG PLAN <slug> Phase 1 | continue CLARIFY | spike (skip warning)
+- Next: BACK|FRONT|INTEG PLAN <slug> Phase 1 | continue CLARIFY | to-prd/to-spec (optional) | spike (skip warning)
 
 Если Completion Report внутри сессии `* PLAN` Phase 0 — **не** FINISH CLARIFY; перейти к Phase 1 в той же сессии.
 ```
@@ -145,7 +179,8 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 - CLARIFY FINISH без непустой секции `## Grill pass` или без строки `Grill:` в Completion Report
 - **silent assumption** при пустом / размытом prompt (auth, stack, multi-tenant, PII, deploy target)
 - Подставлять стек/архитектуру «по умолчанию» вместо вопроса
-- Клонировать spec-kit clarify 1:1 (291 строк) или тащить внешний CLI / init-процесс
-- Установка / вызов внешнего Spec Kit CLI в этом эпике и в shared-core
-- >5 Q за сессию; параллельный dump всей очереди; вопросы без Recommended/Suggested
+- Клонировать spec-kit clarify 1:1 или тащить внешний Spec Kit CLI
+- >10 Q или >3 раунда за сессию без новой `continue * CLARIFY`
+- Dump **зависимых** вопросов в одном раунде; раунд без Recommended/Suggested
 - Закрывать PLAN при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list
+- Auto-wayfinder / root `CONTEXT.md` без согласия пользователя

@@ -582,65 +582,16 @@ def test_agent_registry_aliases():
     assert resolve_agent_alias("verify-implement") == "verify-implement"
 
 
-def test_get_dsh_preset_implement():
-    from loop.epic_transition import get_dsh_preset  # noqa: PLC0415
-
-    assert get_dsh_preset("IMPLEMENT") == "implement"
-    assert get_dsh_preset("DECOMPOSE") == "decompose"
-    assert get_dsh_preset("ANALYZE") == "analyze"
-    assert get_dsh_preset("BUGFIX") == "bugfix"
-    assert get_dsh_preset("QA") == "qa"
-    assert get_dsh_preset("PLAN") is None
-    assert get_dsh_preset("CLARIFY") is None
-    import pytest
-
-    with pytest.raises(ValueError, match="unknown phase"):
-        get_dsh_preset("REFLECT")
+def test_get_dsh_preset_removed():
+    import loop.epic_transition as et
+    assert not hasattr(et, "get_dsh_preset")
 
 
-def test_arm_phase_dsh_injects_preset(tmp_path, monkeypatch):
-    from loop.epic_transition import arm_phase  # noqa: PLC0415
-
-    (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
-    schema_dir = tmp_path / "loop" / "schemas"
-    schema_dir.mkdir(parents=True, exist_ok=True)
-    custom_yaml = {
-        "schema": "phase-registry/v1",
-        "phases": {
-            "IMPLEMENT": {"verify_agent": "verify-implement", "dsh_preset": "implement"},
-        },
-    }
-    (schema_dir / "phase_registry.yaml").write_text(yaml.dump(custom_yaml), encoding="utf-8")
-
-    def mock_arm_epic(cwd, epic_id, **kwargs):
-        return {"ok": True, "armed_epic": epic_id, "kwargs": kwargs}
-
-    monkeypatch.setattr("loop.epic_transition.arm_epic", mock_arm_epic)
-    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
-
-    res = arm_phase(tmp_path, "T-TEST-001", "IMPLEMENT", "back")
-    assert res.get("ok") is True
-    assert res.get("kwargs", {}).get("dsh_preset") == "implement"
-
-
-def test_arm_phase_dsh_missing_preset_fails_closed(tmp_path, monkeypatch):
-    from loop.epic_transition import arm_phase  # noqa: PLC0415
-
-    (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
-    schema_dir = tmp_path / "loop" / "schemas"
-    schema_dir.mkdir(parents=True, exist_ok=True)
-    custom_yaml = {
-        "schema": "phase-registry/v1",
-        "phases": {
-            "PLAN": {"verify_agent": None, "dsh_preset": None},
-        },
-    }
-    (schema_dir / "phase_registry.yaml").write_text(yaml.dump(custom_yaml), encoding="utf-8")
-
-    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
-
-    with pytest.raises(ValueError, match="no DSH preset for phase 'PLAN'"):
-        arm_phase(tmp_path, "T-TEST-001", "PLAN", "back")
+def test_phase_registry_has_no_dsh_preset():
+    from loop.epic_transition import load_phase_registry
+    reg = load_phase_registry(pack_id="dev-hub-software", cwd=ROOT)
+    for phase_name, cfg in reg.get("phases", {}).items():
+        assert "dsh_preset" not in cfg, f"phase {phase_name} still contains dsh_preset" 
 
 
 def test_registry_roles_covers_all():

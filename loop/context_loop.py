@@ -2657,7 +2657,6 @@ def prepare_session(
         "runtime": effective_runtime,
         "runtime_extras": runtime_extras,
         "workflow_pack": wf_config.pack.model_dump(),
-        "dsh_workspace": str(cwd_p),
         "phase": phase_raw,
         "armed_step": armed_step_now,
         "prompt_command": prompt_scope.command,
@@ -2672,8 +2671,7 @@ def prepare_session(
         "cursor_sync": cursor_sync,
         "todowrite_policy": st["todowrite_policy"],
     }
-    if "dsh_profile" in runtime_extras:
-        res_dict["dsh_profile"] = runtime_extras["dsh_profile"]
+
     try:
         publish_runner_identity(
             runtime_dir(cwd_p),

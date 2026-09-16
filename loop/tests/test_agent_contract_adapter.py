@@ -16,11 +16,10 @@ _VALID_VERDICT = (
     "}\n```")
 
 
-def test_claude_codex_and_dsh_use_one_contract_text() -> None:
+def test_claude_and_codex_use_one_contract_text() -> None:
     adapters = [
         get_agent_contract_adapter("claude"),
         get_agent_contract_adapter("codex"),
-        get_agent_contract_adapter("dsh"),
     ]
 
     assert len({adapter.contract("verify-qa") for adapter in adapters}) == 1
@@ -28,7 +27,7 @@ def test_claude_codex_and_dsh_use_one_contract_text() -> None:
 
 
 def test_runtime_adapters_parse_the_same_gate_verdict() -> None:
-    for runtime_id in ("claude", "codex", "dsh"):
+    for runtime_id in ("claude", "codex"):
         record = get_agent_contract_adapter(runtime_id).parse_gate_verdict(_VALID_VERDICT)
         assert record is not None
         assert record.agent_id == "verify-qa"

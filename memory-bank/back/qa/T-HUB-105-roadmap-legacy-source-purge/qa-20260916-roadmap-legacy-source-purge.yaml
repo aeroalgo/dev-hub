@@ -1,0 +1,52 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-105
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+epic_id: T-HUB-105-roadmap-legacy-source-purge
+date: '2026-09-16'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: e0f1ece5c4bffcff302e15738c0e9eb8a7935fe5d5d143d2a656aa174f47f616
+verify_scope: full
+
+scope:
+  - "task: T-HUB-105"
+  - "epic: T-HUB-105-roadmap-legacy-source-purge"
+  - "steps: s01–s07"
+  - "files: loop/roadmap_queue.py, loop/runner/orchestrator.py, loop/tests/**"
+
+ac_plus:
+  - "FR-001: Remove plan-dir `roadmap-*-epics.queue.yaml` discovery from live `discover_source_queues`."
+  - "FR-002: Remove or fail-closed `.md` branch of `queue_rel_from_roadmap`; rewrite tests."
+  - "FR-003: Wire orchestrator to canonical `epic_dir`; delete silent `except Exception: pass` around that import."
+  - "FR-004: Keep `roadmap/batches/*.yaml` discovery if still part of supported merge ops (prove with tests); do not delete without caller proof."
+  - "SC-001: rg plan-dir scan loop absent."
+  - "SC-002: md map tests expect deny."
+  - "SC-003: no `from loop.epic_paths import epic_dir` in orchestrator."
+  - "SC-004: net_loc ≤ 0; net owners ≤ 0."
+
+ac_minus:
+  - "1. Нет live plan-dir slug-queue merge source."
+  - "2. Нет silent PASS на broken epic_dir import."
+  - "3. Нет dual machine map `.md` ↔ queue без ошибки."
+  - "4. Нет зелёных тестов, требующих legacy md map success."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (3018 passed, 4 skipped in 116.58s)"
+  - "verify-qa reviewer gate: VERDICT PASS"
+  - "integration rule (§0.11)"
+  - "no phantom refs / orphan refs"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

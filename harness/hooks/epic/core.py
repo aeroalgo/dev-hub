@@ -4963,7 +4963,6 @@ def arm_epic(
     *,
     role: str = "back",
     require_plan: bool = True,
-    dsh_preset: str | None = None,
 ) -> dict[str, Any]:
     """Arm activeContext for epic via resolver (pre-implement / implement / post-implement)."""
     cwd_p = Path(cwd)
@@ -4982,7 +4981,6 @@ def arm_epic(
             "phase": "DONE",
             "epic_id": epic_id,
             "role": role,
-            **({"dsh_preset": dsh_preset} if dsh_preset else {}),
         }
     if phase in {"PLAN", "DECOMPOSE", "CLARIFY", "ANALYZE", "CREATIVE"}:
         return arm_phase(

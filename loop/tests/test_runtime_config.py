@@ -228,13 +228,18 @@ def test_epic_runtime_defaults_to_claude(tmp_path: Path, monkeypatch: pytest.Mon
     assert config.epic_runtime == "claude"
 
 
-def test_epic_runtime_dsh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_epic_runtime_dsh_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
     monkeypatch.setenv("EPIC_RUNTIME", "dsh")
 
-    config = lib.resolve_runtime_config(tmp_path)
+    with pytest.raises(lib.RuntimeConfigError) as exc_info:
+        lib.resolve_runtime_config(tmp_path)
 
-    assert config.epic_runtime == "dsh"
+    assert exc_info.value.diagnostics[0] == {
+        "code": "invalid_runtime_config",
+        "key": "EPIC_RUNTIME",
+        "reason": "unsupported_runtime",
+    }
 
 
 def test_epic_runtime_invalid_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -253,7 +258,7 @@ def test_epic_runtime_invalid_fails_closed(tmp_path: Path, monkeypatch: pytest.M
 
 def test_resolve_runtime_importerror_fail_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
-    monkeypatch.setattr(lib, "_get_supported_runtimes", lambda: frozenset({"claude", "dsh"}))
+    monkeypatch.setattr(lib, "_get_supported_runtimes", lambda: frozenset({"claude"}))
     monkeypatch.setenv("EPIC_RUNTIME", "codex")
 
     with pytest.raises(lib.RuntimeConfigError) as exc_info:
@@ -268,12 +273,12 @@ def test_resolve_runtime_importerror_fail_closed(tmp_path: Path, monkeypatch: py
 
 def test_epic_runtime_status_included(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
-    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+    monkeypatch.setenv("EPIC_RUNTIME", "codex")
 
     config = lib.resolve_runtime_config(tmp_path)
     status = lib.runtime_config_status(config)
 
-    assert status["effective"]["EPIC_RUNTIME"] == "dsh"
+    assert status["effective"]["EPIC_RUNTIME"] == "codex"
     assert status["sources"]["EPIC_RUNTIME"] == "process"
 
 
@@ -281,11 +286,11 @@ def test_epic_runtime_project_env_override(tmp_path: Path, monkeypatch: pytest.M
     lib = _load_lib()
     env_dir = tmp_path / ".claude"
     env_dir.mkdir()
-    (env_dir / "project.env").write_text("EPIC_RUNTIME=dsh\n", encoding="utf-8")
+    (env_dir / "project.env").write_text("EPIC_RUNTIME=codex\n", encoding="utf-8")
     monkeypatch.delenv("EPIC_RUNTIME", raising=False)
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
 
     config = lib.resolve_runtime_config(tmp_path)
 
-    assert config.epic_runtime == "dsh"
+    assert config.epic_runtime == "codex"
     assert config.sources["EPIC_RUNTIME"] == "project"

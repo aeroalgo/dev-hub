@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s01 — s01 — characterization baseline & freeze oracle test matrix IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s01-characterization-and-freeze-oracle-baseline.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+- python-design-patterns
+- python-anti-patterns
+discovery:
+- discover_source_queues в loop/roadmap_queue.py сканирует batches и legacy plan-dir
+  slug queues
+- queue_rel_from_roadmap в loop/roadmap_queue.py разрешает bare roadmap, canon queue.yaml
+  и legacy .md
+- IncidentTracker в loop/runner/orchestrator.py обращается к loop.epic_paths с swallow
+gaps:
+  status: none
+done:
+- Создан freeze oracle сьют loop/tests/test_roadmap_legacy_source_characterization.py
+- Зафиксировано поведение discover_source_queues, queue_rel_from_roadmap и IncidentTracker
+files:
+- loop/tests/test_roadmap_legacy_source_characterization.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_roadmap_legacy_source_characterization.py -q` — 7 passed'
+- '`bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_runner_orchestrator.py
+  loop/tests/test_dag_v2_characterization.py -q` — 66 passed'
+integration_check:
+- bin/pytest loop/tests/test_roadmap_legacy_source_characterization.py loop/tests/test_roadmap_queue.py
+  loop/tests/test_runner_orchestrator.py loop/tests/test_dag_v2_characterization.py
+  -q
+grep_control:
+- back: rg -n 'discover_source_queues|queue_rel_from_roadmap' loop/tests/test_roadmap_legacy_source_characterization.py
+  front: n/a — backend shard.
+verification_results:
+- bin/pytest loop/tests/test_roadmap_legacy_source_characterization.py -q -> 7 passed
+- bin/pytest loop/tests/test_roadmap_queue.py loop/tests/test_runner_orchestrator.py
+  loop/tests/test_dag_v2_characterization.py -q -> 66 passed
+checkpoints:
+- id: cp1
+  criterion: Freeze oracle сьют создан и проверяет поведение discover_source_queues,
+    queue_rel_from_roadmap и orchestrator
+  status: done
+- id: cp2
+  criterion: Существующие тесты roadmap_queue и orchestrator проходят успешно
+  status: done

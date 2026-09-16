@@ -64,3 +64,69 @@ def test_decompose_verify_pass_ready_accepts_verify_decompose_without_evidence_m
         },
     )
     assert out["ok"] is True
+
+
+def test_decompose_verify_accepts_receipt_when_projection_advanced_to_implement() -> None:
+    """Premature IMPLEMENT projection must not block DECOMPOSE→ANALYZE arming."""
+    from harness.hooks.gate_receipt import compute_receipt_digest, issue_verifier_receipt
+
+    identity = {
+        "session_id": "sess-decompose",
+        "phase_epoch": "sha256:epoch-decompose",
+        "projection_hash": "sha256:proj-decompose",
+        "event_digest": "sha256:events-decompose",
+        "epic_id": "T-HUB-106-dsh-runtime-full-purge",
+        "role": "back",
+        "step": "DECOMPOSE",
+        "authority": "autonomous",
+    }
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-decompose")
+    assert receipt["receipt_digest"] == compute_receipt_digest(receipt)
+
+    out = decompose_verify_pass_ready(
+        Path("/tmp"),
+        {
+            "armed_epic": "T-HUB-106-dsh-runtime-full-purge",
+            "armed_step": "s01",
+            "phase": "BACK IMPLEMENT",
+            "last_finished_step": "DECOMPOSE",
+            "last_verify_verdict": "PASS",
+            "last_verify_evidence": receipt,
+            "projection": {
+                "step": "s01",
+                "next_step": "s01",
+                "phase": "BACK IMPLEMENT",
+                "projection_hash": "sha256:proj-implement",
+                "phase_epoch": "sha256:epoch-implement",
+                "event_digest": "sha256:events-implement",
+            },
+        },
+    )
+    assert out["ok"] is True
+    assert out["diagnostic"] == "verify-decompose_pass"
+
+
+def test_decompose_verify_rejects_receipt_bound_to_wrong_step() -> None:
+    from harness.hooks.gate_receipt import issue_verifier_receipt
+
+    identity = {
+        "session_id": "sess-s01",
+        "phase_epoch": "sha256:epoch",
+        "projection_hash": "sha256:proj",
+        "event_digest": "sha256:events",
+        "epic_id": "T-HUB-106-dsh-runtime-full-purge",
+        "role": "back",
+        "step": "s01",
+        "authority": "autonomous",
+    }
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-decompose")
+    out = decompose_verify_pass_ready(
+        Path("/tmp"),
+        {
+            "armed_epic": "T-HUB-106-dsh-runtime-full-purge",
+            "last_verify_verdict": "PASS",
+            "last_verify_evidence": receipt,
+        },
+    )
+    assert out["ok"] is False
+    assert out["diagnostic"] == "verdict_wrong_step"

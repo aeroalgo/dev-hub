@@ -304,4 +304,5 @@ def test_v2_roadmap_queue_characterization(tmp_path: Path) -> None:
 
     # Legacy path mapping function
     assert roadmap_queue.queue_rel_from_roadmap("memory-bank/back/roadmap") == "memory-bank/back/roadmap/queue.yaml"
-    assert roadmap_queue.queue_rel_from_roadmap("memory-bank/back/plan/roadmap-epics.md") == "memory-bank/back/plan/roadmap-epics.queue.yaml"
+    with pytest.raises(ValueError, match="legacy .md roadmap path is forbidden"):
+        roadmap_queue.queue_rel_from_roadmap("memory-bank/back/plan/roadmap-epics.md")

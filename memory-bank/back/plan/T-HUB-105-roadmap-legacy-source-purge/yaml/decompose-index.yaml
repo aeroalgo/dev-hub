@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-characterization-and-freeze-oracle-baseline.yaml
+  title: s01 — characterization baseline & freeze oracle test matrix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-purge-plan-dir-discovery-from-roadmap-queue.yaml
+  title: s02 — purge plan-dir slug queue discovery from discover_source_queues
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-fail-closed-md-roadmap-path-mapping.yaml
+  title: s03 — fail-closed md roadmap path mapping in queue_rel_from_roadmap
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-rewrite-characterization-and-caller-tests.yaml
+  title: s04 — rewrite characterization and test assertions to expect md deny
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-canonical-orchestrator-epic-dir-import.yaml
+  title: s05 — wire orchestrator to canonical epic_dir and remove silent swallow
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-docs-and-instruction-kind-i-hygiene.yaml
+  title: s06 — clean docstrings and comments referencing legacy plan-dir queues
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-legacy-fallback-purge.yaml
+  title: s07 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

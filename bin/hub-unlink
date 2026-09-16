@@ -109,16 +109,23 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   done
 
-  # Remove the canonical Cursor/Claude extension links created by hub-link
-  # alongside mode (including the legacy .cursor/rules link), while
-  # preserving product-local files and directories.
+  # Remove the canonical Cursor/Claude/Codex extension links created by hub-link
+  # alongside mode, while preserving product-local files and directories.
+  # Include legacy instructions target (harness/claude/instructions).
   for pair in \
     ".cursor/rules:$DEV_HUB/harness/cursor/rules" \
     ".cursor/templates:$DEV_HUB/harness/cursor/templates" \
+    ".cursor/hooks:$DEV_HUB/.cursor/hooks" \
+    ".cursor/hooks-artifacts:$DEV_HUB/.cursor/hooks-artifacts" \
+    ".cursor/schemas:$DEV_HUB/.cursor/schemas" \
+    ".claude/agents:$DEV_HUB/harness/agents" \
     ".claude/commands:$DEV_HUB/harness/claude/commands" \
+    ".claude/hooks:$DEV_HUB/harness/hooks" \
+    ".claude/instructions:$DEV_HUB/harness/instructions" \
     ".claude/instructions:$DEV_HUB/harness/claude/instructions" \
     ".claude/rules:$DEV_HUB/harness/claude/rules" \
-    ".claude/skills:$DEV_HUB/harness/claude/skills"; do
+    ".claude/skills:$DEV_HUB/harness/claude/skills" \
+    ".codex:$DEV_HUB/.codex"; do
     dest="$PRODUCT_ROOT/${pair%%:*}"
     source="${pair#*:}"
     if [[ -L "$dest" ]]; then

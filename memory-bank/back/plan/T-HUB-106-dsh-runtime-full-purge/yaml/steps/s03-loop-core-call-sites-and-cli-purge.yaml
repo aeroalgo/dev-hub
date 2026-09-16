@@ -1,0 +1,115 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s03 — purge DSH branches, presets, and CLI choices from Loop core
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить DSH ветки, пресеты dsh_preset и CLI-опции dsh из ядра Loop (epic_transition, phase_registry,
+  prompt_builder, runner/config, runtime_sync, session_events, context_loop, board_sync).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-004
+    - FR-005
+    - FR-009
+    - SC-001
+    - SC-003
+    - US-001
+  nouns:
+    - loop/epic_transition.py
+    - loop/schemas/phase_registry.yaml
+    - loop/prompt_builder.py
+    - loop/runner/config.py
+    - loop/cli/runtime_sync.py
+    - loop/runtime/session_events.py
+    - loop/board_sync/cli.py
+    - loop/context_loop.py
+    - loop/bugfix_queue.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s03-loop-core-call-sites-and-cli-purge.yaml
+  ac_quotes:
+    - "bin/loop / runtime_sync / prepare_session не принимают dsh как valid choice."
+    - "Prod-код без DshAdapter, get_dsh_preset live path, DSH_HOOKS_BRIDGE dsh-only wiring."
+    - "Убрать machine field/API dsh_preset / get_dsh_preset из live phase arm path."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:38-50
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:204-236
+
+context:
+  consumes:
+    - loop/epic_transition.py
+    - loop/schemas/phase_registry.yaml
+    - loop/prompt_builder.py
+    - loop/runner/config.py
+    - loop/cli/runtime_sync.py
+    - loop/runtime/session_events.py
+    - loop/board_sync/cli.py
+    - loop/context_loop.py
+  produces:
+    - loop/epic_transition.py
+    - loop/schemas/phase_registry.yaml
+    - loop/prompt_builder.py
+    - loop/runner/config.py
+    - loop/cli/runtime_sync.py
+    - loop/runtime/session_events.py
+    - loop/board_sync/cli.py
+    - loop/context_loop.py
+  plan_refs:
+    - FR-001
+    - FR-004
+    - FR-005
+    - FR-009
+    - SC-001
+    - SC-003
+    - US-001
+  files:
+    - loop/epic_transition.py
+    - loop/schemas/phase_registry.yaml
+    - loop/prompt_builder.py
+    - loop/runner/config.py
+    - loop/cli/runtime_sync.py
+    - loop/runtime/session_events.py
+    - loop/board_sync/cli.py
+    - loop/context_loop.py
+    - loop/bugfix_queue.py
+
+as_built:
+  - "loop/epic_transition.py экспортирует get_dsh_preset и принимает kwargs dsh_preset"
+  - "loop/schemas/phase_registry.yaml содержит поле dsh_preset"
+  - "loop/prompt_builder.py содержит алиасы deepseek-harness/deepseek и ветки dsh"
+  - "loop/runner/config.py настраивает DSH_HOOKS_BRIDGE"
+  - "loop/cli/runtime_sync.py принимает выбор dsh"
+
+delta:
+  - "Удалить функцию get_dsh_preset и параметр dsh_preset из loop/epic_transition.py"
+  - "Удалить поле dsh_preset из loop/schemas/phase_registry.yaml"
+  - "Удалить ветки dsh и алиасы deepseek из loop/prompt_builder.py"
+  - "Удалить логику dsh и DSH_HOOKS_BRIDGE из loop/runner/config.py"
+  - "Обновить loop/cli/runtime_sync.py (choices: codex, claude, all=codex+claude)"
+  - "Очистить loop/runtime/session_events.py, loop/context_loop.py и loop/board_sync/cli.py от dsh"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "Harness hooks (шаг s04)"
+  - "Файловое дерево dsh/ (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "get_dsh_preset удален и phase_registry.yaml очищен от dsh_preset"
+    verify: "bin/pytest loop/tests/test_epic_transition.py -q --tb=line"
+  - id: cp2
+    criterion: "runtime_sync и prompt_builder не принимают dsh и fail-closed отвергают неподдерживаемый рантайм"
+    verify: "bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_prompt_builder.py -q --tb=line"
+
+verify: []
+tdd: []

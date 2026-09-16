@@ -61,7 +61,7 @@ _VERIFY_FAIL_RE = re.compile(r"(?im)^VERIFY:\s*FAIL\b")
 _PATH_IN_TEXT_RE = re.compile(
     r"(?m)(?:^|[\s`|'\"(])("
     r"(?:harness|loop|memory-bank|frontend|apps|tests|bin|\.cursor|\.claude|"
-    r"dsh|runtime)[/][\w./-]+"
+    r"runtime)[/][\w./-]+"
     r"|[\w./-]+\.(?:py|md|ya?ml|toml|json|ts|tsx|js|jsx|sh)"
     r")"
 )

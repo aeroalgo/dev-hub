@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-105-roadmap-legacy-source-purge
+title: s05 — wire orchestrator to canonical epic_dir and remove silent swallow
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Заменить некорректный импорт `from loop.epic_paths import epic_dir` в `loop/runner/orchestrator.py` на канонический
+  `from epic_paths import epic_dir` / `from harness.hooks.epic_paths import epic_dir`, удалить скрывающее ошибки
+  `except Exception: pass` вокруг trace и tier1, добавив явное логирование или fail-closed обработку. Добавить модульные
+  тесты для проверки реального вызова trace и tier1 в `loop/tests/test_runner_orchestrator.py`.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-003
+    - SC-003
+    - SC-004
+    - AC− #2
+  nouns:
+    - loop/runner/orchestrator.py
+    - loop/tests/test_runner_orchestrator.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/steps/s05-canonical-orchestrator-epic-dir-import.yaml
+  ac_quotes:
+    - "Wire orchestrator to canonical epic_dir; delete silent except Exception: pass around that import."
+    - "no from loop.epic_paths import epic_dir in orchestrator."
+    - "Нет silent PASS на broken epic_dir import."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:50-75
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md:140-165
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#refactor-inventory
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+  produces:
+    - updated loop/runner/orchestrator.py with canonical epic_dir import and explicit error handling
+    - unit tests in loop/tests/test_runner_orchestrator.py verifying trace and tier1 execution
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#fr-003
+  files:
+    - loop/runner/orchestrator.py
+    - loop/tests/test_runner_orchestrator.py
+
+as_built:
+  - "loop/runner/orchestrator.py выполняет from loop.epic_paths import epic_dir внутри try/except Exception: pass"
+
+delta:
+  - "Замена импорта на канонический from epic_paths import epic_dir (с fallback на from harness.hooks.epic_paths import epic_dir при необходимости)"
+  - "Удаление bare except Exception: pass, предотвращающего скрытие критических ошибок"
+  - "Добавление тестов в loop/tests/test_runner_orchestrator.py для record_trace и attempt_tier1"
+
+deletes:
+  - "loop/runner/orchestrator.py::from loop.epic_paths import epic_dir"
+
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: В loop/runner/orchestrator.py отсутствует импорт from loop.epic_paths
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'from loop.epic_paths', 'loop/runner/orchestrator.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: record_trace и attempt_tier1 корректно разрешают epic_dir и вызывают соответствующие подсистемы
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py -q"
+  - id: cp3
+    criterion: Интеграционные тесты инцидентов и оркестратора проходят успешно
+    verify: "bin/pytest loop/tests/test_incidents_integration.py loop/tests/test_runner_orchestrator.py -q"
+
+verify: []
+tdd: []

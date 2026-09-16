@@ -25,24 +25,6 @@ patched Codex transport нормализует их в native collaboration name
 ./bin/loop claude decompose-T-HUB-XXX 'antigravity/claude-sonnet-4-6'
 ```
 
-## DSH
-
-DSH runtime берёт модель из phase-профиля и переменных `PROJECT_LOOP_<PHASE>_MODEL`:
-
-```bash
-./bin/loop dsh decompose-T-HUB-XXX 'gpt'
-```
-
-Перед первым запуском установите профили DSH:
-
-```bash
-./dsh/scripts/install-profiles.sh
-```
-
-При выборе `EPIC_RUNTIME=dsh` loop теперь автоматически устанавливает профили и
-Claude hooks в выбранный `$DSH_HOME`. Команду выше можно выполнить заранее для
-предварительного прогрева или отдельно для восстановления окружения.
-
 ## Служебные команды
 
 Показать состояние loop:
@@ -70,4 +52,4 @@ Claude hooks в выбранный `$DSH_HOME`. Команду выше можн
 
 Если OmniRoute ограничивает выбранную модель или заменяет её, loop останавливается с `model_substitution`, а не продолжает работу на другой модели.
 
-Подробности: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md), [`docs/runbooks/dsh-loop-pilot.md`](docs/runbooks/dsh-loop-pilot.md) и [`loop/README.md`](loop/README.md).
+Подробности: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md), [`loop/README.md`](loop/README.md).

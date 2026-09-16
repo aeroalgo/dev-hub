@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s07 — s07 — delete obsolete DSH test files and rewrite mixed test assertions
+  IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s07-test-suite-purge-and-rewrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалены устаревшие файлы test_loop_dsh_dispatch.py и test_dsh_e2e_smoke.py
+- Переписаны тесты test_runtime_registry.py, test_runtime_sync.py, test_runtime_sync_cli.py,
+  test_session_resilience_adapter.py, test_runner_session.py, test_agent_contract_adapter.py,
+  test_runtime_config.py для исключения DSH и проверки fail-closed
+- Targeted pytest green по всем 13 тестовым файлам шага
+files:
+- loop/tests/test_runtime_registry.py
+- loop/tests/test_runtime_sync.py
+- loop/tests/test_runtime_sync_cli.py
+- loop/tests/test_epic_transition.py
+- loop/tests/test_session_resilience_adapter.py
+- loop/tests/test_prompt_builder.py
+- loop/tests/test_board_sync_workspaces.py
+- loop/tests/test_board_sync_host_url.py
+- loop/tests/test_runner_session.py
+- loop/tests/test_context_loop.py
+- loop/tests/test_agent_contract_adapter.py
+- loop/tests/test_runtime_config.py
+- loop/tests/test_checkpoint_next_step_advance.py
+deletes:
+- loop/tests/test_loop_dsh_dispatch.py
+- loop/tests/test_dsh_e2e_smoke.py
+tests:
+- '`bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_sync.py
+  loop/tests/test_runtime_sync_cli.py loop/tests/test_epic_transition.py loop/tests/test_session_resilience_adapter.py
+  loop/tests/test_prompt_builder.py loop/tests/test_board_sync_workspaces.py loop/tests/test_board_sync_host_url.py
+  loop/tests/test_runner_session.py loop/tests/test_context_loop.py loop/tests/test_agent_contract_adapter.py
+  loop/tests/test_runtime_config.py loop/tests/test_checkpoint_next_step_advance.py
+  -q`'
+integration_check:
+- bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_sync.py loop/tests/test_epic_transition.py
+  loop/tests/test_prompt_builder.py -q --tb=line
+grep_control: []
+verification_results:
+- PASS
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: test_loop_dsh_dispatch.py и test_dsh_e2e_smoke.py удалены
+  status: done
+- id: cp2
+  criterion: Переписанные тесты реестра, sync, prompt builder и transition выполняются
+    успешно
+  status: done

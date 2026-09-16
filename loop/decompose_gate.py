@@ -54,6 +54,61 @@ def decompose_verify_pass_ready(cwd: str | Path, state: dict[str, Any] | None = 
     return phase_verify_pass_ready(cwd, "DECOMPOSE", state)
 
 
+def _decompose_phase_evidence_ok(
+    state: dict[str, Any],
+    evidence: dict[str, Any],
+    verify_agent: str,
+) -> tuple[bool, str]:
+    """Validate DECOMPOSE PASS against the finished phase, not live projection.
+
+    Premature projection advance (rebuild / wrong IMPLEMENT arm) must not
+    invalidate a self-consistent verify-decompose receipt for ANALYZE arming.
+    """
+    verifier = str(
+        evidence.get("agent_id") or evidence.get("verifier_identity") or ""
+    ).strip().lower()
+    if verifier and verifier != verify_agent:
+        return False, f"{verify_agent}_pass_missing"
+
+    evidence_step = str(evidence.get("step") or "").strip().upper()
+    if evidence_step and evidence_step != "DECOMPOSE":
+        return False, "verdict_wrong_step"
+
+    epic_observed = str(evidence.get("epic_id") or "").strip()
+    epic_expected = str(
+        state.get("armed_epic") or state.get("epic_id") or state.get("epic") or ""
+    ).strip()
+    if epic_observed and epic_expected:
+        try:
+            from _lib import epic_ids_compatible
+        except ImportError:
+            try:
+                from harness.hooks._lib import epic_ids_compatible
+            except ImportError:
+                epic_ids_compatible = None  # type: ignore[assignment]
+        if epic_ids_compatible is not None:
+            if not epic_ids_compatible(epic_observed, epic_expected):
+                return False, "verdict_stale"
+        elif epic_observed != epic_expected:
+            return False, "verdict_stale"
+
+    if evidence.get("authority") == "manual":
+        return False, "manual_authority_rejected"
+
+    schema = str(evidence.get("schema") or "").strip()
+    if schema == "loop-verifier-receipt/v1":
+        try:
+            from gate_receipt import validate_verifier_receipt
+        except ImportError:
+            try:
+                from harness.hooks.gate_receipt import validate_verifier_receipt
+            except ImportError:
+                return True, f"{verify_agent}_pass"
+        return validate_verifier_receipt(evidence, None)
+
+    return True, f"{verify_agent}_pass"
+
+
 def phase_verify_pass_ready(
     cwd: str | Path,
     phase: str,
@@ -113,7 +168,9 @@ def phase_verify_pass_ready(
     evidence = st.get("last_verify_evidence") or st.get("last_verify_receipt") or {}
     if not isinstance(evidence, dict):
         evidence = {}
-    agent_id = str(evidence.get("agent_id") or "").strip().lower()
+    agent_id = str(
+        evidence.get("agent_id") or evidence.get("verifier_identity") or ""
+    ).strip().lower()
     session_key = verify_agent.replace("-", "_") + "_verdict"
     session_verdict = str(st.get(session_key) or "").strip().upper()
     # Legacy keys used by record_verdict for known agents.
@@ -148,26 +205,39 @@ def phase_verify_pass_ready(
             "verify_agent": verify_agent,
         }
     if evidence:
-        try:
-            from epic.core import gate_evidence_matches
+        if phase_key == "DECOMPOSE" and verify_agent == "verify-decompose":
+            matched, diagnostic = _decompose_phase_evidence_ok(
+                st, evidence, verify_agent
+            )
+            if not matched:
+                return {
+                    "ok": False,
+                    "diagnostic": diagnostic or "gate_evidence_mismatch",
+                    "reason": f"{verify_agent} evidence rejected: {diagnostic}",
+                    "phase": phase_key,
+                    "verify_agent": verify_agent,
+                }
+        else:
+            try:
+                from epic.core import gate_evidence_matches
 
-            matched, diagnostic = gate_evidence_matches(cwd_p, evidence)
-        except Exception as exc:
-            return {
-                "ok": False,
-                "diagnostic": "gate_evidence_invalid",
-                "reason": f"{verify_agent} evidence check failed: {exc}",
-                "phase": phase_key,
-                "verify_agent": verify_agent,
-            }
-        if not matched:
-            return {
-                "ok": False,
-                "diagnostic": diagnostic or "gate_evidence_mismatch",
-                "reason": f"{verify_agent} evidence rejected: {diagnostic}",
-                "phase": phase_key,
-                "verify_agent": verify_agent,
-            }
+                matched, diagnostic = gate_evidence_matches(cwd_p, evidence)
+            except Exception as exc:
+                return {
+                    "ok": False,
+                    "diagnostic": "gate_evidence_invalid",
+                    "reason": f"{verify_agent} evidence check failed: {exc}",
+                    "phase": phase_key,
+                    "verify_agent": verify_agent,
+                }
+            if not matched:
+                return {
+                    "ok": False,
+                    "diagnostic": diagnostic or "gate_evidence_mismatch",
+                    "reason": f"{verify_agent} evidence rejected: {diagnostic}",
+                    "phase": phase_key,
+                    "verify_agent": verify_agent,
+                }
     return {
         "ok": True,
         "diagnostic": f"{verify_agent}_pass",

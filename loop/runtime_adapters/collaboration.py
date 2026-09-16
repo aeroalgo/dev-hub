@@ -57,10 +57,3 @@ def codex_collaboration_block(ctx: SessionContext) -> str:
 5. Вне QA: для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify. В QA — BUGFIX path по QA-контракту, не product repair-loop.
 6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK RECONCILE` и только с ALLOW READ текущего epic.
 """
-
-
-def dsh_collaboration_block(ctx: SessionContext) -> str:
-    return shared_collaboration_policy(phase=ctx.phase) + """
-## DSH COLLABORATION ADAPTER (HARD)
-Используй native механизм subagent текущего DSH-профиля и дождись его завершения; имена gate-агентов и repair-loop не меняются. В QA следуй QA-контракту (один suite → BUGFIX или один verify-qa).
-"""

@@ -156,8 +156,6 @@ hooks:
     runtimes:
       claude:
         settings_key: "hooks.StopGate"
-      dsh:
-        adapter_hook: true
       codex:
         hooks_json_entry: true
   # Out of scope (FR-012 compliance): session-end, permission-request, pre-compact, post-compact
@@ -167,7 +165,5 @@ instructions:
     runtimes:
       claude:
         target: "CLAUDE.md"
-      dsh:
-        target: "DSH.md"
       codex:
         target: "AGENTS.md"

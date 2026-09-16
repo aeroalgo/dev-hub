@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-106-dsh-runtime-full-purge
+title: s04 — purge DSH hooks, bridge wiring, resilience patterns, and manifest blocks
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить DSH-специфичные harness хуки и артефакты: удалить harness/hooks/dsh_stream_filter.py,
+  очистить harness/hooks/session_resilience.py, harness/hooks/_lib.py, harness/hooks/epic/core.py,
+  harness/hooks/touch_ledger.py и harness/manifest.yaml.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - FR-006
+    - SC-001
+    - US-002
+  nouns:
+    - harness/hooks/dsh_stream_filter.py
+    - harness/hooks/session_resilience.py
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/touch_ledger.py
+    - harness/manifest.yaml
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/steps/s04-harness-hooks-and-manifest-purge.yaml
+  ac_quotes:
+    - "Harness DSH-only surfaces удалены: dsh_stream_filter.py, DSH abort/mismatch branches, manifest dsh blocks, DSH_HOOKS_BRIDGE wiring."
+    - "Prod-код без get_dsh_preset live path, DSH_HOOKS_BRIDGE dsh-only wiring."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:92-103
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md:204-226
+
+context:
+  consumes:
+    - harness/hooks/session_resilience.py
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/touch_ledger.py
+    - harness/manifest.yaml
+  produces:
+    - harness/hooks/session_resilience.py
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/touch_ledger.py
+    - harness/manifest.yaml
+  plan_refs:
+    - FR-004
+    - FR-005
+    - FR-006
+    - SC-001
+    - US-002
+  files:
+    - harness/hooks/session_resilience.py
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/touch_ledger.py
+    - harness/manifest.yaml
+
+as_built:
+  - "harness/hooks/dsh_stream_filter.py фильтрует поток DSH"
+  - "harness/hooks/session_resilience.py импортирует детекторы DSH"
+  - "harness/hooks/_lib.py и epic/core.py содержат поддержку dsh и dsh_preset"
+  - "harness/manifest.yaml содержит конфигурационные блоки для dsh"
+
+delta:
+  - "Удалить DSH детекторы и импорты из harness/hooks/session_resilience.py"
+  - "Удалить dsh и DSH_HOOKS_BRIDGE из harness/hooks/_lib.py"
+  - "Удалить dsh_preset проброс из harness/hooks/epic/core.py"
+  - "Удалить dsh блоки из harness/manifest.yaml"
+
+deletes:
+  - harness/hooks/dsh_stream_filter.py
+wire_complete_required: false
+
+out_of_scope:
+  - "Удаление директории dsh/ (шаг s05)"
+  - "Правка тестов (шаг s07)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/hooks/dsh_stream_filter.py удален и session_resilience.py не импортирует dsh"
+    verify: "bin/pytest harness/hooks/tests/ -k test_session_resilience -q --tb=line"
+  - id: cp2
+    criterion: "harness manifest и core хуки очищены от dsh"
+    verify: "bin/pytest harness/hooks/tests/ -q --tb=line"
+
+verify: []
+tdd: []

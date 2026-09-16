@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--runtime",
-        choices=["codex", "dsh", "claude", "all"],
+        choices=["codex", "claude", "all"],
         default="codex",
         help="Target runtime or 'all'",
     )
@@ -84,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
                     sys.stdout.write(f"  - {issue}\n")
         elif manifest_path.exists():
             manifest = load_manifest(manifest_path)
-            runtimes = ["codex", "dsh", "claude"] if args.runtime == "all" else [args.runtime]
+            runtimes = ["codex", "claude"] if args.runtime == "all" else [args.runtime]
             for rt in runtimes:
                 if rt == "codex":
                     drift = codex_drift_items(manifest, manifest_path=manifest_path, root_dir=root_dir)
@@ -114,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
         manifest = load_manifest(manifest_path)
-        runtimes = ["codex", "dsh", "claude"] if args.runtime == "all" else [args.runtime]
+        runtimes = ["codex", "claude"] if args.runtime == "all" else [args.runtime]
 
         for rt in runtimes:
             if rt == "codex":
