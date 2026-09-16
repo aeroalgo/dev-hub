@@ -35,7 +35,10 @@ DiagnosticCode = Literal[
     "spawn_failed",
     "process_timed_out",
     "command_failed",
+    "capability_evidence_non_authoritative",
 ]
+
+ProvenanceSource = Literal["executor"]
 
 DoctorCheckStatus = Literal["pass", "fail", "warn"]
 

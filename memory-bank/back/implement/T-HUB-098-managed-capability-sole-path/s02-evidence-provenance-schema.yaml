@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s02 — evidence-provenance-schema — authoritative provenance on capability evidence
+  schema and store IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/yaml/steps/s02-evidence-provenance-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Extended CapabilityExecutionEvidence schema with mandatory provenance_source: Literal["executor"]
+  and added capability_evidence_non_authoritative diagnostic code.'
+- Updated write_capability_evidence to stamp executor provenance on serialized sidecars.
+- Updated read_capability_evidence in loop/stack_profiles/evidence.py to strictly
+  reject unprovenanced, legacy, or agent-forged evidence sidecars.
+- Added comprehensive unit and integration tests in loop/tests/test_stack_profile_evidence.py
+  covering provenance schema enforcement, serialization, authoritative write/read,
+  and forged sidecar rejection.
+files:
+- loop/stack_profiles/schemas.py
+- loop/stack_profiles/evidence.py
+- loop/stack_profiles/execution.py
+- loop/tests/test_stack_profile_evidence.py
+deletes:
+- unprovenanced_evidence_acceptance
+tests:
+- '`bin/pytest loop/tests/test_stack_profile_evidence.py -q` — 7 passed'
+integration_check:
+- loop/tests/test_stack_profile_evidence.py validates CapabilityExecutionEvidence
+  schema provenance and rejection of unprovenanced sidecars
+grep_control:
+- back: loop/stack_profiles/evidence.py
+  front: read_capability_evidence
+verification_results:
+- 'cp1: bin/pytest loop/tests/test_stack_profile_evidence.py -q -k test_provenance_schema
+  -> PASS'
+- 'cp2: bin/pytest loop/tests/test_stack_profile_evidence.py -q -k test_evidence_provenance_authority
+  -> PASS'
+- 'cp3: rg -n "read_capability_evidence" loop/stack_profiles/evidence.py -> PASS'
+checkpoints:
+- id: cp1
+  criterion: CapabilityExecutionEvidence schema enforces provenance_source field and
+    serialization
+  status: done
+- id: cp2
+  criterion: write_capability_evidence stamps executor provenance and read_capability_evidence
+    rejects unprovenanced or agent-forged sidecars
+  status: done
+- id: cp3
+  criterion: audit confirms deletion of unprovenanced evidence acceptance callers
+    in evidence module
+  status: done
+resume_from: cp1

@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s04 — epic-yaml-managed-finish — finish validation managed capability enforcement and provenance verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Update finish validation in harness/hooks/epic_yaml.py (~721–761, ~1813–1848):
+  when context is managed, require non-empty capability_checks on decompose shard for the finishing step;
+  forbid hub tests alone from satisfying verification with diagnostic managed_verification_requires_capability_checks;
+  reject sidecars missing valid provenance with capability_evidence_non_authoritative;
+  preserve hub-only validation unchanged when context is hub.
+  Closes FR-002, FR-006, NFR-002.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-006
+  nouns:
+    - validate_implement_completion
+    - validate_shard_yaml_full
+    - managed_verification_requires_capability_checks
+    - capability_evidence_non_authoritative
+    - classify_project_verification_context
+  layout_paths:
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/tests/test_epic_yaml_capability_checks.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  ac_quotes:
+    - "FR-002: When context is managed, finish validation (epic_yaml.py finish branches ~721–761 and step validator ~1813–1848) requires non-empty capability_checks on decompose shard for the finishing step; hub tests: alone MUST NOT satisfy verification; emit stable diagnostic managed_verification_requires_capability_checks."
+    - "FR-006: Preserve hub-only branch: when context is hub, existing tests: validation unchanged; no mandatory capability_checks; no regression to T-HUB-098 I1 positive paths covered by QA TM-001…TM-006."
+    - "NFR-002: New diagnostics MUST be stable strings suitable for loop HALT and mb-finish error surfaces."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md:102-117"
+
+context:
+  consumes:
+    - loop/stack_profiles/context.py
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - harness/hooks/epic_yaml.py
+  produces:
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/tests/test_epic_yaml_capability_checks.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#fr-002
+    - plan.md#fr-006
+  files:
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/tests/test_epic_yaml_capability_checks.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+
+as_built:
+  - harness/hooks/epic_yaml.py — finish validation checks tests entries or capability_checks
+
+delta:
+  - harness/hooks/epic_yaml.py — classify context; require capability_checks in managed mode; reject unprovenanced evidence; preserve hub tests in hub mode; delete unmanaged_tests_fallback_branch
+  - harness/hooks/tests/test_epic_yaml_capability_checks.py — tests for managed root requiring capability_checks and hub root accepting tests
+  - harness/hooks/tests/test_epic_yaml_capability_evidence.py — tests for rejecting unprovenanced sidecar at finish
+
+deletes:
+  - unmanaged_tests_fallback_branch
+
+wire_complete_required: false
+
+out_of_scope:
+  - s01-context-classifier.yaml
+  - s02-evidence-provenance-schema.yaml
+  - s03-context-loop-managed-enforcement.yaml
+  - s05-legacy-fallback-purge.yaml
+  - full QA test suite
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: finish validation rejects managed step lacking capability_checks with managed_verification_requires_capability_checks
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_checks.py -q -k test_managed_finish_requires_capability_checks"
+  - id: cp2
+    criterion: finish validation rejects sidecar with missing or non-executor provenance with capability_evidence_non_authoritative
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -q -k test_finish_rejects_non_authoritative_provenance"
+  - id: cp3
+    criterion: audit confirms deletion of unmanaged tests fallback branch in epic_yaml
+    verify: "rg -n 'validate_tests_entries' harness/hooks/epic_yaml.py"
+
+verify: []
+tdd: []

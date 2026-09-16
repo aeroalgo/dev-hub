@@ -56,10 +56,10 @@ I2 закрывает только этот gap: убрать автоматич
 
 | # | Story | Priority | Independent Test |
 |---|---|---|---|
-| US-I2-001 | Как оператор loop, я хочу видеть open incidents после рестарта процесса, чтобы forensic typed failure surface не исчезала до явного решения. | P0 | Start orchestrator twice with pre-seeded open incident → после второго start incident остаётся open; auto-resolve не вызывается. |
-| US-I2-002 | Как оператор, я хочу явно очистить stale open incidents через CLI, когда recovery осознанный и audited. | P0 | `incident-clear-open --json` resolves open records с documented `resolution_action`; orchestrator start без этого CLI не меняет incidents. |
+| US-001 | Как оператор loop, я хочу видеть open incidents после рестарта процесса, чтобы forensic typed failure surface не исчезала до явного решения. | P0 | Start orchestrator twice with pre-seeded open incident → после второго start incident остаётся open; auto-resolve не вызывается. |
+| US-002 | Как оператор, я хочу явно очистить stale open incidents через CLI, когда recovery осознанный и audited. | P0 | `incident-clear-open --json` resolves open records с documented `resolution_action`; orchestrator start без этого CLI не меняет incidents. |
 
-### Acceptance Scenarios — US-I2-001
+### Acceptance Scenarios — US-001
 
 - **Given:** в `incidents.jsonl` есть open incident с diagnostic codes после terminal failure предыдущей сессии.
 - **When:** outer loop orchestrator выполняет `run()` (новый process start).
@@ -69,7 +69,7 @@ I2 закрывает только этот gap: убрать автоматич
 - **When:** `run()` выполняется.
 - **Then:** no-op без ошибок; bulk resolve не вызывается.
 
-### Acceptance Scenarios — US-I2-002
+### Acceptance Scenarios — US-002
 
 - **Given:** несколько open incidents в epic_dir.
 - **When:** оператор выполняет `python -m loop.context_loop incident-clear-open --json` (или эквивалент documented CLI).
@@ -81,27 +81,27 @@ I2 закрывает только этот gap: убрать автоматич
 
 ## Functional Requirements (FR)
 
-- **FR-I2-001:** `Orchestrator.run()` MUST NOT вызывать bulk resolve open incidents на startup; блок ~285–294 с `clear_open_on_start` удаляется или заменяется no-op без side-effect на `incidents.jsonl`.
-- **FR-I2-002:** `IncidentTracker.clear_open_on_start` MUST быть удалён или превращён в deprecated stub, который fail-closed raise/логирует при вызове; единственный machine path bulk-clear — operator CLI.
-- **FR-I2-003:** Open incidents MUST оставаться visible (`status: open`) across process restart до explicit `incident-clear-open` или per-incident resolve API; forensic diagnostic codes не теряются.
-- **FR-I2-004:** CLI `incident-clear-open` MUST оставаться единственным opt-in audited bulk recovery; `resolution_action` и `resolution_tier` фиксируются в resolved record (не silent delete).
-- **FR-I2-005:** Тесты `loop/tests/test_runner_orchestrator.py` MUST быть обновлены: убрать expectations на `clear_open_on_start.assert_called_once`; добавить regression — restart не clears incidents.
-- **FR-I2-006:** Тесты incidents CLI/store MUST подтверждать, что auto-start path отсутствует; существующий `test_resolve_all_open_incidents` остаётся valid для operator CLI path only.
-- **FR-I2-007:** Kind I surfaces MUST NOT instruct agent/loop to auto-clear incidents or markers on restart; если такие фразы есть — rewrite на operator-only recovery (без расширения scope за пределы incident clearing).
+- **FR-001:** `Orchestrator.run()` MUST NOT вызывать bulk resolve open incidents на startup; блок ~285–294 с `clear_open_on_start` удаляется или заменяется no-op без side-effect на `incidents.jsonl`.
+- **FR-002:** `IncidentTracker.clear_open_on_start` MUST быть удалён или превращён в deprecated stub, который fail-closed raise/логирует при вызове; единственный machine path bulk-clear — operator CLI.
+- **FR-003:** Open incidents MUST оставаться visible (`status: open`) across process restart до explicit `incident-clear-open` или per-incident resolve API; forensic diagnostic codes не теряются.
+- **FR-004:** CLI `incident-clear-open` MUST оставаться единственным opt-in audited bulk recovery; `resolution_action` и `resolution_tier` фиксируются в resolved record (не silent delete).
+- **FR-005:** Тесты `loop/tests/test_runner_orchestrator.py` MUST быть обновлены: убрать expectations на `clear_open_on_start.assert_called_once`; добавить regression — restart не clears incidents.
+- **FR-006:** Тесты incidents CLI/store MUST подтверждать, что auto-start path отсутствует; существующий `test_resolve_all_open_incidents` остаётся valid для operator CLI path only.
+- **FR-007:** Kind I surfaces MUST NOT instruct agent/loop to auto-clear incidents or markers on restart; если такие фразы есть — rewrite на operator-only recovery (без расширения scope за пределы incident clearing).
 
 ## NFR
 
-- **NFR-I2-001:** Изменение не добавляет новый persistence layer и не требует migration существующих resolved records.
-- **NFR-I2-002:** Startup orchestrator не выполняет write I/O на `incidents.jsonl` кроме уже существующих trace/telemetry paths вне scope этого gap.
-- **NFR-I2-003:** Operator CLI contract (`incident-clear-open`, JSON output) остаётся backward-compatible; breaking change запрещён без documented migration.
-- **NFR-I2-004:** I2 не меняет idempotency keys, reducer transitions, receipt provenance (077) или capability evidence paths.
+- **NFR-001:** Изменение не добавляет новый persistence layer и не требует migration существующих resolved records.
+- **NFR-002:** Startup orchestrator не выполняет write I/O на `incidents.jsonl` кроме уже существующих trace/telemetry paths вне scope этого gap.
+- **NFR-003:** Operator CLI contract (`incident-clear-open`, JSON output) остаётся backward-compatible; breaking change запрещён без documented migration.
+- **NFR-004:** I2 не меняет idempotency keys, reducer transitions, receipt provenance (077) или capability evidence paths.
 
 ## Target layout
 
 | Surface / owner | Paths | I2 responsibility |
 |---|---|---|
 | Orchestrator startup | `loop/runner/orchestrator.py` | Удалить auto `clear_open_on_start` call в `run()`; убрать/deprecate `IncidentTracker.clear_open_on_start`. |
-| Incident bulk resolve (operator) | `loop/context_loop.py` (`incident-clear-open`), `loop/incidents/store.py::resolve_all_open_incidents` | Сохранить как единственный opt-in bulk path; default `resolution_action` для CLI остаётся explicit operator action (не `clear_open_on_loop_start` на auto-start). |
+| Incident bulk resolve (operator) | `loop/context_loop.py` (`incident-clear-open`), `loop/incidents/store.py` (resolve_all_open_incidents) | Сохранить как единственный opt-in bulk path; default `resolution_action` для CLI остаётся explicit operator action (не `clear_open_on_loop_start` на auto-start). |
 | Tests — orchestrator | `loop/tests/test_runner_orchestrator.py` | Убрать mock expectations auto-clear; добавить regression open-incident survives restart. |
 | Tests — incidents | `loop/tests/test_incidents_cli.py`, `loop/tests/test_incidents_schema_store.py` | Подтвердить CLI path; не conflate с orchestrator start. |
 | Kind I (if any) | `loop/WORKFLOW.md`, operator docs referencing auto-clear on start | Rewrite: explicit operator recovery only. |
@@ -159,10 +159,10 @@ I2 закрывает только этот gap: убрать автоматич
 
 | ID | Priority | Scenario | Command / fixture | Expected | Maps |
 |---|---|---|---|---|---|
-| TM-079-I2-01 | P0 | Open incident survives orchestrator restart | `bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line -k 'incident or clear_open'` | Pre-seeded open incident remains open; no `clear_open_on_start` call | FR-I2-001,003; AC-1 |
-| TM-079-I2-02 | P0 | No live auto-clear symbol path | `rg 'clear_open_on_start' loop/` + targeted pytest | Zero call sites from orchestrator; symbol removed or dead | FR-I2-002; AC-2 |
-| TM-079-I2-03 | P0 | Operator CLI bulk clear works | `bin/pytest loop/tests/test_incidents_cli.py -q --tb=line -k clear_open` | CLI resolves with explicit action; not triggered by orchestrator start | FR-I2-004; AC-3 |
-| TM-079-I2-04 | P1 | Full hub regression | `bin/pytest -q --tb=line` | Suite green; I1 lifecycle behavior intact | NFR-I2-004 |
+| TM-079-01 | P0 | Open incident survives orchestrator restart | `bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line -k 'incident or clear_open'` | Pre-seeded open incident remains open; no `clear_open_on_start` call | FR-001,003; AC-1 |
+| TM-079-02 | P0 | No live auto-clear symbol path | `rg 'clear_open_on_start' loop/` + targeted pytest | Zero call sites from orchestrator; symbol removed or dead | FR-002; AC-2 |
+| TM-079-03 | P0 | Operator CLI bulk clear works | `bin/pytest loop/tests/test_incidents_cli.py -q --tb=line -k clear_open` | CLI resolves with explicit action; not triggered by orchestrator start | FR-004; AC-3 |
+| TM-079-04 | P1 | Full hub regression | `bin/pytest -q --tb=line` | Suite green; I1 lifecycle behavior intact | NFR-004 |
 
 ## Review readiness
 
@@ -171,15 +171,15 @@ I2 закрывает только этот gap: убрать автоматич
 | Prompt Epic alignment | I2 scope ⊆ Epic outcome + Forbidden after | done | Single legacy_removal gap mapped to marker clearing prohibition |
 | Gap-only scope | No outcome expansion | done | backlog_candidates excluded; foreign epics listed as out-of-scope |
 | Technology axiom | Replace-not-wrap | done | Auto-clear deleted; operator CLI sole bulk path |
-| qa_consumes | ≥3 TM | done | TM-079-I2-01…04 |
+| qa_consumes | ≥3 TM | done | TM-079-01…04 |
 | Delivery closure | P0 boundary defined | done | See below |
 
 ## Delivery closure
 
 | Capability / outcome | Classification | Production entrypoint | Enforcement | Independent test | Follow-up |
 |---|---|---|---|---|---|
-| Fail-closed incident visibility on restart | `legacy_removal` | `Orchestrator.run()` without incident mutation | Tests deny auto-clear; open records persist | TM-079-I2-01 | n/a |
-| Operator-only bulk incident recovery | `hardening` (minimal) | `incident-clear-open` CLI | Existing CLI tests + no orchestrator alias | TM-079-I2-03 | n/a |
+| Fail-closed incident visibility on restart | `legacy_removal` | `Orchestrator.run()` without incident mutation | Tests deny auto-clear; open records persist | TM-079-01 | n/a |
+| Operator-only bulk incident recovery | `hardening` (minimal) | `incident-clear-open` CLI | Existing CLI tests + no orchestrator alias | TM-079-03 | n/a |
 
 ## Appetite
 

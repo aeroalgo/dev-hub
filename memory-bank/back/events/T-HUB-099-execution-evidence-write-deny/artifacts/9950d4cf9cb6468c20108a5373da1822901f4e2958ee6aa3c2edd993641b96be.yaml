@@ -1,0 +1,50 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-099-execution-evidence-write-deny
+plan_id: T-HUB-099-execution-evidence-write-deny
+epic_id: T-HUB-099-execution-evidence-write-deny
+date: '2026-09-14'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: fb3abe97471b286e54adcd0f1a5fdb0f70dde8f09a5cb1aca4c0efa60a82efed
+verify_scope: full
+
+scope:
+  - "task: T-HUB-099-execution-evidence-write-deny"
+  - "epic: T-HUB-099-execution-evidence-write-deny"
+  - "steps: s01–s05"
+  - "files: harness/hooks/_lib.py, harness/hooks/pretool_policy.py, harness/hooks/epic_yaml.py, loop/stack_profiles/evidence.py, harness/hooks/tests/test_agent_pretool_gate_write_boundary.py, harness/hooks/tests/test_epic_yaml_capability_evidence.py"
+
+ac_plus:
+  - "US-I2-001: Write deny on execution evidence (pretool returns DENY before Write/Edit on memory-bank/<role>/execution/<epic_id>/<step_id>/capability-<fingerprint>.json)"
+  - "US-I2-002: Deny covers role variants (covers back, front, integration uniformly)"
+  - "US-I2-003: Finish read rejects non-authoritative capability evidence (forged sidecars lacking executor provenance fail capability_evidence_non_authoritative)"
+  - "US-I2-004: I1 gate receipts unaffected (runtime gate JSON paths still validate)"
+  - "FR-001: Extend execution_evidence_write_deny_reason / recorded_artifact_write_deny_reason to match capability sidecars"
+  - "FR-002: Wire deny into WritePolicyAdapter.evaluate in pretool_policy.py"
+  - "FR-003: Apply deny to agent tool boundary while permitting executor write path"
+  - "FR-004: Integrate finish/read non-authoritative rejection for capability sidecars"
+  - "FR-005: Preserve I1 verifier receipt enforcement"
+
+ac_minus:
+  - "No agent Write/Edit success on capability execution sidecar paths in pretool fixtures."
+  - "No finish PASS solely because forged sidecar exists with succeeded status."
+  - "No regression of I1 verifier receipt deny paths (runtime gate JSON still governed by I1 rules)."
+  - "No implementation of managed->hub fallback fix (076 scope)."
+  - "No scope into TestFingerprintCache or clear_open_on_start."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (2930 passed, 4 skipped in 132.70s)"
+  - "integration rule (§0.11) — zero dangling references"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 2930 passed, 4 skipped in 132.70s (0:02:12)"

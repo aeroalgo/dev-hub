@@ -830,6 +830,113 @@ def arm_phase(
     lifecycle_phase_u = normalize_registry_phase(phase_u)
     decompose_rel = kwargs.get("decompose") or kwargs.get("decompose_rel")
 
+    gate_diagnostic = str(st_before.get("gate_diagnostic") or "").strip()
+    decompose_gate_failed = gate_diagnostic in {
+        "verify_spawn_missing",
+        "verify_runtime_error",
+        "verify_runtime_unsupported_tool",
+        "verify_runtime_collaboration_wait_timeout",
+        "verify-decompose_pass_missing",
+    } or str(st_before.get("repair_required") or "").strip() == "gate-repair"
+    current_step = str(st_before.get("armed_step") or "").strip().upper()
+    pre_implement_transition = (
+        current_step in {"DECOMPOSE", "ANALYZE"}
+        or str(st_before.get("last_finished_step") or "").strip().upper()
+        in {"DECOMPOSE", "ANALYZE"}
+        or decompose_gate_failed
+    )
+
+    if lifecycle_phase_u == "ANALYZE":
+        bound_decompose = decompose_rel or st_before.get("armed_decompose")
+        decompose_transition = (
+            current_step == "DECOMPOSE"
+            or str(st_before.get("last_finished_step") or "").strip().upper()
+            == "DECOMPOSE"
+            or decompose_gate_failed
+        )
+        if bound_decompose and decompose_transition:
+            from loop.decompose_gate import decompose_verify_pass_ready
+
+            verify = decompose_verify_pass_ready(cwd_p, st_before)
+            if not verify.get("ok"):
+                diagnostic = str(
+                    verify.get("diagnostic") or "verify-decompose_pass_missing"
+                )
+                return {
+                    "ok": False,
+                    "halt": True,
+                    "phase": "ANALYZE",
+                    "epic_id": epic_id,
+                    "diagnostic_code": diagnostic,
+                    "reason": (
+                        "DECOMPOSE → ANALYZE переход запрещён: "
+                        "verify-decompose PASS receipt отсутствует или невалиден"
+                    ),
+                }
+
+    if lifecycle_phase_u in {"IMPLEMENT", "TASK", "REFACTOR"} and decompose_rel and pre_implement_transition:
+        from loop.decompose_gate import decompose_shards_diagnostic, decompose_verify_pass_ready
+        from loop.roadmap_queue import load_steps_for_index
+
+        index_path = cwd_p / str(decompose_rel)
+        if index_path.is_dir():
+            index_path = index_path / "index.yaml"
+        loaded = load_steps_for_index(cwd_p, index_path)
+        if not loaded.get("ok"):
+            return {
+                "ok": False,
+                "halt": True,
+                "phase": lifecycle_phase_u,
+                "epic_id": epic_id,
+                "diagnostic_code": "decompose_index_invalid",
+                "reason": "IMPLEMENT переход запрещён: decompose index не прошёл загрузку",
+            }
+        steps = loaded.get("steps") or []
+        shard_diagnostic = decompose_shards_diagnostic(index_path, steps)
+        if shard_diagnostic:
+            return {
+                "ok": False,
+                "halt": True,
+                "phase": lifecycle_phase_u,
+                "epic_id": epic_id,
+                "diagnostic_code": "decompose_shards_missing",
+                "reason": f"IMPLEMENT переход запрещён: {shard_diagnostic}",
+            }
+        if (
+            current_step == "DECOMPOSE"
+            or str(st_before.get("last_finished_step") or "").strip().upper() == "DECOMPOSE"
+            or decompose_gate_failed
+        ):
+            verify = decompose_verify_pass_ready(cwd_p, st_before)
+            if not verify.get("ok"):
+                return {
+                    "ok": False,
+                    "halt": True,
+                    "phase": lifecycle_phase_u,
+                    "epic_id": epic_id,
+                    "diagnostic_code": str(verify.get("diagnostic") or "verify-decompose_pass_missing"),
+                    "reason": "DECOMPOSE → IMPLEMENT переход запрещён без verify-decompose PASS",
+                }
+        from analyze_gate import analyze_required_before_implement
+
+        role_dir = str(role or st_before.get("role") or "back").lower()
+        analyze_gate = analyze_required_before_implement(
+            cwd_p,
+            role_dir,
+            epic_id,
+            steps,
+            index_path=index_path,
+        )
+        if analyze_gate.get("required"):
+            return {
+                "ok": False,
+                "halt": True,
+                "phase": lifecycle_phase_u,
+                "epic_id": epic_id,
+                "diagnostic_code": "analyze_gate_pending",
+                "reason": f"ANALYZE → IMPLEMENT переход запрещён: {analyze_gate.get('reason') or 'analyze_required'}",
+            }
+
     env = kwargs.get("env") or os.environ
     if phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX") and env.get("EPIC_PARALLEL_SNN") == "1":
         from loop.parallel.orchestrator import run_parallel_wave
@@ -992,6 +1099,23 @@ def promote_if_ready(
     # edited activeContext cannot substitute for a fresh receipt bound to the
     # current projection.
     if armed_step == "ANALYZE":
+        gate_diagnostic = str(st.get("gate_diagnostic") or "").strip()
+        decompose_transition_failed = gate_diagnostic in {
+            "verify_spawn_missing",
+            "verify_runtime_error",
+            "verify_runtime_unsupported_tool",
+            "verify_runtime_collaboration_wait_timeout",
+            "verify-decompose_pass_missing",
+        } or str(st.get("repair_required") or "").strip() == "gate-repair"
+        if (
+            str(st.get("last_finished_step") or "").strip().upper() == "DECOMPOSE"
+            or decompose_transition_failed
+        ):
+            from loop.decompose_gate import decompose_verify_pass_ready
+
+            verify = decompose_verify_pass_ready(cwd_p, st)
+            if not verify.get("ok"):
+                return None
         # A manually edited IMPLEMENT handoff is handled by prepare_session,
         # which re-arms ANALYZE after rejecting the missing/stale receipt.  Do
         # not turn that drift into an implicit promotion here.

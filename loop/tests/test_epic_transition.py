@@ -270,6 +270,126 @@ def test_promote_if_ready_decompose_without_verify_stays(tmp_path):
     mock_arm.assert_not_called()
 
 
+def test_arm_phase_analyze_rejects_missing_decompose_verify(tmp_path):
+    from epic.core import save_epic_state  # noqa: PLC0415
+    from loop.epic_transition import arm_phase  # noqa: PLC0415
+
+    epic = "T-TEST-001c"
+    decomp = _seed_decompose_index(tmp_path, epic)
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "DECOMPOSE",
+            "phase": "DECOMPOSE",
+            "role": "BACK",
+            "last_verify_verdict": "FAIL",
+        },
+    )
+
+    res = arm_phase(
+        tmp_path,
+        epic,
+        "ANALYZE",
+        "back",
+        decompose_rel=f"{decomp}/index.yaml",
+    )
+
+    assert res["ok"] is False
+    assert res["halt"] is True
+    assert res["diagnostic_code"] == "verify-decompose_pass_missing"
+
+
+def test_rebuild_demotes_analyze_without_decompose_verify(tmp_path):
+    from epic.core import rebuild_epic_projection, save_epic_state  # noqa: PLC0415
+
+    epic = "T-TEST-001d"
+    decomp = _seed_decompose_index(tmp_path, epic)
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "status": "running",
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "ANALYZE",
+            "phase": "ANALYZE",
+            "role": "BACK",
+            "gate_diagnostic": "verify_runtime_collaboration_wait_timeout",
+        },
+    )
+
+    rebuilt = rebuild_epic_projection(tmp_path)
+
+    assert rebuilt["phase"] == "DECOMPOSE"
+    assert rebuilt["armed_step"] == "DECOMPOSE"
+    assert rebuilt["projection"]["phase"] == "DECOMPOSE"
+    assert rebuilt["gate_diagnostic"] == "verify-decompose_pass_missing"
+
+
+def test_promote_analyze_with_decompose_runtime_failure_does_not_reach_implement(
+    tmp_path,
+):
+    from epic.core import save_epic_state
+    from loop.epic_transition import promote_if_ready
+
+    epic = "T-TEST-001e"
+    decomp = _seed_decompose_index(
+        tmp_path,
+        epic,
+        analyze_yaml="schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+    )
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "ANALYZE",
+            "last_finished_step": "DECOMPOSE",
+            "gate_diagnostic": "verify_runtime_collaboration_wait_timeout",
+            "repair_required": "gate-repair",
+            "role": "BACK",
+        },
+    )
+
+    assert promote_if_ready(tmp_path, epic, "back") is None
+
+
+def test_arm_implement_with_decompose_runtime_failure_is_fail_closed(tmp_path):
+    from epic.core import save_epic_state
+    from loop.epic_transition import arm_phase
+
+    epic = "T-TEST-001f"
+    decomp = _seed_decompose_index(
+        tmp_path,
+        epic,
+        analyze_yaml="schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+    )
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "ANALYZE",
+            "last_finished_step": "DECOMPOSE",
+            "gate_diagnostic": "verify_runtime_error",
+            "repair_required": "gate-repair",
+            "role": "BACK",
+        },
+    )
+
+    result = arm_phase(
+        tmp_path,
+        epic,
+        "IMPLEMENT",
+        "back",
+        decompose_rel=f"{decomp}/index.yaml",
+    )
+    assert result["ok"] is False
+    assert result["diagnostic_code"] == "verify-decompose_pass_missing"
+
+
 def test_promote_if_ready_no_gate_goes_implement(tmp_path, monkeypatch):
     from epic.core import save_epic_state  # noqa: PLC0415
     from loop.epic_transition import promote_if_ready  # noqa: PLC0415

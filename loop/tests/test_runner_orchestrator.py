@@ -160,7 +160,6 @@ def test_clean_turn_lifecycle(dummy_config: RunnerConfig) -> None:
         ]
 
         mock_incident_tracker = MagicMock(spec=IncidentTracker)
-        mock_incident_tracker.clear_open_on_start.return_value = {"cleared_count": 0, "diagnostic_codes": []}
 
         out_lines: list[str] = []
         err_lines: list[str] = []
@@ -196,7 +195,6 @@ def test_clean_turn_lifecycle(dummy_config: RunnerConfig) -> None:
         assert invoker.invocations[0].session_id == "session-1"
         assert invoker.invocations[1].session_id == "session-2"
 
-        mock_incident_tracker.clear_open_on_start.assert_called_once_with(dummy_config.project_root)
         assert mock_incident_tracker.record_trace.call_count == 2
 
 
@@ -220,7 +218,6 @@ def test_transient_retry(dummy_config: RunnerConfig) -> None:
         ]
 
         mock_tracker = MagicMock(spec=IncidentTracker)
-        mock_tracker.clear_open_on_start.return_value = {"cleared_count": 0, "diagnostic_codes": []}
 
         sleeps: list[float] = []
         out_lines: list[str] = []
@@ -264,7 +261,6 @@ def test_transient_retry_subagent_timeout(dummy_config: RunnerConfig) -> None:
         ]
 
         mock_tracker = MagicMock(spec=IncidentTracker)
-        mock_tracker.clear_open_on_start.return_value = {"cleared_count": 0, "diagnostic_codes": []}
 
         out_lines: list[str] = []
         runner = LoopRunner(
@@ -305,7 +301,6 @@ def test_transient_retry_epic_completed(dummy_config: RunnerConfig) -> None:
         ]
 
         mock_tracker = MagicMock(spec=IncidentTracker)
-        mock_tracker.clear_open_on_start.return_value = {"cleared_count": 0, "diagnostic_codes": []}
 
         runner = LoopRunner(
             dummy_config,
@@ -334,7 +329,6 @@ def test_action_decisions(dummy_config: RunnerConfig) -> None:
 
         invoker = MockSessionInvoker()
         mock_tracker = MagicMock(spec=IncidentTracker)
-        mock_tracker.clear_open_on_start.return_value = {"cleared_count": 0, "diagnostic_codes": []}
         mock_tracker.attempt_tier1.return_value = False
 
         err_lines: list[str] = []
@@ -360,7 +354,6 @@ def test_action_decisions(dummy_config: RunnerConfig) -> None:
             {"ok": True, "complete": True, "stop": "EPIC_DONE"},
         ]
         mock_tracker2 = MagicMock(spec=IncidentTracker)
-        mock_tracker2.clear_open_on_start.return_value = {"cleared_count": 0, "diagnostic_codes": []}
         mock_tracker2.attempt_tier1.side_effect = [True, False]
 
         runner2 = LoopRunner(
@@ -506,3 +499,74 @@ def test_pure_output_formatters() -> None:
     transient_lines = format_transient_retry("api_error", 5, is_subagent=True, subagent_attempt=1, max_subagent=3)
     assert any("TRANSIENT API abort" in l for l in transient_lines)
     assert any("native collaboration retry" in l for l in transient_lines)
+
+
+def test_orchestrator_preserves_open_incidents_on_start(
+    dummy_config: RunnerConfig,
+) -> None:
+    """Verify that open incidents in incidents.jsonl are preserved across orchestrator startup and runs."""
+    from loop.incidents.schema import IncidentRecord, SCHEMA_LOOP_INCIDENT
+    from loop.incidents.store import append_incident, parse_incidents_jsonl
+
+    # Setup an open incident in state_dir / incidents.jsonl
+    # dummy_config.state_dir is the epic directory for dummy_config
+    inc = IncidentRecord(
+        schema=SCHEMA_LOOP_INCIDENT,
+        incident_id="inc-restart-persistence-001",
+        status="open",
+        opened_at="2026-09-15T12:00:00Z",
+        project_root=str(dummy_config.project_root),
+        epic_id="T-HUB-101",
+        step_id="s01",
+        phase="BACK IMPLEMENT",
+        session_id="session-prev",
+        source="check_after",
+        diagnostic_codes=["gate_integrity_mismatch"],
+        fingerprint="fp-persist-1",
+        metadata={"persisted": True},
+    )
+    append_incident(dummy_config.state_dir, inc)
+
+    # Confirm incident is open before running orchestrator
+    records_before = parse_incidents_jsonl(dummy_config.state_dir / "incidents.jsonl")
+    assert len(records_before) == 1
+    assert records_before[0].status == "open"
+    assert records_before[0].incident_id == "inc-restart-persistence-001"
+
+    with patch.dict(os.environ, {"EPIC_CHAIN_ROADMAP": "0"}, clear=False):
+        ctx = MockContextPort()
+        ctx.check_after_responses = [
+            {"ok": True, "stop": "EPIC_DONE", "complete": True},
+        ]
+        invoker = MockSessionInvoker()
+        invoker.results = [
+            SessionResult(
+                exit_code=0,
+                runtime_id="codex",
+                log_file=dummy_config.state_dir / "session-1.log",
+            )
+        ]
+
+        # Use real IncidentTracker with tier1_enabled=False to avoid triggering autofix
+        real_tracker = IncidentTracker(tier1_enabled=False)
+
+        runner = LoopRunner(
+            dummy_config,
+            context_port=ctx,
+            session_invoker=invoker,
+            incident_tracker=real_tracker,
+            stdout=lambda s: None,
+            stderr=lambda s: None,
+            sleeper=lambda s: None,
+        )
+
+        outcome = runner.run()
+        assert outcome.action == RunAction.COMPLETE
+        assert outcome.exit_code == 0
+
+    # Confirm incident remains open after orchestrator run (forensic persistence)
+    records_after = parse_incidents_jsonl(dummy_config.state_dir / "incidents.jsonl")
+    assert len(records_after) == 1
+    assert records_after[0].status == "open"
+    assert records_after[0].incident_id == "inc-restart-persistence-001"
+    assert records_after[0].metadata.get("persisted") is True

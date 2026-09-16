@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s01 — remove-startup-incident-mutation — eliminate auto clear_open_on_start from Orchestrator.run()
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить автоматический вызов clear_open_on_start и связанный вывод сообщений из Orchestrator.run() на старте loop.
+  Гарантировать, что при старте и перезапуске процесса оркестратор не мутирует и не стирает открытые инциденты.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - US-001
+  nouns:
+    - loop/runner/orchestrator.py
+    - loop/incidents/store.py
+  layout_paths:
+    - loop/runner/orchestrator.py
+  ac_quotes:
+    - "Orchestrator run() на startup не вызывает bulk resolve open incidents; pre-seeded open incident остаётся open после restart."
+    - "Open incidents MUST оставаться visible (status: open) across process restart до explicit incident-clear-open"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md:70-130
+
+context:
+  consumes:
+    - loop/runner/orchestrator.py
+  produces:
+    - loop/runner/orchestrator.py без вызова clear_open_on_start в run()
+  plan_refs:
+    - plan.md#FR-001
+    - plan.md#FR-003
+    - plan.md#US-001
+  files:
+    - loop/runner/orchestrator.py
+
+as_built:
+  - "loop/runner/orchestrator.py: Orchestrator.run() (~292-302) вызывает clear_open_on_start внутри lease block и логирует format_cleared_incidents"
+
+delta:
+  - "Удаление вызова self.incident_tracker.clear_open_on_start и блока format_cleared_incidents из Orchestrator.run()"
+  - "Гарантия отсутствия write I/O на incidents.jsonl на startup loop"
+
+deletes:
+  - "Orchestrator.run() auto-clear startup block (~292-302)"
+wire_complete_required: false
+
+out_of_scope:
+  - "s02: удаление метода clear_open_on_start из IncidentTracker"
+  - "s03: обновление orchestrator unit tests и добавление regression persistence теста"
+  - "s04: верификация operator CLI test suite"
+  - "s05: Kind I и docstring hygiene"
+  - "s06: sunset inventory purge scan"
+  - "follow_up: T-HUB-077-gate-evidence-integrity"
+  - "follow_up: T-HUB-078-context-budget-enforcement"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Orchestrator.run() не содержит вызовов clear_open_on_start и не изменяет инциденты на startup
+    verify: "python3 -c \"import ast; tree = ast.parse(open('loop/runner/orchestrator.py').read()); run_fn = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == 'run'][0]; assert 'clear_open_on_start' not in ast.dump(run_fn)\""
+  - id: cp2
+    criterion: Синтаксис и базовый импорт loop.runner.orchestrator валидны
+    verify: "python3 -m py_compile loop/runner/orchestrator.py"
+
+verify: []
+tdd: []

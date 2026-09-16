@@ -1,0 +1,193 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-098-managed-capability-sole-path
+slug: managed-capability-sole-path
+date: '2026-09-14'
+status: complete
+index_fingerprint: sha256:1c68649cf5af2eebcc81a1f1decb2b4f839ed21dced8e555da6ad9c9879a5d5f
+findings: []
+coverage:
+- requirement_id: US-I2-001
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Как QA owner managed monorepo, я не могу завершить step только hub pytest, если в root лежит `dev-hub.project.yaml`, даже когда shard «забыл» capability_checks."
+- requirement_id: US-I2-002
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: "Как оператор loop, я вижу check-after HALT на managed armed step без declaration до любого hub test run."
+- requirement_id: US-I2-003
+  step_ids:
+  - s02
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Как maintainer integrity boundary, я отвергаю capability sidecar, записанный агентом вручную, даже при valid fingerprint и status succeeded."
+- requirement_id: US-I2-004
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Как maintainer hub, я сохраняю hub self-test без manifest — существующие hub shards с `bin/pytest` остаются valid."
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: "Add pure `classify_project_verification_context(project_root) -> hub|managed` using strict manifest presence (T-HUB-075 loader); fail-closed on ambiguous/unreadable manifest for managed claim."
+- requirement_id: FR-002
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "When context is `managed`, finish validation (`epic_yaml.py` finish branches ~721–761 and step validator ~1813–1848) **requires** non-empty `capability_checks` on decompose shard for the finishing step; hub `tests:` alone MUST NOT satisfy verification; emit stable diagnostic `managed_verification_requires_capability_checks`."
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: "Extend `_enforce_capability_checks_for_armed_step` / check_after path: if managed context and armed shard lacks `capability_checks`, return halt (not `None`); forbid treating absence as hub pass."
+- requirement_id: FR-004
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: "Extend `CapabilityExecutionEvidence` (or companion schema field) with mandatory `provenance_source: Literal[\"executor\"]` (or enum) set **only** by `write_capability_evidence` / executor integration in `loop/stack_profiles/execution.py` and context_loop writer; schema rejects agent-supplied values on read if not executor-issued."
+- requirement_id: FR-005
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "`read_capability_evidence` and finish gate MUST reject sidecars missing valid provenance even when fingerprint, status and exit_code match declaration; diagnostic `capability_evidence_non_authoritative`."
+- requirement_id: FR-006
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Preserve hub-only branch: when context is `hub`, existing `tests:` validation unchanged; no mandatory `capability_checks`; no regression to T-HUB-098 I1 positive paths covered by QA TM-001…TM-006."
+- requirement_id: NFR-001
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: "Managed vs hub classification MUST be deterministic from filesystem manifest only; no environment flag bypass."
+- requirement_id: NFR-002
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "New diagnostics MUST be stable strings suitable for loop HALT and mb-finish error surfaces."
+- requirement_id: NFR-003
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: "Provenance enforcement MUST NOT break operator CLI `python -m loop.stack_profiles execute` diagnostic flows (CLI is not finish proof unless wired through check-after)."
+- requirement_id: NFR-004
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: "Changes remain argv-only / no shell reconstruction; align with T-HUB-075 executor boundary."
+- requirement_id: NFR-005
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "I2 diff stays within gap surfaces; no expansion into agents corpus or TestFingerprintCache."
+- requirement_id: "AC- #1"
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "No managed→hub fallback: presence of `dev-hub.project.yaml` MUST NOT allow hub `tests:` as sole verification."
+- requirement_id: "AC- #2"
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: "No silent pass when `_enforce_capability_checks_for_armed_step` sees managed shard without checks."
+- requirement_id: "AC- #3"
+  step_ids:
+  - s02
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "No finish PASS on agent-written capability JSON regardless of fingerprint/status match."
+- requirement_id: "AC- #4"
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "No new optional flag default-off that re-enables hub fallback for managed roots."
+- requirement_id: "AC- #5"
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "No breaking hub self-test path when manifest absent."
+- requirement_id: "AC- #6"
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "No scope creep into 077 write-deny implementation, 078 test cache, 080 agents inventory."
+- requirement_id: TM-I2-076-01
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Managed root + shard only hub `tests:` → finish denied"
+- requirement_id: TM-I2-076-02
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: "Managed armed step no capability_checks → check_after halt"
+- requirement_id: TM-I2-076-03
+  step_ids:
+  - s02
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Agent-forged sidecar with succeeded status → finish denied"
+- requirement_id: TM-I2-076-04
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Hub root without manifest + hub tests → finish still valid"
+- requirement_id: TM-I2-076-05
+  step_ids:
+  - s02
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: "Executor-written sidecar with provenance → finish accepts"
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

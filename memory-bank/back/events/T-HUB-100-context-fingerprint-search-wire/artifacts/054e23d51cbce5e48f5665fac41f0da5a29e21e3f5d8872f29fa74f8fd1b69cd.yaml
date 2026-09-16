@@ -1,0 +1,48 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-100-context-fingerprint-search-wire
+plan_id: T-HUB-100-context-fingerprint-search-wire
+epic_id: T-HUB-100-context-fingerprint-search-wire
+date: '2026-09-15'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 97c4d52887a6f20b2e0cbfb29467a60dd5e85b07b6b029f1dde474d10bf8bb2c
+verify_scope: full
+
+scope:
+  - "task: T-HUB-100-context-fingerprint-search-wire"
+  - "epic: T-HUB-100-context-fingerprint-search-wire"
+  - "steps: s01–s05"
+  - "files: harness/hooks/context_scope.py, harness/hooks/pretool_policy.py, harness/hooks/posttool_policy.py, harness/hooks/context_ledger.py, harness/hooks/tests/test_context_scope_policy.py"
+
+ac_plus:
+  - "TM-I2-078-01: Repeat test cmd unchanged → cache hit/deny policy (cached decision; no false execution claim)"
+  - "TM-I2-078-02: Edit relevant file → repeat test cmd → no stale cache (miss/deny; requires fresh run)"
+  - "TM-I2-078-03: Ledger active, not EPIC_LOOP, search outside scope → deny (search_outside_scope_denied)"
+  - "TM-I2-078-04: In-shard search allowed without graphify (allow)"
+  - "TM-I2-078-05: Subagent equivalent search deny (same decision as root)"
+  - "TM-I2-078-06: I1 duplicate-read regression (unchanged deny)"
+
+ac_minus:
+  - "No cached test PASS after relevant file change when Bash pretool allows command."
+  - "No search outside allowlist when context policy active, regardless of EPIC_LOOP env."
+  - "No provider-specific search bypass for subagents."
+  - "No global token budget meter introduced."
+  - "No regression of I1 duplicate-read / plan-jump gates."
+  - "No scope into capability evidence or agents corpus."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (2945 passed, 4 skipped in 103.63s)"
+  - "integration rule (§0.11) — zero dangling references"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 2945 passed, 4 skipped in 103.63s (0:01:43)"

@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-098-managed-capability-sole-path
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - T-HUB-077 write-deny implementation
+  - T-HUB-078 TestFingerprintCache wiring
+  - T-HUB-080 agents instruction corpus
+steps:
+- id: s01
+  file: s01-context-classifier.yaml
+  title: Pure project verification context classifier
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-evidence-provenance-schema.yaml
+  title: Authoritative provenance on capability evidence schema and store
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-context-loop-managed-enforcement.yaml
+  title: Context loop check-after managed enforcement and executor provenance stamping
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-epic-yaml-managed-finish.yaml
+  title: Finish validation managed capability enforcement and provenance verification
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: Purge unmanaged fallbacks and complete end-to-end integration verification
+  next_phase: BACK IMPLEMENT
+  status: completed

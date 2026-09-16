@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s02 — purge-incident-tracker-clear-open-on-start — remove clear_open_on_start method and align store defaults
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить метод clear_open_on_start из класса IncidentTracker и обновить параметры resolve_all_open_incidents
+  в loop/incidents/store.py, чтобы устранить концепцию автоматической очистки инцидентов при старте loop.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-004
+    - US-002
+  nouns:
+    - loop/runner/orchestrator.py
+    - loop/incidents/store.py
+    - loop/context_loop.py
+  layout_paths:
+    - loop/runner/orchestrator.py
+    - loop/incidents/store.py
+    - loop/context_loop.py
+  ac_quotes:
+    - "IncidentTracker.clear_open_on_start удалён или unreachable; grep по repo не находит live call path from orchestrator start."
+    - "incident-clear-open CLI остаётся единственным opt-in audited bulk recovery"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md:80-140
+
+context:
+  consumes:
+    - loop/runner/orchestrator.py
+    - loop/incidents/store.py
+    - loop/context_loop.py
+  produces:
+    - loop/runner/orchestrator.py без метода clear_open_on_start в IncidentTracker
+    - loop/incidents/store.py с явными audited operator resolution action defaults
+  plan_refs:
+    - plan.md#FR-002
+    - plan.md#FR-004
+    - plan.md#US-002
+  files:
+    - loop/runner/orchestrator.py
+    - loop/incidents/store.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/runner/orchestrator.py: IncidentTracker.clear_open_on_start (~56-74) реализует legacy auto-clear с try/except swallow"
+  - "loop/incidents/store.py: resolve_all_open_incidents по умолчанию использует resolution_action='clear_open_on_loop_start'"
+
+delta:
+  - "Удаление метода IncidentTracker.clear_open_on_start из loop/runner/orchestrator.py"
+  - "Обновление resolution_action по умолчанию в resolve_all_open_incidents на 'operator_bulk_clear' (или явную фиксацию operator resolution)"
+  - "Сохранение работоспособности CLI команды incident-clear-open в loop/context_loop.py"
+
+deletes:
+  - "IncidentTracker.clear_open_on_start"
+  - "resolution_action: clear_open_on_loop_start default"
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: удаление вызова clear_open_on_start из Orchestrator.run()"
+  - "s03: обновление unit tests оркестратора"
+  - "s04: тесты CLI и store"
+  - "s05: Kind I docstrings"
+  - "s06: sunset inventory purge scan"
+  - "follow_up: T-HUB-077-gate-evidence-integrity"
+  - "follow_up: T-HUB-078-context-budget-enforcement"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Метод clear_open_on_start полностью отсутствует в IncidentTracker
+    verify: "python3 -c \"from loop.runner.orchestrator import IncidentTracker; assert not hasattr(IncidentTracker, 'clear_open_on_start')\""
+  - id: cp2
+    criterion: resolve_all_open_incidents доступен и валиден для операторского вызова
+    verify: "python3 -c \"from loop.incidents.store import resolve_all_open_incidents; import inspect; sig = inspect.signature(resolve_all_open_incidents); assert 'resolution_action' in sig.parameters\""
+
+verify: []
+tdd: []

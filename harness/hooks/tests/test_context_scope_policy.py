@@ -11,6 +11,9 @@ import yaml
 from context_scope import (
     ScopeResolver,
     is_search_command_line,
+    TestFingerprintCache,
+    normalize_test_command,
+    compute_test_fingerprint,
 )
 from loop.mb_load.plan_section import (
     evaluate_plan_read,
@@ -22,6 +25,15 @@ from context_ledger_adapters import (
     evaluate_read_payload,
     format_claude_response,
     format_codex_response,
+)
+from hook_dispatch import (
+    DecisionEnvelope,
+    DiagnosticCode,
+    EventContext,
+    PreToolUse,
+)
+from pretool_policy import (
+    BashPolicyAdapter,
 )
 
 
@@ -230,3 +242,386 @@ def test_tool_aliases_cannot_bypass_search_scope(workspace: Path):
 ])
 def test_git_history_and_grep_are_search_commands(cmd: str) -> None:
     assert is_search_command_line(cmd)
+
+
+# ============================================================================
+# T-HUB-100 / I2: Search Scope outside EPIC_LOOP & TestFingerprintCache PreTool
+# ============================================================================
+
+def test_is_context_policy_active(workspace: Path, monkeypatch: pytest.MonkeyPatch):
+    """FR-001 / TM-I2-078-03: is_context_policy_active returns True when ledger/activeContext loaded, False when unconfigured."""
+    import context_ledger
+    is_context_policy_active = getattr(context_ledger, "is_context_policy_active", None)
+    assert is_context_policy_active is not None, "is_context_policy_active function must be defined in context_ledger"
+
+    monkeypatch.delenv("EPIC_LOOP", raising=False)
+
+    # 1. Unconfigured workspace -> False
+    assert not is_context_policy_active(workspace)
+
+    # 2. Workspace with activeContext.md -> True
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    act_file = mb_dir / "activeContext.md"
+    act_file.write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+    assert is_context_policy_active(workspace)
+
+    # 3. Workspace without activeContext.md but with active context-ledger -> True
+    act_file.unlink()
+    assert not is_context_policy_active(workspace)
+    ledger_file = workspace / ".runtime" / "context-ledger" / "proj" / "sess" / "root.json"
+    ledger_file.parent.mkdir(parents=True, exist_ok=True)
+    ledger_file.write_text('{"schema": "context-ledger/v1"}', encoding="utf-8")
+    assert is_context_policy_active(workspace)
+
+
+def test_search_outside_scope_non_loop(workspace: Path, monkeypatch: pytest.MonkeyPatch):
+    """TM-I2-078-03 / FR-001, FR-004: When context policy is active outside EPIC_LOOP,
+    search command outside shard allowlist is denied with search_outside_scope_denied."""
+    monkeypatch.delenv("EPIC_LOOP", raising=False)
+
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    step_dir = mb_dir / "back" / "plan" / "T-HUB-100" / "yaml" / "steps"
+    step_dir.mkdir(parents=True, exist_ok=True)
+    shard_path = step_dir / "s01.yaml"
+    shard_path.write_text(
+        yaml.dump({
+            "files": ["harness/hooks/context_scope.py"],
+            "delta": ["EDIT harness/hooks/context_scope.py"],
+        }),
+        encoding="utf-8",
+    )
+
+    adapter = BashPolicyAdapter()
+    ctx = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "rg 'pattern' outside/unknown.py"},
+        cwd=workspace,
+        session_id="test-sess-search-non-loop",
+        raw_payload={
+            "tool_name": "Bash",
+            "tool_input": {"command": "rg 'pattern' outside/unknown.py"},
+            "cwd": str(workspace),
+            "session_id": "test-sess-search-non-loop",
+        },
+    )
+
+    env = adapter.evaluate(ctx)
+    assert env is not None, "Expected search outside allowlist to be denied when context policy is active"
+    assert env.is_deny
+    assert "search_outside_scope_denied" in (env.reason or "")
+
+
+def test_search_outside_scope_deny_non_loop(workspace: Path, monkeypatch: pytest.MonkeyPatch):
+    """TM-I2-078-03 / TM-I2-078-05: Subagents with derived identity receive identical search deny outside scope."""
+    monkeypatch.delenv("EPIC_LOOP", raising=False)
+
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    step_dir = mb_dir / "back" / "plan" / "T-HUB-100" / "yaml" / "steps"
+    step_dir.mkdir(parents=True, exist_ok=True)
+    shard_path = step_dir / "s01.yaml"
+    shard_path.write_text(
+        yaml.dump({
+            "files": ["harness/hooks/context_scope.py"],
+            "delta": ["EDIT harness/hooks/context_scope.py"],
+        }),
+        encoding="utf-8",
+    )
+
+    adapter = BashPolicyAdapter()
+    ctx_subagent = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "grep -rn 'foo' unlisted_dir/"},
+        cwd=workspace,
+        session_id="test-sess-search-subagent",
+        raw_payload={
+            "tool_name": "Bash",
+            "tool_input": {"command": "grep -rn 'foo' unlisted_dir/"},
+            "cwd": str(workspace),
+            "session_id": "test-sess-search-subagent",
+            "agent_type": "verify-implement",
+        },
+    )
+
+    env = adapter.evaluate(ctx_subagent)
+    assert env is not None, "Expected subagent search outside allowlist to be denied"
+    assert env.is_deny
+    assert "search_outside_scope_denied" in (env.reason or "")
+
+
+def test_in_shard_search_allowed(workspace: Path, monkeypatch: pytest.MonkeyPatch):
+    """TM-I2-078-04: In-shard search targets within allowlist are allowed without graphify."""
+    monkeypatch.delenv("EPIC_LOOP", raising=False)
+
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    target_file = workspace / "src" / "module.py"
+    target_file.parent.mkdir(parents=True, exist_ok=True)
+    target_file.write_text("def run(): pass\n", encoding="utf-8")
+
+    step_dir = mb_dir / "back" / "plan" / "T-HUB-100" / "yaml" / "steps"
+    step_dir.mkdir(parents=True, exist_ok=True)
+    shard_path = step_dir / "s01.yaml"
+    shard_path.write_text(
+        yaml.dump({
+            "files": ["src/module.py"],
+            "delta": ["EDIT src/module.py"],
+        }),
+        encoding="utf-8",
+    )
+
+    adapter = BashPolicyAdapter()
+    ctx = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "rg 'def run' src/module.py"},
+        cwd=workspace,
+        session_id="test-sess-in-scope",
+    )
+
+    env = adapter.evaluate(ctx)
+    assert env is None or not env.is_deny
+
+
+def test_bash_pretool_test_command_detected(workspace: Path):
+    """FR-002 / cp1 (s03): BashPolicyAdapter detects normalized test commands and queries TestFingerprintCache."""
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    cache = TestFingerprintCache(project_root=workspace)
+    cache.record("bin/pytest harness/hooks/tests/test_foo.py", exit_code=0, output_summary="1 passed")
+
+    adapter = BashPolicyAdapter()
+    ctx = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "bin/pytest harness/hooks/tests/test_foo.py"},
+        cwd=workspace,
+        session_id="sess-test-cmd",
+    )
+    env = adapter.evaluate(ctx)
+    assert env is not None, "Expected test command detection in BashPolicyAdapter"
+
+
+def test_bash_pretool_test_cache_hit(workspace: Path):
+    """TM-I2-078-01 / FR-002: Repeat test cmd unchanged -> cache hit -> cached decision envelope with DecisionReceipt."""
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\\n", encoding="utf-8")
+
+    test_file = workspace / "tests" / "test_sample.py"
+    test_file.parent.mkdir(parents=True, exist_ok=True)
+    test_file.write_text("def test_ok(): pass\n", encoding="utf-8")
+
+    cmd = f"bin/pytest {test_file.relative_to(workspace)}"
+    cache = TestFingerprintCache(project_root=workspace)
+    cache.record(cmd, exit_code=0, output_summary="1 passed", relevant_paths=[test_file])
+
+    adapter = BashPolicyAdapter()
+    ctx = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": cmd},
+        cwd=workspace,
+        session_id="sess-test-cache-hit",
+    )
+    env = adapter.evaluate(ctx)
+    assert env is not None, "Expected cached execution envelope on repeated unchanged test command"
+    assert "cached" in (env.reason or "").lower() or env.diagnostic_code == DiagnosticCode.RECORDED
+
+
+test_bash_pretool_test_cache = test_bash_pretool_test_cache_hit
+
+
+def test_edit_invalidates_test_cache_miss(workspace: Path):
+    """TM-I2-078-02 / FR-002, FR-003: Edit relevant file -> cache invalidated -> subsequent test command misses."""
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    src_file = workspace / "src" / "module.py"
+    src_file.parent.mkdir(parents=True, exist_ok=True)
+    src_file.write_text("def fn(): return 1\n", encoding="utf-8")
+
+    cmd = "bin/pytest tests/test_module.py"
+    cache = TestFingerprintCache(project_root=workspace)
+    cache.record(cmd, exit_code=0, output_summary="1 passed", relevant_paths=[src_file])
+
+    # Invalidate path
+    cache.invalidate_path(src_file)
+
+    # Lookup in cache should now miss
+    hit = cache.lookup(cmd, relevant_paths=[src_file])
+    assert hit is None
+
+
+def test_dot_directories_not_bypassed_without_allowlist(workspace: Path):
+    """AC-2 / AC-6: .agents/, .claude/, .cursor/ directories are not unconditionally allowed outside allowlist."""
+    shard_data = {
+        "files": ["src/service.py"],
+        "delta": ["EDIT src/service.py"],
+    }
+    resolver = ScopeResolver(project_root=workspace, shard_data=shard_data)
+
+    # .cursor, .claude, .agents are outside shard allowlist
+    assert not resolver.is_path_allowed(".cursor/rules/some_rule.mdc")
+    assert not resolver.is_path_allowed(".claude/agents/worker.md")
+    assert not resolver.is_path_allowed(".agents/skills/tdd/SKILL.md")
+
+    # Search in these directories without graphify evidence is denied
+    ok, reason, details = resolver.evaluate_search("rg 'foo' .cursor/")
+    assert not ok
+    assert reason == "search_outside_scope_denied"
+
+    ok, reason, details = resolver.evaluate_search("rg 'foo' .agents/")
+    assert not ok
+    assert reason == "search_outside_scope_denied"
+
+
+def test_compound_bash_commands_search_enforcement(workspace: Path):
+    """BF-003 / AC-gap: compound Bash commands (cd && rg, env rg, bash -c, pipes) enforce search scope."""
+    shard_data = {
+        "files": ["src/service.py"],
+        "delta": ["EDIT src/service.py"],
+    }
+    resolver = ScopeResolver(project_root=workspace, shard_data=shard_data)
+
+    # 1. cd .agents && rg foo -> denied
+    cmd1 = "cd .agents && rg foo"
+    assert is_search_command_line(cmd1)
+    ok1, reason1, details1 = resolver.evaluate_search(cmd1)
+    assert not ok1
+    assert reason1 == "search_outside_scope_denied"
+
+    # 2. env rg foo -> denied (defaults to entire repo .)
+    cmd2 = "env rg foo"
+    assert is_search_command_line(cmd2)
+    ok2, reason2, details2 = resolver.evaluate_search(cmd2)
+    assert not ok2
+    assert reason2 == "search_outside_scope_denied"
+
+    # 3. env rg foo src/service.py -> allowed
+    cmd3 = "env rg foo src/service.py"
+    assert is_search_command_line(cmd3)
+    ok3, reason3, details3 = resolver.evaluate_search(cmd3)
+    assert ok3
+    assert reason3 == "search_inside_scope"
+
+    # 4. bash -c "cd .agents && rg foo" -> denied
+    cmd4 = 'bash -c "cd .agents && rg foo"'
+    assert is_search_command_line(cmd4)
+    ok4, reason4, details4 = resolver.evaluate_search(cmd4)
+    assert not ok4
+    assert reason4 == "search_outside_scope_denied"
+
+    # 5. bash -c "rg foo src/service.py" -> allowed
+    cmd5 = 'bash -c "rg foo src/service.py"'
+    assert is_search_command_line(cmd5)
+    ok5, reason5, details5 = resolver.evaluate_search(cmd5)
+    assert ok5
+    assert reason5 == "search_inside_scope"
+
+    # 6. cat .agents/SKILL.md | grep foo -> denied (.agents out of scope)
+    cmd6 = "cat .agents/SKILL.md | grep foo"
+    assert is_search_command_line(cmd6)
+    ok6, reason6, details6 = resolver.evaluate_search(cmd6)
+    assert not ok6
+    assert reason6 == "search_outside_scope_denied"
+
+    # 7. cat src/service.py | grep foo -> allowed (file in scope, grep reads stdin)
+    cmd7 = "cat src/service.py | grep foo"
+    assert is_search_command_line(cmd7)
+    ok7, reason7, details7 = resolver.evaluate_search(cmd7)
+    assert ok7
+    assert reason7 == "search_inside_scope"
+
+    # 8. VAR=1 BAR=2 rg foo -> denied
+    cmd8 = "VAR=1 BAR=2 rg foo"
+    assert is_search_command_line(cmd8)
+    ok8, reason8, details8 = resolver.evaluate_search(cmd8)
+    assert not ok8
+    assert reason8 == "search_outside_scope_denied"
+
+    # 9. (cd .agents && rg foo) -> denied
+    cmd9 = "(cd .agents && rg foo)"
+    assert is_search_command_line(cmd9)
+    ok9, reason9, details9 = resolver.evaluate_search(cmd9)
+    assert not ok9
+    assert reason9 == "search_outside_scope_denied"
+
+    # 10. echo hi; rg foo .cursor/ -> denied
+    cmd10 = "echo hi; rg foo .cursor/"
+    assert is_search_command_line(cmd10)
+    ok10, reason10, details10 = resolver.evaluate_search(cmd10)
+    assert not ok10
+    assert reason10 == "search_outside_scope_denied"
+
+
+def test_bash_pretool_compound_search_denied_and_allowed(workspace: Path):
+    """BF-003: BashPolicyAdapter denies compound out-of-scope search and allows in-scope search."""
+    mb_dir = workspace / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    target_file = workspace / "src" / "module.py"
+    target_file.parent.mkdir(parents=True, exist_ok=True)
+    target_file.write_text("def run(): pass\n", encoding="utf-8")
+
+    step_dir = mb_dir / "back" / "plan" / "T-HUB-100" / "yaml" / "steps"
+    step_dir.mkdir(parents=True, exist_ok=True)
+    shard_path = step_dir / "s01.yaml"
+    shard_path.write_text(
+        yaml.dump({
+            "files": ["src/module.py"],
+            "delta": ["EDIT src/module.py"],
+        }),
+        encoding="utf-8",
+    )
+
+    adapter = BashPolicyAdapter()
+
+    # 1. Compound search outside scope -> DENY
+    ctx_deny = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "cd .agents && rg 'def run'"},
+        cwd=workspace,
+        session_id="test-sess-compound-deny",
+    )
+    env_deny = adapter.evaluate(ctx_deny)
+    assert env_deny is not None and env_deny.is_deny
+    assert "search_outside_scope_denied" in env_deny.reason
+
+    # 2. Compound search wrapped with env inside scope -> ALLOW
+    ctx_allow = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "env rg 'def run' src/module.py"},
+        cwd=workspace,
+        session_id="test-sess-compound-allow",
+    )
+    env_allow = adapter.evaluate(ctx_allow)
+    assert env_allow is None or not env_allow.is_deny
+
+    # 3. bash -c compound search outside scope -> DENY
+    ctx_bash_c = EventContext(
+        event_name=PreToolUse,
+        tool_name="Bash",
+        tool_input={"command": "bash -c \"cd .agents && rg foo\""},
+        cwd=workspace,
+        session_id="test-sess-bash-c-deny",
+    )
+    env_bash_c = adapter.evaluate(ctx_bash_c)
+    assert env_bash_c is not None and env_bash_c.is_deny
+    assert "search_outside_scope_denied" in env_bash_c.reason

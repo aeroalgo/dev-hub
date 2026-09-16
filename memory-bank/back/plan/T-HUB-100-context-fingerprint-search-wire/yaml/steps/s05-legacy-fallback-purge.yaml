@@ -1,0 +1,206 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: "s05 — legacy-fallback-purge — sunset inventory scan, purge dead unwired paths, and full integration regression verification"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge и регрессионная верификация: удалить весь остаток plan Sunset A+B+C+I
+  (неподключенные ветки TestFingerprintCache, проверку search scope только по is_epic_loop_env(),
+  silent reuse тестовых результатов и unscoped search fallbacks); подтвердить прохождение полного
+  регрессионного набора TM-I2-078-01..06 и I1 duplicate-read / plan-jump gates.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - US-I2-001
+    - US-I2-002
+    - US-I2-003
+    - US-I2-004
+    - TM-I2-078-01
+    - TM-I2-078-02
+    - TM-I2-078-03
+    - TM-I2-078-04
+    - TM-I2-078-05
+    - TM-I2-078-06
+  nouns:
+    - sunset_inventory
+    - dead_code_purge
+    - is_context_policy_active
+    - TestFingerprintCache
+    - ScopeResolver
+    - full_regression_matrix
+  layout_paths:
+    - harness/hooks/context_scope.py
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/tests/test_context_scope_policy.py
+    - harness/hooks/tests/test_context_ledger.py
+    - harness/hooks/tests/test_context_ledger_adapters.py
+  ac_quotes:
+    - "TestFingerprintCache dead code (unit-only) -> Bash pretool live lookup/record (delete unwired path)."
+    - "Search scope gated only on is_epic_loop_env() -> is_context_policy_active gate (delete in-epic)."
+    - "Silent reuse of test result after file change -> invalidate + deny/miss (delete in-epic)."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:151-164"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:165-172"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:173-183"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:195-202"
+
+context:
+  consumes:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §Sunset A / B / C / I"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §AC−"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §Delivery closure"
+  produces:
+    - "harness/hooks/context_scope.py — clean codebase without dead or unwired branches"
+    - "harness/hooks/pretool_policy.py — clean pretool adapters enforcing is_context_policy_active"
+    - "harness/hooks/posttool_policy.py — clean posttool invalidation without fallback bypass"
+    - "harness/hooks/tests/test_context_scope_policy.py — full regression test suite passing"
+  plan_refs:
+    - "FR-001"
+    - "FR-002"
+    - "FR-003"
+    - "FR-004"
+    - "FR-005"
+    - "FR-006"
+    - "NFR-001"
+    - "NFR-002"
+    - "NFR-003"
+    - "NFR-004"
+  files:
+    - harness/hooks/context_scope.py
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/tests/test_context_scope_policy.py
+
+as_built:
+  - "Unwired branches in TestFingerprintCache and is_epic_loop_env search gating were replaced in steps s01-s04."
+  - "Sunset inventory scan is required to prove no dead branches or silent fallbacks remain."
+
+delta:
+  - "Scan harness/hooks/context_scope.py and purge unwired standalone TestFingerprintCache branches."
+  - "Scan harness/hooks/pretool_policy.py and purge sole is_epic_loop_env search gating."
+  - "Scan harness/hooks/posttool_policy.py and confirm WritePostToolAdapter invalidation without fallback."
+  - "Execute full regression test suite in harness/hooks/tests/test_context_scope_policy.py covering all TM-I2-078-01..06 scenarios."
+
+sunset_inventory:
+  - symbol: "TestFingerprintCache unwired unit-only branch"
+    kind: A
+    replacement: "BashPolicyAdapter live lookup/record"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/"
+    expect: "zero unwired caller bypasses; test cache actively looked up in BashPolicyAdapter"
+  - symbol: "Search scope gated only on is_epic_loop_env()"
+    kind: A
+    replacement: "is_context_policy_active gate"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/pretool_policy.py"
+    expect: "zero sole is_epic_loop_env search gates in pretool_policy.py"
+  - symbol: "Bash test command without fingerprint check"
+    kind: B
+    replacement: "pretool cache decision in BashPolicyAdapter"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/pretool_policy.py"
+    expect: "all test commands in active context evaluated via TestFingerprintCache"
+  - symbol: "Non-loop sessions unscoped search"
+    kind: B
+    replacement: "ScopeResolver when context policy active"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/"
+    expect: "zero unscoped search bypasses in non-loop sessions with active context"
+  - symbol: "Silent reuse of test result after file change"
+    kind: C
+    replacement: "invalidate_path + cache miss/deny"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/"
+    expect: "zero stale cached results accepted after file edit"
+  - symbol: "Convenience rg anywhere when ledger exists"
+    kind: C
+    replacement: "search_outside_scope_denied without graphify"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/"
+    expect: "zero search without allowlist or graphify permitted"
+  - symbol: "Instruction surfaces: diagnostics only"
+    kind: I
+    replacement: "code enforcement primary; full instructions owned by T-HUB-102"
+    policy: delete in-epic
+    rg_scope: "harness/hooks/"
+    expect: "no contradictory prose instructions"
+
+deletes:
+  - "unwired standalone TestFingerprintCache branches in harness/hooks/context_scope.py"
+  - "sole is_epic_loop_env search gating in harness/hooks/pretool_policy.py"
+
+wire_complete_required: true
+
+out_of_scope:
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-077 incidents and capability write deny (follow_up: T-HUB-077)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+  - "T-HUB-101 incident clear on start removal (follow_up: T-HUB-101)"
+  - "T-HUB-102 agents instruction corpus (follow_up: T-HUB-102)"
+  - "full suite → QA"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: "is_epic_loop_env search gate"
+    command: "rg -n 'is_epic_loop_env() and is_search_command_line' harness/hooks/pretool_policy.py || true"
+    expect: "no output (gating replaced by is_context_policy_active)"
+  - id: inv-a-02
+    kind: A
+    symbol: "unwired TestFingerprintCache"
+    command: "rg -n 'class TestFingerprintCache' harness/hooks/context_scope.py"
+    expect: "class definition present and imported in pretool/posttool policies"
+  - id: inv-b-01
+    kind: B
+    symbol: "pretool cache check in BashPolicyAdapter"
+    command: "rg -n 'TestFingerprintCache' harness/hooks/pretool_policy.py"
+    expect: "active invocation in BashPolicyAdapter"
+  - id: inv-c-01
+    kind: C
+    symbol: "posttool invalidate_path wiring"
+    command: "rg -n 'invalidate_path' harness/hooks/posttool_policy.py"
+    expect: "active call in WritePostToolAdapter"
+  - id: inv-i-01
+    kind: I
+    symbol: "instruction check"
+    command: "rg -n 'search-by-convenience' harness/ || true"
+    expect: "no forbidden prose instructions"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — grep control confirms search scope gating is replaced by is_context_policy_active."
+    verify: "rg -n 'is_epic_loop_env() and is_search_command_line' harness/hooks/pretool_policy.py || true"
+  - id: cp2
+    criterion: "Kind B — entrypoint inventory confirms TestFingerprintCache is evaluated in BashPolicyAdapter."
+    verify: "rg -n 'TestFingerprintCache' harness/hooks/pretool_policy.py"
+  - id: cp3
+    criterion: "Kind C — anti-fallback check confirms WritePostToolAdapter calls invalidate_path."
+    verify: "rg -n 'invalidate_path' harness/hooks/posttool_policy.py"
+  - id: cp4
+    criterion: "Kind I — instruction surfaces check confirms no stale prose instructions."
+    verify: "rg -n 'search-by-convenience' harness/ || true"
+  - id: cp5
+    criterion: "Obsolete test assert checks pass and test suite fixtures run green."
+    verify: "bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_posttool_dispatch.py -q --tb=line"
+  - id: cp6
+    criterion: "Full context ledger and scope regression suite is green (TM-I2-078-01..06 and TM-078-01..11)."
+    verify: "bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py harness/hooks/tests/test_context_scope_policy.py -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py harness/hooks/tests/test_posttool_dispatch.py -q --tb=line"
+tdd:
+  - "green: full suite passes cleanly after legacy fallback purge"

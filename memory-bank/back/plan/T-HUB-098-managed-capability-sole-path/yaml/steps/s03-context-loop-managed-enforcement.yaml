@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s03 — context-loop-managed-enforcement — context loop check-after managed enforcement and executor provenance stamping
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Extend _enforce_capability_checks_for_armed_step and check_after path in loop/context_loop.py:
+  if managed context and armed shard lacks capability_checks, return halt with diagnostic
+  managed_verification_requires_capability_checks (not None silent pass).
+  Ensure context_loop check-after evidence writer passes authoritative provenance.
+  Closes FR-003, FR-005, NFR-002.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-005
+  nouns:
+    - _enforce_capability_checks_for_armed_step
+    - check_after
+    - managed_verification_requires_capability_checks
+    - classify_project_verification_context
+  layout_paths:
+    - loop/context_loop.py
+    - loop/tests/test_stack_profile_execution_integration.py
+  ac_quotes:
+    - "FR-003: Extend _enforce_capability_checks_for_armed_step / check_after path: if managed context and armed shard lacks capability_checks, return halt (not None); forbid treating absence as hub pass."
+    - "FR-005: read_capability_evidence and finish gate MUST reject sidecars missing valid provenance even when fingerprint, status and exit_code match declaration; diagnostic capability_evidence_non_authoritative."
+    - "NFR-002: New diagnostics MUST be stable strings suitable for loop HALT and mb-finish error surfaces."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md:103-117"
+
+context:
+  consumes:
+    - loop/stack_profiles/context.py
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/context_loop.py
+  produces:
+    - loop/context_loop.py
+    - loop/tests/test_stack_profile_execution_integration.py
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#fr-003
+    - plan.md#fr-005
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_stack_profile_execution_integration.py
+
+as_built:
+  - loop/context_loop.py — _enforce_capability_checks_for_armed_step currently returns None when capability_checks is missing
+
+delta:
+  - loop/context_loop.py — wire classify_project_verification_context; halt with managed_verification_requires_capability_checks when shard lacks capability_checks in managed mode; stamp executor provenance on check-after write; eliminate silent_none_check_after_pass
+  - loop/tests/test_stack_profile_execution_integration.py — tests for managed armed step without checks producing HALT
+
+deletes:
+  - silent_none_check_after_pass
+
+wire_complete_required: false
+
+out_of_scope:
+  - s01-context-classifier.yaml
+  - s02-evidence-provenance-schema.yaml
+  - s04-epic-yaml-managed-finish.yaml
+  - s05-legacy-fallback-purge.yaml
+  - full QA test suite
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: _enforce_capability_checks_for_armed_step returns HALT managed_verification_requires_capability_checks when managed shard lacks capability_checks
+    verify: "bin/pytest loop/tests/test_stack_profile_execution_integration.py -q -k test_managed_missing_checks_halt"
+  - id: cp2
+    criterion: check_after writes capability evidence with valid provenance and permits continuation on matching capability pass
+    verify: "bin/pytest loop/tests/test_stack_profile_execution_integration.py -q -k test_check_after_provenance_success"
+  - id: cp3
+    criterion: audit confirms deletion of silent none returns in _enforce_capability_checks_for_armed_step
+    verify: "rg -n '_enforce_capability_checks_for_armed_step' loop/context_loop.py"
+
+verify: []
+tdd: []

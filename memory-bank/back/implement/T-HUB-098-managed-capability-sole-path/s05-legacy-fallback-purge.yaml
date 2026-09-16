@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s05 — s05 — legacy-fallback-purge — purge unmanaged fallbacks and complete
+  end-to-end integration verification IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Verified grep control confirming zero lingering managed->hub fallbacks in harness/hooks/epic_yaml.py
+  and loop/context_loop.py.
+- Verified all legacy fallbacks (legacy_managed_hub_tests_fallback, silent_none_missing_checks,
+  unprovenanced_evidence_read) are fully purged.
+- Implemented comprehensive end-to-end integration test test_managed_capability_scenarios_deny_halt
+  in loop/tests/test_stack_profiles_integration.py covering TM-I2-076-01 through TM-I2-076-05
+  scenarios and fail-closed capability verification.
+files:
+- harness/hooks/epic_yaml.py
+- loop/context_loop.py
+- loop/stack_profiles/evidence.py
+- loop/tests/test_stack_profiles_integration.py
+deletes:
+- legacy_managed_hub_tests_fallback
+- silent_none_missing_checks
+- unprovenanced_evidence_read
+wire_complete:
+  call_sites:
+  - harness/hooks/epic_yaml.py:_validate_implement_verification_requirements
+  - loop/context_loop.py:_enforce_capability_checks_for_armed_step
+  - loop/stack_profiles/evidence.py:read_capability_evidence
+  enforce_path: harness/hooks/epic_yaml.py + loop/context_loop.py HALT/reject on missing
+    capability_checks or missing executor provenance in managed context
+  dual_path_rg: rg -n 'managed_verification_requires_capability_checks' harness/hooks/epic_yaml.py
+    loop/context_loop.py
+  instruction_rg: rg -n 'classify_project_verification_context' harness/hooks/epic_yaml.py
+    loop/context_loop.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest loop/tests/test_stack_profiles_integration.py -q -k test_managed_capability_scenarios_deny_halt`
+  — PASS'
+- '`bin/pytest loop/tests/test_stack_profiles_integration.py -q` — PASS'
+integration_check:
+- Ran rg -n 'managed_verification_requires_capability_checks' harness/hooks/epic_yaml.py
+  loop/context_loop.py (confirmed zero unmanaged fallback bypasses)
+- Ran bin/pytest loop/tests/test_stack_profiles_integration.py -q -k test_managed_capability_scenarios_deny_halt
+  (PASS)
+- Ran bin/pytest loop/tests/test_stack_profiles_integration.py -q (7 passed)
+- Ran bin/pytest harness/hooks/tests/ loop/tests/ -q (2887 passed, 4 skipped)
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: grep control confirms zero lingering managed->hub fallbacks in epic_yaml
+    and context_loop
+  status: done
+- id: cp2
+  criterion: full integration test suite validates all TM-I2-076-01 through TM-I2-076-05
+    scenarios and fail-closed deny on missing checks
+  status: done
+resume_from: cp1

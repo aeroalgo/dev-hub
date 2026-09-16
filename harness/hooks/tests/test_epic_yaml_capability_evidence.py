@@ -172,3 +172,220 @@ def test_hub_test_fixture_remains_valid_without_executor(tmp_path: Path) -> None
 
     errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
     assert not errors
+
+
+def test_finish_rejects_non_authoritative_provenance(tmp_path: Path) -> None:
+    """FR-005 / cp2: finish validation rejects sidecar with missing or non-executor provenance with capability_evidence_non_authoritative."""
+    from loop.stack_profiles.evidence import get_evidence_relative_path
+
+    spec = CapabilityCheckSpec(target="api", capability="test.full")
+    dec_path, impl_path = _create_shard_pair(
+        tmp_path,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        capability_checks=[spec.model_dump()],
+        tests=[],
+    )
+
+    # 1. Write sidecar with agent provenance (forged)
+    fp = compute_declaration_fingerprint("back", "T-APP-001", "s01", spec)
+    rel_p = get_evidence_relative_path(
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        fingerprint=fp,
+    )
+    sidecar_path = tmp_path / rel_p
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fake_payload = {
+        "declaration_fingerprint": fp,
+        "role": "back",
+        "epic_id": "T-APP-001",
+        "step_id": "s01",
+        "target": "api",
+        "capability": "test.full",
+        "status": "succeeded",
+        "exit_code": 0,
+        "duration_ms": 120,
+        "recorded_at": "2026-09-07T12:00:00Z",
+        "provenance_source": "agent",
+    }
+    sidecar_path.write_text(json.dumps(fake_payload), encoding="utf-8")
+
+    errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
+    assert any("capability_evidence_non_authoritative" in e for e in errors)
+
+    impl_doc = EpicImplementDoc.model_validate(json.loads(impl_path.read_text(encoding="utf-8")))
+    ready_errs = implement_ready_for_finalize_doc(impl_doc, cwd=tmp_path)
+    assert any("capability_evidence_non_authoritative" in e for e in ready_errs)
+
+    # 2. Write sidecar with missing provenance (legacy / unprovenanced)
+    del fake_payload["provenance_source"]
+    sidecar_path.write_text(json.dumps(fake_payload), encoding="utf-8")
+
+    errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
+    assert any("capability_evidence_non_authoritative" in e for e in errors)
+
+    # 3. Legitimate executor-written sidecar passes
+    evidence = CapabilityExecutionEvidence(
+        declaration_fingerprint=fp,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        target="api",
+        capability="test.full",
+        status="succeeded",
+        exit_code=0,
+        duration_ms=120,
+        recorded_at="2026-09-07T12:00:00Z",
+    )
+    write_capability_evidence(tmp_path, evidence)
+
+    errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
+    assert not errors
+def test_forged_capability_evidence_fails_finish(tmp_path: Path) -> None:
+    """Forged capability evidence with agent provenance fails finish validation."""
+    from loop.stack_profiles.evidence import get_evidence_relative_path
+
+    spec = CapabilityCheckSpec(target="api", capability="test.full")
+    dec_path, impl_path = _create_shard_pair(
+        tmp_path,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        capability_checks=[spec.model_dump()],
+        tests=[],
+    )
+
+    fp = compute_declaration_fingerprint("back", "T-APP-001", "s01", spec)
+    rel_p = get_evidence_relative_path(
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        fingerprint=fp,
+    )
+    sidecar_path = tmp_path / rel_p
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fake_payload = {
+        "declaration_fingerprint": fp,
+        "role": "back",
+        "epic_id": "T-APP-001",
+        "step_id": "s01",
+        "target": "api",
+        "capability": "test.full",
+        "status": "succeeded",
+        "exit_code": 0,
+        "duration_ms": 120,
+        "recorded_at": "2026-09-07T12:00:00Z",
+        "provenance_source": "agent",
+    }
+    sidecar_path.write_text(json.dumps(fake_payload), encoding="utf-8")
+
+    errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
+    assert any("capability_evidence_non_authoritative" in e for e in errors)
+
+    impl_doc = EpicImplementDoc.model_validate(json.loads(impl_path.read_text(encoding="utf-8")))
+    ready_errs = implement_ready_for_finalize_doc(impl_doc, cwd=tmp_path)
+    assert any("capability_evidence_non_authoritative" in e for e in ready_errs)
+
+
+def test_unprovenanced_capability_evidence_fails_finish(tmp_path: Path) -> None:
+    """Capability evidence lacking provenance_source fails finish validation."""
+    from loop.stack_profiles.evidence import get_evidence_relative_path
+
+    spec = CapabilityCheckSpec(target="api", capability="test.full")
+    dec_path, impl_path = _create_shard_pair(
+        tmp_path,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        capability_checks=[spec.model_dump()],
+        tests=[],
+    )
+
+    fp = compute_declaration_fingerprint("back", "T-APP-001", "s01", spec)
+    rel_p = get_evidence_relative_path(
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        fingerprint=fp,
+    )
+    sidecar_path = tmp_path / rel_p
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fake_payload = {
+        "declaration_fingerprint": fp,
+        "role": "back",
+        "epic_id": "T-APP-001",
+        "step_id": "s01",
+        "target": "api",
+        "capability": "test.full",
+        "status": "succeeded",
+        "exit_code": 0,
+        "duration_ms": 120,
+        "recorded_at": "2026-09-07T12:00:00Z",
+    }
+    sidecar_path.write_text(json.dumps(fake_payload), encoding="utf-8")
+
+    errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
+    assert any("capability_evidence_non_authoritative" in e for e in errors)
+
+
+def test_write_capability_evidence(tmp_path: Path) -> None:
+    """CP3: Executor/check-after programmatic writes write capability sidecars without pretool interception."""
+    spec = CapabilityCheckSpec(target="api", capability="test.full")
+    fp = compute_declaration_fingerprint("back", "T-APP-001", "s01", spec)
+    evidence = CapabilityExecutionEvidence(
+        declaration_fingerprint=fp,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        target="api",
+        capability="test.full",
+        status="succeeded",
+        exit_code=0,
+        duration_ms=120,
+        recorded_at="2026-09-07T12:00:00Z",
+    )
+    sidecar_path = write_capability_evidence(tmp_path, evidence)
+    assert sidecar_path.exists()
+    data = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    assert data["declaration_fingerprint"] == fp
+    assert data["status"] == "succeeded"
+
+
+def test_valid_capability_evidence(tmp_path: Path) -> None:
+    """CP3: Legitimately written evidence with executor provenance succeeds in validate_implement_yaml and finalize-step."""
+    spec = CapabilityCheckSpec(target="api", capability="test.full")
+    dec_path, impl_path = _create_shard_pair(
+        tmp_path,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        capability_checks=[spec.model_dump()],
+        tests=[],
+    )
+    fp = compute_declaration_fingerprint("back", "T-APP-001", "s01", spec)
+    evidence = CapabilityExecutionEvidence(
+        declaration_fingerprint=fp,
+        role="back",
+        epic_id="T-APP-001",
+        step_id="s01",
+        target="api",
+        capability="test.full",
+        status="succeeded",
+        exit_code=0,
+        duration_ms=120,
+        recorded_at="2026-09-07T12:00:00Z",
+    )
+    write_capability_evidence(tmp_path, evidence)
+
+    errors, warnings = validate_shard_yaml_full(impl_path, finish=True)
+    assert not errors
+
+    impl_doc = EpicImplementDoc.model_validate(json.loads(impl_path.read_text(encoding="utf-8")))
+    ready_errs = implement_ready_for_finalize_doc(impl_doc, cwd=tmp_path)
+    assert not ready_errs

@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: "s01 — red-tests-fingerprint-and-search-scope — red fixtures for test cache pretool wiring, posttool invalidation, and search scope outside EPIC_LOOP"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать TDD red тестами границу поведения до изменения кода: повторный test command
+  проверяется в TestFingerprintCache, редактирование файла инвалидирует кэш в posttool,
+  а поиск вне allowlist блокируется при активном context policy даже вне EPIC_LOOP.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - US-I2-001
+    - US-I2-002
+    - US-I2-003
+    - US-I2-004
+    - TM-I2-078-01
+    - TM-I2-078-02
+    - TM-I2-078-03
+    - TM-I2-078-04
+    - TM-I2-078-05
+    - TM-I2-078-06
+  nouns:
+    - TestFingerprintCache
+    - BashPolicyAdapter
+    - WritePostToolAdapter
+    - ScopeResolver
+    - is_context_policy_active
+    - search_outside_scope_denied
+    - decision receipt
+  layout_paths:
+    - harness/hooks/tests/test_context_scope_policy.py
+    - harness/hooks/tests/test_posttool_dispatch.py
+  ac_quotes:
+    - "Repeat test cmd unchanged -> cache hit/deny policy -> cached decision; no false execution claim."
+    - "Edit relevant file -> repeat test cmd -> no stale cache -> miss/deny; requires fresh run."
+    - "Ledger active, not EPIC_LOOP, search outside scope -> deny search_outside_scope_denied."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:37-64"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:80-90"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:91-118"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:173-183"
+
+context:
+  consumes:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §Acceptance Scenarios"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §QA consumes"
+  produces:
+    - "red test fixtures for Bash pretool test command fingerprint cache lookup"
+    - "red test fixtures for posttool write edit invalidation of TestFingerprintCache"
+    - "red test fixtures for search scope enforcement when context policy active outside EPIC_LOOP"
+    - "regression test fixtures verifying I1 duplicate-read and plan-jump policies remain active"
+  plan_refs:
+    - "FR-001"
+    - "FR-002"
+    - "FR-003"
+    - "FR-004"
+    - "FR-005"
+    - "FR-006"
+  files:
+    - harness/hooks/tests/test_context_scope_policy.py
+    - harness/hooks/tests/test_posttool_dispatch.py
+
+as_built:
+  - "test_context_scope_policy.py тестирует ScopeResolver и TestFingerprintCache изолированно, но не проверяет интеграцию с BashPolicyAdapter и PostToolUse dispatch."
+  - "test_posttool_dispatch.py тестирует record_touch, но не проверяет сброс кэша TestFingerprintCache при изменении файлов."
+
+delta:
+  - "Add failing test cases in test_context_scope_policy.py for Bash pretool test command cache hit/miss and search outside scope deny outside EPIC_LOOP."
+  - "Add failing test cases in test_posttool_dispatch.py for WritePostToolAdapter invalidating TestFingerprintCache on file edit."
+  - "Add subagent search parity fixtures and I1 duplicate-read regression cases."
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "implementation of is_context_policy_active and search scope rewire (s02)"
+  - "implementation of TestFingerprintCache BashPolicyAdapter wiring (s03)"
+  - "implementation of WritePostToolAdapter cache invalidation (s04)"
+  - "legacy purge and sunset inventory scan (s05)"
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-077 incidents and capability write deny (follow_up: T-HUB-077)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+  - "T-HUB-101 incident clear on start removal (follow_up: T-HUB-101)"
+  - "T-HUB-102 agents instruction corpus (follow_up: T-HUB-102)"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Bash pretool test command lookup and search scope deny fail as red fixtures on un-wired codebase."
+    verify: "bin/pytest harness/hooks/tests/test_context_scope_policy.py -k 'test_bash_pretool_test_cache or test_search_outside_scope_non_loop' -q --tb=line"
+  - id: cp2
+    criterion: "Posttool file edit invalidation fails as red fixture on un-wired codebase."
+    verify: "bin/pytest harness/hooks/tests/test_posttool_dispatch.py -k 'test_write_posttool_invalidates_test_cache' -q --tb=line"
+  - id: cp3
+    criterion: "Existing I1 ledger duplicate-read and plan-jump test suite remains green."
+    verify: "bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_posttool_dispatch.py -q --tb=line"
+tdd:
+  - "red: create comprehensive failing test fixtures for TM-I2-078-01..06"
+  - "green: implementation in subsequent steps s02-s04 turns all fixtures green"

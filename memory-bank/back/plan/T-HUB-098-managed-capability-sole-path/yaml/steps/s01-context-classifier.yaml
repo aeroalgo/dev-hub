@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s01 — context-classifier — pure project verification context classifier
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Add pure classify_project_verification_context(project_root) -> Literal["hub", "managed"] using strict manifest presence
+  (T-HUB-075 dev-hub.project.yaml loader), failing closed on ambiguous/unreadable manifest for managed claim.
+  Closes FR-001, NFR-001.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+  nouns:
+    - classify_project_verification_context
+    - dev-hub.project.yaml
+    - project_root
+    - loop/stack_profiles/context.py
+  layout_paths:
+    - loop/stack_profiles/context.py
+    - loop/tests/test_stack_profile_classifier.py
+  ac_quotes:
+    - "FR-001: Add pure classify_project_verification_context(project_root) -> hub|managed using strict manifest presence (T-HUB-075 loader); fail-closed on ambiguous/unreadable manifest for managed claim."
+    - "NFR-001: Managed vs hub classification MUST be deterministic from filesystem manifest only; no environment flag bypass."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md:100-117"
+
+context:
+  consumes:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/manifest.py
+  produces:
+    - loop/stack_profiles/context.py
+    - loop/tests/test_stack_profile_classifier.py
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#fr-001
+  files:
+    - loop/stack_profiles/context.py
+    - loop/tests/test_stack_profile_classifier.py
+
+as_built:
+  - loop/stack_profiles/manifest.py — load_project_manifest provides strict manifest resolution and validation
+
+delta:
+  - loop/stack_profiles/context.py — implement pure classify_project_verification_context(project_root) -> Literal["hub", "managed"]
+  - loop/tests/test_stack_profile_classifier.py — unit tests for manifest presence, absent manifest, corrupted manifest fail-closed
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - s02-provenance-schema-evidence.yaml
+  - s03-context-loop-enforce.yaml
+  - s04-epic-yaml-finish-enforce.yaml
+  - full QA test suite
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: classify_project_verification_context returns 'managed' when valid dev-hub.project.yaml exists at root
+    verify: "bin/pytest loop/tests/test_stack_profile_classifier.py -q -k test_classify_managed"
+  - id: cp2
+    criterion: classify_project_verification_context returns 'hub' when manifest is absent and fails closed on invalid manifest
+    verify: "bin/pytest loop/tests/test_stack_profile_classifier.py -q -k test_classify_hub_and_corrupt"
+
+verify: []
+tdd: []

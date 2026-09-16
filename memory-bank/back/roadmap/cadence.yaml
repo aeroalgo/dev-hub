@@ -1,5 +1,10 @@
 schema: roadmap-cadence/v1
-phase: idle
-counter: 0
+phase: replan
+counter: 2
 every_n: 2
-pair_ids: []
+pair_ids:
+- T-HUB-098-managed-capability-sole-path
+- T-HUB-099-execution-evidence-write-deny
+replan_outcomes: {}
+resync_evidence: null
+resync_summary: null

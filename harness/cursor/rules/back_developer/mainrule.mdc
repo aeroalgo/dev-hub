@@ -35,7 +35,7 @@ alwaysApply: false
 |-------|---------|
 | `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc — только если canon устарел без PLAN |
 | `BACK RECONCILE` | @.cursor/rules/back_developer/workflow-reconcile.mdc — drift после hotfix или фаза resync cadence-блока (`--from-queue`) |
-| `BACK REPLAN` | @.cursor/rules/back_developer/workflow-replan.mdc — после QA: skip\|spawn новых epic_id (не overwrite parent); marker `replan-i2\|i3.yaml` + Parent-prompt; cadence pair_ids one-hop |
+| `BACK REPLAN` | @.cursor/rules/back_developer/workflow-replan.mdc — после QA: skip\|spawn новых epic_id (не overwrite parent); SoT = parent `## Epic` + код; marker `replan-i2\|i3.yaml`; spawn без Parent-prompt/QA links; cadence pair_ids one-hop |
 | `BACK JANITOR` | @.cursor/rules/back_developer/workflow-janitor.mdc |
 
 ## Cadence block (Kind I order)

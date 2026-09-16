@@ -41,8 +41,9 @@ def write_capability_evidence(
     dest_path = project_root / rel_path
     dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Validate model serialization
+    # Ensure executor provenance is stamped on write
     payload_dict = evidence.model_dump(by_alias=True, exclude_none=True)
+    payload_dict["provenance_source"] = "executor"
     serialized = json.dumps(payload_dict, indent=2, sort_keys=True)
 
     # Atomic write via temporary file in the same directory
@@ -92,9 +93,16 @@ def read_capability_evidence(
     try:
         raw_text = target_path.read_text(encoding="utf-8")
         data = json.loads(raw_text)
+        if not isinstance(data, dict):
+            return None
+
+        # Reject unprovenanced or non-executor evidence sidecars
+        if data.get("provenance_source") != "executor":
+            return None
+
         evidence = CapabilityExecutionEvidence.model_validate(data)
 
-        # Strict checks against scope and declaration
+        # Strict checks against scope, declaration, and provenance
         if (
             evidence.role != role
             or evidence.epic_id != epic_id
@@ -102,6 +110,7 @@ def read_capability_evidence(
             or evidence.declaration_fingerprint != expected_fp
             or evidence.target != declaration.target
             or evidence.capability != (declaration.capability if isinstance(declaration.capability, str) else declaration.capability.value)
+            or evidence.provenance_source != "executor"
         ):
             return None
 

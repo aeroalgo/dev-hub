@@ -119,6 +119,29 @@ def _detect_codex_runtime_abort(raw_log: str) -> bool:
     return False
 
 
+def _detect_codex_collaboration_wait_timeout(raw_log: str) -> bool:
+    """Detect wrapper timeout markers without matching model command dumps."""
+    from harness.hooks.session_resilience import COLLABORATION_WAIT_TIMEOUT_REASON
+
+    for line in (raw_log or "").splitlines():
+        stripped = line.strip()
+        # The session wrapper writes this as a top-level, plain-text marker.
+        if stripped.startswith("SESSION_COLLAB_WAIT_TIMEOUT"):
+            return True
+        if not stripped.startswith("{"):
+            continue
+        try:
+            obj = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        # The wrapper's synthetic result is top-level JSON.  Ignore all
+        # item.completed records: their command/output fields are model data.
+        if isinstance(obj, dict) and obj.get("type") == "result":
+            if str(obj.get("result") or "").strip() == COLLABORATION_WAIT_TIMEOUT_REASON:
+                return True
+    return False
+
+
 def _resolve_codex_binary(hub_root: Path | None = None) -> str:
     """Locate codex binary using which-codex.sh or direct resolution.
 
@@ -268,10 +291,7 @@ class CodexAdapter(RuntimeAdapter):
 
         exit_code = ctx.extras.get("exit_code")
 
-        if (
-            COLLABORATION_WAIT_TIMEOUT_REASON in raw_log
-            or "SESSION_COLLAB_WAIT_TIMEOUT" in raw_log
-        ):
+        if _detect_codex_collaboration_wait_timeout(raw_log):
             return SessionAnalysis(
                 reason=COLLABORATION_WAIT_TIMEOUT_REASON,
                 retry=True,

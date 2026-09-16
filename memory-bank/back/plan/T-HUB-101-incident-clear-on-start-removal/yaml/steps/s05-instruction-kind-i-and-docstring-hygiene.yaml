@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s05 — instruction-kind-i-and-docstring-hygiene — clean up Kind I instructions and docstrings
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Очистить docstrings, комментарии и тексты справок CLI от упоминаний автоматической очистки инцидентов
+  при старте процесса / перезапуске loop, зафиксировав контракт исключительно явного операторского вызова.
+
+plan_contract:
+  fr_ids:
+    - FR-007
+  nouns:
+    - loop/context_loop.py
+    - loop/incidents/store.py
+    - loop/runner/orchestrator.py
+  layout_paths:
+    - loop/context_loop.py
+    - loop/incidents/store.py
+  ac_quotes:
+    - "Kind I surfaces MUST NOT instruct agent/loop to auto-clear incidents or markers on restart; rewrite on operator-only recovery."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md:110-170
+
+context:
+  consumes:
+    - loop/context_loop.py
+    - loop/incidents/store.py
+    - loop/runner/orchestrator.py
+  produces:
+    - обновлённые docstrings и тексты справки CLI без устаревших ссылок на loop process start auto-clear
+  plan_refs:
+    - plan.md#FR-007
+  files:
+    - loop/context_loop.py
+    - loop/incidents/store.py
+
+as_built:
+  - "loop/context_loop.py: справка команды incident-clear-open содержит '(loop process start)'"
+  - "loop/incidents/store.py: docstring к resolve_all_open_incidents содержит '(manual loop restart / operator clear)'"
+
+delta:
+  - "Обновление справки команды incident-clear-open на 'Resolve all open incidents (explicit operator action)'"
+  - "Обновление docstrings в loop/incidents/store.py для отражения operator-only recovery"
+
+deletes:
+  - "Kind I фразы о сбросе инцидентов при старте loop"
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: удаление вызова из Orchestrator.run()"
+  - "s02: удаление метода из IncidentTracker"
+  - "s03: unit tests оркестратора"
+  - "s04: тесты CLI и store"
+  - "s06: sunset inventory purge scan"
+  - "follow_up: T-HUB-077-gate-evidence-integrity"
+  - "follow_up: T-HUB-078-context-budget-enforcement"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Справка CLI и docstrings не содержат упоминаний автоматической очистки инцидентов на старте
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'loop process start', 'loop/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Парсинг аргументов CLI контекстного цикла работает корректно
+    verify: "python3 -c \"from loop.context_loop import main; import sys\""
+
+verify: []
+tdd: []

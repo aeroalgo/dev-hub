@@ -650,7 +650,12 @@ class WritePostToolAdapter:
         if tool_name not in WRITE_TOOL_ALIASES:
             return None
 
-        raw = context.raw_payload or {}
+        raw = dict(context.raw_payload or {})
+        if "tool_input" not in raw and context.tool_input:
+            raw["tool_input"] = context.tool_input
+        if "tool_name" not in raw and context.tool_name:
+            raw["tool_name"] = context.tool_name
+
         cwd = product_cwd(context.cwd)
         session_id = context.session_id
 
@@ -668,6 +673,16 @@ class WritePostToolAdapter:
                     payload.raw_path,
                     operation=str(payload.operation or "edit"),
                 )
+
+            try:
+                from context_scope import TestFingerprintCache
+                cache = TestFingerprintCache(project_root=cwd)
+                if payload.raw_path:
+                    cache.invalidate_path(payload.raw_path)
+                if payload.old_path:
+                    cache.invalidate_path(payload.old_path)
+            except Exception:
+                pass
         except Exception:
             pass
 

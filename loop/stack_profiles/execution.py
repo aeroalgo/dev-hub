@@ -113,6 +113,7 @@ class CapabilityExecutionEvidence(BaseModel):
     exit_code: Optional[int] = None
     duration_ms: Optional[int] = None
     recorded_at: NonEmptyStr
+    provenance_source: Literal["executor"] = "executor"
     diagnostics: List[Diagnostic] = Field(default_factory=list)
 
 

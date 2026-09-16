@@ -1,0 +1,262 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-101-incident-clear-on-start-removal
+plan_id: T-HUB-101-incident-clear-on-start-removal
+date: '2026-09-15'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Eliminate automatic clear_open_on_start from Orchestrator startup, retain
+    explicit operator CLI bulk recovery, and ensure forensic open incident persistence
+    across restarts.
+  source: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md#Outcome-summary
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 7
+  fr_satisfied: 7
+  sc_checked: 0
+  layout_paths_total: 7
+  layout_paths_closed: 7
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: Orchestrator.run() in loop/runner/orchestrator.py startup path has no
+    clear_open_on_start invocation and leaves open incidents unmutated.
+- source_ref: FR-002
+  status: satisfied
+  evidence: IncidentTracker.clear_open_on_start method removed completely from loop/runner/orchestrator.py;
+    operator CLI incident-clear-open remains sole bulk clear path.
+- source_ref: FR-003
+  status: satisfied
+  evidence: Open incidents remain status open across orchestrator restarts as verified
+    by test_orchestrator_preserves_open_incidents_on_start in loop/tests/test_runner_orchestrator.py.
+- source_ref: FR-004
+  status: satisfied
+  evidence: CLI incident-clear-open in loop/context_loop.py and resolve_all_open_incidents
+    in loop/incidents/store.py record explicit operator_action resolution metadata.
+- source_ref: FR-005
+  status: satisfied
+  evidence: loop/tests/test_runner_orchestrator.py purged mock clear_open_on_start
+    assertions and added test_orchestrator_preserves_open_incidents_on_start regression
+    check.
+- source_ref: FR-006
+  status: satisfied
+  evidence: test_resolve_all_open_incidents in loop/tests/test_incidents_schema_store.py
+    and test_incident_clear_open in loop/tests/test_incidents_cli.py verify explicit
+    operator execution only.
+- source_ref: FR-007
+  status: satisfied
+  evidence: Instruction surfaces and docstrings across loop/context_loop.py, loop/incidents/store.py,
+    and loop/WORKFLOW.md refer strictly to explicit operator recovery.
+- source_ref: US-001
+  status: satisfied
+  evidence: Orchestrator execution preserves open incidents across restarts in incidents.jsonl
+    without clearing diagnostic codes.
+- source_ref: US-002
+  status: satisfied
+  evidence: incident-clear-open CLI command in loop/context_loop.py performs audited
+    bulk incident resolution with JSON output.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: No automatic resolution of open incidents occurs during process or loop
+    startup in loop/runner/orchestrator.py.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Single bulk recovery path maintained via incident-clear-open CLI without
+    concurrent auto-clear mechanism.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Silent swallow try/except block removed; failure to access incident store
+    fails closed rather than hiding errors.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Scope strictly bounded to startup auto-clear removal and operator CLI
+    preservation without unneeded refactoring of reducers or foreign epics.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: No instruction surfaces or guidance promote automatic incident or marker
+    clearing on loop restart.
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Existing JSONL schema and IncidentRecord model in loop/incidents/schema.py
+    utilized without schema migrations or extra persistence layers.
+- source_ref: NFR-002
+  status: satisfied
+  evidence: Orchestrator startup performs no write I/O on incidents.jsonl during normal
+    initialization in loop/runner/orchestrator.py.
+- source_ref: NFR-003
+  status: satisfied
+  evidence: incident-clear-open CLI interface and JSON output schema preserved with
+    full backward compatibility in loop/context_loop.py.
+- source_ref: NFR-004
+  status: satisfied
+  evidence: Lifecycle state transitions, idempotency keys, and capability execution
+    evidence structures remain intact and unmutated.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST requirements from project constitution respected across changes
+    in loop/runner and loop/incidents.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: TDD first methodology followed with test assertions updated prior to legacy
+    fallback purge.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: 'No silent fallback: automatic incident wiping eliminated and explicit
+    operator recovery enforced fail-closed.'
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: FRONT tests parent-only requirement observed; backend runner and incidents
+    modules scoped strictly within back role.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: Lean load policy maintained throughout epic steps without unbounded context
+    loading.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: 'Fail-closed misconfiguration invariant upheld: ambiguous state does not
+    silently wipe forensic incident records.'
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: No-guess markers enforced with explicit incident_id and diagnostic_codes
+    tracking in incidents.jsonl.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: ONE Handoff per step maintained across s01 through s06 transitions.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: Integration parity verified across orchestrator, incidents store, and
+    CLI entrypoint.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: Phase authority observed; AUDIT mode evaluates plan vs runtime contracts
+    without premature code mutation.
+- source_ref: layout:loop/runner/orchestrator.py
+  status: satisfied
+  evidence: Orchestrator class in loop/runner/orchestrator.py operates without clear_open_on_start
+    call on startup.
+- source_ref: layout:loop/incidents/store.py
+  status: satisfied
+  evidence: resolve_all_open_incidents in loop/incidents/store.py uses default operator_bulk_clear
+    resolution action.
+- source_ref: layout:loop/context_loop.py
+  status: satisfied
+  evidence: incident-clear-open CLI handler in loop/context_loop.py provides audited
+    operator bulk resolution.
+- source_ref: layout:loop/tests/test_runner_orchestrator.py
+  status: satisfied
+  evidence: test_orchestrator_preserves_open_incidents_on_start in loop/tests/test_runner_orchestrator.py
+    verifies incident persistence.
+- source_ref: layout:loop/tests/test_incidents_cli.py
+  status: satisfied
+  evidence: test_incident_clear_open in loop/tests/test_incidents_cli.py tests CLI
+    bulk clear with JSON formatting.
+- source_ref: layout:loop/tests/test_incidents_schema_store.py
+  status: satisfied
+  evidence: test_resolve_all_open_incidents in loop/tests/test_incidents_schema_store.py
+    verifies store resolution logic.
+- source_ref: layout:loop/WORKFLOW.md
+  status: satisfied
+  evidence: loop/WORKFLOW.md Incident Autopilot section reflects explicit operator
+    recovery workflows.
+architecture_parity:
+- layout_path: loop/runner/orchestrator.py
+  status: present
+  evidence: Orchestrator in loop/runner/orchestrator.py runs without auto clear_open_on_start
+    invocation.
+- layout_path: loop/incidents/store.py
+  status: present
+  evidence: resolve_all_open_incidents in loop/incidents/store.py defaults to operator_bulk_clear
+    resolution.
+- layout_path: loop/context_loop.py
+  status: present
+  evidence: incident-clear-open CLI sub-command registered and functional in loop/context_loop.py.
+- layout_path: loop/tests/test_runner_orchestrator.py
+  status: present
+  evidence: test_orchestrator_preserves_open_incidents_on_start asserts open incident
+    persistence across runs.
+- layout_path: loop/tests/test_incidents_cli.py
+  status: present
+  evidence: test_incident_clear_open and test_incident_clear_open_no_json cover operator
+    CLI command.
+- layout_path: loop/tests/test_incidents_schema_store.py
+  status: present
+  evidence: test_resolve_all_open_incidents verifies bulk resolution logic in loop/incidents/store.py.
+- layout_path: loop/WORKFLOW.md
+  status: present
+  evidence: Incident Autopilot section in loop/WORKFLOW.md documents tier self-healing
+    and operator recovery.
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-101-incident-clear-on-start-removal/s01-remove-startup-incident-mutation.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-101-incident-clear-on-start-removal/s02-purge-incident-tracker-clear-open-on-start.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-101-incident-clear-on-start-removal/s03-update-orchestrator-tests-and-forensic-persistence.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-101-incident-clear-on-start-removal/s04-enforce-operator-cli-sole-bulk-recovery.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-101-incident-clear-on-start-removal/s05-instruction-kind-i-and-docstring-hygiene.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-101-incident-clear-on-start-removal/s06-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+- step_id: s06
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-15'
+  plan_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md#Sunset-A-/-B-/-C-/-I
+  rows:
+  - symbol: IncidentTracker.clear_open_on_start
+    kind: A
+    command: rg -n clear_open_on_start loop/
+    result: pass
+    prod_callers: 0
+  - symbol: Orchestrator.run() startup auto-clear block
+    kind: A
+    command: rg -n clear_open_on_loop_start loop/runner/orchestrator.py
+    result: pass
+    prod_callers: 0
+  - symbol: resolution_action clear_open_on_loop_start default
+    kind: A
+    command: rg -n clear_open_on_loop_start loop/
+    result: pass
+    prod_callers: 0
+  - symbol: Implicit loop restart clears incidents behavior
+    kind: B
+    command: rg -n "restart resets incident" loop/
+    result: pass
+    prod_callers: 0
+  - symbol: Auto-clear try/except swallowing incident errors
+    kind: C
+    command: rg -n "except Exception.*cleared_count" loop/
+    result: pass
+    prod_callers: 0
+  - symbol: Kind I phrases regarding auto-clearing incidents on restart
+    kind: I
+    command: rg -n "cleared on loop start" loop/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

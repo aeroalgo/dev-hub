@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: s04 — posttool-edit-invalidation-wiring — connect WritePostToolAdapter to TestFingerprintCache
+  invalidation IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/yaml/steps/s04-posttool-edit-invalidation-wiring.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Updated TestFingerprintCache in harness/hooks/context_scope.py with auto-reloading
+  on lookup/record/invalidate and robust path matching.
+- Added invalidate_test_cache helper in harness/hooks/context_scope.py.
+- Connected WritePostToolAdapter in harness/hooks/posttool_policy.py to invoke TestFingerprintCache.invalidate_path
+  upon write and edit events.
+- Removed TDD red fixture xfail marker in harness/hooks/tests/test_posttool_dispatch.py
+  and verified cp1 and cp2 tests pass green.
+files:
+- harness/hooks/posttool_policy.py
+- harness/hooks/context_scope.py
+- harness/hooks/tests/test_posttool_dispatch.py
+deletes: []
+wire_complete:
+  call_sites:
+  - harness/hooks/posttool_policy.py:WritePostToolAdapter.evaluate -> TestFingerprintCache.invalidate_path
+  - harness/hooks/context_scope.py:invalidate_test_cache -> TestFingerprintCache.invalidate_path
+  enforce_path: harness/hooks/posttool_policy.py
+  dual_path_rg: rg "TestFingerprintCache" harness/hooks/posttool_policy.py harness/hooks/context_scope.py
+  instruction_rg: rg "invalidate_path" harness/hooks/posttool_policy.py harness/hooks/context_scope.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest harness/hooks/tests/test_posttool_dispatch.py -k "test_write_posttool_invalidates_test_cache"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_edit_invalidates_test_cache_miss"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_posttool_dispatch.py harness/hooks/tests/test_context_scope_policy.py
+  -k "invalidate or posttool" -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_posttool_dispatch.py harness/hooks/tests/test_context_scope_policy.py
+  harness/hooks/tests/test_context_ledger.py -q --tb=line`'
+grep_control: []
+verification_results:
+- 'cp1: WritePostToolAdapter triggers TestFingerprintCache.invalidate_path for edited
+  files (1 passed)'
+- 'cp2: Subsequent test command in BashPolicyAdapter results in cache miss after file
+  edit (1 passed)'
+- 'verify: 12 passed across test_posttool_dispatch.py and test_context_scope_policy.py'
+checkpoints:
+- id: cp1
+  criterion: WritePostToolAdapter triggers TestFingerprintCache.invalidate_path for
+    edited files.
+  status: done
+- id: cp2
+  criterion: After file edit, subsequent test command in BashPolicyAdapter results
+    in cache miss and requires fresh run.
+  status: done
+resume_from: none

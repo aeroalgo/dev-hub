@@ -1,0 +1,101 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-099-execution-evidence-write-deny
+title: "s04 — finish-read-non-authoritative-enforcement — finish and read rejection of unprovenanced or forged capability evidence"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обеспечить строгое отклонение неаутентичных (forged/unprovenanced) файлов capability evidence
+  на этапе finish (finalize-step, validate_implement_yaml, mb-finish), гарантируя, что только
+  записи с валидным provenance_source от runtime executor принимаются как завершённое доказательство.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - US-I2-002
+    - US-I2-003
+    - AC+3
+    - AC−2
+    - TM-I2-077-03
+    - TM-I2-077-05
+  nouns:
+    - read_capability_evidence
+    - provenance_source
+    - validate_implement_yaml
+    - implement_ready_for_finalize_doc
+    - capability_evidence_non_authoritative
+    - finalize-step
+    - mb-finish
+  layout_paths:
+    - loop/stack_profiles/evidence.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  ac_quotes:
+    - "Finish read rejects non-authoritative capability evidence lacking executor provenance_source."
+    - "Forged sidecar without provenance -> finish/read non-authoritative."
+    - "Executor/check-after write path MUST remain allowed via allowlist."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:80-95"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:104-115"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:148-160"
+
+context:
+  consumes:
+    - "loop/stack_profiles/evidence.py read_capability_evidence provenance checks"
+    - "harness/hooks/epic_yaml.py finish validation rules"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md §Functional requirements FR-004"
+  produces:
+    - "finish validation integration rejecting unprovenanced or agent-forged sidecars"
+    - "integration tests proving that forged sidecars cannot satisfy finalize-step or mb-finish"
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#acceptance-scenarios"
+    - "plan.md#qa-consumes"
+  files:
+    - harness/hooks/epic_yaml.py
+    - loop/stack_profiles/evidence.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+
+as_built:
+  - "read_capability_evidence validates provenance_source against executor identity."
+  - "harness/hooks/epic_yaml.py calls read_capability_evidence during implement validation, but requires robust error reporting for missing/invalid provenance."
+
+delta:
+  - "Ensure harness/hooks/epic_yaml.py (validate_implement_yaml and implement_ready_for_finalize_doc) emits explicit failure diagnostic when capability sidecar lacks authoritative provenance."
+  - "Ensure loop/stack_profiles/evidence.py returns None or raises typed rejection on invalid or forged provenance."
+  - "Add end-to-end finish validation test verifying that pre-seeded forged sidecars (e.g. created via direct filesystem write bypassing pretool) fail finish."
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "pretool write deny logic (s02, s03)"
+  - "full sunset inventory scan and purge (s05)"
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-078 context budget enforcement (follow_up: T-HUB-078)"
+  - "T-HUB-079 orchestrator lifecycle reliability (follow_up: T-HUB-079)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+  - "full suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Forged capability evidence without valid executor provenance is rejected by read_capability_evidence."
+    verify: "bin/pytest loop/tests/test_stack_profile_evidence.py -k 'test_read_capability_evidence_forged or test_read_capability_evidence_unprovenanced' -q --tb=line"
+  - id: cp2
+    criterion: "validate_implement_yaml and implement_ready_for_finalize_doc fail when capability evidence is forged or unprovenanced."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k 'test_forged_capability_evidence' -q --tb=line"
+  - id: cp3
+    criterion: "Legitimately written evidence with executor provenance succeeds in validate_implement_yaml and finalize-step."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k 'test_valid_capability_evidence' -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py loop/tests/test_stack_profile_evidence.py -q --tb=line -k 'capability'"
+tdd:
+  - "green: finish validation and read_capability_evidence integration tests pass"

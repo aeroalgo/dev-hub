@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s04 — enforce-operator-cli-sole-bulk-recovery — assert incident-clear-open
+  CLI as sole bulk recovery path IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s04-enforce-operator-cli-sole-bulk-recovery.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- 'loop/tests/test_incidents_cli.py: verified incident-clear-open with and without
+  --json flag'
+- 'loop/tests/test_incidents_schema_store.py: updated test_resolve_all_open_incidents
+  to assert resolution_tier=operator_action and resolution_action=operator_bulk_clear'
+gaps:
+  status: none
+done:
+- Updated test_resolve_all_open_incidents to test operator_action / operator_bulk_clear
+  resolution contract
+- Added test_incident_clear_open_no_json in test_incidents_cli.py to verify non-JSON
+  output and store resolution auditing
+- Verified all tests in test_incidents_cli.py and test_incidents_schema_store.py pass
+files:
+- loop/tests/test_incidents_cli.py
+- loop/tests/test_incidents_schema_store.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_incidents_cli.py -q --tb=line -k clear_open
+- bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_incidents_cli.py loop/tests/test_incidents_schema_store.py
+  -q --tb=line
+grep_control: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_incidents_cli.py -q --tb=line -k clear_open'',
+  ''outcome'': ''PASS'', ''passed'': 2}'
+- '{''command'': ''bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line'',
+  ''outcome'': ''PASS'', ''passed'': 7}'
+checkpoints:
+- id: cp1
+  criterion: Тест CLI incident-clear-open проходит успешно с флагом --json и без него
+  status: done
+- id: cp2
+  criterion: Тесты схемы и хранилища инцидентов выполняются без ошибок
+  status: done

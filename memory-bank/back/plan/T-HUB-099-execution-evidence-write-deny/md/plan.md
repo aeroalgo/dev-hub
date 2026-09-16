@@ -188,6 +188,9 @@ Workflow completion becomes trustworthy: a successful verification is an indepen
 | Non-authoritative read at finish | hardening | `read_capability_evidence` + finish | provenance validate | TM-I2-077-03 |
 | I1 receipt path preserved | regression | existing subagent-stop/stop-gate | no dual authority | TM-I2-077-04 |
 
+### CREATIVE need
+**нет**
+
 ## Следующий режим
 
 → `BACK DECOMPOSE T-HUB-099-execution-evidence-write-deny` (iteration 2).

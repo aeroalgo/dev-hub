@@ -9,11 +9,15 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from loop.stack_profiles.context import classify_project_verification_context
+from loop.stack_profiles.evidence import (
+    get_evidence_relative_path,
+    read_capability_evidence,
+)
 from loop.stack_profiles.execution import (
     CapabilityCheckSpec,
     compute_declaration_fingerprint,
 )
-from loop.stack_profiles.evidence import read_capability_evidence
 from test_run_canon import is_full_hub_pytest_command
 
 SCHEMA_EPIC_IMPLEMENT = "epic-implement/v1"
@@ -658,6 +662,122 @@ def _gaps_ok(gaps: dict[str, Any] | str) -> bool:
     return str(gaps.get("status", "")).lower() in {"none", "no", "closed"}
 
 
+def _validate_implement_verification_requirements(
+    root: Path,
+    doc: EpicImplementDoc,
+    dec_doc: EpicDecomposeDoc | None,
+) -> list[str]:
+    errors: list[str] = []
+    has_capability_checks = bool(dec_doc and dec_doc.capability_checks)
+    try:
+        context = classify_project_verification_context(root)
+    except Exception as exc:
+        context = "managed" if (root / "dev-hub.project.yaml").is_file() else "hub"
+        errors.append(f"project_manifest_invalid: {exc}")
+
+    if context == "managed":
+        if not has_capability_checks or dec_doc is None:
+            errors.append(
+                f"managed_verification_requires_capability_checks: managed project requires capability_checks on decompose shard for step {doc.step_id}"
+            )
+        else:
+            for check in dec_doc.capability_checks:
+                fp = compute_declaration_fingerprint(
+                    role=doc.role,
+                    epic_id=doc.plan_id,
+                    step_id=doc.step_id,
+                    declaration=check,
+                )
+                evidence = read_capability_evidence(
+                    root,
+                    role=doc.role,
+                    epic_id=doc.plan_id,
+                    step_id=doc.step_id,
+                    declaration=check,
+                )
+                if evidence is None:
+                    rel_p = get_evidence_relative_path(
+                        role=doc.role,
+                        epic_id=doc.plan_id,
+                        step_id=doc.step_id,
+                        fingerprint=fp,
+                    )
+                    evidence_file = root / rel_p
+                    if evidence_file.is_file():
+                        errors.append(
+                            f"capability_evidence_non_authoritative: evidence sidecar at {rel_p} lacks valid executor provenance for {check.capability} on target {check.target} (step {doc.step_id})"
+                        )
+                    else:
+                        errors.append(
+                            f"capability_evidence_missing_or_mismatch: missing evidence for {check.capability} on target {check.target} (step {doc.step_id})"
+                        )
+                elif evidence.status != "succeeded" or (evidence.exit_code is not None and evidence.exit_code != 0):
+                    errors.append(
+                        f"capability_evidence_missing_or_mismatch: capability {check.capability} on target {check.target} failed with status {evidence.status} (exit code {evidence.exit_code})"
+                    )
+            if doc.tests:
+                try:
+                    from tests_format import validate_tests_entries
+                    errors.extend(
+                        validate_tests_entries(doc.tests, finish=False, require_executable=False)
+                    )
+                except Exception as exc:
+                    errors.append(f"tests: validate failed ({exc})")
+    else:
+        if has_capability_checks and dec_doc is not None:
+            for check in dec_doc.capability_checks:
+                fp = compute_declaration_fingerprint(
+                    role=doc.role,
+                    epic_id=doc.plan_id,
+                    step_id=doc.step_id,
+                    declaration=check,
+                )
+                evidence = read_capability_evidence(
+                    root,
+                    role=doc.role,
+                    epic_id=doc.plan_id,
+                    step_id=doc.step_id,
+                    declaration=check,
+                )
+                if evidence is None:
+                    rel_p = get_evidence_relative_path(
+                        role=doc.role,
+                        epic_id=doc.plan_id,
+                        step_id=doc.step_id,
+                        fingerprint=fp,
+                    )
+                    evidence_file = root / rel_p
+                    if evidence_file.is_file():
+                        errors.append(
+                            f"capability_evidence_non_authoritative: evidence sidecar at {rel_p} lacks valid executor provenance for {check.capability} on target {check.target} (step {doc.step_id})"
+                        )
+                    else:
+                        errors.append(
+                            f"capability_evidence_missing_or_mismatch: missing evidence for {check.capability} on target {check.target} (step {doc.step_id})"
+                        )
+                elif evidence.status != "succeeded" or (evidence.exit_code is not None and evidence.exit_code != 0):
+                    errors.append(
+                        f"capability_evidence_missing_or_mismatch: capability {check.capability} on target {check.target} failed with status {evidence.status} (exit code {evidence.exit_code})"
+                    )
+            if doc.tests:
+                try:
+                    from tests_format import validate_tests_entries
+                    errors.extend(
+                        validate_tests_entries(doc.tests, finish=False, require_executable=False)
+                    )
+                except Exception as exc:
+                    errors.append(f"tests: validate failed ({exc})")
+        else:
+            try:
+                from tests_format import validate_tests_entries
+                errors.extend(
+                    validate_tests_entries(doc.tests, finish=True, require_executable=True)
+                )
+            except Exception as exc:
+                errors.append(f"tests: validate failed ({exc})")
+    return errors
+
+
 def validate_implement_yaml(
     path: Path,
     *,
@@ -727,40 +847,7 @@ def validate_implement_yaml(
             if cp.status != "done":
                 errors.append(f"checkpoint {cp.id} must be done on FINISH")
 
-        if has_capability_checks and dec_doc is not None:
-            for check in dec_doc.capability_checks:
-                evidence = read_capability_evidence(
-                    root,
-                    role=doc.role,
-                    epic_id=doc.plan_id,
-                    step_id=doc.step_id,
-                    declaration=check,
-                )
-                if evidence is None:
-                    errors.append(
-                        f"capability_evidence_missing_or_mismatch: missing evidence for {check.capability} on target {check.target} (step {doc.step_id})"
-                    )
-                elif evidence.status != "succeeded" or (evidence.exit_code is not None and evidence.exit_code != 0):
-                    errors.append(
-                        f"capability_evidence_missing_or_mismatch: capability {check.capability} on target {check.target} failed with status {evidence.status} (exit code {evidence.exit_code})"
-                    )
-            if doc.tests:
-                try:
-                    from tests_format import validate_tests_entries
-                    errors.extend(
-                        validate_tests_entries(doc.tests, finish=False, require_executable=False)
-                    )
-                except Exception as exc:
-                    errors.append(f"tests: validate failed ({exc})")
-        else:
-            try:
-                from tests_format import validate_tests_entries
-
-                errors.extend(
-                    validate_tests_entries(doc.tests, finish=True, require_executable=True)
-                )
-            except Exception as exc:
-                errors.append(f"tests: validate failed ({exc})")
+        errors.extend(_validate_implement_verification_requirements(root, doc, dec_doc))
 
     requires_wire = bool(dec_doc and dec_doc.wire_complete_required)
     if doc.wire_complete is not None and finish:
@@ -1810,42 +1897,7 @@ def implement_ready_for_finalize_doc(
         except Exception:
             pass
 
-    has_capability_checks = bool(dec_doc and dec_doc.capability_checks)
-
-    if has_capability_checks and dec_doc is not None:
-        for check in dec_doc.capability_checks:
-            evidence = read_capability_evidence(
-                root,
-                role=doc.role,
-                epic_id=doc.plan_id,
-                step_id=doc.step_id,
-                declaration=check,
-            )
-            if evidence is None:
-                errors.append(
-                    f"capability_evidence_missing_or_mismatch: missing evidence for {check.capability} on target {check.target} (step {doc.step_id})"
-                )
-            elif evidence.status != "succeeded" or (evidence.exit_code is not None and evidence.exit_code != 0):
-                errors.append(
-                    f"capability_evidence_missing_or_mismatch: capability {check.capability} on target {check.target} failed with status {evidence.status} (exit code {evidence.exit_code})"
-                )
-        if doc.tests:
-            try:
-                from tests_format import validate_tests_entries
-                errors.extend(
-                    validate_tests_entries(doc.tests, finish=False, require_executable=False)
-                )
-            except Exception as exc:
-                errors.append(f"tests: validate failed ({exc})")
-    else:
-        try:
-            from tests_format import validate_tests_entries
-
-            errors.extend(
-                validate_tests_entries(doc.tests, finish=True, require_executable=True)
-            )
-        except Exception as exc:
-            errors.append(f"tests: validate failed ({exc})")
+    errors.extend(_validate_implement_verification_requirements(root, doc, dec_doc))
 
     requires_wire = bool(dec_doc and dec_doc.wire_complete_required)
     if doc.wire_complete is not None:

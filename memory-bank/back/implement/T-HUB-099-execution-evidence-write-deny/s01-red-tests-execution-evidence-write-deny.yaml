@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-099-execution-evidence-write-deny
+title: s01 — red-tests-execution-evidence-write-deny — red fixtures for capability
+  sidecar write deny and forged finish reject IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/yaml/steps/s01-red-tests-execution-evidence-write-deny.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added TDD red tests in test_agent_pretool_gate_write_boundary.py covering agent
+  Write/Edit to memory-bank/{back,front,integration}/execution/<epic>/<step>/capability-*.json
+- Added TDD red tests in test_agent_pretool_gate_write_boundary.py for shell/bash
+  mutations to capability sidecars
+- Added negative finish validation tests in test_epic_yaml_capability_evidence.py
+  for forged (provenance_source=agent) and unprovenanced capability evidence
+- Verified cp3 baseline test fixtures for runtime gate and stop gate receipt integrity
+  remain green
+files:
+- harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+- harness/hooks/tests/test_epic_yaml_capability_evidence.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -k "test_write_execution_evidence
+  or test_edit_execution_evidence" -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k "test_forged_capability_evidence
+  or test_unprovenanced" -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+  -k "test_write_pretool or test_bash_pretool_denies_shell_write_to_runtime or test_stop_gate"
+  -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_stop_gate_receipt_integrity.py
+  -q --tb=line`'
+grep_control: []
+verification_results:
+- 'cp1: 6 red tests confirmed failing with assert ''allow'' == ''deny'' prior to s02-s03
+  pretool deny wiring'
+- 'cp2: 2 passed in test_epic_yaml_capability_evidence.py for forged/unprovenanced
+  capability evidence'
+- 'cp3: 5 passed across stop gate receipt integrity and runtime gate boundaries'
+checkpoints:
+- id: cp1
+  criterion: Agent Write/Edit attempts to capability-*.json fail in pretool test fixtures
+    with stable deny reason.
+  status: done
+- id: cp2
+  criterion: Forged capability evidence without executor provenance fails finish validation
+    with non-authoritative error.
+  status: done
+- id: cp3
+  criterion: Executor write path and existing I1 receipt test fixtures remain green.
+  status: done

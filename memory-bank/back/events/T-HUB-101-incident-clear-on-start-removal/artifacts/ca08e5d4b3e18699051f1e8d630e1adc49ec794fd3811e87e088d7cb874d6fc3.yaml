@@ -1,0 +1,40 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-101-incident-clear-on-start-removal
+plan_id: T-HUB-101-incident-clear-on-start-removal
+epic_id: T-HUB-101-incident-clear-on-start-removal
+date: '2026-09-15'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: baf37bb96628ddf56f3f3dda83df5e0ed0ba8cce19cafb7c535608a2b6f277fc
+verify_scope: prior_only
+scope:
+  - "task: T-HUB-101-incident-clear-on-start-removal"
+  - "epic: T-HUB-101-incident-clear-on-start-removal"
+  - "steps: s01–s06"
+  - "files: loop/runner/orchestrator.py, loop/incidents/store.py, loop/context_loop.py, loop/tests/test_runner_orchestrator.py, loop/tests/test_incidents_cli.py, loop/tests/test_incidents_schema_store.py, loop/WORKFLOW.md"
+ac_plus:
+  - "Orchestrator `run()` на startup не вызывает bulk resolve open incidents; pre-seeded open incident остаётся open после restart."
+  - "`IncidentTracker.clear_open_on_start` удалён или unreachable; grep по repo не находит live call path from orchestrator start."
+  - "`incident-clear-open` CLI остаётся рабочим opt-in bulk recovery с JSON output и audited resolution fields."
+  - "Regression tests orchestrator не expect `clear_open_on_start`; новый test подтверждает forensic persistence."
+  - "Prompt **Forbidden after** «Marker clearing» не нарушается автоматическим wipe на start."
+ac_minus:
+  - "Нет автоматического resolve open incidents при loop/process start."
+  - "Нет dual path: auto-clear + operator CLI как равноправные bulk recovery."
+  - "Нет silent swallow ошибок incident store на startup через auto-clear try/except."
+  - "Нет расширения scope на durable reducer rewrite, dashboard, 077/078/080/076."
+  - "Нет instruction surface, обучающей agent auto-clear incidents/markers on restart."
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (2950 passed, 4 skipped in 104.19s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+suite:
+  - "bin/pytest -q --tb=line  # Hub (dev-hub self-test): 2950 passed, 4 skipped in 104.19s"

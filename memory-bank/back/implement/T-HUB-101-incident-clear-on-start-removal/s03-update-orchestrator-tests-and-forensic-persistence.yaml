@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s03 — s03 — update-orchestrator-tests-and-forensic-persistence — purge clear_open_on_start
+  mocks and add restart regression test IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s03-update-orchestrator-tests-and-forensic-persistence.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Удалены устаревшие mock expectations и assertions на clear_open_on_start из loop/tests/test_runner_orchestrator.py
+- Добавлен регрессионный тест test_orchestrator_preserves_open_incidents_on_start,
+  проверяющий сохранение открытых инцидентов при перезапуске и прогоне оркестратора
+files:
+- loop/tests/test_runner_orchestrator.py
+deletes:
+- mock_incident_tracker.clear_open_on_start test assertions
+tests:
+- bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line
+- bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line -k "preserves_open_incidents
+  or incident"
+integration_check:
+- bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line
+grep_control: []
+verification_results:
+- 'cp1: pass (bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line - 8 passed)'
+- 'cp2: pass (bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line -k "preserves_open_incidents
+  or incident" - 1 passed)'
+checkpoints:
+- id: cp1
+  criterion: Тесты loop/tests/test_runner_orchestrator.py выполняются успешно без
+    упоминаний clear_open_on_start
+  status: done
+- id: cp2
+  criterion: Тест сохранения инцидентов при перезапуске оркестратора проходит успешно
+  status: done

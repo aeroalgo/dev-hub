@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s03 — s03 — context-loop-managed-enforcement — context loop check-after managed
+  enforcement and executor provenance stamping IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/yaml/steps/s03-context-loop-managed-enforcement.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Wired classify_project_verification_context into _enforce_capability_checks_for_armed_step
+  in loop/context_loop.py
+- Enforced HALT with managed_verification_requires_capability_checks when managed
+  decompose shard lacks capability_checks
+- Stamped explicit executor provenance on write in _enforce_capability_checks_for_armed_step
+- Eliminated silent none pass on missing checks in managed context
+- Added integration tests in loop/tests/test_stack_profile_execution_integration.py
+files:
+- loop/context_loop.py
+- loop/tests/test_stack_profile_execution_integration.py
+deletes:
+- silent_none_check_after_pass
+tests:
+- '`bin/pytest loop/tests/test_stack_profile_execution_integration.py -q`'
+integration_check:
+- loop/tests/test_stack_profile_execution_integration.py verifies managed missing
+  capability_checks HALT and check_after provenance persistence
+grep_control:
+- back: loop/context_loop.py
+  front: _enforce_capability_checks_for_armed_step
+verification_results:
+- 'cp1: bin/pytest loop/tests/test_stack_profile_execution_integration.py -q -k test_managed_missing_checks_halt
+  -> PASS'
+- 'cp2: bin/pytest loop/tests/test_stack_profile_execution_integration.py -q -k test_check_after_provenance_success
+  -> PASS'
+- 'cp3: rg -n ''_enforce_capability_checks_for_armed_step'' loop/context_loop.py ->
+  PASS'
+checkpoints:
+- id: cp1
+  criterion: _enforce_capability_checks_for_armed_step returns HALT managed_verification_requires_capability_checks
+    when managed shard lacks capability_checks
+  status: done
+- id: cp2
+  criterion: check_after writes capability evidence with valid provenance and permits
+    continuation on matching capability pass
+  status: done
+- id: cp3
+  criterion: audit confirms deletion of silent none returns in _enforce_capability_checks_for_armed_step
+  status: done
+resume_from: cp1

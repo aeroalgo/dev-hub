@@ -1,0 +1,37 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-099-execution-evidence-write-deny
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 2
+  cut_list:
+  - T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)
+  - T-HUB-078 context budget enforcement (follow_up: T-HUB-078)
+  - T-HUB-079 orchestrator lifecycle reliability (follow_up: T-HUB-079)
+  - T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)
+steps:
+- id: s01
+  file: s01-red-tests-execution-evidence-write-deny.yaml
+  title: red fixtures for capability sidecar write deny and forged finish reject
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-execution-evidence-write-deny-predicate.yaml
+  title: path-safe write deny reason helper in _lib.py
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-pretool-write-policy-adapter-wiring.yaml
+  title: wire execution evidence write deny into WritePolicyAdapter and pretool boundaries
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-finish-read-non-authoritative-enforcement.yaml
+  title: finish and read rejection of unprovenanced or forged capability evidence
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: sunset inventory scan, purge fallbacks, and full integration regression verification
+  next_phase: BACK IMPLEMENT
+  status: completed

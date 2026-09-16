@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s01 — s01 — remove-startup-incident-mutation — eliminate auto clear_open_on_start
+  from Orchestrator.run() IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s01-remove-startup-incident-mutation.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Удален автоматический вызов clear_open_on_start и блок format_cleared_incidents
+  из Orchestrator.run() в loop/runner/orchestrator.py
+- Удален неиспользуемый импорт format_cleared_incidents из loop/runner/orchestrator.py
+files:
+- loop/runner/orchestrator.py
+deletes:
+- Orchestrator.run() auto-clear startup block (~292-302)
+tests:
+- python3 -c "import ast; tree = ast.parse(open('loop/runner/orchestrator.py').read());
+  run_fn = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name
+  == 'run'][0]; assert 'clear_open_on_start' not in ast.dump(run_fn)"
+- python3 -m py_compile loop/runner/orchestrator.py
+- bin/pytest loop/tests/test_incidents_schema_store.py loop/tests/test_incidents_cli.py
+  -q --tb=line
+integration_check:
+- python3 -m py_compile loop/runner/orchestrator.py && bin/pytest loop/tests/test_incidents_schema_store.py
+  loop/tests/test_incidents_cli.py -q --tb=line
+grep_control: []
+verification_results:
+- 'cp1: pass (ast run() check without clear_open_on_start)'
+- 'cp2: pass (py_compile loop/runner/orchestrator.py)'
+checkpoints:
+- id: cp1
+  criterion: Orchestrator.run() не содержит вызовов clear_open_on_start и не изменяет
+    инциденты на startup
+  status: done
+- id: cp2
+  criterion: Синтаксис и базовый импорт loop.runner.orchestrator валидны
+  status: done

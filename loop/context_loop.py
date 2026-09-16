@@ -2895,6 +2895,16 @@ def _enforce_capability_checks_for_armed_step(
 
     declared_raw = raw_doc.get("capability_checks")
     if not declared_raw:
+        from harness.hooks.epic_yaml import classify_project_verification_context
+
+        if classify_project_verification_context(cwd) == "managed":
+            return {
+                "ok": False,
+                "halt": True,
+                "diagnostic_code": "managed_verification_requires_capability_checks",
+                "diagnostic_codes": ["managed_verification_requires_capability_checks"],
+                "reason": "Managed project verification requires declared capability_checks",
+            }
         return None
 
     if not isinstance(declared_raw, list):
@@ -4917,7 +4927,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_iclear = sub.add_parser(
         "incident-clear-open",
-        help="Resolve all open incidents (loop process start)",
+        help="Resolve all open incidents (explicit operator action)",
     )
     p_iclear.add_argument("--json", action="store_true", help="Output JSON format")
 

@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: s02 — context-policy-active-predicate-and-search-scope — deterministic context
+  policy active predicate and search scope enforcement IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/yaml/steps/s02-context-policy-active-predicate-and-search-scope.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Introduced is_context_policy_active(cwd, context) predicate in harness/hooks/context_ledger.py
+  detecting EPIC_LOOP, activeContext.md, and active context ledger sessions.
+- Gated search command line scope checking in harness/hooks/pretool_policy.py BashPolicyAdapter
+  behind is_context_policy_active.
+- Updated ScopeResolver in harness/hooks/context_scope.py to auto-discover active
+  shard and load_now from activeContext.md when shard_path is not explicitly provided.
+- Turned TDD red fixtures green in harness/hooks/tests/test_context_scope_policy.py
+  for is_context_policy_active, non-loop search scope denial, and subagent search
+  parity.
+files:
+- harness/hooks/context_ledger.py
+- harness/hooks/pretool_policy.py
+- harness/hooks/context_scope.py
+- harness/hooks/tests/test_context_scope_policy.py
+deletes: []
+wire_complete:
+  call_sites:
+  - harness/hooks/pretool_policy.py:BashPolicyAdapter.evaluate -> is_context_policy_active(cwd,
+    context)
+  - harness/hooks/context_scope.py:ScopeResolver._initialize_allowlist -> auto-discovery
+    of activeContext.md shard
+  enforce_path: harness/hooks/pretool_policy.py
+  dual_path_rg: rg "is_epic_loop_env\(\) and is_search_command_line" harness/hooks/pretool_policy.py
+  instruction_rg: rg "is_context_policy_active" harness/hooks/pretool_policy.py harness/hooks/context_ledger.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_search_outside_scope_deny_non_loop
+  or test_is_context_policy_active" -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_in_shard_search_allowed"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py
+  harness/hooks/tests/test_pretool_dispatch.py harness/hooks/tests/test_context_scope_policy.py
+  harness/hooks/tests/test_posttool_dispatch.py -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_posttool_dispatch.py
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py
+  -q --tb=line`'
+grep_control: []
+verification_results:
+- 'cp1: is_context_policy_active passes with False on unconfigured workspace and True
+  on workspace with activeContext.md'
+- 'cp2: search outside shard allowlist denied with search_outside_scope_denied when
+  context policy is active outside EPIC_LOOP'
+- 'cp3: in-shard search within allowlist allowed without graphify for root and subagents'
+checkpoints:
+- id: cp1
+  criterion: is_context_policy_active returns True when ledger or activeContext is
+    loaded, and False when unconfigured.
+  status: done
+- id: cp2
+  criterion: Search outside shard allowlist is denied with search_outside_scope_denied
+    when context policy is active outside EPIC_LOOP.
+  status: done
+- id: cp3
+  criterion: In-shard search targets within allowlist are allowed without graphify
+    for root and subagents.
+  status: done
+resume_from: none

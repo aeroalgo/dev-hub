@@ -1,0 +1,146 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: проверить полное удаление элементов плана Replacement / sunset (A, B, C, I).
+  Подтвердить отсутствие вызовов clear_open_on_start, устаревших mock expectations и авто-очистки инцидентов.
+  Выполнить регрессионный прогон сьюта тестов.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - US-001
+    - US-002
+  nouns:
+    - loop/runner/orchestrator.py
+    - loop/incidents/store.py
+    - loop/tests/test_runner_orchestrator.py
+    - loop/tests/test_incidents_cli.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "No automatic resolve of open incidents on loop/process start."
+    - "No dual path: auto-clear + operator CLI as equal bulk recovery."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md:120-195
+
+context:
+  consumes:
+    - plan.md#replacement--sunset
+    - decompose-index.md
+  produces:
+    - верифицированный отчет об отсутствии устаревших символов и успешном прохождении тестов
+  plan_refs:
+    - plan.md#replacement--sunset
+  files: []
+
+as_built:
+  - "Все предыдущие шаги s01-s05 внедрили удаление вызовов и обновили тесты и документацию"
+
+delta:
+  - "Исполнение grep_control проверок для категорий A, B, C, I"
+  - "Запуск регрессионного сьюта тестов оркестратора и инцидентов"
+
+sunset_inventory:
+  - symbol: IncidentTracker.clear_open_on_start
+    kind: A
+    replacement: operator CLI incident-clear-open
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero prod callers; no symbol in class
+  - symbol: loop/tests/test_runner_orchestrator.py::clear_open_on_start
+    kind: A
+    replacement: test_orchestrator_preserves_open_incidents_on_start
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: zero mock expectations on clear_open_on_start
+  - symbol: loop restart clears incidents behavior
+    kind: B
+    replacement: operator CLI incident-clear-open
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero implicit auto-clear entrypoints
+  - symbol: except Exception return ok/cleared_count 0 auto-clear swallow
+    kind: C
+    replacement: fail-closed operator error handling
+    policy: delete in-epic
+    rg_scope: loop/runner/orchestrator.py
+    expect: zero auto-clear try/except swallow blocks
+  - symbol: loop process start auto-clear instructions
+    kind: I
+    replacement: explicit operator recovery instructions
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero auto-clear instruction matches
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-077-gate-evidence-integrity"
+  - "follow_up: T-HUB-078-context-budget-enforcement"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: IncidentTracker.clear_open_on_start
+    command: 'rg -n "clear_open_on_start" loop/ || true'
+    expect: no output
+  - id: inv-a-02
+    kind: A
+    symbol: clear_open_on_loop_start
+    command: 'rg -n "clear_open_on_loop_start" loop/ || true'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: loop restart incident auto-clear
+    command: 'rg -n "cleared = self.incident_tracker.clear_open_on_start" loop/ || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: auto-clear error swallow
+    command: 'rg -n "IncidentTracker" loop/runner/orchestrator.py -A 25 | rg "clear_open_on_start" || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: loop process start
+    command: 'rg -n "Resolve all open incidents \(loop process start\)" loop/ || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Символ clear_open_on_start полностью удален из loop/
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'clear_open_on_start', 'loop/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Отсутствуют неявные точки входа авто-очистки на старте
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'clear_open_on_loop_start', 'loop/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp3
+    criterion: Отсутствуют блоки swallow ошибок авто-очистки
+    verify: "python3 -c \"import inspect, loop.runner.orchestrator; assert not hasattr(loop.runner.orchestrator.IncidentTracker, 'clear_open_on_start')\""
+  - id: cp4
+    criterion: Kind I инструкции и docstrings очищены
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'loop process start', 'loop/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp5
+    criterion: Регрессионный сьют тестов оркестратора и инцидентов проходит успешно
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py loop/tests/test_incidents_cli.py loop/tests/test_incidents_schema_store.py -q --tb=line"
+
+verify: []
+tdd: []

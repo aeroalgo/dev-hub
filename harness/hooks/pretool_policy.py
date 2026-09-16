@@ -49,10 +49,12 @@ from _lib import (
     agent_enabled,
     bash_active_context_write_deny_reason,
     bash_discard_dirty_deny_reason,
+    bash_execution_evidence_write_deny_reason,
     bash_gate_state_write_deny_reason,
     bash_project_boundary_deny_reason,
     current_gate_identity,
     gate_session_id,
+    execution_evidence_write_deny_reason,
     gate_state_write_deny_reason,
     is_epic_loop_env,
     last_verdict_allows_repair,
@@ -71,13 +73,20 @@ from _lib import (
     workflow_state_active,
     _discover_registry,
 )
+from context_ledger import is_context_policy_active
 from context_ledger_adapters import (
     READ_TOOL_ALIASES,
     WRITE_TOOL_ALIASES,
     evaluate_read_payload,
     evaluate_write_payload,
 )
-from context_scope import ScopeResolver, is_search_command_line
+from context_scope import (
+    ScopeResolver,
+    TestFingerprintCache,
+    evaluate_test_command,
+    is_search_command_line,
+    is_test_command_line,
+)
 
 
 _SPAWN_TOOL_NAMES: frozenset[str] = frozenset(
@@ -454,14 +463,16 @@ class BashPolicyAdapter:
 
         reason = bash_gate_state_write_deny_reason(cmd)
         if not reason:
+            reason = bash_execution_evidence_write_deny_reason(cmd)
+        if not reason:
             reason = bash_active_context_write_deny_reason(cwd, cmd)
         if not reason and is_epic_loop_env():
             reason = bash_discard_dirty_deny_reason(cmd)
         if not reason and is_epic_loop_env():
             reason = runner_cli_deny_reason(cmd)
 
-        # Check search scope enforcement inside EPIC_LOOP
-        if not reason and is_epic_loop_env() and is_search_command_line(cmd):
+        # Check search scope enforcement when context policy is active
+        if not reason and is_context_policy_active(cwd, context) and is_search_command_line(cmd):
             resolver = ScopeResolver(project_root=cwd)
             payload = context.raw_payload or {}
             graphify_evidence = payload.get("graphify_evidence") or context.tool_input.get("graphify_evidence")
@@ -475,6 +486,30 @@ class BashPolicyAdapter:
             if not allowed:
                 diag = details.get("diagnostic", search_reason)
                 reason = f"search_outside_scope_denied: {diag}"
+
+        # Check test execution cache when context policy is active
+        if not reason and is_context_policy_active(cwd, context) and is_test_command_line(cmd):
+            cached, test_reason, receipt = evaluate_test_command(
+                command=cmd,
+                project_root=cwd,
+                session_id=context.session_id or "",
+                actor_key=getattr(context, "actor_key", None),
+            )
+            if cached and receipt:
+                diag = receipt.get("diagnostic", "Cached test execution")
+                return DecisionEnvelope.record(
+                    reason=f"cached_test_hit: {receipt.get('canonical_path', cmd)}",
+                    diagnostic_code=DiagnosticCode.RECORDED,
+                    diagnostic_details=receipt,
+                    metadata={
+                        "receipt": receipt,
+                        "additional_context": f"bash-pretool RECORDED: {diag}",
+                        "permissionDecisionReason": "cached_test_hit",
+                        "cached": True,
+                        "no_op": True,
+                        "test_cache": receipt.get("metadata", {}),
+                    },
+                )
 
         if not reason:
             return None
@@ -514,20 +549,23 @@ class WritePolicyAdapter:
 
         reason = gate_state_write_deny_reason(cwd, file_path)
         if not reason:
+            reason = execution_evidence_write_deny_reason(cwd, file_path)
+        if not reason:
             reason = active_context_write_deny_reason(cwd, file_path, contents)
         if not reason:
             reason = recorded_artifact_write_deny_reason(cwd, file_path)
 
         if reason:
+            add_ctx = (
+                "write-pretool DENY: live loop owns activeContext. "
+                "В chat пиши Handoff / step markdown (не Write/Edit activeContext.md; "
+                "finalize-step / mb-finish обновят activeContext канонически)."
+            ) if ("activeContext" in reason or "active_context" in reason) else f"write-pretool DENY: {reason}"
             return DecisionEnvelope.deny(
                 reason,
                 diagnostic_code=DiagnosticCode.TOOL_POLICY_DENY,
                 metadata={
-                    "additional_context": (
-                        "write-pretool DENY: live loop owns activeContext. "
-                        "В chat пиши Handoff / step markdown (не Write/Edit activeContext.md; "
-                        "finalize-step / mb-finish обновят activeContext канонически)."
-                    ),
+                    "additional_context": add_ctx,
                     "permissionDecisionReason": reason,
                 },
             )

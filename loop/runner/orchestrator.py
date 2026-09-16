@@ -22,7 +22,6 @@ from loop.runner import (
 from loop.runner.output import (
     format_abort_diagnostic,
     format_check_after_summary,
-    format_cleared_incidents,
     format_dag_fanout,
     format_loop_complete,
     format_prepare_summary,
@@ -40,32 +39,18 @@ from loop.runner.ownership import RunnerLease
 from loop.runner.session import SessionInvoker
 
 
+def _roadmap_chain_enabled(project_root: Path) -> bool:
+    """Use the queue's project-env resolution for automatic epic chaining."""
+    from loop.roadmap_queue import epic_chain_roadmap_enabled
+
+    return epic_chain_roadmap_enabled(project_root)
+
+
 class IncidentTracker:
-    """Handles open incident clearance, trace logging, and Tier-1 self-healing."""
+    """Handles incident trace logging and Tier-1 self-healing."""
 
     def __init__(self, *, tier1_enabled: bool = True) -> None:
         self.tier1_enabled = tier1_enabled
-
-    def clear_open_on_start(self, project_root: Path) -> Mapping[str, Any]:
-        """Clear leftover open incidents on process start."""
-        try:
-            from loop.epic_paths import epic_dir
-            from loop.incidents.store import resolve_all_open_incidents
-
-            edir = epic_dir(project_root)
-            if not edir.is_dir():
-                return {"ok": True, "cleared_count": 0, "diagnostic_codes": []}
-            cleared = resolve_all_open_incidents(edir)
-            codes: set[str] = set()
-            for rec in cleared:
-                codes.update(rec.diagnostic_codes or [])
-            return {
-                "ok": True,
-                "cleared_count": len(cleared),
-                "diagnostic_codes": sorted(codes),
-            }
-        except Exception:
-            return {"ok": True, "cleared_count": 0, "diagnostic_codes": []}
 
     def record_trace(
         self,
@@ -282,17 +267,6 @@ class LoopRunner:
     def run(self) -> RunOutcome:
         """Execute outer loop supervision until completion, halt, or interrupt."""
         with self.lease:
-            # Clear open incidents on startup
-            cleared = self.incident_tracker.clear_open_on_start(self.config.project_root)
-            if cleared.get("cleared_count"):
-                self.stdout(
-                    format_cleared_incidents(
-                        cleared["cleared_count"],
-                        cleared.get("diagnostic_codes", []),
-                    )
-                    + "\n"
-                )
-
             iteration = 0
             while True:
                 iteration += 1
@@ -315,7 +289,7 @@ class LoopRunner:
 
                 if prep.get("complete"):
                     prep_stop = prep.get("stop", "")
-                    if prep_stop == "EPIC_DONE" and os.environ.get("EPIC_CHAIN_ROADMAP") == "1":
+                    if prep_stop == "EPIC_DONE" and _roadmap_chain_enabled(self.config.project_root):
                         advance_fn = getattr(self.context_port, "roadmap_advance", None)
                         if advance_fn:
                             adv = advance_fn(self.config.project_root)
@@ -350,7 +324,11 @@ class LoopRunner:
                 model_source = prep.get("model_source") or ""
                 fingerprint_before = prep.get("fingerprint") or ""
                 prompt_file_str = prep.get("prompt_file") or ""
-                prompt_file = Path(prompt_file_str) if prompt_file_str else self.config.state_dir / "prompt.txt"
+                prompt_file = (
+                    Path(prompt_file_str)
+                    if prompt_file_str
+                    else self.config.state_dir / "next-prompt.txt"
+                )
 
                 self.stdout(
                     format_session_model_info(session_model, loop_phase, armed_step, model_source) + "\n"
@@ -456,7 +434,7 @@ class LoopRunner:
                         )
                         if reprep_rc == 2:
                             # Epic complete during transient abort
-                            if os.environ.get("EPIC_CHAIN_ROADMAP") == "1":
+                            if _roadmap_chain_enabled(self.config.project_root):
                                 advance_fn = getattr(self.context_port, "roadmap_advance", None)
                                 if advance_fn:
                                     adv = advance_fn(self.config.project_root)
@@ -483,7 +461,11 @@ class LoopRunner:
                         model_source = reprep_json.get("model_source") or ""
                         fingerprint_before = reprep_json.get("fingerprint") or ""
                         prompt_file_str = reprep_json.get("prompt_file") or ""
-                        prompt_file = Path(prompt_file_str) if prompt_file_str else self.config.state_dir / "prompt.txt"
+                        prompt_file = (
+                            Path(prompt_file_str)
+                            if prompt_file_str
+                            else self.config.state_dir / "next-prompt.txt"
+                        )
 
                         if not session_model:
                             self.stderr(
@@ -514,10 +496,13 @@ class LoopRunner:
                             self.stderr("==> HALT: permanent session failure (fail-closed)\n")
                         return RunOutcome(action=RunAction.HALT, exit_code=1, reason=reason)
 
-                    self.stderr("==> SESSION ABORTED (non-retryable) — resuming outer loop\n")
+                    self.stderr("==> SESSION ABORTED (non-retryable) — halting outer loop\n")
                     self.stderr(format_abort_diagnostic(rec.get("reason"), rec.get("abort_kind")) + "\n")
-                    resume_outer = True
-                    break
+                    return RunOutcome(
+                        action=RunAction.HALT,
+                        exit_code=1,
+                        reason=str(reason or "non-retryable session abort"),
+                    )
 
                 if resume_outer:
                     continue
@@ -578,7 +563,7 @@ class LoopRunner:
                         except Exception:
                             pass
 
-                    if os.environ.get("EPIC_CHAIN_ROADMAP") == "1":
+                    if _roadmap_chain_enabled(self.config.project_root):
                         advance_fn = getattr(self.context_port, "roadmap_advance", None)
                         if advance_fn:
                             adv = advance_fn(self.config.project_root)

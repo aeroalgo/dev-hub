@@ -1,0 +1,51 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-101-incident-clear-on-start-removal
+role: back
+source_qa: memory-bank/back/qa/T-HUB-101-incident-clear-on-start-removal/qa-20260916-incident-clear-on-start-removal.yaml
+checklist_sha256: baf37bb96628ddf56f3f3dda83df5e0ed0ba8cce19cafb7c535608a2b6f277fc
+created_at: '2026-09-15T00:00:00Z'
+updated_at: '2026-09-16T00:00:00Z'
+current_id: BF-003
+verification:
+  status: fail
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-16T00:00:00Z'
+  evidence: 2951 passed, 3 skipped in 102.22s via bin/pytest -q --tb=line
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: "loop/context_loop.py:2834 и :3012 добавляют scope 076/077, исключённый планом; исключить эти изменения для соблюдения AC−4"
+  blocker_ref: "ac_gap: AC−4: loop/context_loop.py:2834 и :3012 добавляют scope 076/077, исключённый планом · исключить эти изменения из эпика."
+  fix_plan_ref: "BACK BUGFIX BF-001: Исключить scope 076/077 из loop/context_loop.py (строки 2834, 3012) для соблюдения AC−4"
+  targets:
+  - loop/context_loop.py
+  verify: bin/pytest loop/tests/test_incidents_cli.py -q --tb=line
+  evidence: 9 passed in 1.74s via bin/pytest loop/tests/test_incidents_cli.py -q --tb=line
+  done_at: '2026-09-15T16:55:00Z'
+  notes: "Исключены не входящие в эпик изменения scope 076/077 из loop/context_loop.py"
+- id: BF-002
+  status: done
+  class: ac_gap
+  title: diff includes excluded 076 capability-check changes in loop/context_loop.py:2895 and related tests; isolate T-HUB-101 scope
+  blocker_ref: "ac_gap: AC−4: diff includes excluded 076 capability-check changes in loop/context_loop.py:2895 and related tests; isolate T-HUB-101 scope."
+  fix_plan_ref: 'BACK BUGFIX BF-002: Isolate T-HUB-101 scope and remove excluded 076 capability-check changes from loop/context_loop.py:2895 and related tests.'
+  targets:
+  - loop/context_loop.py
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line
+  evidence: 8 passed in 1.34s via bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line
+  done_at: '2026-09-15T18:35:00Z'
+  notes: T-HUB-101 scope confirmed isolated; orchestrator startup incident persistence verified and managed capability baseline preserved.
+- id: BF-003
+  status: open
+  class: suite_red
+  title: "Suite claim 2951 passed, 3 skipped противоречит evidence 2950 passed, 4 skipped в bugfix-queue.yaml и bugfix report"
+  blocker_ref: "suite_red: Suite claim `2951 passed, 3 skipped` противоречит evidence `2950 passed, 4 skipped` в `bugfix-queue.yaml:13` и `bugfix-20260915-incident-clear-on-start-removal.md:114` · reconcile current suite evidence."
+  fix_plan_ref: "BACK BUGFIX BF-003: Reconcile current suite evidence in bugfix artifacts."
+  targets:
+  - memory-bank/back/bugfix/T-HUB-101-incident-clear-on-start-removal/bugfix-queue.yaml
+  - memory-bank/back/bugfix/T-HUB-101-incident-clear-on-start-removal/bugfix-20260915-incident-clear-on-start-removal.md
+  verify: bin/pytest loop/tests/test_incidents_cli.py -q --tb=line
+  evidence: null
+  done_at: null
+  notes: Open bugfix item from QA review on 2026-09-16.

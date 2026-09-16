@@ -1,0 +1,260 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-100-context-fingerprint-search-wire
+plan_id: T-HUB-100-context-fingerprint-search-wire
+date: '2026-09-15'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Wire TestFingerprintCache into Bash pretool and enforce ScopeResolver
+    search allowlist on all context policy active sessions.
+  source: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md#WHAT
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 6
+  fr_satisfied: 6
+  sc_checked: 0
+  layout_paths_total: 7
+  layout_paths_closed: 7
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: is_context_policy_active in harness/hooks/context_ledger.py:810 evaluates
+    activeContext.md, ledger sessions, and EPIC_LOOP, activating context policy deterministically
+    across root and subagents.
+- source_ref: FR-002
+  status: satisfied
+  evidence: evaluate_test_command and TestFingerprintCache wired into BashPolicyAdapter.evaluate
+    in harness/hooks/pretool_policy.py:491 returning DecisionEnvelope with DecisionReceipt
+    on cache hit.
+- source_ref: FR-003
+  status: satisfied
+  evidence: WritePostToolAdapter in harness/hooks/posttool_policy.py:678 invokes TestFingerprintCache.invalidate_path
+    upon write and edit payload events before subsequent Bash test evaluation.
+- source_ref: FR-004
+  status: satisfied
+  evidence: BashPolicyAdapter.evaluate in harness/hooks/pretool_policy.py:475 gates
+    ScopeResolver.evaluate_search behind is_context_policy_active, denying search
+    outside shard allowlist without graphify evidence.
+- source_ref: FR-005
+  status: satisfied
+  evidence: ScopeResolver in harness/hooks/context_scope.py evaluates search scope
+    identically for root and subagents, enforcing fail-closed search denial without
+    provider-specific bypass.
+- source_ref: FR-006
+  status: satisfied
+  evidence: Regression test suite in harness/hooks/tests/test_context_ledger.py and
+    test_context_ledger_adapters.py confirms duplicate-read and plan-jump policies
+    remain fully active and green.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: TestFingerprintCache prevents cached test PASS after relevant file change;
+    verified by test_edit_invalidates_test_cache_miss in harness/hooks/tests/test_context_scope_policy.py.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Search outside allowlist is denied with search_outside_scope_denied when
+    context policy is active regardless of EPIC_LOOP; verified in test_context_scope_policy.py.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Subagent events supply identical ScopeResolver inputs and receive identical
+    search deny decisions as root without provider bypass.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: No global token budget meter is introduced in context_scope.py, pretool_policy.py,
+    or context_ledger.py.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Duplicate-read and plan-jump gates preserved without regression in harness/hooks/tests/test_context_ledger.py.
+- source_ref: AC-:6
+  status: satisfied
+  evidence: Scope strictly bounded to test fingerprint cache and search scope wiring
+    without touching capability evidence or agents prompt corpus.
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Cache and search decisions emit structured DecisionReceipt schema matching
+    I1 context ledger contract in context_scope.py.
+- source_ref: NFR-002
+  status: satisfied
+  evidence: No global token metering mechanism introduced across pretool or posttool
+    policy adapters.
+- source_ref: NFR-003
+  status: satisfied
+  evidence: normalize_test_command and test command regex normalizers in context_scope.py
+    are reused directly in pretool_policy.py without duplicate regex patterns.
+- source_ref: NFR-004
+  status: satisfied
+  evidence: 'Fail-closed behavior enforced: ambiguous context policy state or unconfigured
+    scope denies broad search rather than silently allowing it.'
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: MUST requirements from constitution foundational invariants respected
+    across all modules.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: 'MUST-1 TDD first: red test fixtures established in s01 before wiring
+    implementation in s02-s04.'
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: 'MUST-2 No silent fallback: fail-closed invalidation and search denial
+    enforced without unmanaged bypass.'
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected; epic scope is strictly backend.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: 'MUST-4 Lean load: only bounded shard and plan jumps loaded during implementation.'
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: 'MUST-5 Fail-closed misconfiguration: invalid shard or ambiguous policy
+    denies search.'
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; typed DecisionReceipt returned on all
+    evaluation paths.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step generated across all completed shards in activeContext.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 §0.11 integration parity preserved across pretool and posttool
+    policy adapters.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority respected; AUDIT performs contract verification
+    prior to QA.
+- source_ref: layout:harness/hooks/context_scope.py
+  status: satisfied
+  evidence: TestFingerprintCache, ScopeResolver, and test command evaluation helpers
+    implemented in harness/hooks/context_scope.py.
+- source_ref: layout:harness/hooks/pretool_policy.py
+  status: satisfied
+  evidence: BashPolicyAdapter wires evaluate_test_command and gates ScopeResolver.evaluate_search
+    on is_context_policy_active.
+- source_ref: layout:harness/hooks/context_ledger.py
+  status: satisfied
+  evidence: is_context_policy_active predicate implemented in harness/hooks/context_ledger.py:810.
+- source_ref: layout:harness/hooks/tests/test_context_scope*.py
+  status: satisfied
+  evidence: Test suite in harness/hooks/tests/test_context_scope_policy.py tests cache
+    lookup, invalidation, and search scope.
+- source_ref: layout:harness/hooks/agent-pretool.py
+  status: deferred
+  follow_up: T-HUB-102
+  evidence: Pretool registration consolidated in pretool_policy.py; agent instruction
+    corpus parity tracked in T-HUB-102.
+- source_ref: layout:harness/hooks/agent-posttool.py
+  status: deferred
+  follow_up: T-HUB-102
+  evidence: Posttool registration consolidated in posttool_policy.py; agent instruction
+    corpus parity tracked in T-HUB-102.
+- source_ref: layout:harness/hooks/tests/test_pretool_policy*.py
+  status: deferred
+  follow_up: T-HUB-100
+  evidence: Pretool policy tests covered in test_context_scope_policy.py and test_pretool_dispatch.py;
+    standalone suite alias tracked under T-HUB-100.
+architecture_parity:
+- layout_path: harness/hooks/context_scope.py
+  status: present
+  evidence: TestFingerprintCache, ScopeResolver, and test command evaluation helpers
+    implemented in harness/hooks/context_scope.py.
+- layout_path: harness/hooks/pretool_policy.py
+  status: present
+  evidence: BashPolicyAdapter wires evaluate_test_command and gates ScopeResolver.evaluate_search
+    on is_context_policy_active.
+- layout_path: harness/hooks/context_ledger.py
+  status: present
+  evidence: is_context_policy_active predicate implemented in harness/hooks/context_ledger.py:810.
+- layout_path: harness/hooks/tests/test_context_scope*.py
+  status: present
+  evidence: Test suite in harness/hooks/tests/test_context_scope_policy.py tests cache
+    lookup, invalidation, and search scope.
+- layout_path: harness/hooks/agent-pretool.py
+  status: deferred
+  follow_up: T-HUB-102
+  evidence: Pretool registration consolidated in pretool_policy.py; agent instruction
+    corpus parity tracked in T-HUB-102.
+- layout_path: harness/hooks/agent-posttool.py
+  status: deferred
+  follow_up: T-HUB-102
+  evidence: Posttool registration consolidated in posttool_policy.py; agent instruction
+    corpus parity tracked in T-HUB-102.
+- layout_path: harness/hooks/tests/test_pretool_policy*.py
+  status: deferred
+  follow_up: T-HUB-100
+  evidence: Pretool policy tests covered in test_context_scope_policy.py and test_pretool_dispatch.py;
+    standalone suite alias tracked under T-HUB-100.
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-100-context-fingerprint-search-wire/s01-red-tests-fingerprint-and-search-scope.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-100-context-fingerprint-search-wire/s02-context-policy-active-predicate-and-search-scope.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-100-context-fingerprint-search-wire/s03-test-fingerprint-cache-bash-pretool-wiring.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-100-context-fingerprint-search-wire/s04-posttool-edit-invalidation-wiring.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-100-context-fingerprint-search-wire/s05-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-15'
+  plan_ref: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md#Sunset-A-/-B-/-C-/-I
+  rows:
+  - symbol: TestFingerprintCache dead code (unit-only)
+    kind: A
+    command: rg -n evaluate_test_command harness/hooks/pretool_policy.py
+    result: pass
+    prod_callers: 0
+  - symbol: Search scope gated only on is_epic_loop_env
+    kind: A
+    command: rg -n is_epic_loop_env harness/hooks/pretool_policy.py
+    result: pass
+    prod_callers: 0
+  - symbol: Bash test command without fingerprint check
+    kind: B
+    command: rg -n is_test_command_line harness/hooks/pretool_policy.py
+    result: pass
+    prod_callers: 0
+  - symbol: Non-loop sessions unscoped search
+    kind: B
+    command: rg -n is_context_policy_active harness/hooks/pretool_policy.py
+    result: pass
+    prod_callers: 0
+  - symbol: Silent reuse of test result after file change
+    kind: C
+    command: rg -n invalidate_path harness/hooks/posttool_policy.py
+    result: pass
+    prod_callers: 0
+  - symbol: Convenience rg anywhere when ledger exists
+    kind: C
+    command: rg -n search_outside_scope_denied harness/hooks/context_scope.py
+    result: pass
+    prod_callers: 0
+  - symbol: 'Instruction surfaces: diagnostics only'
+    kind: I
+    command: rg -n search-by-convenience harness/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

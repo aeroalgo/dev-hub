@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s04 — enforce-operator-cli-sole-bulk-recovery — assert incident-clear-open CLI as sole bulk recovery path
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрепить CLI incident-clear-open как единственный поддержанный opt-in bulk-clear путь,
+  верифицировать аудит полей резолюции и убедиться, что тесты CLI и хранилища инцидентов
+  не зависят от startup оркестратора.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-006
+    - US-002
+  nouns:
+    - loop/tests/test_incidents_cli.py
+    - loop/tests/test_incidents_schema_store.py
+    - loop/incidents/store.py
+    - loop/context_loop.py
+  layout_paths:
+    - loop/tests/test_incidents_cli.py
+    - loop/tests/test_incidents_schema_store.py
+  ac_quotes:
+    - "incident-clear-open CLI остаётся единственным opt-in bulk recovery с JSON output и audited resolution fields."
+    - "Тесты incidents CLI/store MUST подтверждать, что auto-start path отсутствует"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md:95-160
+
+context:
+  consumes:
+    - loop/tests/test_incidents_cli.py
+    - loop/tests/test_incidents_schema_store.py
+    - loop/incidents/store.py
+    - loop/context_loop.py
+  produces:
+    - верифицированные тесты CLI и store, подтверждающие явную работу команды incident-clear-open
+  plan_refs:
+    - plan.md#FR-004
+    - plan.md#FR-006
+    - plan.md#US-002
+  files:
+    - loop/tests/test_incidents_cli.py
+    - loop/tests/test_incidents_schema_store.py
+
+as_built:
+  - "loop/tests/test_incidents_cli.py: содержит test_incident_clear_open, проверяющий очистку инцидентов через CLI"
+  - "loop/tests/test_incidents_schema_store.py: тестирует resolve_all_open_incidents"
+
+delta:
+  - "Проверка и актуализация test_incident_clear_open на соответствие обновлённому контракту resolution_action"
+  - "Подтверждение, что JSON-вывод команды содержит cleared_count, incident_ids, diagnostic_codes"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: удаление вызова из Orchestrator.run()"
+  - "s02: удаление метода из IncidentTracker"
+  - "s03: unit tests оркестратора"
+  - "s05: Kind I docstrings"
+  - "s06: sunset inventory purge scan"
+  - "follow_up: T-HUB-077-gate-evidence-integrity"
+  - "follow_up: T-HUB-078-context-budget-enforcement"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Тест CLI incident-clear-open проходит успешно с флагом --json и без него
+    verify: "bin/pytest loop/tests/test_incidents_cli.py -q --tb=line -k 'clear_open'"
+  - id: cp2
+    criterion: Тесты схемы и хранилища инцидентов выполняются без ошибок
+    verify: "bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line"
+
+verify: []
+tdd: []

@@ -1,0 +1,108 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s05 — legacy-fallback-purge — purge unmanaged fallbacks and complete end-to-end integration verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Purge obsolete unmanaged fallback code paths across harness/hooks/epic_yaml.py, loop/context_loop.py,
+  and loop/stack_profiles/evidence.py. Enforce grep control ensuring no silent bypass or soft-fail remains.
+  Verify complete end-to-end matrix covering TM-I2-076-01 through TM-I2-076-05 and AC- 1..6.
+  Closes FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, NFR-001..NFR-005.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+  nouns:
+    - classify_project_verification_context
+    - managed_verification_requires_capability_checks
+    - capability_evidence_non_authoritative
+    - provenance_source
+  layout_paths:
+    - harness/hooks/epic_yaml.py
+    - loop/context_loop.py
+    - loop/stack_profiles/evidence.py
+    - loop/tests/test_stack_profiles_integration.py
+  ac_quotes:
+    - "FR-001: Add pure classify_project_verification_context(project_root) -> hub|managed using strict manifest presence (T-HUB-075 loader); fail-closed on ambiguous/unreadable manifest for managed claim."
+    - "FR-002: When context is managed, finish validation (epic_yaml.py finish branches ~721–761 and step validator ~1813–1848) requires non-empty capability_checks on decompose shard for the finishing step; hub tests: alone MUST NOT satisfy verification; emit stable diagnostic managed_verification_requires_capability_checks."
+    - "FR-003: Extend _enforce_capability_checks_for_armed_step / check_after path: if managed context and armed shard lacks capability_checks, return halt (not None); forbid treating absence as hub pass."
+    - "FR-004: Extend CapabilityExecutionEvidence (or companion schema field) with mandatory provenance_source: Literal[\"executor\"] (or enum) set only by write_capability_evidence / executor integration in loop/stack_profiles/execution.py and context_loop writer; schema rejects agent-supplied values on read if not executor-issued."
+    - "FR-005: read_capability_evidence and finish gate MUST reject sidecars missing valid provenance even when fingerprint, status and exit_code match declaration; diagnostic capability_evidence_non_authoritative."
+    - "FR-006: Preserve hub-only branch: when context is hub, existing tests: validation unchanged; no mandatory capability_checks; no regression to T-HUB-098 I1 positive paths covered by QA TM-001…TM-006."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md:100-117"
+
+context:
+  consumes:
+    - loop/stack_profiles/context.py
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/context_loop.py
+    - harness/hooks/epic_yaml.py
+  produces:
+    - loop/stack_profiles/evidence.py
+    - loop/context_loop.py
+    - harness/hooks/epic_yaml.py
+    - loop/tests/test_stack_profiles_integration.py
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#fr-001
+    - plan.md#fr-002
+    - plan.md#fr-003
+    - plan.md#fr-004
+    - plan.md#fr-005
+    - plan.md#fr-006
+  files:
+    - harness/hooks/epic_yaml.py
+    - loop/context_loop.py
+    - loop/stack_profiles/evidence.py
+    - loop/tests/test_stack_profiles_integration.py
+
+as_built:
+  - loop/tests/test_stack_profiles_integration.py — integration tests for stack profile capabilities
+
+delta:
+  - harness/hooks/epic_yaml.py — remove legacy_managed_hub_tests_fallback in finish validators
+  - loop/context_loop.py — remove silent_none_missing_checks in check_after
+  - loop/stack_profiles/evidence.py — remove unprovenanced_evidence_read fallback
+  - loop/tests/test_stack_profiles_integration.py — complete integration test suite for TM-I2-076-01..05
+
+deletes:
+  - legacy_managed_hub_tests_fallback
+  - silent_none_missing_checks
+  - unprovenanced_evidence_read
+
+wire_complete_required: true
+
+out_of_scope:
+  - s01-context-classifier.yaml
+  - s02-evidence-provenance-schema.yaml
+  - s03-context-loop-managed-enforcement.yaml
+  - s04-epic-yaml-managed-finish.yaml
+  - "T-HUB-077 write-deny implementation (follow_up: T-HUB-077)"
+  - "T-HUB-078 TestFingerprintCache wiring (follow_up: T-HUB-078)"
+  - "T-HUB-080 agents instruction corpus (follow_up: T-HUB-080)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: grep control confirms zero lingering managed->hub fallbacks in epic_yaml and context_loop
+    verify: "rg -n 'managed_verification_requires_capability_checks' harness/hooks/epic_yaml.py loop/context_loop.py"
+  - id: cp2
+    criterion: full integration test suite validates all TM-I2-076-01 through TM-I2-076-05 scenarios and fail-closed deny on missing checks
+    verify: "bin/pytest loop/tests/test_stack_profiles_integration.py -q -k test_managed_capability_scenarios_deny_halt"
+
+verify: []
+tdd: []

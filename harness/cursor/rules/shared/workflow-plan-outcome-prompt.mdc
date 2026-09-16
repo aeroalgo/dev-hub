@@ -96,7 +96,7 @@ FINISH без файла или без `## Epic` → **FAIL**.
 
 - Plan соответствует Epic (In/Out/Done), детализирует HOW. Prompt не цитирует AC-нумерацию.
 - Independent Test проверяет Epic **Done when**.
-- **REPLAN:** SoT = `## Epic`. I2/I3 не переписывают prompt. Расширение outcome → backlog.
+- **REPLAN:** SoT = `## Epic` + код. I2/I3 не переписывают prompt и **не** грузят parent plan/QA как контекст. Расширение outcome → backlog.
 - **AUDIT:** prompt вне scope.
 
 ---

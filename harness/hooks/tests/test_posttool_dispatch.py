@@ -371,3 +371,55 @@ def test_posttool_cli_e2e_bash_output_capping(tmp_path: Path) -> None:
     assert "updatedToolOutput" in out
     assert len(out["updatedToolOutput"]["stdout"]) < len(large_output)
     assert "output-cap" in out.get("additionalContext", "")
+
+# ============================================================================
+# T-HUB-100 / I2: PostTool Write Invalidation of TestFingerprintCache
+# ============================================================================
+
+def test_write_posttool_invalidates_test_cache(tmp_path: Path) -> None:
+    """TM-I2-078-02 / FR-003 / cp2 (s01): WritePostToolAdapter invalidates TestFingerprintCache entries on file edit."""
+    from context_scope import TestFingerprintCache
+    session_id = "test-pt-inval-sess"
+    save_state(session_id, str(tmp_path), {"active": True, "mode": "IMPLEMENT"})
+
+    mb_dir = tmp_path / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (mb_dir / "activeContext.md").write_text("---\nepic_id: T-HUB-100\nstep_id: s01\n---\n", encoding="utf-8")
+
+    src_file = tmp_path / "src" / "service.py"
+    src_file.parent.mkdir(parents=True, exist_ok=True)
+    src_file.write_text("x = 1\n", encoding="utf-8")
+
+    cache = TestFingerprintCache(project_root=tmp_path)
+    cmd = "bin/pytest tests/test_service.py"
+    cache.record(cmd, exit_code=0, output_summary="passed", relevant_paths=[src_file])
+
+    # Check cache hit before posttool edit
+    hit_before = cache.lookup(cmd, relevant_paths=[src_file])
+    assert hit_before is not None
+    assert hit_before["cached"] is True
+
+    # Simulate Edit tool event through WritePostToolAdapter
+    adapter = WritePostToolAdapter()
+    ctx = EventContext(
+        event_name=PostToolUse,
+        tool_name="Edit",
+        tool_input={"file_path": str(src_file), "new_string": "x = 2\n"},
+        tool_output="File edited successfully.",
+        cwd=tmp_path,
+        session_id=session_id,
+        raw_payload={
+            "tool_name": "Edit",
+            "tool_input": {"file_path": str(src_file), "new_string": "x = 2\n"},
+            "tool_response": "File edited successfully.",
+            "cwd": str(tmp_path),
+            "session_id": session_id,
+        },
+    )
+
+    env = adapter.evaluate(ctx)
+    assert env is not None
+
+    # After posttool edit dispatch, cache lookup for tests/test_service.py must be invalidated (miss / None)
+    hit_after = cache.lookup(cmd, relevant_paths=[src_file])
+    assert hit_after is None, "TestFingerprintCache entry must be invalidated after WritePostToolAdapter processes file edit"

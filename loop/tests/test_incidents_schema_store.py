@@ -237,7 +237,8 @@ def test_resolve_all_open_incidents(tmp_path: Path):
     assert len(cleared) == 1
     assert cleared[0].incident_id == "aaa"
     assert cleared[0].status == "resolved"
-    assert cleared[0].resolution_tier == "loop_restart"
+    assert cleared[0].resolution_tier == "operator_action"
+    assert cleared[0].resolution_action == "operator_bulk_clear"
     assert cleared[0].resolved_at
 
     assert list_open_incidents(epic_dir) == []

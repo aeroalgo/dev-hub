@@ -13,8 +13,34 @@ REPLAN выполняется только после PASS в `BACK QA`. Он с
 `## Epic` из parent `md/prompt.md` с фактическим кодом и либо фиксирует
 `skip`, либо **создаёт новые follow-up эпики** (spawn) под critical gaps.
 
-Предыдущие plan / decompose / audit / QA parent — контекст «что уже сделано»,
-не доказательство достижения outcome и не шаблон для overwrite.
+Parent plan / decompose / implement / analyze / audit / QA — **не** вход
+REPLAN и не шаблон spawn. Они не доказывают outcome и не overwrite.
+
+## Context allowlist (HARD)
+
+Единственный текстовый SoT REPLAN + единственный источник outcome для gaps:
+
+1. parent `md/prompt.md` → секция `## Epic` only;
+2. фактический код / runtime surfaces (grep/read/tests evidence).
+
+**FORBIDDEN как контекст REPLAN (не читать для gaps / HOW / FR):**
+
+- parent `plan.md`, decompose, implement shards, events;
+- parent analyze / audit / QA / bugfix артефакты (кроме факта «QA PASS есть»);
+- соседние / sibling `plan/**`;
+- Covering секция parent prompt как SoT работы.
+
+**FORBIDDEN в spawned `plan.md` / `prompt.md` / FINISH `load_now`:**
+
+- ссылки-пути на parent `plan.md`, decompose, implement, analyze, audit, QA;
+- поля `Parent-prompt` / `Parent-replan` / `Parent I1 QA` в шапке spawn;
+- Provenance / «читай I1 plan/QA/FR/TM» как load-инструкция;
+- cross-ref нумерации FR/TM/AC parent plan как SoT нового эпика.
+
+Lineage (`parent_prompt`, parent id) живёт **только** в marker
+`replan-i{N}.yaml`, не в hot-path `load_now` после REPLAN.
+
+Канон prompt: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc.
 
 ## Бюджет итераций (outcome lineage)
 
@@ -56,9 +82,9 @@ Parent `prompt.md` **никогда** не переписывается.
 Обязательные поля marker (`schema: replan-outcome/v1`):
 
 - `epic_id` (parent) · `iteration: 2|3` · `outcome: skip|complete`
-- `parent_prompt:` путь к parent `md/prompt.md`
+- `parent_prompt:` путь к parent `md/prompt.md` (lineage only; не `load_now`)
 - `spawned_epic_ids:` (список; пуст при skip)
-- при `complete`: `spawned[].epic_id|plan|prompt|parent_prompt`
+- при `complete`: `spawned[].epic_id|plan|prompt` (+ опционально `parent_prompt` в marker)
 - `plan_overwritten: false` (всегда)
 
 ## Процесс (I2 / I3)
@@ -66,10 +92,11 @@ Parent `prompt.md` **никогда** не переписывается.
 1. Загрузить `## Epic` из **parent** `memory-bank/{role}/plan/<parent_epic_id>/md/prompt.md`
    (иммутабелен). Нет файла / нет Epic / пустой / не начинается с `## Epic` →
    `NEED_HUMAN: outcome_prompt_missing`.
-   **FORBIDDEN:** читать Covering как SoT; читать соседние `plan/` «из-за prompt».
-   Канон prompt: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc.
-2. Исследовать фактический код vs Done when / Forbidden after. Не считать
-   зелёный QA / completed shard / наличие файла доказательством outcome.
+   **FORBIDDEN:** Covering как SoT; parent/соседние `plan.md` / decompose / QA
+   как вход анализа.
+2. Исследовать **только код** vs Done when / Forbidden after. Не считать
+   зелёный QA / completed shard / наличие файла / текст parent plan
+   доказательством outcome.
 3. Классифицировать только critical:
    `outcome_gap` · `legacy_removal` · `hardening`.
    Прочее → `backlog_candidates` (не shard, не spawn).
@@ -77,13 +104,15 @@ Parent `prompt.md` **никогда** не переписывается.
    `outcome: skip`, `parent_prompt`, пустым `spawned_epic_ids`. FINISH.
 5. **Complete path:**
    - выбрать свободные `T-HUB-NNN` (не reuse parent id);
-   - для каждого spawn-пакета gaps: `plan/<new>/md/plan.md` + `md/prompt.md`
-     (`## Epic` = срез gaps / outcome-инвариант **без** ID в prompt);
-   - шапка spawned `plan.md` **обязана** содержать:
+   - для каждого spawn-пакета gaps: самодостаточные `plan/<new>/md/plan.md` +
+     `md/prompt.md` (`## Epic` = срез gaps / outcome-инвариант **без** ID в prompt;
+     HOW и FR — из code gaps, не копипаст parent plan);
+   - шапка spawned `plan.md` **обязана** содержать **только** lineage-id поля:
      - `**iteration:** 2|3`
-     - `**Replan-of:** \`<parent_epic_id>\``
-     - `**Parent-prompt:**` ссылка на parent `md/prompt.md`
-     - `**Parent-replan:**` ссылка на marker yaml
+     - `**Replan-of:** \`<parent_epic_id>\`` (id, не path к parent artifacts)
+     - `**Prompt:**` ссылка на **свой** `md/prompt.md`
+   - шапка spawned **не** содержит `Parent-prompt` / `Parent-replan` /
+     `Parent I1 QA` / путей к parent plan/QA/decompose;
    - upsert spawn rows в голову `memory-bank/{role}/roadmap/queue.yaml` + batch note;
    - `roadmap-merge --role <role>`;
    - записать parent marker `outcome: complete` + `spawned_*` + `parent_prompt`.
@@ -91,7 +120,8 @@ Parent `prompt.md` **никогда** не переписывается.
 
 ## FINAL OUTCOME REVIEW после I3
 
-Сверить **исходный parent** `## Epic` с реальным поведением и legacy surfaces.
+Сверить **исходный parent** `## Epic` с реальным поведением и legacy surfaces
+(код; не parent plan monolith).
 Точечный `BACK BUGFIX` только если дефект прямо ломает outcome.
 Новые идеи / архитектура → backlog, не I4 и не silent neighbor carry.
 
@@ -125,6 +155,7 @@ SoT: `memory-bank/back/roadmap/cadence.yaml`. Порядок:
 
 - `code_changed: no` (только memory-bank + queue; rules — только если в scope / `implement this`).
 - `load_now`: parent `replan-i{N}.yaml` + при complete — first spawned `plan.md` +
-  spawned `prompt.md` + **Parent-prompt** path.
+  spawned `prompt.md`. **FORBIDDEN** в `load_now`: parent `prompt.md` / parent
+  `plan.md` / parent QA / Parent-prompt path.
 - Cadence `phase=replan`: после терминала всех pair_ids → next `BACK PLAN REFACTOR`.
 - Вне cadence / manual batch: next `BACK DECOMPOSE <queue[0] spawned>`.

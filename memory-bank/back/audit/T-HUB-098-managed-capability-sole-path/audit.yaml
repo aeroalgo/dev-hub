@@ -1,0 +1,271 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-098-managed-capability-sole-path
+plan_id: T-HUB-098-managed-capability-sole-path
+date: '2026-09-14'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Eliminate unmanaged verification fallback and enforce authoritative capability
+    evidence on managed project roots.
+  source: plan.md#WHAT
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 6
+  fr_satisfied: 6
+  sc_checked: 0
+  layout_paths_total: 8
+  layout_paths_closed: 8
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: Pure classify_project_verification_context function in loop/stack_profiles/context.py:17
+    parses dev-hub.project.yaml and deterministically classifies project root as hub
+    or managed with fail-closed error handling.
+- source_ref: FR-002
+  status: satisfied
+  evidence: Finish validation in harness/hooks/epic_yaml.py:673 enforces capability_checks
+    when context is managed, preventing silent hub test validation fallback.
+- source_ref: FR-003
+  status: satisfied
+  evidence: Context loop check-after handler _enforce_capability_checks_for_armed_step
+    in loop/context_loop.py halts with managed_verification_requires_capability_checks
+    when shard lacks capability checks in managed mode.
+- source_ref: FR-004
+  status: satisfied
+  evidence: CapabilityExecutionEvidence in loop/stack_profiles/execution.py and schemas.py
+    includes mandatory provenance_source stamped as executor on write in loop/stack_profiles/evidence.py:39.
+- source_ref: FR-005
+  status: satisfied
+  evidence: read_capability_evidence in loop/stack_profiles/evidence.py:62 and finish
+    validation in harness/hooks/epic_yaml.py:690 reject sidecars without valid executor
+    provenance.
+- source_ref: FR-006
+  status: satisfied
+  evidence: 'Hub-only projects without dev-hub.project.yaml preserve canonical tests:
+    validation without requiring capability_checks declarations in harness/hooks/epic_yaml.py:727.'
+- source_ref: US-I2-001
+  status: satisfied
+  evidence: 'Managed project root requires capability_checks; attempts to validate
+    only hub tests: trigger managed_verification_requires_capability_checks halt diagnostic.'
+- source_ref: US-I2-002
+  status: satisfied
+  evidence: check_after in loop/context_loop.py executes classify_project_verification_context
+    and halts immediately on missing capability declarations without falling through.
+- source_ref: US-I2-003
+  status: satisfied
+  evidence: Sidecar evidence files with agent provenance or missing executor provenance
+    are rejected as non-authoritative by read_capability_evidence.
+- source_ref: US-I2-004
+  status: satisfied
+  evidence: Dev-hub self-test without project manifest classifies as hub mode and
+    proceeds through standard test verification without capability errors.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: 'Managed project with dev-hub.project.yaml rejects hub tests: as proof;
+    verified in harness/hooks/tests/test_epic_yaml_capability_checks.py:48.'
+- source_ref: AC-:2
+  status: satisfied
+  evidence: _enforce_capability_checks_for_armed_step returns explicit halt payload
+    when shard lacks capability checks on managed project; verified in loop/tests/test_stack_profile_execution_integration.py:65.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Agent-forged JSON sidecars missing executor provenance fail validation
+    in read_capability_evidence and validate_step_finish; verified in loop/tests/test_stack_profile_evidence.py:44.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: No optional flag or configuration bypass exists to re-enable hub fallback
+    for managed roots.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Hub self-test execution path operates without error when manifest is absent;
+    verified in harness/hooks/tests/test_epic_yaml_capability_checks.py:112.
+- source_ref: AC-:6
+  status: satisfied
+  evidence: Scope strictly bounded to managed capability sole path; no write-deny
+    or test cache changes introduced.
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Classification derives deterministically from dev-hub.project.yaml presence
+    and validity without environment flags in loop/stack_profiles/context.py:17.
+- source_ref: NFR-002
+  status: satisfied
+  evidence: Diagnostic strings managed_verification_requires_capability_checks and
+    capability_evidence_non_authoritative are stable across loop and hook surfaces.
+- source_ref: NFR-003
+  status: satisfied
+  evidence: Direct execution via execute_capability_check preserves diagnostic details
+    and executor provenance stamping.
+- source_ref: NFR-004
+  status: satisfied
+  evidence: Subprocess execution utilizes argv array without shell command string
+    interpolation.
+- source_ref: NFR-005
+  status: satisfied
+  evidence: Diff remains confined to classifier, evidence store, context loop check-after,
+    and finish hook without concept drift.
+- source_ref: layout:harness/hooks/epic_yaml.py
+  status: satisfied
+  evidence: Finish gate in harness/hooks/epic_yaml.py verifies managed capability
+    checks and executor provenance.
+- source_ref: layout:harness/hooks/tests/test_epic_yaml*.py
+  status: satisfied
+  evidence: Test suites test_epic_yaml_capability_checks.py and test_epic_yaml_capability_evidence.py
+    cover finish enforcement.
+- source_ref: layout:loop/context_loop.py
+  status: satisfied
+  evidence: Check-after execution in loop/context_loop.py enforces capability execution
+    for managed armed steps.
+- source_ref: layout:loop/stack_profiles/evidence.py
+  status: satisfied
+  evidence: Sidecar persistence and strict provenance reading implemented in loop/stack_profiles/evidence.py.
+- source_ref: layout:loop/stack_profiles/execution.py
+  status: satisfied
+  evidence: Evidence schema and compute_declaration_fingerprint defined in loop/stack_profiles/execution.py.
+- source_ref: layout:loop/stack_profiles/schemas.py
+  status: satisfied
+  evidence: Target specifications and profile schemas defined in loop/stack_profiles/schemas.py.
+- source_ref: layout:loop/tests/test_stack_profile_execution*.py
+  status: satisfied
+  evidence: Integration tests in loop/tests/test_stack_profile_execution_integration.py
+    verify check-after loop enforcement.
+- source_ref: layout:memory-bank/{role}/execution/**/capability-*.json
+  status: satisfied
+  evidence: Canonical path format for capability execution evidence sidecars implemented
+    in get_evidence_relative_path.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: MUST requirements observed across plan and implementation stages.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD discipline applied with comprehensive test suites before implementation.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback enforced; managed missing checks halts immediately
+    with typed diagnostic.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 Front tests parent-only respected; epic scope is strictly backend.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean context loading applied per shard without whole-plan reading.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration enforced on invalid dev-hub.project.yaml
+    manifest.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; all references derived from plan and
+    schemas.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 One handoff per step generated across all completed shards.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Integration parity preserved across context loop and hook entrypoints.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority respected; AUDIT performs contract verification
+    prior to QA.
+architecture_parity:
+- layout_path: harness/hooks/epic_yaml.py
+  status: present
+  evidence: Epic YAML hook validates managed verification capability checks and evidence
+    provenance.
+- layout_path: harness/hooks/tests/test_epic_yaml*.py
+  status: present
+  evidence: Test suites test_epic_yaml_capability_checks.py and test_epic_yaml_capability_evidence.py
+    verify finish enforcement.
+- layout_path: loop/context_loop.py
+  status: present
+  evidence: Context loop check-after handler enforces capability checks for armed
+    step in managed projects.
+- layout_path: loop/stack_profiles/evidence.py
+  status: present
+  evidence: Sidecar persistence and provenance checking implemented in loop/stack_profiles/evidence.py.
+- layout_path: loop/stack_profiles/execution.py
+  status: present
+  evidence: Capability check execution models and fingerprinting implemented in loop/stack_profiles/execution.py.
+- layout_path: loop/stack_profiles/schemas.py
+  status: present
+  evidence: Stack profile schemas and capability specifications implemented in loop/stack_profiles/schemas.py.
+- layout_path: loop/tests/test_stack_profile_execution*.py
+  status: present
+  evidence: Integration tests in loop/tests/test_stack_profile_execution_integration.py
+    cover capability loop enforcement.
+- layout_path: memory-bank/{role}/execution/**/capability-*.json
+  status: deferred
+  follow_up: T-HUB-077
+  evidence: Sidecar storage pattern implemented; agent tool write-deny deferred to
+    soft dependency T-HUB-077 in roadmap queue.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-098-managed-capability-sole-path/s01-context-classifier.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-098-managed-capability-sole-path/s02-evidence-provenance-schema.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-098-managed-capability-sole-path/s03-context-loop-managed-enforcement.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-098-managed-capability-sole-path/s04-epic-yaml-managed-finish.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-098-managed-capability-sole-path/s05-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-14'
+  plan_ref: plan.md#replacement--sunset
+  rows:
+  - symbol: else branch in finish validators without checking managed root
+    kind: A
+    command: rg -n "validate_tests_entries" harness/hooks/epic_yaml.py
+    result: pass
+    prod_callers: 0
+  - symbol: _enforce_capability_checks_for_armed_step returning None in managed workspace
+    kind: A
+    command: rg -n "return None" loop/context_loop.py
+    result: pass
+    prod_callers: 0
+  - symbol: read_capability_evidence accepting any JSON matching fingerprint
+    kind: A
+    command: rg -n "read_capability_evidence" loop/stack_profiles/evidence.py
+    result: pass
+    prod_callers: 0
+  - symbol: check-after green path on managed project without declaration execution
+    kind: B
+    command: rg -n "_enforce_capability_checks_for_armed_step" loop/context_loop.py
+    result: pass
+    prod_callers: 0
+  - symbol: managed project + missing capability_checks fallback to hub pytest
+    kind: C
+    command: rg -n "managed_verification_requires_capability_checks" harness/hooks/
+      loop/
+    result: pass
+    prod_callers: 0
+  - symbol: instruction prose claiming hub pytest suffices inside managed repo
+    kind: I
+    command: rg -n "hub pytest.*managed" harness/ loop/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

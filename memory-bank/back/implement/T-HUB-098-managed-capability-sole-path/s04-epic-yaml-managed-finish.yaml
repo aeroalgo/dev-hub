@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s04 — s04 — epic-yaml-managed-finish — finish validation managed capability
+  enforcement and provenance verification IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/yaml/steps/s04-epic-yaml-managed-finish.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented _validate_implement_verification_requirements in harness/hooks/epic_yaml.py
+  to enforce capability_checks and executor provenance in managed context while preserving
+  hub tests in hub context.
+- Updated validate_implement_yaml and implement_ready_for_finalize_doc to call _validate_implement_verification_requirements
+  and emit managed_verification_requires_capability_checks and capability_evidence_non_authoritative
+  diagnostics.
+- Added test_managed_finish_requires_capability_checks in harness/hooks/tests/test_epic_yaml_capability_checks.py
+  and test_finish_rejects_non_authoritative_provenance in harness/hooks/tests/test_epic_yaml_capability_evidence.py.
+files:
+- harness/hooks/epic_yaml.py
+- harness/hooks/tests/test_epic_yaml_capability_checks.py
+- harness/hooks/tests/test_epic_yaml_capability_evidence.py
+deletes:
+- unmanaged_tests_fallback_branch
+tests:
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_checks.py -q -k test_managed_finish_requires_capability_checks`
+  — PASS'
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -q -k test_finish_rejects_non_authoritative_provenance`
+  — PASS'
+integration_check:
+- Ran bin/pytest harness/hooks/tests/test_epic_yaml_capability_checks.py -q -k test_managed_finish_requires_capability_checks
+  (PASS)
+- Ran bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -q -k test_finish_rejects_non_authoritative_provenance
+  (PASS)
+- Ran bin/pytest harness/hooks/tests/ loop/tests/ -q (2886 passed, 4 skipped)
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: finish validation rejects managed step lacking capability_checks with
+    managed_verification_requires_capability_checks
+  status: done
+- id: cp2
+  criterion: finish validation rejects sidecar with missing or non-executor provenance
+    with capability_evidence_non_authoritative
+  status: done
+- id: cp3
+  criterion: audit confirms deletion of unmanaged tests fallback branch in epic_yaml
+  status: done
+resume_from: cp1

@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: "s03 — test-fingerprint-cache-bash-pretool-wiring — wire TestFingerprintCache lookup and decision into BashPolicyAdapter"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить TestFingerprintCache к BashPolicyAdapter.evaluate для обнаружения нормализованных тестовых команд
+  и предотвращения silent re-execution после изменений; выдавать детерминированный DecisionEnvelope с DecisionReceipt.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - US-I2-001
+    - TM-I2-078-01
+    - TM-I2-078-02
+  nouns:
+    - TestFingerprintCache
+    - BashPolicyAdapter
+    - normalize_test_command
+    - compute_test_fingerprint
+    - DecisionReceipt
+    - cached-no-op
+  layout_paths:
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/context_scope.py
+  ac_quotes:
+    - "Wire TestFingerprintCache into BashPolicyAdapter.evaluate: detect normalized test commands."
+    - "Repeat test cmd unchanged -> cache hit/deny policy -> cached decision; no false execution claim."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:37-64"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:91-118"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:119-138"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:173-183"
+
+context:
+  consumes:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §Functional requirements (FR-002)"
+    - "harness/hooks/context_scope.py §TestFingerprintCache"
+  produces:
+    - "harness/hooks/pretool_policy.py — BashPolicyAdapter wired to TestFingerprintCache lookup"
+    - "harness/hooks/context_scope.py — cache lookup and receipt helpers for Bash evaluation"
+  plan_refs:
+    - "FR-002"
+  files:
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/context_scope.py
+
+as_built:
+  - "TestFingerprintCache реализован в context_scope.py, но BashPolicyAdapter в pretool_policy.py его не вызывает."
+  - "Повторный вызов тестовой команды выполняется как обычный shell-вызов без сверки отпечатка кода."
+
+delta:
+  - "Update harness/hooks/pretool_policy.py in BashPolicyAdapter.evaluate to integrate normalize_test_command and TestFingerprintCache.lookup when context policy is active."
+  - "Update harness/hooks/context_scope.py to expose cache lookup and decision receipt helpers for Bash pretool evaluation."
+  - "Ensure test normalizers from harness/hooks/context_scope.py are reused without regex duplication."
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "posttool edit cache invalidation (s04)"
+  - "legacy fallback purge and sunset audit (s05)"
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-077 incidents and capability write deny (follow_up: T-HUB-077)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+  - "T-HUB-101 incident clear on start removal (follow_up: T-HUB-101)"
+  - "T-HUB-102 agents instruction corpus (follow_up: T-HUB-102)"
+  - "full suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "BashPolicyAdapter recognizes normalized test commands and invokes TestFingerprintCache.lookup."
+    verify: "bin/pytest harness/hooks/tests/test_context_scope_policy.py -k 'test_bash_pretool_test_command_detected' -q --tb=line"
+  - id: cp2
+    criterion: "Unchanged test command on cache hit returns cached receipt with DecisionReceipt schema."
+    verify: "bin/pytest harness/hooks/tests/test_context_scope_policy.py -k 'test_bash_pretool_test_cache_hit' -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_context_scope_policy.py -k 'test_cache or test_bash_pretool' -q --tb=line"
+tdd:
+  - "green: implement BashPolicyAdapter test command cache lookup to satisfy cp1 and cp2"

@@ -1,0 +1,40 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-100
+plan_id: T-HUB-100-context-fingerprint-search-wire
+epic_id: T-HUB-100-context-fingerprint-search-wire
+date: '2026-09-15'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 7b034cac0b57f91e44912f7db7602750f06c6e39eb8066ca25215e80a3e3b0c9
+verify_scope: full
+scope:
+  - 'task: T-HUB-100'
+  - 'epic: T-HUB-100-context-fingerprint-search-wire'
+  - 'steps: s01–s05'
+  - 'files: harness/hooks/context_scope.py, harness/hooks/pretool_policy.py, harness/hooks/posttool_policy.py, harness/hooks/context_ledger.py'
+ac_plus:
+  - 'US-I2-001: TestFingerprintCache wired to Bash pretool with post-edit invalidation'
+  - 'US-I2-002: Search scope beyond EPIC_LOOP denied without graphify'
+  - 'US-I2-003: In-scope search still allowed without graphify'
+  - 'US-I2-004: I1 duplicate-read and plan-jump gates preserved'
+ac_minus:
+  - '1. No cached test PASS after relevant file change when Bash pretool allows command'
+  - '2. No search outside allowlist when context policy active, regardless of EPIC_LOOP env'
+  - '3. No provider-specific search bypass for subagents'
+  - '4. No global token budget meter introduced'
+  - '5. No regression of I1 duplicate-read / plan-jump gates'
+  - '6. No scope into capability evidence or agents corpus'
+section_011:
+  - 'Verification before completion: full test suite green, fail-closed on ambiguous state'
+checks:
+  - 'full suite green (dev-hub self-test): 2948 passed, 4 skipped in 137.23s via bin/pytest -q --tb=line'
+  - 'integration rule (§0.11)'
+  - 'no phantom refs'
+  - 'reviewer gate: VERDICT PASS'
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+suite:
+  - 'bin/pytest -q --tb=line'

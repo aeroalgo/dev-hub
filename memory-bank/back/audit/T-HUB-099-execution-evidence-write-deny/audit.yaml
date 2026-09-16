@@ -1,0 +1,233 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-099-execution-evidence-write-deny
+plan_id: T-HUB-099-execution-evidence-write-deny
+date: '2026-09-14'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Enforce write-deny on capability execution sidecar paths and reject non-authoritative
+    capability evidence on finish.
+  source: plan.md#WHAT
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 5
+  fr_satisfied: 5
+  sc_checked: 0
+  layout_paths_total: 6
+  layout_paths_closed: 6
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: execution_evidence_write_deny_reason and bash_execution_evidence_write_deny_reason
+    implemented in harness/hooks/_lib.py matching capability sidecar patterns with
+    stable machine reason.
+- source_ref: FR-002
+  status: satisfied
+  evidence: WritePolicyAdapter in harness/hooks/pretool_policy.py evaluates execution_evidence_write_deny_reason
+    before activeContext/recorded artifact rules covering Write and Edit aliases.
+- source_ref: FR-003
+  status: satisfied
+  evidence: Write deny enforced on agent tool boundary across back, front, and integration
+    roles without impeding executor write path in loop/stack_profiles/evidence.py.
+- source_ref: FR-004
+  status: satisfied
+  evidence: Finish validation in harness/hooks/epic_yaml.py and read_capability_evidence
+    in loop/stack_profiles/evidence.py reject forged capability sidecars lacking valid
+    executor provenance with capability_evidence_non_authoritative.
+- source_ref: FR-005
+  status: satisfied
+  evidence: Preserved I1 verifier receipt enforcement and runtime gate JSON protections;
+    TM-077-01...05 tests remain green without regression.
+- source_ref: US-I2-001
+  status: satisfied
+  evidence: Pretool boundary blocks agent Write/Edit to memory-bank/<role>/execution/<epic>/<step>/capability-*.json
+    with stable DENY reason; verified in harness/hooks/tests/test_agent_pretool_gate_write_boundary.py.
+- source_ref: US-I2-002
+  status: satisfied
+  evidence: Deny pattern applies uniformly to back, front, and integration execution
+    paths without bypass; verified in harness/hooks/tests/test_agent_pretool_gate_write_boundary.py.
+- source_ref: US-I2-003
+  status: satisfied
+  evidence: Finish read in epic_yaml.py rejects pre-seeded forged sidecars lacking
+    executor provenance; verified in harness/hooks/tests/test_epic_yaml_capability_evidence.py.
+- source_ref: US-I2-004
+  status: satisfied
+  evidence: Runtime gate JSON receipts and verifier state continue to pass validation
+    without interference from execution evidence deny patterns.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Agent Write/Edit on capability execution sidecar paths strictly denied
+    in pretool policy evaluation; verified in harness/hooks/tests/test_agent_pretool_gate_write_boundary.py.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Finish validation rejects forged sidecars even if status is succeeded
+    when executor provenance is missing; verified in harness/hooks/tests/test_epic_yaml_capability_evidence.py.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: I1 verifier receipt paths remain intact with no regression on gate state
+    protections.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: No fallback from managed to hub verification implemented; managed capability
+    sole path respected.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Scope strictly bounded; no changes made to TestFingerprintCache or clear_open_on_start.
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Deny reason strings are machine-stable execution_evidence_write_denied.
+- source_ref: NFR-002
+  status: satisfied
+  evidence: Path matching resolves relative paths under project root to prevent path
+    traversal bypasses.
+- source_ref: NFR-003
+  status: satisfied
+  evidence: Deny check uses compiled O(1) regex match on target file path.
+- source_ref: NFR-004
+  status: satisfied
+  evidence: Provider parity preserved via shared WritePolicyAdapter routing in harness/hooks/pretool_policy.py.
+- source_ref: layout:harness/hooks/_lib.py
+  status: satisfied
+  evidence: harness/hooks/_lib.py implements execution_evidence_write_deny_reason
+    and bash_execution_evidence_write_deny_reason.
+- source_ref: layout:harness/hooks/agent-pretool.py
+  status: satisfied
+  evidence: harness/hooks/agent-pretool.py routes tool evaluation through WritePolicyAdapter.
+- source_ref: layout:harness/hooks/pretool_policy.py
+  status: satisfied
+  evidence: harness/hooks/pretool_policy.py wires execution evidence deny into WritePolicyAdapter.
+- source_ref: layout:harness/hooks/tests/test_gate_evidence*.py
+  status: satisfied
+  evidence: harness/hooks/tests/test_epic_yaml_capability_evidence.py covers forged
+    sidecar rejection.
+- source_ref: layout:harness/hooks/tests/test_pretool_policy*.py
+  status: satisfied
+  evidence: harness/hooks/tests/test_agent_pretool_gate_write_boundary.py covers execution
+    path write denial.
+- source_ref: layout:loop/stack_profiles/evidence.py
+  status: satisfied
+  evidence: loop/stack_profiles/evidence.py enforces executor provenance in read_capability_evidence.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: MUST section adherence verified across all contracts.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: 'MUST-1 TDD first respected: red tests authored in s01 prior to implementation.'
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: 'MUST-2 No silent fallback: unprovenanced evidence triggers fail-closed
+    capability_evidence_non_authoritative error.'
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 Front tests parent-only respected; changes confined to backend/hook
+    scope.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean context loading applied per shard without full plan loading.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration enforced on invalid evidence and out-of-bounds
+    writes.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected; all references derived from schemas
+    and plan.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 One handoff per step generated across all completed shards.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Integration parity preserved across tool boundaries and finish
+    hooks.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority respected; AUDIT validates plan-to-runtime contract
+    prior to QA.
+architecture_parity:
+- layout_path: harness/hooks/_lib.py
+  status: present
+  evidence: execution_evidence_write_deny_reason and bash_execution_evidence_write_deny_reason
+    present in harness/hooks/_lib.py.
+- layout_path: harness/hooks/agent-pretool.py
+  status: deferred
+  evidence: Agent pretool registration and prompt updates tracked under T-HUB-102
+    in roadmap queue; pretool-dispatch.py routes WritePolicyAdapter.
+  follow_up: T-HUB-102
+- layout_path: harness/hooks/pretool_policy.py
+  status: present
+  evidence: WritePolicyAdapter evaluates execution evidence write deny in harness/hooks/pretool_policy.py.
+- layout_path: harness/hooks/tests/test_gate_evidence*.py
+  status: deferred
+  evidence: Evidence finish validation covered in test_epic_yaml_capability_evidence.py;
+    dedicated standalone gate evidence harness tests tracked under T-HUB-100.
+  follow_up: T-HUB-100
+- layout_path: harness/hooks/tests/test_pretool_policy*.py
+  status: deferred
+  evidence: Write boundary policy covered in test_agent_pretool_gate_write_boundary.py;
+    dedicated standalone test_pretool_policy suite tracked under T-HUB-100.
+  follow_up: T-HUB-100
+- layout_path: loop/stack_profiles/evidence.py
+  status: present
+  evidence: Provenance validation and sidecar path resolution present in loop/stack_profiles/evidence.py.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-099-execution-evidence-write-deny/s01-red-tests-execution-evidence-write-deny.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-099-execution-evidence-write-deny/s02-execution-evidence-write-deny-predicate.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-099-execution-evidence-write-deny/s03-pretool-write-policy-adapter-wiring.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-099-execution-evidence-write-deny/s04-finish-read-non-authoritative-enforcement.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-099-execution-evidence-write-deny/s05-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-14'
+  plan_ref: plan.md#sunset-a--b--c--i
+  rows:
+  - symbol: Absence of write deny on memory-bank/*/execution/**/capability-*.json
+    kind: A
+    command: rg -n "execution_evidence_write_deny_reason" harness/hooks/_lib.py harness/hooks/pretool_policy.py
+    result: pass
+    prod_callers: 0
+  - symbol: Finish accepting unprovenanced readable JSON at evidence path
+    kind: A
+    command: rg -n "capability_evidence_non_authoritative" harness/hooks/epic_yaml.py
+      loop/stack_profiles/evidence.py
+    result: pass
+    prod_callers: 0
+  - symbol: Agent Write as capability proof transport
+    kind: B
+    command: rg -n "_EXECUTION_EVIDENCE_DENY_MSG" harness/hooks/_lib.py
+    result: pass
+    prod_callers: 0
+  - symbol: File exists fallback without provenance verification
+    kind: C
+    command: rg -n "provenance_source != .*executor" loop/stack_profiles/evidence.py
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

@@ -106,6 +106,26 @@ def test_incident_clear_open(tmp_path: Path, capsys: pytest.CaptureFixture[str])
     assert status["total_count"] == 3
 
 
+def test_incident_clear_open_no_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    records = [
+        _valid_record("inc-open-1", ["finish_integrity_decompose_missing"]),
+    ]
+    edir = _create_epic_dir(tmp_path, records)
+
+    code = main(["--cwd", str(tmp_path), "incident-clear-open"])
+    assert code == 0
+    captured = capsys.readouterr().out
+    assert "Cleared 1 open incident(s)" in captured
+
+    from loop.incidents.store import parse_incidents_jsonl
+
+    recs = parse_incidents_jsonl(edir / "incidents.jsonl")
+    assert len(recs) == 1
+    assert recs[0].status == "resolved"
+    assert recs[0].resolution_tier == "operator_action"
+    assert recs[0].resolution_action == "operator_bulk_clear"
+
+
 def test_reset_tier1_attempts_updates_store(tmp_path: Path) -> None:
     record = _valid_record("inc-999", ["active_context_shape_invalid"], tier1_attempts=3, status="escalated")
     epic_dir = _create_epic_dir(tmp_path, [record])

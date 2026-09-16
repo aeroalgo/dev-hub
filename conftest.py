@@ -18,6 +18,7 @@ def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
 
 @pytest.fixture(autouse=True)
 def _isolate_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    env_before = os.environ.copy()
     for key in (
         "EPIC_RUNTIME",
         "EPIC_RUNTIME_RESOLVED",
@@ -25,5 +26,14 @@ def _isolate_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "EPIC_LOOP",
         "CODEX_SESSION_ID",
         "CODEX_THREAD_ID",
+        "PROJECT_ROOT",
+        "EPIC_PROJECT_ROOT",
+        "DEV_HUB",
+        "HUB_ROOT",
+        "CLAUDE_PROJECT_DIR",
+        "DSH_HOOKS_BRIDGE",
     ):
         monkeypatch.delenv(key, raising=False)
+    yield
+    os.environ.clear()
+    os.environ.update(env_before)

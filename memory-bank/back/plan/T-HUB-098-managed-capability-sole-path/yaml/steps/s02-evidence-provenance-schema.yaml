@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s02 — evidence-provenance-schema — authoritative provenance on capability evidence schema and store
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Extend CapabilityExecutionEvidence schema with mandatory provenance_source: Literal["executor"] (or enum)
+  set only by write_capability_evidence / executor integration in loop/stack_profiles/execution.py.
+  Update read_capability_evidence in loop/stack_profiles/evidence.py to reject sidecars missing valid provenance
+  with stable diagnostic capability_evidence_non_authoritative.
+  Closes FR-004, FR-005, NFR-002, NFR-003, NFR-004.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+  nouns:
+    - CapabilityExecutionEvidence
+    - provenance_source
+    - write_capability_evidence
+    - read_capability_evidence
+    - capability_evidence_non_authoritative
+  layout_paths:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/tests/test_stack_profile_evidence.py
+  ac_quotes:
+    - "FR-004: Extend CapabilityExecutionEvidence (or companion schema field) with mandatory provenance_source: Literal[\"executor\"] (or enum) set only by write_capability_evidence / executor integration in loop/stack_profiles/execution.py and context_loop writer; schema rejects agent-supplied values on read if not executor-issued."
+    - "FR-005: read_capability_evidence and finish gate MUST reject sidecars missing valid provenance even when fingerprint, status and exit_code match declaration; diagnostic capability_evidence_non_authoritative."
+    - "NFR-002: New diagnostics MUST be stable strings suitable for loop HALT and mb-finish error surfaces."
+    - "NFR-003: Provenance enforcement MUST NOT break operator CLI python -m loop.stack_profiles execute diagnostic flows (CLI is not finish proof unless wired through check-after)."
+    - "NFR-004: Changes remain argv-only / no shell reconstruction; align with T-HUB-075 executor boundary."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/md/plan.md:104-117"
+
+context:
+  consumes:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+  produces:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/tests/test_stack_profile_evidence.py
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#fr-004
+    - plan.md#fr-005
+  files:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/tests/test_stack_profile_evidence.py
+
+as_built:
+  - loop/stack_profiles/schemas.py — CapabilityExecutionEvidence models execution result
+  - loop/stack_profiles/evidence.py — write_capability_evidence and read_capability_evidence manage sidecar JSON
+  - loop/stack_profiles/execution.py — execute_capability_checks invokes runner and writes evidence
+
+delta:
+  - loop/stack_profiles/schemas.py — add provenance_source field to CapabilityExecutionEvidence schema
+  - loop/stack_profiles/evidence.py — stamp provenance_source in write_capability_evidence; delete unprovenanced_evidence_acceptance on read with capability_evidence_non_authoritative
+  - loop/stack_profiles/execution.py — ensure execute_capability_checks passes provenance_source to write_capability_evidence
+  - loop/tests/test_stack_profile_evidence.py — test provenance stamping and rejection of forged sidecars
+
+deletes:
+  - unprovenanced_evidence_acceptance
+
+wire_complete_required: false
+
+out_of_scope:
+  - s01-context-classifier.yaml
+  - s03-context-loop-managed-enforcement.yaml
+  - s04-epic-yaml-managed-finish.yaml
+  - s05-legacy-fallback-purge.yaml
+  - full QA test suite
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: CapabilityExecutionEvidence schema enforces provenance_source field and serialization
+    verify: "bin/pytest loop/tests/test_stack_profile_evidence.py -q -k test_provenance_schema"
+  - id: cp2
+    criterion: write_capability_evidence stamps executor provenance and read_capability_evidence rejects unprovenanced or agent-forged sidecars
+    verify: "bin/pytest loop/tests/test_stack_profile_evidence.py -q -k test_evidence_provenance_authority"
+  - id: cp3
+    criterion: audit confirms deletion of unprovenanced evidence acceptance callers in evidence module
+    verify: "rg -n 'read_capability_evidence' loop/stack_profiles/evidence.py"
+
+verify: []
+tdd: []

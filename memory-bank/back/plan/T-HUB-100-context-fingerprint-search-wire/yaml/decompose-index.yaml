@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-100-context-fingerprint-search-wire
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 2
+  cut_list:
+  - 'T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)'
+  - 'T-HUB-077 incidents and capability write deny (follow_up: T-HUB-077)'
+  - 'T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)'
+  - 'T-HUB-101 incident clear on start removal (follow_up: T-HUB-101)'
+  - 'T-HUB-102 agents instruction corpus (follow_up: T-HUB-102)'
+steps:
+- id: s01
+  file: s01-red-tests-fingerprint-and-search-scope.yaml
+  title: red fixtures for test cache pretool wiring, posttool invalidation, and search
+    scope outside EPIC_LOOP
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-context-policy-active-predicate-and-search-scope.yaml
+  title: deterministic context policy active predicate and search scope enforcement
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-test-fingerprint-cache-bash-pretool-wiring.yaml
+  title: wire TestFingerprintCache lookup and decision into BashPolicyAdapter
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-posttool-edit-invalidation-wiring.yaml
+  title: connect WritePostToolAdapter to TestFingerprintCache invalidation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: sunset inventory scan, purge dead unwired paths, and full integration regression
+    verification
+  next_phase: BACK IMPLEMENT
+  status: completed

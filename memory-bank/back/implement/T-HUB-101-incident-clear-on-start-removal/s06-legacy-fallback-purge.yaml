@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Full sunset inventory scan confirmed 0 matches for legacy symbols (Kind A, B, C,
+  I)
+gaps:
+  status: none
+done:
+- Verified complete deletion of clear_open_on_start from loop/ codebase (Kind A)
+- Verified absence of implicit startup auto-clear entrypoints (Kind B)
+- Verified absence of auto-clear error swallow try/except blocks (Kind C)
+- Verified absence of Kind I instructions and legacy docstrings across loop/ (Kind
+  I)
+- Ran regression test suite across orchestrator, CLI, and incident store
+files:
+- loop/runner/orchestrator.py
+- loop/incidents/store.py
+- loop/tests/test_runner_orchestrator.py
+- loop/tests/test_incidents_cli.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_runner_orchestrator.py loop/tests/test_incidents_cli.py
+  loop/tests/test_incidents_schema_store.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_runner_orchestrator.py loop/tests/test_incidents_cli.py
+  loop/tests/test_incidents_schema_store.py -q --tb=line
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '{"command": "bin/pytest loop/tests/test_runner_orchestrator.py loop/tests/test_incidents_cli.py
+  loop/tests/test_incidents_schema_store.py -q --tb=line", "outcome": "PASS", "passed":
+  23}'
+checkpoints:
+- id: cp1
+  criterion: Символ clear_open_on_start полностью удален из loop/
+  status: done
+- id: cp2
+  criterion: Отсутствуют неявные точки входа авто-очистки на старте
+  status: done
+- id: cp3
+  criterion: Отсутствуют блоки swallow ошибок авто-очистки
+  status: done
+- id: cp4
+  criterion: Kind I инструкции и docstrings очищены
+  status: done
+- id: cp5
+  criterion: Регрессионный сьют тестов оркестратора и инцидентов проходит успешно
+  status: done

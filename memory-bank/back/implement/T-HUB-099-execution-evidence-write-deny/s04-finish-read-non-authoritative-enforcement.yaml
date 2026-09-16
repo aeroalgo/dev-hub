@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-099-execution-evidence-write-deny
+title: s04 — finish-read-non-authoritative-enforcement — finish and read rejection
+  of unprovenanced or forged capability evidence
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/yaml/steps/s04-finish-read-non-authoritative-enforcement.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Verified read_capability_evidence strictly enforces executor provenance and rejects
+  unprovenanced or agent-forged sidecars
+- Integrated capability_evidence_non_authoritative failure diagnostic in harness/hooks/epic_yaml.py
+  finish validation
+- Added end-to-end tests for forged and unprovenanced capability evidence failing
+  finalize-step and validate_implement_yaml
+- Added test proving legitimately written executor evidence succeeds in validate_implement_yaml
+  and finalize-step
+files:
+- harness/hooks/epic_yaml.py
+- loop/stack_profiles/evidence.py
+- harness/hooks/tests/test_epic_yaml_capability_evidence.py
+- loop/tests/test_stack_profile_evidence.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_stack_profile_evidence.py -k "test_read_capability_evidence_forged
+  or test_read_capability_evidence_unprovenanced" -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k "test_forged_capability_evidence"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k "test_valid_capability_evidence"
+  -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py loop/tests/test_stack_profile_evidence.py
+  -q --tb=line -k "capability"`'
+grep_control: []
+verification_results:
+- 'cp1: Forged capability evidence without valid executor provenance is rejected by
+  read_capability_evidence'
+- 'cp2: validate_implement_yaml and implement_ready_for_finalize_doc fail when capability
+  evidence is forged or unprovenanced'
+- 'cp3: Legitimately written evidence with executor provenance succeeds in validate_implement_yaml
+  and finalize-step'
+checkpoints:
+- id: cp1
+  criterion: Forged capability evidence without valid executor provenance is rejected
+    by read_capability_evidence.
+  status: done
+- id: cp2
+  criterion: validate_implement_yaml and implement_ready_for_finalize_doc fail when
+    capability evidence is forged or unprovenanced.
+  status: done
+- id: cp3
+  criterion: Legitimately written evidence with executor provenance succeeds in validate_implement_yaml
+    and finalize-step.
+  status: done

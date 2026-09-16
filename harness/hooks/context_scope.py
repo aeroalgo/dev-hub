@@ -24,6 +24,7 @@ _HOOKS_DIR = Path(__file__).resolve().parent
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
+from context_ledger import DecisionReceipt
 from loop.mb_load.plan_section import (
     evaluate_plan_read,
     is_whole_plan_path,
@@ -45,6 +46,7 @@ _SEARCH_COMMAND_BINARIES = frozenset(
         "egrep",
         "fgrep",
         "find",
+        "fd",
         "ag",
         "ack",
         "locate",
@@ -56,23 +58,299 @@ _SEARCH_COMMAND_BINARIES = frozenset(
     }
 )
 
+_SHELL_BINARIES = frozenset({"bash", "sh", "zsh", "dash", "ksh"})
+_WRAPPER_BINARIES = frozenset(
+    {
+        "env",
+        "nohup",
+        "nice",
+        "time",
+        "exec",
+        "command",
+        "builtin",
+        "xargs",
+        "sudo",
+    }
+)
+_COMPOUND_DELIMS = frozenset({";", "&&", "||", "|", "&", "\n", "|&"})
+
 
 def _normalize_path(raw: str | Path, project_root: str | Path) -> str:
     """Normalize a path string relative to project_root with forward slashes."""
-    p_str = str(raw).replace("\\", "/").strip().strip("'\"")
+    p_str = str(raw).replace("\\", "/").strip().strip('"\'')
     if ":" in p_str and not p_str.startswith("http"):
         p_str = p_str.split(":")[0]
     if "#" in p_str:
         p_str = p_str.split("#")[0]
 
     root = Path(project_root).resolve()
-    target = Path(p_str)
-    if target.is_absolute():
+    if not p_str or p_str in (".", "./"):
+        return "."
+    try:
+        abs_target = (root / p_str).resolve()
+        rel = abs_target.relative_to(root).as_posix()
+        return "." if rel == "" else rel
+    except ValueError:
+        return (root / p_str).resolve().as_posix()
+
+
+def _unwrap_wrapper_tokens(tokens: list[str]) -> list[str]:
+    """Strip leading environment variable assignments and wrapper commands."""
+    idx = 0
+    while idx < len(tokens):
+        t = tokens[idx]
+        if "=" in t and not t.startswith("-"):
+            idx += 1
+            continue
+        if t in _WRAPPER_BINARIES:
+            idx += 1
+            while idx < len(tokens):
+                tok = tokens[idx]
+                if tok.startswith("-"):
+                    idx += 1
+                    if tok in ("-u", "-C", "-n", "-s", "-I", "-P") and idx < len(tokens):
+                        idx += 1
+                elif "=" in tok:
+                    idx += 1
+                else:
+                    break
+            continue
+        break
+    return tokens[idx:]
+
+
+def _extract_search_invocations(
+    cmd: str | list[str],
+    current_rel_dir: str = ".",
+) -> tuple[list[dict[str, Any]], bool]:
+    """Extract all search invocations and their effective working directory from a command line.
+
+    Returns (invocations, has_parse_error).
+    """
+    invocations: list[dict[str, Any]] = []
+    has_error = False
+
+    if isinstance(cmd, list):
+        raw_tokens: list[str] = []
+        for item in cmd:
+            s_item = str(item).strip()
+            if not s_item:
+                continue
+            try:
+                lexer = shlex.shlex(s_item, posix=True, punctuation_chars=";|&()<>\n")
+                raw_tokens.extend(list(lexer))
+            except Exception:
+                raw_tokens.extend(s_item.split())
+                has_error = True
+    else:
+        s_cmd = str(cmd).strip()
+        if not s_cmd:
+            return [], False
         try:
-            return target.resolve().relative_to(root).as_posix()
-        except ValueError:
-            return target.as_posix()
-    return p_str
+            lexer = shlex.shlex(s_cmd, posix=True, punctuation_chars=";|&()<>\n")
+            raw_tokens = list(lexer)
+        except Exception:
+            raw_tokens = s_cmd.split()
+            has_error = True
+
+    atomic_cmds: list[dict[str, Any]] = []
+    curr: list[str] = []
+    prev_delim = None
+    for tok in raw_tokens:
+        if tok in _COMPOUND_DELIMS or tok in ("(", ")"):
+            if curr:
+                atomic_cmds.append({"tokens": curr, "is_piped_in": prev_delim in ("|", "|&")})
+                curr = []
+            prev_delim = tok
+        else:
+            curr.append(tok)
+    if curr:
+        atomic_cmds.append({"tokens": curr, "is_piped_in": prev_delim in ("|", "|&")})
+
+    active_dir = current_rel_dir
+
+    for item in atomic_cmds:
+        raw_atomic = item["tokens"]
+        is_piped_in = item["is_piped_in"]
+        unwrapped = _unwrap_wrapper_tokens(raw_atomic)
+        if not unwrapped:
+            continue
+        bin_name = Path(unwrapped[0]).name.lower()
+
+        if bin_name in ("cd", "pushd") and len(unwrapped) > 1:
+            target_cd = unwrapped[1].strip('"\'')
+            if target_cd == "~" or target_cd.startswith("~/"):
+                active_dir = target_cd
+            elif target_cd.startswith("/"):
+                active_dir = target_cd
+            else:
+                if active_dir == "." or not active_dir:
+                    active_dir = target_cd
+                else:
+                    active_dir = f"{active_dir}/{target_cd}"
+            continue
+
+        if bin_name in _SHELL_BINARIES and any(flag in unwrapped for flag in ("-c", "-lc", "-ic")):
+            flag_idx = -1
+            for i, tok in enumerate(unwrapped):
+                if tok in ("-c", "-lc", "-ic"):
+                    flag_idx = i
+                    break
+            if flag_idx >= 0 and flag_idx + 1 < len(unwrapped):
+                inner_cmd = unwrapped[flag_idx + 1]
+                sub_invs, sub_err = _extract_search_invocations(inner_cmd, current_rel_dir=active_dir)
+                invocations.extend(sub_invs)
+                if sub_err:
+                    has_error = True
+            continue
+
+        is_search = False
+        if bin_name in _SEARCH_COMMAND_BINARIES:
+            is_search = True
+        elif bin_name == "git" and len(unwrapped) > 1 and unwrapped[1].lower() in {"grep", "log", "show", "diff"}:
+            is_search = True
+        elif bin_name.startswith("python") or bin_name in {"python3", "py"}:
+            joined = " ".join(unwrapped)
+            if any(kw in joined for kw in ("open(", "read_text(", "read()", "rg", "grep", "walk(")):
+                is_search = True
+
+        if is_search:
+            invocations.append({
+                "tokens": unwrapped,
+                "binary": bin_name,
+                "working_dir": active_dir,
+                "is_piped_in": is_piped_in,
+            })
+
+    return invocations, has_error
+
+
+def is_search_command_line(cmd: str | list[str]) -> bool:
+    """Check whether a command is a search or file reading utility."""
+    invs, has_error = _extract_search_invocations(cmd)
+    if invs:
+        return True
+    if has_error:
+        raw_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+        if any(b in raw_str for b in _SEARCH_COMMAND_BINARIES):
+            return True
+    return False
+
+
+def _extract_targets_from_tokens(
+    binary: str,
+    tokens: list[str],
+    working_dir: str = ".",
+    is_piped_in: bool = False,
+) -> list[str]:
+    targets: list[str] = []
+    args = tokens[1:]
+
+    if binary in ("rg", "grep", "egrep", "fgrep", "ag", "ack"):
+        skip_next = False
+        non_flag_args: list[str] = []
+        has_dash_e = False
+        for i, t in enumerate(args):
+            if skip_next:
+                skip_next = False
+                continue
+            if t in ("-e", "-g", "-t", "-m", "-C", "-A", "-B", "-f", "--glob", "--type", "--max-count", "--regexp", "--file"):
+                if t in ("-e", "--regexp"):
+                    has_dash_e = True
+                skip_next = True
+                continue
+            if t.startswith("-"):
+                continue
+            non_flag_args.append(t)
+
+        if has_dash_e:
+            path_candidates = non_flag_args
+        else:
+            path_candidates = non_flag_args[1:] if len(non_flag_args) > 1 else []
+
+        for cand in path_candidates:
+            cand_clean = cand.strip('"\'')
+            if cand_clean:
+                targets.append(cand_clean)
+
+        if not targets and not is_piped_in:
+            targets = [working_dir]
+
+    elif binary in ("cat", "head", "tail", "sed", "awk", "locate"):
+        skip_next = False
+        for t in args:
+            if skip_next:
+                skip_next = False
+                continue
+            if t in ("-n", "-c", "-e", "-f") and binary in ("sed", "awk"):
+                skip_next = True
+                continue
+            if t.startswith("-"):
+                continue
+            cand_clean = t.strip('"\'')
+            if cand_clean:
+                targets.append(cand_clean)
+
+        if not targets and not is_piped_in:
+            targets = [working_dir]
+
+    elif binary in ("find", "fd"):
+        for t in args:
+            if t.startswith("-"):
+                break
+            cand_clean = t.strip('"\'')
+            if cand_clean:
+                targets.append(cand_clean)
+        if not targets:
+            targets = [working_dir]
+
+    elif binary == "git":
+        subcmd = args[0].lower() if args else ""
+        git_args = args[1:]
+        if "--" in git_args:
+            dash_idx = git_args.index("--")
+            for t in git_args[dash_idx + 1:]:
+                if t.strip('"\'') :
+                    targets.append(t.strip('"\''))
+        else:
+            skip_next = False
+            non_flags = []
+            for t in git_args:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if t in ("-S", "-G", "-n", "-L", "--grep", "--author", "--since", "--until", "-C", "-m", "--max-count"):
+                    skip_next = True
+                    continue
+                if t.startswith("-"):
+                    continue
+                non_flags.append(t)
+
+            if subcmd == "grep":
+                if len(non_flags) > 1:
+                    targets.extend(non_flags[1:])
+            elif subcmd in ("log", "diff", "show"):
+                for t in non_flags:
+                    cand = t.strip('"\'')
+                    if "/" in cand or "." in cand or cand == ".":
+                        targets.append(cand)
+        if not targets:
+            targets = [working_dir]
+
+    elif binary.startswith("python"):
+        joined = " ".join(args)
+        for m in re.finditer(r"""(?:open|Path|read_text)\s*\(\s*['"]([^'"]+)['"]""", joined):
+            targets.append(m.group(1))
+        if not targets:
+            targets = [working_dir]
+
+    resolved_targets: list[str] = []
+    for t in targets:
+        if working_dir != "." and not t.startswith("/"):
+            resolved_targets.append(f"{working_dir}/{t}")
+        else:
+            resolved_targets.append(t)
+    return resolved_targets
 
 
 def _extract_paths_from_text(text: str) -> list[str]:
@@ -88,34 +366,6 @@ def _extract_paths_from_text(text: str) -> list[str]:
             if "/" in cand:
                 paths.append(cand)
     return paths
-
-
-def is_search_command_line(cmd: str | list[str]) -> bool:
-    """Check whether a command is a search or file reading utility."""
-    if isinstance(cmd, list):
-        tokens = [str(t).strip() for t in cmd if str(t).strip()]
-    else:
-        try:
-            tokens = shlex.split(str(cmd).strip())
-        except Exception:
-            tokens = str(cmd).strip().split()
-
-    if not tokens:
-        return False
-
-    binary = Path(tokens[0]).name.lower()
-    if binary in _SEARCH_COMMAND_BINARIES:
-        return True
-
-    if binary == "git" and len(tokens) > 1:
-        return tokens[1].lower() in {"grep", "log", "show", "diff"}
-
-    if binary.startswith("python") or binary in {"python3", "py"}:
-        joined = " ".join(tokens)
-        if any(kw in joined for kw in ("open(", "read_text(", "read()", "rg", "grep")):
-            return True
-
-    return False
 
 
 class ScopeResolver:
@@ -147,6 +397,63 @@ class ScopeResolver:
                 try:
                     import yaml
                     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+                except Exception:
+                    data = {}
+        if data is None and not self.shard_path:
+            act_file = self.project_root / "memory-bank" / "activeContext.md"
+            if act_file.is_file():
+                try:
+                    import yaml
+                    text = act_file.read_text(encoding="utf-8", errors="replace")
+                    meta = {}
+                    if text.startswith("---"):
+                        parts = text.split("---", 2)
+                        if len(parts) >= 3:
+                            meta = yaml.safe_load(parts[1]) or {}
+                    epic_id = meta.get("epic_id") or meta.get("epic")
+                    step_id = meta.get("step_id") or meta.get("step")
+
+                    found_shard: Path | None = None
+                    if epic_id and step_id:
+                        for cand in self.project_root.glob(f"memory-bank/**/plan/{epic_id}*/yaml/steps/{step_id}*.yaml"):
+                            if cand.is_file():
+                                found_shard = cand
+                                break
+                        if not found_shard:
+                            for cand in self.project_root.glob(f"memory-bank/**/plan/{epic_id}*/yaml/steps/{step_id}.yaml"):
+                                if cand.is_file():
+                                    found_shard = cand
+                                    break
+                        if not found_shard:
+                            for cand in self.project_root.glob(f"memory-bank/**/steps/{step_id}*.yaml"):
+                                if cand.is_file():
+                                    found_shard = cand
+                                    break
+
+                    if not found_shard:
+                        try:
+                            from epic.core import extract_load_now
+                            ln = extract_load_now(text)
+                            for path_str in ln:
+                                if "/yaml/steps/" in path_str.replace(os.sep, "/") and not path_str.endswith("decompose-index.yaml"):
+                                    cand = self.project_root / path_str
+                                    if cand.is_file():
+                                        found_shard = cand
+                                        break
+                        except Exception:
+                            pass
+
+                    if found_shard and found_shard.is_file():
+                        self.shard_path = found_shard
+                        data = yaml.safe_load(found_shard.read_text(encoding="utf-8")) or {}
+
+                    try:
+                        from epic.core import extract_load_now
+                        for lp in extract_load_now(text):
+                            if lp not in self.load_now:
+                                self.load_now.append(lp)
+                    except Exception:
+                        pass
                 except Exception:
                     data = {}
         if data is None:
@@ -244,15 +551,16 @@ class ScopeResolver:
         norm = _normalize_path(str(path), self.project_root)
         if not norm:
             return False
-        if norm in self._allowed_files:
+        clean_norm = norm.rstrip("/")
+        if clean_norm in self._allowed_files or norm in self._allowed_files:
             return True
-        p = Path(norm).parent
+        if clean_norm in self._allowed_dirs or norm in self._allowed_dirs:
+            return True
+        p = Path(clean_norm).parent
         while str(p) not in (".", "", "/"):
             if p.as_posix() in self._allowed_dirs:
                 return True
             p = p.parent
-        if norm.startswith(".cursor/") or norm.startswith(".claude/") or norm.startswith(".agents/"):
-            return True
         return False
 
     def evaluate_search(
@@ -263,17 +571,6 @@ class ScopeResolver:
         exception_reason: str | None = None,
     ) -> tuple[bool, str, dict[str, Any]]:
         """Evaluate whether a search command is within allowlist or supported by graphify evidence."""
-        if isinstance(command, list):
-            tokens = [str(t).strip() for t in command if str(t).strip()]
-        else:
-            try:
-                tokens = shlex.split(str(command).strip())
-            except Exception:
-                tokens = str(command).strip().split()
-
-        if not tokens:
-            return True, "empty_command", {}
-
         has_graphify = bool(graphify_evidence and str(graphify_evidence).strip())
         has_reason = bool(exception_reason and str(exception_reason).strip())
         if has_graphify and has_reason:
@@ -282,31 +579,46 @@ class ScopeResolver:
                 "exception_reason": str(exception_reason).strip(),
             }
 
-        search_targets: list[str] = []
-        skip_next = False
-        for i, t in enumerate(tokens[1:], start=1):
-            if skip_next:
-                skip_next = False
-                continue
-            if t in ("-e", "-g", "-t", "-m", "-C", "-A", "-B", "--glob", "--type", "--max-count"):
-                skip_next = True
-                continue
-            if t.startswith("-"):
-                continue
-            if len(search_targets) == 0 and not any(ch in t for ch in ("/", ".")):
-                continue
-            search_targets.append(t)
+        invocations, has_error = _extract_search_invocations(command)
+        if has_error:
+            diag = (
+                "Compound command could not be safely parsed for search enforcement; fail-closed. "
+                "Broad codebase search requires successful graphify evidence and typed reason."
+            )
+            return False, "search_outside_scope_denied", {
+                "diagnostic": diag,
+                "graphify_required": True,
+                "fail_closed": True,
+            }
 
-        if not search_targets:
-            search_targets = ["."]
+        if not invocations:
+            return True, "empty_command", {}
 
-        for target in search_targets:
-            norm_target = _normalize_path(target, self.project_root)
-            if norm_target in (".", "", "./"):
-                if not (has_graphify and has_reason):
+        for inv in invocations:
+            targets = _extract_targets_from_tokens(
+                inv["binary"],
+                inv["tokens"],
+                working_dir=inv["working_dir"],
+                is_piped_in=inv.get("is_piped_in", False),
+            )
+            for target in targets:
+                norm_target = _normalize_path(target, self.project_root)
+                if norm_target in (".", "", "./"):
+                    if not (has_graphify and has_reason):
+                        diag = (
+                            "Search path '.' (entire repository) is outside declared shard scope. "
+                            "Broad codebase search requires successful graphify evidence and typed reason."
+                        )
+                        return False, "search_outside_scope_denied", {
+                            "target": target,
+                            "diagnostic": diag,
+                            "graphify_required": True,
+                            "fail_closed": True,
+                        }
+                elif not self.is_path_allowed(norm_target):
                     diag = (
-                        "Search path '.' (entire repository) is outside declared shard scope. "
-                        "Broad codebase search requires successful graphify evidence and typed reason."
+                        f"Search path '{target}' is outside declared shard scope. "
+                        "Use graphify query first or provide graphify evidence with typed exception reason."
                     )
                     return False, "search_outside_scope_denied", {
                         "target": target,
@@ -314,19 +626,8 @@ class ScopeResolver:
                         "graphify_required": True,
                         "fail_closed": True,
                     }
-            elif not self.is_path_allowed(norm_target):
-                diag = (
-                    f"Search path '{target}' is outside declared shard scope. "
-                    "Use graphify query first or provide graphify evidence with typed exception reason."
-                )
-                return False, "search_outside_scope_denied", {
-                    "target": target,
-                    "diagnostic": diag,
-                    "graphify_required": True,
-                    "fail_closed": True,
-                }
 
-        return True, "search_inside_scope", {"targets": search_targets}
+        return True, "search_inside_scope", {"invocations": len(invocations)}
 
     def evaluate_read_scope(
         self,
@@ -386,12 +687,89 @@ def normalize_test_command(cmd: str | list[str]) -> str:
     if not tokens:
         return ""
 
+    if tokens and tokens[0] == "timeout":
+        idx = 1
+        while idx < len(tokens):
+            if tokens[idx].startswith("-"):
+                if tokens[idx] in ("-k", "-s") and idx + 1 < len(tokens):
+                    idx += 2
+                else:
+                    idx += 1
+            elif re.match(r"^\d+[smhd]?$", tokens[idx]):
+                idx += 1
+                break
+            else:
+                break
+        tokens = tokens[idx:]
+
+    if not tokens:
+        return ""
+
     if tokens[0].endswith("pytest"):
         tokens = ["pytest"] + tokens[1:]
     elif len(tokens) >= 3 and tokens[0].startswith("python") and tokens[1] == "-m" and tokens[2] == "pytest":
         tokens = ["pytest"] + tokens[3:]
+    elif len(tokens) >= 3 and tokens[0] in ("npm", "npx", "yarn", "pnpm") and tokens[1] in ("exec", "run") and tokens[2] in ("vitest", "jest"):
+        tokens = [tokens[2]] + tokens[3:]
+    elif len(tokens) >= 2 and tokens[0] in ("npm", "npx", "yarn", "pnpm") and tokens[1] in ("test", "vitest", "jest"):
+        tokens = [tokens[1]] + tokens[2:]
 
     return " ".join(tokens)
+
+
+def is_test_command_line(cmd: str | list[str]) -> bool:
+    """Return True if command represents a recognized test execution."""
+    norm = normalize_test_command(cmd)
+    if not norm:
+        return False
+    tokens = norm.split()
+    if not tokens:
+        return False
+    first = tokens[0].lower()
+    if first in {"pytest", "vitest", "jest"}:
+        return True
+    if len(tokens) >= 2 and first in {"cargo", "npm", "yarn", "pnpm"} and tokens[1].lower() == "test":
+        return True
+    return False
+
+
+def evaluate_test_command(
+    command: str | list[str],
+    project_root: str | Path,
+    session_id: str = "",
+    actor_key: dict[str, Any] | None = None,
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """Evaluate whether a test command has a valid cached execution fingerprint.
+
+    Returns (cached, reason_code, receipt_dict).
+    If cached=True, receipt_dict conforms to DecisionReceipt schema.
+    If cached=False, receipt_dict is None.
+    """
+    root = Path(project_root).resolve()
+    cache = TestFingerprintCache(project_root=root)
+    hit = cache.lookup(command)
+    if not hit:
+        return False, "test_cache_miss", None
+
+    actor = dict(actor_key or {"session_id": session_id, "role": "root"})
+    receipt = DecisionReceipt(
+        decision="duplicate",
+        reason_code="cached_test_execution",
+        diagnostic=(
+            f"Test execution '{hit['command']}' cached (fingerprint: {hit['fingerprint']}). "
+            f"Previous exit code: {hit['exit_code']}. Output summary: {hit.get('output_summary', '')}"
+        ),
+        canonical_path=hit["command"],
+        content_hash=hit["fingerprint"],
+        requested_intervals=[],
+        allowed_intervals=[],
+        cached_intervals=[],
+        actor_key=actor,
+        sequence=0,
+        cached=True,
+        metadata=hit,
+    )
+    return True, "cached_test_execution", receipt.to_dict()
 
 
 def compute_diff_fingerprint(project_root: str | Path, relevant_paths: Sequence[str | Path]) -> str:
@@ -477,11 +855,16 @@ class TestFingerprintCache:
         relevant_paths: Sequence[str | Path] | None = None,
     ) -> dict[str, Any] | None:
         """Lookup cached test result for command. Returns result dict if hit, None if miss/invalidated."""
+        self._load()
         norm_cmd = normalize_test_command(command)
-        current_fp = compute_test_fingerprint(command, self.project_root, relevant_paths)
-
         entry = self._entries.get(norm_cmd)
-        if entry and entry.get("fingerprint") == current_fp:
+        if not entry:
+            return None
+
+        paths = relevant_paths if relevant_paths is not None else entry.get("relevant_paths")
+        current_fp = compute_test_fingerprint(command, self.project_root, paths)
+
+        if entry.get("fingerprint") == current_fp:
             return {
                 "cached": True,
                 "no_op": True,
@@ -501,6 +884,7 @@ class TestFingerprintCache:
         relevant_paths: Sequence[str | Path] | None = None,
     ) -> str:
         """Record test execution outcome and fingerprint."""
+        self._load()
         norm_cmd = normalize_test_command(command)
         current_fp = compute_test_fingerprint(command, self.project_root, relevant_paths)
         now_ts = datetime.now(timezone.utc).isoformat()
@@ -517,13 +901,46 @@ class TestFingerprintCache:
 
     def invalidate_path(self, path: str | Path) -> list[str]:
         """Invalidate all test cache entries associated with a changed path."""
+        self._load()
         norm_p = str(path).replace("\\", "/")
+        try:
+            resolved_p = str((self.project_root / path).resolve()).replace("\\", "/") if not Path(path).is_absolute() else str(Path(path).resolve()).replace("\\", "/")
+        except Exception:
+            resolved_p = norm_p
+
         invalidated_cmds: list[str] = []
         for cmd, entry in list(self._entries.items()):
             paths = entry.get("relevant_paths", [])
-            if not paths or any(norm_p in str(p) or str(p) in norm_p for p in paths):
+            if not paths:
+                del self._entries[cmd]
+                invalidated_cmds.append(cmd)
+                continue
+            match = False
+            for p in paths:
+                sp = str(p).replace("\\", "/")
+                if norm_p in sp or sp in norm_p or resolved_p in sp or sp in resolved_p:
+                    match = True
+                    break
+                try:
+                    resp = str((self.project_root / p).resolve()).replace("\\", "/") if not Path(p).is_absolute() else str(Path(p).resolve()).replace("\\", "/")
+                    if resolved_p == resp or norm_p == resp or resolved_p in resp or resp in resolved_p:
+                        match = True
+                        break
+                except Exception:
+                    pass
+            if match:
                 del self._entries[cmd]
                 invalidated_cmds.append(cmd)
         if invalidated_cmds:
             self._save()
         return invalidated_cmds
+
+
+def invalidate_test_cache(
+    project_root: str | Path,
+    path: str | Path,
+    cache_file: str | Path | None = None,
+) -> list[str]:
+    """Invalidate test fingerprint cache entries associated with a changed path."""
+    cache = TestFingerprintCache(project_root=project_root, cache_file=cache_file)
+    return cache.invalidate_path(path)

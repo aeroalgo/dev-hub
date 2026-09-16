@@ -280,6 +280,48 @@ def test_analyze_unsupported_call_ignores_jsonl_item_command_dumps():
     )
 
 
+def test_analyze_collaboration_timeout_ignores_jsonl_command_dumps():
+    """A source dump must not turn a successful BUGFIX/QA turn into a timeout."""
+    import json
+
+    from loop.runtime_adapters.codex import _detect_codex_collaboration_wait_timeout
+
+    item_line = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "command_execution",
+                "command": "sed -n '1700,1760p' harness/hooks/session_resilience.py",
+                "aggregated_output": (
+                    "SESSION_COLLAB_WAIT_TIMEOUT session=example "
+                    "native collaboration wait timeout"
+                ),
+            },
+        }
+    )
+    assert _detect_codex_collaboration_wait_timeout(item_line) is False
+
+    adapter = CodexAdapter()
+    ctx = SessionContext(prompt="finish bugfix", phase="BUGFIX", extras={"exit_code": 0})
+    analysis = adapter.analyze_log(
+        "SESSION_START session=1\n" + item_line + "\nSESSION_END session=1 exit_code=0\n",
+        ctx,
+    )
+    assert analysis.reason is None
+    assert analysis.retry is False
+
+
+def test_analyze_collaboration_timeout_accepts_wrapper_markers():
+    from loop.runtime_adapters.codex import _detect_codex_collaboration_wait_timeout
+
+    assert _detect_codex_collaboration_wait_timeout(
+        "SESSION_COLLAB_WAIT_TIMEOUT session=1 timeout=10s\n"
+    ) is True
+    assert _detect_codex_collaboration_wait_timeout(
+        '{"type":"result","result":"native collaboration wait timeout"}\n'
+    ) is True
+
+
 def test_analyze_log_binary_missing_fixture():
     adapter = CodexAdapter()
     raw_log = (FIXTURES_DIR / "codex_session_binary_missing.log").read_text(encoding="utf-8")

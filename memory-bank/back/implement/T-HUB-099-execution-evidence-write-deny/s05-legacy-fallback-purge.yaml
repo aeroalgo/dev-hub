@@ -1,0 +1,91 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-099-execution-evidence-write-deny
+title: s05 — legacy-fallback-purge — sunset inventory scan, purge fallbacks, and full
+  integration regression verification IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery:
+- Confirmed zero fallback or dual-path acceptance of unprovenanced capability JSON
+  in epic_yaml and stack_profiles evidence
+- Confirmed zero instructions in .cursor/rules advising agents to directly write capability
+  execution evidence
+gaps:
+  status: none
+done:
+- 'Verified kind A grep control: execution_evidence_write_deny_reason is wired in
+  WritePolicyAdapter and pretool boundary'
+- 'Verified kind B grep control: execution_evidence_write_denied is emitted on agent
+  Write/Edit/Bash mutation attempts'
+- 'Verified kind C grep control: capability_evidence_non_authoritative is emitted
+  on unprovenanced or forged capability evidence reads during finish'
+- 'Verified kind I grep control: zero instructions directing agents to write capability
+  evidence directly in .cursor/rules'
+- Executed full integration and regression test matrix across pretool boundary, epic_yaml
+  capability evidence, and stop gate receipt integrity
+files:
+- harness/hooks/_lib.py
+- harness/hooks/pretool_policy.py
+- harness/hooks/epic_yaml.py
+- loop/stack_profiles/evidence.py
+deletes:
+- unprovenanced_capability_sidecar_accept
+- agent_direct_execution_evidence_write_allow
+wire_complete:
+  call_sites:
+  - harness/hooks/pretool_policy.py:WritePolicyAdapter.evaluate
+  - harness/hooks/epic_yaml.py:validate_implement_yaml
+  - harness/hooks/epic_yaml.py:implement_ready_for_finalize_doc
+  enforce_path: harness/hooks/pretool_policy.py and harness/hooks/epic_yaml.py
+  dual_path_rg: rg -n "execution_evidence_write_denied" harness/hooks/_lib.py harness/hooks/pretool_policy.py
+  instruction_rg: rg -n "write_capability_evidence" .cursor/rules/ || true
+  deny_old_proven: true
+tests:
+- bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -k "execution_evidence"
+  -q --tb=line
+- bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k "test_forged_capability_evidence
+  or test_valid_capability_evidence" -q --tb=line
+- bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line
+integration_check:
+- bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line -> 28 passed
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'cp1: execution_evidence_write_deny_reason wired into pretool_policy.py and active'
+- 'cp2: pretool gate denies agent Write/Edit across back, front, and integration execution
+  paths (10 passed)'
+- 'cp3: unprovenanced or forged capability evidence is rejected at finish validation
+  (2 passed)'
+- 'cp4: All TM-I2-077-01 through TM-I2-077-05 scenarios pass and I1 verifier receipts
+  remain intact (28 passed)'
+checkpoints:
+- id: cp1
+  criterion: Kind A — grep control confirms execution_evidence_write_deny_reason is
+    wired in WritePolicyAdapter and active in pretool.
+  status: done
+- id: cp2
+  criterion: Kind B — pretool gate denies agent Write/Edit across back, front, and
+    integration execution paths.
+  status: done
+- id: cp3
+  criterion: Kind C — unprovenanced or forged capability evidence is rejected at finish
+    validation.
+  status: done
+- id: cp4
+  criterion: All TM-I2-077-01 through TM-I2-077-05 scenarios pass and I1 verifier
+    receipts remain intact.
+  status: done

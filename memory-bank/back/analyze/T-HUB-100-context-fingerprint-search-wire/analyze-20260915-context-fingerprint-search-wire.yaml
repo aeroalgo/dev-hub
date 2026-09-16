@@ -1,0 +1,269 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-100-context-fingerprint-search-wire
+slug: context-fingerprint-search-wire
+date: '2026-09-15'
+status: complete
+index_fingerprint: sha256:86b14c127ae2c0ece9aba9c7cc7c153e7727e6eceb568084d4e854ccf03676aa
+findings: []
+coverage:
+- requirement_id: US-I2-001
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как IMPLEMENT agent, я не могу повторно «прогнать» тот же test
+    command после изменения relevant file и получить cached PASS без re-execution.
+- requirement_id: US-I2-002
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Как root agent вне EPIC_LOOP но с active context ledger, я не
+    могу rg за пределами shard allowlist без graphify.
+- requirement_id: US-I2-003
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Как subagent, я получаю ту же search deny decision что root
+    при equivalent scope.
+- requirement_id: US-I2-004
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Как operator, legitimate search inside shard paths still works
+    without graphify.
+- requirement_id: US-I2-001 (AS)
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: 'TestFingerprintCache wired to Bash pretool: pretool returns
+    cached reference or explicit deny; edit invalidates cache and requires re-execution.'
+- requirement_id: US-I2-002 (AS)
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: 'Search scope beyond EPIC_LOOP: search outside shard allowlist
+    without graphify evidence denied with search_outside_scope_denied when context
+    policy active.'
+- requirement_id: US-I2-003 (AS)
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: 'In-scope search still allowed: search targeting only paths
+    under shard allowlist allowed without graphify.'
+- requirement_id: US-I2-004 (AS)
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: 'I1 ledger behaviors preserved: duplicate Read unchanged range
+    in IMPLEMENT still denied; new Bash wiring does not disable ledger.'
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Introduce `is_context_policy_active(cwd, context) -> bool` (or
+    reuse existing ledger session predicate) that is true for root and subagent when
+    shard/context loaded — strictly broader than `is_epic_loop_env()` but fail-closed
+    when context unknown (no silent allow of unscoped search).
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: 'Wire `TestFingerprintCache` into `BashPolicyAdapter.evaluate`:
+    detect normalized test commands (reuse `normalize_test_command` / fingerprint
+    helpers from `context_scope.py`); on hit with valid fingerprint → return deny
+    or cached-no-op envelope per I1 FR-006 semantics; on post-edit invalidation →
+    miss/deny re-run until fresh execution recorded.'
+- requirement_id: FR-003
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Connect edit/write post-tool path to `TestFingerprintCache.invalidate_path`
+    for changed canonical paths (if not already wired end-to-end); ensure invalidation
+    occurs before subsequent Bash test command decision.
+- requirement_id: FR-004
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Move search scope check in `BashPolicyAdapter` behind `is_context_policy_active`
+    instead of `is_epic_loop_env()` alone; preserve `ScopeResolver.evaluate_search`
+    contract (graphify + exception_reason).
+- requirement_id: FR-005
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Ensure subagent events supply same `ScopeResolver` inputs (shard
+    files, delta, graphify evidence) as root; no provider-specific bypass (`claude`
+    vs `codex` adapters call shared policy).
+- requirement_id: FR-006
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Preserve I1 duplicate-read, plan-jump, and edit-invalidation
+    behaviors; full regression TM-078-01…11 from I1 QA remain green.
+- requirement_id: NFR-001
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Cache and search decisions emit same `DecisionReceipt` schema
+    as I1 ledger.
+- requirement_id: NFR-002
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No global token metering introduced.
+- requirement_id: NFR-003
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Test command detection MUST reuse existing normalizers — no
+    duplicate regex folklore.
+- requirement_id: NFR-004
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: 'Fail-closed: ambiguous policy activation → deny broad search,
+    not allow.'
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No cached test PASS after relevant file change when Bash pretool
+    allows command.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: No search outside allowlist when context policy active, regardless
+    of EPIC_LOOP env.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: No provider-specific search bypass for subagents.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No global token budget meter introduced.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No regression of I1 duplicate-read / plan-jump gates.
+- requirement_id: 'AC- #6'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No scope into capability evidence or agents corpus.
+- requirement_id: TM-I2-078-01
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Repeat test cmd unchanged → cache hit/deny policy
+- requirement_id: TM-I2-078-02
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Edit relevant file → repeat test cmd → no stale cache
+- requirement_id: TM-I2-078-03
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Ledger active, not EPIC_LOOP, search outside scope → deny
+- requirement_id: TM-I2-078-04
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: In-shard search allowed without graphify
+- requirement_id: TM-I2-078-05
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Subagent equivalent search deny
+- requirement_id: TM-I2-078-06
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: I1 duplicate-read regression
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

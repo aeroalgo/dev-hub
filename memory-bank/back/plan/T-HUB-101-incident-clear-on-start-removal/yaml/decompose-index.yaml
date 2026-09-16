@@ -1,0 +1,49 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-101-incident-clear-on-start-removal
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 1
+  cut_list:
+  - LifecycleReducer durable _by_key rewrite
+  - provider dashboard/UI
+  - 077 evidence write-deny
+  - 078 fingerprint cache
+  - 080 agents corpus
+  - 076 capability_checks
+steps:
+- id: s01
+  file: s01-remove-startup-incident-mutation.yaml
+  title: s01 — remove-startup-incident-mutation — eliminate auto clear_open_on_start
+    from Orchestrator.run()
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-purge-incident-tracker-clear-open-on-start.yaml
+  title: s02 — purge-incident-tracker-clear-open-on-start — remove clear_open_on_start
+    method and align store defaults
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-update-orchestrator-tests-and-forensic-persistence.yaml
+  title: s03 — update-orchestrator-tests-and-forensic-persistence — purge clear_open_on_start
+    mocks and add restart regression test
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-enforce-operator-cli-sole-bulk-recovery.yaml
+  title: s04 — enforce-operator-cli-sole-bulk-recovery — assert incident-clear-open
+    CLI as sole bulk recovery path
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-instruction-kind-i-and-docstring-hygiene.yaml
+  title: s05 — instruction-kind-i-and-docstring-hygiene — clean up Kind I instructions
+    and docstrings
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

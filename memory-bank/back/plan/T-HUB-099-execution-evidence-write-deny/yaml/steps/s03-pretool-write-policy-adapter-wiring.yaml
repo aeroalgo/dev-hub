@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-099-execution-evidence-write-deny
+title: "s03 — pretool-write-policy-adapter-wiring — wire execution evidence write deny into WritePolicyAdapter and pretool boundaries"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить execution_evidence_write_deny_reason в WritePolicyAdapter.evaluate в harness/hooks/pretool_policy.py
+  и pretool hook dispatch, блокируя вызовы Write, Edit, NotebookEdit на пути capability evidence
+  до их выполнения с диагностическим кодом TOOL_POLICY_DENY и сохраняя доступ для executor.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - US-I2-001
+    - US-I2-002
+    - AC+1
+    - AC+2
+    - AC−1
+    - AC−3
+    - NFR-001
+    - NFR-004
+    - TM-I2-077-01
+    - TM-I2-077-02
+    - TM-I2-077-05
+  nouns:
+    - WritePolicyAdapter
+    - pretool_policy
+    - WRITE_TOOL_ALIASES
+    - DecisionEnvelope
+    - DiagnosticCode
+    - permissionDecisionReason
+    - pretool-dispatch
+    - executor check-after write path
+  layout_paths:
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/agent-pretool.py
+  ac_quotes:
+    - "Wire new deny into WritePolicyAdapter.evaluate in pretool_policy.py before other allows; Write and Edit aliases covered."
+    - "Deny MUST apply to agent tool boundary for all roles; executor/check-after write path MUST remain allowed via allowlist."
+    - "Provider parity: Claude pretool and Codex bridge route through same WritePolicyAdapter."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:72-88"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:100-106"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:108-116"
+
+context:
+  consumes:
+    - "harness/hooks/_lib.py execution_evidence_write_deny_reason (s02)"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md §Functional requirements FR-002, FR-003"
+  produces:
+    - "WritePolicyAdapter.evaluate with execution evidence deny evaluation"
+    - "pretool dispatch support for execution evidence deny on Write/Edit/NotebookEdit tools"
+  plan_refs:
+    - "plan.md#functional-requirements"
+    - "plan.md#acceptance-scenarios"
+    - "plan.md#nfr"
+    - "plan.md#qa-consumes"
+  files:
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/agent-pretool.py
+
+as_built:
+  - "WritePolicyAdapter.evaluate checks gate_state_write_deny_reason, active_context_write_deny_reason, and recorded_artifact_write_deny_reason."
+  - "Execution evidence paths are not checked explicitly before context ledger evaluation."
+
+delta:
+  - "Import execution_evidence_write_deny_reason in harness/hooks/pretool_policy.py."
+  - "Add execution_evidence_write_deny_reason check in WritePolicyAdapter.evaluate before context ledger writes."
+  - "Return DecisionEnvelope.deny with TOOL_POLICY_DENY diagnostic code and structured metadata containing permissionDecisionReason and additional_context."
+  - "Ensure agent-pretool.py and pretool-dispatch route properly without breaking executor sub-process writes."
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "finish validation and non-authoritative read enforcement (s04)"
+  - "sunset inventory cleanup (s05)"
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-078 context budget enforcement (follow_up: T-HUB-078)"
+  - "T-HUB-079 orchestrator lifecycle reliability (follow_up: T-HUB-079)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+  - "full suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "WritePolicyAdapter returns DENY DecisionEnvelope for tool_input with execution evidence file_path."
+    verify: "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -k 'test_write_execution_evidence' -q --tb=line"
+  - id: cp2
+    criterion: "WritePolicyAdapter returns DENY DecisionEnvelope for tool_input with execution evidence path on Edit and NotebookEdit aliases."
+    verify: "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -k 'test_edit_execution_evidence' -q --tb=line"
+  - id: cp3
+    criterion: "Executor/check-after programmatic writes (outside agent tool boundary) write files without pretool interception."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k 'test_write_capability_evidence' -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -k 'execution_evidence' -q --tb=line"
+tdd:
+  - "green: wire execution_evidence_write_deny_reason into WritePolicyAdapter and pass pretool write boundary tests"

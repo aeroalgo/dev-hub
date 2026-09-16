@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: "s04 — posttool-edit-invalidation-wiring — connect WritePostToolAdapter to TestFingerprintCache invalidation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить WritePostToolAdapter к TestFingerprintCache.invalidate_path для каждого изменённого
+  канонического пути, гарантируя, что после редактирования исходного кода повторный вызов теста
+  не может получить stale cached PASS и форсирует повторное выполнение.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-I2-001
+    - TM-I2-078-02
+  nouns:
+    - WritePostToolAdapter
+    - TestFingerprintCache
+    - invalidate_path
+    - posttool dispatch
+    - canonical realpath
+  layout_paths:
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/context_scope.py
+  ac_quotes:
+    - "Connect edit/write post-tool path to TestFingerprintCache.invalidate_path for changed canonical paths."
+    - "Edit relevant file -> repeat test cmd -> no stale cache -> miss/deny; requires fresh run."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:37-64"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:91-118"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:120-138"
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md:173-183"
+
+context:
+  consumes:
+    - "memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/md/plan.md §Functional requirements (FR-003)"
+    - "harness/hooks/context_scope.py §TestFingerprintCache.invalidate_path"
+  produces:
+    - "harness/hooks/posttool_policy.py — WritePostToolAdapter calls TestFingerprintCache.invalidate_path"
+    - "harness/hooks/context_scope.py — cache invalidation helpers for posttool integration"
+  plan_refs:
+    - "FR-003"
+  files:
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/context_scope.py
+
+as_built:
+  - "WritePostToolAdapter в posttool_policy.py выполняет record_touch и evaluate_write_payload, но не инвалидирует TestFingerprintCache."
+  - "TestFingerprintCache.invalidate_path существует в context_scope.py, но не подключен к posttool lifecycle."
+
+delta:
+  - "Update harness/hooks/posttool_policy.py to connect WritePostToolAdapter to invoke TestFingerprintCache.invalidate_path upon write/edit events."
+  - "Update harness/hooks/context_scope.py to support cache invalidation on posttool write events."
+  - "Ensure invalidation occurs before any subsequent Bash pretool test command evaluation."
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "legacy fallback purge and sunset audit (s05)"
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-077 incidents and capability write deny (follow_up: T-HUB-077)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+  - "T-HUB-101 incident clear on start removal (follow_up: T-HUB-101)"
+  - "T-HUB-102 agents instruction corpus (follow_up: T-HUB-102)"
+  - "full suite → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "WritePostToolAdapter triggers TestFingerprintCache.invalidate_path for edited files."
+    verify: "bin/pytest harness/hooks/tests/test_posttool_dispatch.py -k 'test_write_posttool_invalidates_test_cache' -q --tb=line"
+  - id: cp2
+    criterion: "After file edit, subsequent test command in BashPolicyAdapter results in cache miss and requires fresh run."
+    verify: "bin/pytest harness/hooks/tests/test_context_scope_policy.py -k 'test_edit_invalidates_test_cache_miss' -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_posttool_dispatch.py harness/hooks/tests/test_context_scope_policy.py -k 'invalidate or posttool' -q --tb=line"
+tdd:
+  - "green: wire posttool invalidation to make cp1 and cp2 pass"

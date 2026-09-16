@@ -160,10 +160,10 @@ def resolve_incident(
 def resolve_all_open_incidents(
     epic_dir: Path | str,
     *,
-    resolution_tier: str = "loop_restart",
-    resolution_action: str = "clear_open_on_loop_start",
+    resolution_tier: str = "operator_action",
+    resolution_action: str = "operator_bulk_clear",
 ) -> list[IncidentRecord]:
-    """Resolve every open incident (manual loop restart / operator clear)."""
+    """Resolve every open incident (explicit operator action / bulk recovery)."""
     from datetime import datetime, timezone
 
     open_recs = list_open_incidents(epic_dir)

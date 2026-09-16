@@ -1,30 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-098
-  epic_id: T-HUB-098-managed-capability-sole-path
-  plan: plan-T-HUB-098-managed-capability-sole-path.md
-  deps: []
-  kind: feature
-  batch: replan-spawn-075-080-20260914
-- id: T-HUB-099
-  epic_id: T-HUB-099-execution-evidence-write-deny
-  plan: plan-T-HUB-099-execution-evidence-write-deny.md
-  deps: []
-  kind: feature
-  batch: replan-spawn-075-080-20260914
-- id: T-HUB-100
-  epic_id: T-HUB-100-context-fingerprint-search-wire
-  plan: plan-T-HUB-100-context-fingerprint-search-wire.md
-  deps: []
-  kind: feature
-  batch: replan-spawn-075-080-20260914
-- id: T-HUB-101
-  epic_id: T-HUB-101-incident-clear-on-start-removal
-  plan: plan-T-HUB-101-incident-clear-on-start-removal.md
-  deps: []
-  kind: feature
-  batch: replan-spawn-075-080-20260914
 - id: T-HUB-102
   epic_id: T-HUB-102-agents-instruction-corpus
   plan: plan-T-HUB-102-agents-instruction-corpus.md
@@ -492,6 +468,26 @@ done:
   kind: chore
   plan: plan-T-HUB-097-event-dag-offline-adapter-hygiene.md
   batch: plan-refactor-leftover-20260914
+- id: T-HUB-098
+  epic_id: T-HUB-098-managed-capability-sole-path
+  kind: feature
+  plan: plan-T-HUB-098-managed-capability-sole-path.md
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-099
+  epic_id: T-HUB-099-execution-evidence-write-deny
+  kind: feature
+  plan: plan-T-HUB-099-execution-evidence-write-deny.md
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-100
+  epic_id: T-HUB-100-context-fingerprint-search-wire
+  kind: feature
+  plan: plan-T-HUB-100-context-fingerprint-search-wire.md
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-101
+  epic_id: T-HUB-101-incident-clear-on-start-removal
+  kind: feature
+  plan: plan-T-HUB-101-incident-clear-on-start-removal.md
+  batch: replan-spawn-075-080-20260914
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

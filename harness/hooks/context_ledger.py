@@ -805,3 +805,78 @@ class ContextLedger:
             "records_count": len(self.records),
             "actor_key": self.actor_key.to_dict(),
         }
+
+
+def is_context_policy_active(
+    cwd: str | Path | None = None,
+    context: Any = None,
+    runtime_dir: Path | None = None,
+) -> bool:
+    """Determine whether context policy (search/read allowlist, fingerprint caching) is active.
+
+    Returns True if:
+    1. EPIC_LOOP environment variable is enabled.
+    2. activeContext.md exists and is non-empty in the project.
+    3. An active context ledger exists or context payload references an active session/shard.
+
+    Returns False when workspace is unconfigured or context cannot be resolved.
+    """
+    if str(os.environ.get("EPIC_LOOP", "")).lower() in {"1", "true", "yes"}:
+        return True
+
+    project_root: Path | None = None
+    if cwd is not None:
+        project_root = Path(cwd).expanduser().resolve()
+
+    if project_root is None and context is not None:
+        raw_cwd = getattr(context, "cwd", None)
+        if raw_cwd is None and isinstance(context, dict):
+            raw_cwd = context.get("cwd")
+        if raw_cwd:
+            project_root = Path(raw_cwd).expanduser().resolve()
+
+    if project_root is None:
+        project_root = Path.cwd().resolve()
+
+    # Check for activeContext.md
+    act_file = project_root / "memory-bank" / "activeContext.md"
+    if act_file.is_file() and act_file.stat().st_size > 0:
+        return True
+
+    # Check for active context ledger directory/files
+    candidate_dirs: list[Path] = []
+    if runtime_dir:
+        candidate_dirs.append(runtime_dir / "context-ledger")
+        candidate_dirs.append(runtime_dir / "context_ledger")
+
+    ctx_runtime = getattr(context, "runtime_dir", None) or (
+        context.get("runtime_dir") if isinstance(context, dict) else None
+    )
+    if ctx_runtime:
+        ctx_rt_p = Path(ctx_runtime).expanduser().resolve()
+        candidate_dirs.append(ctx_rt_p / "context-ledger")
+        candidate_dirs.append(ctx_rt_p / "context_ledger")
+
+    from epic_paths import epic_dir as runtime_epic_dir
+
+    base_dir = runtime_epic_dir(project_root).parent
+    candidate_dirs.append(base_dir / "context-ledger")
+    candidate_dirs.append(base_dir / "context_ledger")
+
+    candidate_dirs.extend([
+        project_root / ".runtime" / "context-ledger",
+        project_root / ".runtime" / "context_ledger",
+        project_root / "runtime" / project_root.name / "context-ledger",
+        project_root / "runtime" / project_root.name / "context_ledger",
+    ])
+
+    for candidate_dir in candidate_dirs:
+        if candidate_dir.is_dir():
+            if any(
+                f
+                for f in candidate_dir.glob("**/*.json")
+                if not f.name.endswith(".lock") and ".tmp." not in f.name
+            ):
+                return True
+
+    return False

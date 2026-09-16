@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s03 — update-orchestrator-tests-and-forensic-persistence — purge clear_open_on_start mocks and add restart regression test
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить устаревшие mock expectations на clear_open_on_start из loop/tests/test_runner_orchestrator.py
+  и добавить регрессионный тест, проверяющий, что предзаполненные открытые инциденты сохраняются (status: open)
+  при старте и выполнении оркестратора.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-005
+    - US-001
+  nouns:
+    - loop/tests/test_runner_orchestrator.py
+    - loop/runner/orchestrator.py
+  layout_paths:
+    - loop/tests/test_runner_orchestrator.py
+  ac_quotes:
+    - "Regression tests orchestrator не expect clear_open_on_start; новый test подтверждает forensic persistence."
+    - "Open incident survives orchestrator restart"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/md/plan.md:90-150
+
+context:
+  consumes:
+    - loop/tests/test_runner_orchestrator.py
+    - loop/runner/orchestrator.py
+  produces:
+    - loop/tests/test_runner_orchestrator.py с чистыми mock fixtures и тестом персистентности инцидентов
+  plan_refs:
+    - plan.md#FR-003
+    - plan.md#FR-005
+    - plan.md#US-001
+  files:
+    - loop/tests/test_runner_orchestrator.py
+
+as_built:
+  - "loop/tests/test_runner_orchestrator.py: тесты test_loop_runner_two_iterations, test_transient_retry, test_session_crash_handling, test_reconcile_failure, test_loop_runner_custom_prune_keep настраивают mock_tracker.clear_open_on_start"
+
+delta:
+  - "Удаление mock_incident_tracker.clear_open_on_start.return_value и assert_called_once_with из тестов оркестратора"
+  - "Добавление регрессионного теста test_orchestrator_preserves_open_incidents_on_start, проверяющего сохранение incidents.jsonl"
+
+deletes:
+  - "mock_incident_tracker.clear_open_on_start test assertions"
+wire_complete_required: false
+
+out_of_scope:
+  - "s01: удаление вызова из Orchestrator.run()"
+  - "s02: удаление метода из IncidentTracker"
+  - "s04: тесты CLI и store"
+  - "s05: Kind I docstrings"
+  - "s06: sunset inventory purge scan"
+  - "follow_up: T-HUB-077-gate-evidence-integrity"
+  - "follow_up: T-HUB-078-context-budget-enforcement"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Тесты loop/tests/test_runner_orchestrator.py выполняются успешно без упоминаний clear_open_on_start
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line"
+  - id: cp2
+    criterion: Тест сохранения инцидентов при перезапуске оркестратора проходит успешно
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py -q --tb=line -k 'preserves_open_incidents or incident'"
+
+verify: []
+tdd: []

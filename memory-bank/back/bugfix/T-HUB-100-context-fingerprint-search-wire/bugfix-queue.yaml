@@ -1,0 +1,70 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-100-context-fingerprint-search-wire
+role: back
+source_qa: memory-bank/back/qa/T-HUB-100-context-fingerprint-search-wire/qa-20260915-context-fingerprint-search-wire-r3.yaml
+checklist_sha256: 7b034cac0b57f91e44912f7db7602750f06c6e39eb8066ca25215e80a3e3b0c9
+created_at: '2026-09-15T09:37:32Z'
+updated_at: '2026-09-15T13:30:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-15T13:30:00Z'
+  evidence: 2948 passed, 4 skipped in 131.62s via bin/pytest -q --tb=line
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: active ContextLedger not found due to path mismatch in harness/hooks/context_ledger.py
+    (line 384 vs 858); non-EPIC_LOOP search gate bypassed in harness/hooks/pretool_policy.py:475
+  blocker_ref: 'ac_gap: active ContextLedger not found due to path mismatch in harness/hooks/context_ledger.py
+    (line 384 vs 858); non-EPIC_LOOP search gate bypassed in harness/hooks/pretool_policy.py:475'
+  fix_plan_ref: BACK BUGFIX Fix ContextLedger path mismatch in harness/hooks/context_ledger.py
+    and restore non-EPIC_LOOP search gating in harness/hooks/pretool_policy.py
+  targets:
+  - harness/hooks/context_ledger.py
+  - harness/hooks/pretool_policy.py
+  verify: bin/pytest harness/hooks/context_ledger.py harness/hooks/pretool_policy.py
+    -q --tb=line
+  evidence: 41 passed in 2.24s via bin/pytest harness/hooks/tests/test_context_ledger.py
+    harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_context_ledger_adapters.py
+    harness/hooks/tests/test_pretool_dispatch.py -q --tb=line
+  done_at: '2026-09-15T09:42:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: ac_gap
+  title: .agents/, .claude/, .cursor/ всегда разрешены вне allowlist (harness/hooks/context_scope.py:301–316),
+    нарушая AC−2 и AC−6. Исправить исключение; разрешать только allowlist/graphify.
+  blocker_ref: 'ac_gap: .agents/, .claude/, .cursor/ всегда разрешены вне allowlist
+    (harness/hooks/context_scope.py:301–316), нарушая AC−2 и AC−6. Исправить исключение;
+    разрешать только allowlist/graphify.'
+  fix_plan_ref: BACK BUGFIX Fix .agents/, .claude/, .cursor/ bypass in harness/hooks/context_scope.py
+    to enforce allowlist and graphify
+  targets:
+  - harness/hooks/context_scope.py
+  verify: bin/pytest harness/hooks/context_scope.py -q --tb=line
+  evidence: 15 passed in 1.58s via bin/pytest harness/hooks/tests/test_context_scope_policy.py
+    -q --tb=line
+  done_at: '2026-09-15T10:22:00Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: ac_gap
+  title: compound Bash commands bypass search enforcement (cd .agents && rg ..., env
+    rg ..., bash -c ...) in harness/hooks/context_scope.py:97, harness/hooks/pretool_policy.py:475
+  blocker_ref: 'ac_gap: compound Bash commands bypass search enforcement (`cd .agents
+    && rg ...`, `env rg ...`, `bash -c ...`) · `harness/hooks/context_scope.py:97`,
+    `harness/hooks/pretool_policy.py:475` · parse compound commands and fail closed.'
+  fix_plan_ref: BACK BUGFIX Parse compound Bash commands and fail closed on search
+    enforcement in harness/hooks/context_scope.py and harness/hooks/pretool_policy.py
+  targets:
+  - harness/hooks/context_scope.py
+  - harness/hooks/pretool_policy.py
+  verify: bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_pretool_dispatch.py
+    -q --tb=line
+  evidence: 44 passed in 3.11s via bin/pytest harness/hooks/tests/test_context_scope_policy.py
+    harness/hooks/tests/test_pretool_dispatch.py harness/hooks/tests/test_context_ledger.py
+    harness/hooks/tests/test_context_ledger_adapters.py -q --tb=line
+  done_at: '2026-09-15T13:30:00Z'
+  notes: ''

@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: s03 — test-fingerprint-cache-bash-pretool-wiring — wire TestFingerprintCache
+  lookup and decision into BashPolicyAdapter IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/yaml/steps/s03-test-fingerprint-cache-bash-pretool-wiring.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Updated normalize_test_command and TestFingerprintCache in harness/hooks/context_scope.py
+  to support timeout stripping, npm/yarn test commands, and stored path lookup.
+- Added is_test_command_line and evaluate_test_command helper in harness/hooks/context_scope.py
+  emitting DecisionReceipt schema.
+- Wired evaluate_test_command into BashPolicyAdapter.evaluate in harness/hooks/pretool_policy.py
+  returning RECORDED DecisionEnvelope on cache hit.
+- Validated green test execution for cp1 and cp2 in harness/hooks/tests/test_context_scope_policy.py.
+files:
+- harness/hooks/pretool_policy.py
+- harness/hooks/context_scope.py
+- harness/hooks/tests/test_context_scope_policy.py
+deletes: []
+wire_complete:
+  call_sites:
+  - harness/hooks/pretool_policy.py:BashPolicyAdapter.evaluate -> evaluate_test_command
+  - harness/hooks/context_scope.py:evaluate_test_command -> TestFingerprintCache.lookup
+  enforce_path: harness/hooks/pretool_policy.py
+  dual_path_rg: rg "TestFingerprintCache" harness/hooks/pretool_policy.py harness/hooks/context_scope.py
+  instruction_rg: rg "evaluate_test_command" harness/hooks/pretool_policy.py harness/hooks/context_scope.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_bash_pretool_test_command_detected"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_bash_pretool_test_cache_hit"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_cache or
+  test_bash_pretool" -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py loop/tests/test_search_and_test_fingerprint.py
+  harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py
+  harness/hooks/tests/test_pretool_dispatch.py -q --tb=line`'
+grep_control: []
+verification_results:
+- 'cp1: BashPolicyAdapter recognizes normalized test commands and invokes TestFingerprintCache.lookup
+  via evaluate_test_command'
+- 'cp2: Unchanged test command on cache hit returns cached receipt with DecisionReceipt
+  schema and RECORDED DecisionEnvelope'
+checkpoints:
+- id: cp1
+  criterion: BashPolicyAdapter recognizes normalized test commands and invokes TestFingerprintCache.lookup.
+  status: done
+- id: cp2
+  criterion: Unchanged test command on cache hit returns cached receipt with DecisionReceipt
+    schema.
+  status: done
+resume_from: none

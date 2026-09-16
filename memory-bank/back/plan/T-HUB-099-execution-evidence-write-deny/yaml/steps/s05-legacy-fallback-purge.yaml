@@ -1,0 +1,170 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-099-execution-evidence-write-deny
+title: "s05 — legacy-fallback-purge — sunset inventory scan, purge fallbacks, and full integration regression verification"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести аудит sunset inventory A+B+C+I, устранить устаревшие проверки
+  и fallback пути без provenance, и подтвердить сохранение всех TM-I2-077-01..05 и positive I1 gate receipt проверок.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - US-I2-001
+    - US-I2-002
+    - US-I2-003
+    - US-I2-004
+    - TM-I2-077-01
+    - TM-I2-077-02
+    - TM-I2-077-03
+    - TM-I2-077-04
+    - TM-I2-077-05
+  nouns:
+    - execution_evidence_write_denied
+    - WritePolicyAdapter
+    - capability_evidence_non_authoritative
+    - provenance_source
+    - sunset_inventory
+  layout_paths:
+    - harness/hooks/_lib.py
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/epic_yaml.py
+    - loop/stack_profiles/evidence.py
+    - harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  ac_quotes:
+    - "Attempt agent Write to execution evidence path -> pretool DENY. Attempt Edit of existing executor-written sidecar -> DENY. Legitimate check-after write (simulated executor hook) -> allowed."
+    - "Finish with forged file created before deny deployed -> read rejects non-authoritative. Re-run I1 verifier receipt positive path -> unchanged PASS."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:127-154"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:162-171"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md:183-191"
+
+context:
+  consumes:
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md §Sunset A / B / C / I"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/decompose-index.md §Replacement cleanup"
+  produces:
+    - "clean codebase without execution evidence write allow bypasses"
+    - "verified absence of unprovenanced capability evidence acceptance"
+    - "complete integration test evidence for TM-I2-077-01..05"
+  plan_refs:
+    - "plan.md#sunset-a--b--c--i"
+    - "plan.md#acceptance-scenarios"
+    - "plan.md#qa-consumes"
+  files:
+    - harness/hooks/_lib.py
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/epic_yaml.py
+    - loop/stack_profiles/evidence.py
+
+as_built:
+  - "s01 added red test fixtures for execution evidence write deny and forged sidecar reject."
+  - "s02 implemented execution_evidence_write_deny_reason helper in harness/hooks/_lib.py."
+  - "s03 wired execution evidence write deny into WritePolicyAdapter in harness/hooks/pretool_policy.py."
+  - "s04 integrated non-authoritative read enforcement in loop/stack_profiles/evidence.py and harness/hooks/epic_yaml.py."
+
+delta:
+  - "Perform grep_control scan verifying no silent bypasses or unprovenanced capability acceptance."
+  - "Purge obsolete fallbacks and confirm zero prod callers across sunset inventory A, B, C, I."
+  - "Run targeted integration suite covering all TM-I2-077-01 through TM-I2-077-05 scenarios."
+
+sunset_inventory:
+  - symbol: "memory-bank/*/execution/**/capability-*.json write deny absence"
+    kind: A
+    replacement: "pretool DENY via execution_evidence_write_deny_reason"
+    policy: "delete in-epic"
+    rg_scope: "harness/hooks/ loop/"
+    expect: "zero paths allowing agent write to capability execution sidecars"
+  - symbol: "Finish accepting unprovenanced capability evidence"
+    kind: A
+    replacement: "provenance-aware read and authoritative validation"
+    policy: "delete in-epic"
+    rg_scope: "harness/hooks/epic_yaml.py loop/stack_profiles/evidence.py"
+    expect: "unprovenanced sidecars rejected with capability_evidence_non_authoritative"
+  - symbol: "Agent Write tool as capability proof transport"
+    kind: B
+    replacement: "executor-only check-after write + agent tool deny"
+    policy: "delete in-epic"
+    rg_scope: "harness/hooks/pretool_policy.py"
+    expect: "all agent Write/Edit tool invocations to capability sidecars blocked"
+  - symbol: "File exists => evidence OK fallback for capability sidecars"
+    kind: C
+    replacement: "fail-closed provenance_source verification"
+    policy: "delete in-epic"
+    rg_scope: "loop/stack_profiles/evidence.py harness/hooks/epic_yaml.py"
+    expect: "zero fallback/dual-path acceptance of capability JSON without executor provenance"
+  - symbol: "Prompts suggesting manual agent creation of capability JSON"
+    kind: I
+    replacement: "rely on runtime executor check-after"
+    policy: "delete in-epic"
+    rg_scope: ".cursor/rules/ harness/rules/"
+    expect: "zero instructions advising agents to write capability evidence directly"
+
+deletes:
+  - "unprovenanced_capability_sidecar_accept"
+  - "agent_direct_execution_evidence_write_allow"
+
+wire_complete_required: true
+
+out_of_scope:
+  - "s01-red-tests-execution-evidence-write-deny.yaml"
+  - "s02-execution-evidence-write-deny-predicate.yaml"
+  - "s03-pretool-write-policy-adapter-wiring.yaml"
+  - "s04-finish-read-non-authoritative-enforcement.yaml"
+  - "T-HUB-076 stack profile capability execution (follow_up: T-HUB-076)"
+  - "T-HUB-078 context budget enforcement (follow_up: T-HUB-078)"
+  - "T-HUB-079 orchestrator lifecycle reliability (follow_up: T-HUB-079)"
+  - "T-HUB-080 workflow capability instruction parity (follow_up: T-HUB-080)"
+
+grep_control:
+  - id: "inv-a-01"
+    kind: "A"
+    symbol: "execution_evidence_write_deny_reason"
+    command: "rg -n 'execution_evidence_write_deny_reason' harness/hooks/pretool_policy.py"
+    expect: "wired in WritePolicyAdapter.evaluate"
+  - id: "inv-b-01"
+    kind: "B"
+    symbol: "TOOL_POLICY_DENY"
+    command: "rg -n 'execution_evidence_write_denied' harness/hooks/_lib.py harness/hooks/pretool_policy.py"
+    expect: "emitted on capability sidecar write attempts"
+  - id: "inv-c-01"
+    kind: "C"
+    symbol: "capability_evidence_non_authoritative"
+    command: "rg -n 'capability_evidence_non_authoritative' harness/hooks/epic_yaml.py loop/stack_profiles/evidence.py"
+    expect: "emitted on unprovenanced sidecar read"
+  - id: "inv-i-01"
+    kind: "I"
+    symbol: "capability evidence manual write"
+    command: "rg -n 'write_capability_evidence' .cursor/rules/ || true"
+    expect: "no instruction directing agents to write capability evidence"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — grep control confirms execution_evidence_write_deny_reason is wired in WritePolicyAdapter and active in pretool."
+    verify: "rg -n 'execution_evidence_write_deny_reason' harness/hooks/pretool_policy.py"
+  - id: cp2
+    criterion: "Kind B — pretool gate denies agent Write/Edit across back, front, and integration execution paths."
+    verify: "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -k 'execution_evidence' -q --tb=line"
+  - id: cp3
+    criterion: "Kind C — unprovenanced or forged capability evidence is rejected at finish validation."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py -k 'test_forged_capability_evidence or test_valid_capability_evidence' -q --tb=line"
+  - id: cp4
+    criterion: "All TM-I2-077-01 through TM-I2-077-05 scenarios pass and I1 verifier receipts remain intact."
+    verify: "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line"
+tdd:
+  - "green: full integration and regression test matrix passes"

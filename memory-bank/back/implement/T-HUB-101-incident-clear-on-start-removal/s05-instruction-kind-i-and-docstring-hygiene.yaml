@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s05 — instruction-kind-i-and-docstring-hygiene — clean up Kind I instructions
+  and docstrings IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s05-instruction-kind-i-and-docstring-hygiene.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- 'loop/context_loop.py: updated help string for incident-clear-open to explicit operator
+  action'
+- 'loop/incidents/store.py: updated docstring of resolve_all_open_incidents to reflect
+  explicit operator action'
+gaps:
+  status: none
+done:
+- Updated CLI parser help text for incident-clear-open in loop/context_loop.py
+- Updated docstring for resolve_all_open_incidents in loop/incidents/store.py
+- Verified absence of legacy auto-clear phrasing across loop/
+files:
+- loop/context_loop.py
+- loop/incidents/store.py
+deletes:
+- Kind I фразы о сбросе инцидентов при старте loop
+tests:
+- bin/pytest loop/tests/test_incidents_cli.py -q --tb=line
+- bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_incidents_cli.py loop/tests/test_incidents_schema_store.py
+  -q --tb=line
+grep_control: []
+verification_results:
+- '{"command": "bin/pytest loop/tests/test_incidents_cli.py -q --tb=line", "outcome":
+  "PASS", "passed": 8}'
+- '{"command": "bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line",
+  "outcome": "PASS", "passed": 7}'
+- '{"command": "bin/pytest loop/tests/test_incidents_cli.py loop/tests/test_incidents_schema_store.py
+  -q --tb=line", "outcome": "PASS", "passed": 15}'
+checkpoints:
+- id: cp1
+  criterion: Справка CLI и docstrings не содержат упоминаний автоматической очистки
+    инцидентов на старте
+  status: done
+- id: cp2
+  criterion: Парсинг аргументов CLI контекстного цикла работает корректно
+  status: done

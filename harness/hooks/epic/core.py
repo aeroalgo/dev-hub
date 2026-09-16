@@ -1020,6 +1020,32 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
         }:
             phase = armed_phase
             if armed_phase == "ANALYZE" and epic_id and role_dir and idx is not None:
+                from loop.decompose_gate import decompose_verify_pass_ready
+
+                verify = decompose_verify_pass_ready(cwd_p, state)
+                gate_diagnostic = str(state.get("gate_diagnostic") or "").strip()
+                decompose_gate_failed = gate_diagnostic in {
+                    "verify_spawn_missing",
+                    "verify_runtime_error",
+                    "verify_runtime_unsupported_tool",
+                    "verify_runtime_collaboration_wait_timeout",
+                    "verify-decompose_pass_missing",
+                } or str(state.get("repair_required") or "").strip() == "gate-repair"
+                decompose_transition = (
+                    str(state.get("last_finished_step") or "").strip().upper()
+                    == "DECOMPOSE"
+                    or decompose_gate_failed
+                )
+                if decompose_transition and not verify.get("ok"):
+                    phase = "DECOMPOSE"
+                    state["armed_step"] = "DECOMPOSE"
+                    state["phase"] = "DECOMPOSE"
+                    state["loop_phase"] = "DECOMPOSE"
+                    state["gate_diagnostic"] = str(
+                        verify.get("diagnostic") or "verify-decompose_pass_missing"
+                    )
+                    state.pop("armed_after_finish", None)
+            if phase == "ANALYZE" and epic_id and role_dir and idx is not None:
                 from analyze_gate import analyze_required_before_implement
 
                 gate = analyze_required_before_implement(

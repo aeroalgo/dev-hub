@@ -1,0 +1,101 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: s05 — legacy-fallback-purge — sunset inventory scan, purge dead unwired paths,
+  and full integration regression verification IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Executed sunset inventory scan across harness/hooks/ confirming zero unwired caller
+  bypasses.
+- Verified Kind A search scope gating is solely is_context_policy_active and zero
+  is_epic_loop_env search gates remain in pretool_policy.py.
+- Verified Kind B entrypoint inventory confirming TestFingerprintCache is imported
+  and actively evaluated in BashPolicyAdapter.
+- Verified Kind C anti-fallback posttool invalidation confirming WritePostToolAdapter
+  calls TestFingerprintCache.invalidate_path upon write and edit events.
+- Verified Kind I instruction surfaces confirming zero forbidden prose instructions.
+- Executed and validated complete regression test suites for context ledger, scope
+  policy, adapters, and posttool dispatch covering TM-I2-078-01..06.
+files:
+- harness/hooks/context_scope.py
+- harness/hooks/pretool_policy.py
+- harness/hooks/posttool_policy.py
+- harness/hooks/tests/test_context_scope_policy.py
+deletes:
+- unwired standalone TestFingerprintCache branches in harness/hooks/context_scope.py
+- sole is_epic_loop_env search gating in harness/hooks/pretool_policy.py
+wire_complete:
+  call_sites:
+  - harness/hooks/pretool_policy.py:BashPolicyAdapter.evaluate -> evaluate_test_command
+    -> TestFingerprintCache.lookup
+  - harness/hooks/pretool_policy.py:BashPolicyAdapter.evaluate -> is_context_policy_active
+    + ScopeResolver.evaluate_search
+  - harness/hooks/posttool_policy.py:WritePostToolAdapter.evaluate -> TestFingerprintCache.invalidate_path
+  enforce_path: harness/hooks/pretool_policy.py
+  dual_path_rg: rg "is_context_policy_active" harness/hooks/pretool_policy.py
+  instruction_rg: rg "TestFingerprintCache" harness/hooks/pretool_policy.py harness/hooks/posttool_policy.py
+  deny_old_proven: true
+tests:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_context_ledger.py
+  harness/hooks/tests/test_context_ledger_adapters.py harness/hooks/tests/test_posttool_dispatch.py
+  -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_context_ledger.py
+  harness/hooks/tests/test_context_ledger_adapters.py harness/hooks/tests/test_posttool_dispatch.py
+  -q --tb=line`'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'cp1: rg -n "is_epic_loop_env() and is_search_command_line" returns empty (Kind
+  A passed)'
+- 'cp2: rg -n "TestFingerprintCache" in pretool_policy.py confirms import and usage
+  in evaluate_test_command (Kind B passed)'
+- 'cp3: rg -n "invalidate_path" in posttool_policy.py confirms WritePostToolAdapter
+  calls invalidate_path (Kind C passed)'
+- 'cp4: rg -n "search-by-convenience" in harness/ returns empty (Kind I passed)'
+- 'cp5: bin/pytest test_context_scope_policy.py test_posttool_dispatch.py passed (25
+  passed in 2.27s)'
+- 'cp6: bin/pytest test_context_ledger.py test_context_ledger_adapters.py test_context_scope_policy.py
+  test_posttool_dispatch.py passed (43 passed in 2.35s)'
+checkpoints:
+- id: cp1
+  criterion: Kind A — grep control confirms search scope gating is replaced by is_context_policy_active.
+  status: done
+- id: cp2
+  criterion: Kind B — entrypoint inventory confirms TestFingerprintCache is evaluated
+    in BashPolicyAdapter.
+  status: done
+- id: cp3
+  criterion: Kind C — anti-fallback check confirms WritePostToolAdapter calls invalidate_path.
+  status: done
+- id: cp4
+  criterion: Kind I — instruction surfaces check confirms no stale prose instructions.
+  status: done
+- id: cp5
+  criterion: Obsolete test assert checks pass and test suite fixtures run green.
+  status: done
+- id: cp6
+  criterion: Full context ledger and scope regression suite is green (TM-I2-078-01..06
+    and TM-078-01..11).
+  status: done
+resume_from: none

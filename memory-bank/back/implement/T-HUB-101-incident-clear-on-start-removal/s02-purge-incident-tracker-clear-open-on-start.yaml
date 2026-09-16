@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-101-incident-clear-on-start-removal
+title: s02 — s02 — purge-incident-tracker-clear-open-on-start — remove clear_open_on_start
+  method and align store defaults IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-101-incident-clear-on-start-removal/yaml/steps/s02-purge-incident-tracker-clear-open-on-start.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Удален метод clear_open_on_start из IncidentTracker в loop/runner/orchestrator.py
+- Обновлены значения по умолчанию в resolve_all_open_incidents (resolution_action="operator_bulk_clear",
+  resolution_tier="operator_action") в loop/incidents/store.py
+- Обновлен help-текст команды incident-clear-open в loop/context_loop.py
+files:
+- loop/runner/orchestrator.py
+- loop/incidents/store.py
+- loop/context_loop.py
+deletes:
+- IncidentTracker.clear_open_on_start
+- 'resolution_action: clear_open_on_loop_start default'
+tests:
+- python3 -c "from loop.runner.orchestrator import IncidentTracker; assert not hasattr(IncidentTracker,
+  'clear_open_on_start')"
+- python3 -c "from loop.incidents.store import resolve_all_open_incidents; import
+  inspect; sig = inspect.signature(resolve_all_open_incidents); assert 'resolution_action'
+  in sig.parameters"
+- python3 -m py_compile loop/runner/orchestrator.py loop/incidents/store.py loop/context_loop.py
+- bin/pytest loop/tests/test_incidents_cli.py -q --tb=line
+integration_check:
+- python3 -m py_compile loop/runner/orchestrator.py loop/incidents/store.py loop/context_loop.py
+  && bin/pytest loop/tests/test_incidents_cli.py -q --tb=line
+grep_control: []
+verification_results:
+- '{''command'': ''python3 -c "from loop.runner.orchestrator import IncidentTracker;
+  assert not hasattr(IncidentTracker, \''clear_open_on_start\'')"'', ''status'': ''pass''}'
+- '{''command'': ''python3 -c "from loop.incidents.store import resolve_all_open_incidents;
+  import inspect; sig = inspect.signature(resolve_all_open_incidents); assert \''resolution_action\''
+  in sig.parameters"'', ''status'': ''pass''}'
+- '{''command'': ''bin/pytest loop/tests/test_incidents_cli.py -q --tb=line'', ''status'':
+  ''pass''}'
+checkpoints:
+- id: cp1
+  criterion: Метод clear_open_on_start полностью отсутствует в IncidentTracker
+  status: done
+- id: cp2
+  criterion: resolve_all_open_incidents доступен и валиден для операторского вызова
+  status: done

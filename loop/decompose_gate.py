@@ -93,6 +93,22 @@ def phase_verify_pass_ready(
     if not need_verify or not verify_agent:
         return {"ok": True, "diagnostic": "verify_not_required", "phase": phase_key}
 
+    runtime_gate_failed = str(st.get("gate_diagnostic") or "").strip() in {
+        "verify_spawn_missing",
+        "verify_runtime_error",
+        "verify_runtime_unsupported_tool",
+        "verify_runtime_collaboration_wait_timeout",
+        "reviewer_spawn_missing",
+    } or str(st.get("repair_required") or "").strip() == "gate-repair"
+    if runtime_gate_failed:
+        return {
+            "ok": False,
+            "diagnostic": f"{verify_agent}_pass_missing",
+            "reason": f"{phase_key} promotion/finish blocked by unresolved gate runtime failure",
+            "phase": phase_key,
+            "verify_agent": verify_agent,
+        }
+
     verdict = str(st.get("last_verify_verdict") or "").strip().upper()
     evidence = st.get("last_verify_evidence") or st.get("last_verify_receipt") or {}
     if not isinstance(evidence, dict):
@@ -120,7 +136,7 @@ def phase_verify_pass_ready(
             "phase": phase_key,
             "verify_agent": verify_agent,
         }
-    if agent_id and agent_id != verify_agent and session_verdict != "PASS":
+    if agent_id and agent_id != verify_agent:
         return {
             "ok": False,
             "diagnostic": f"{verify_agent}_pass_missing",

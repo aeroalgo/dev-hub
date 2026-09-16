@@ -2955,6 +2955,21 @@ def bash_gate_state_write_deny_reason(command: str | None) -> str | None:
     )
 
 
+_EXECUTION_EVIDENCE_BASH_RE = re.compile(
+    r"""(?i)(?:^|[\s/\'"])memory-bank/(?:back|front|integration)/execution/[^/\s\'"]+/[^/\s\'"]+/capability-[^/\s\'"]+\.json"""
+)
+
+
+def bash_execution_evidence_write_deny_reason(command: str | None) -> str | None:
+    """Deny shell write/edit/rm/truncate commands targeting capability execution evidence."""
+    if not command or not _EXECUTION_EVIDENCE_BASH_RE.search(str(command)):
+        return None
+    cmd = str(command)
+    if not _RUNTIME_GATE_MUTATOR_RE.search(cmd):
+        return None
+    return _EXECUTION_EVIDENCE_DENY_MSG
+
+
 # Discard working-tree dirty via git — FORBIDDEN in epic loop (foreign dirty ≠ scope).
 _GIT_DISCARD_DIRTY_RE = re.compile(
     r"(?is)(?:^|[\s;|&'`\"(])git\s+"
@@ -3022,6 +3037,39 @@ def is_active_context_path(path: str | Path | None) -> bool:
     return name == _ACTIVE_CONTEXT_BASENAME
 
 
+_EXECUTION_EVIDENCE_PATH_RE = re.compile(
+    r"^memory-bank/(?:back|front|integration)/execution/[^/]+/[^/]+/capability-[^/]+\.json$"
+)
+
+_EXECUTION_EVIDENCE_DENY_MSG = (
+    "execution_evidence_write_denied: capability evidence files are runtime-generated "
+    "and cannot be mutated by agents (execution_evidence_write_forbidden)."
+)
+
+
+def execution_evidence_write_deny_reason(
+    cwd: str | Path, file_path: str | Path | None
+) -> str | None:
+    """Deny direct agent tool Write/Edit targeting capability execution evidence sidecars.
+
+    O(1) path-safe check against memory-bank/{back,front,integration}/execution/{epic_id}/{step_id}/capability-*.json.
+    Protected against path traversal outside the project root.
+    """
+    if not file_path:
+        return None
+    path = Path(file_path)
+    cwd_p = Path(cwd).resolve()
+    if not path.is_absolute():
+        path = cwd_p / path
+    try:
+        rel = path.resolve().relative_to(cwd_p).as_posix()
+    except ValueError:
+        return None
+    if not _EXECUTION_EVIDENCE_PATH_RE.match(rel):
+        return None
+    return _EXECUTION_EVIDENCE_DENY_MSG
+
+
 def active_context_write_deny_reason(
     cwd: str | Path,
     file_path: str | Path | None,
@@ -3035,7 +3083,10 @@ def active_context_write_deny_reason(
         # loop artifacts too.  The pre-tool hook historically called this
         # helper first, so callers that use it directly must receive the same
         # decision as the hook without duplicating the event-ledger lookup.
-        return recorded_artifact_write_deny_reason(cwd, file_path)
+        reason = recorded_artifact_write_deny_reason(cwd, file_path)
+        if not reason:
+            reason = execution_evidence_write_deny_reason(cwd, file_path)
+        return reason
     epic_id = None
     phase = None
     step = None

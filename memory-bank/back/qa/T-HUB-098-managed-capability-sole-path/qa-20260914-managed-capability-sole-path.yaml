@@ -1,0 +1,47 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-098-managed-capability-sole-path
+plan_id: T-HUB-098-managed-capability-sole-path
+epic_id: T-HUB-098-managed-capability-sole-path
+date: '2026-09-14'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 02144d50a0a35c09cd156e13790746294dc5beb28c533d7ec57a38dbd73f7bea
+verify_scope: full
+
+scope:
+  - "task: T-HUB-098-managed-capability-sole-path"
+  - "epic: T-HUB-098-managed-capability-sole-path"
+  - "steps: s01–s05"
+  - "files: loop/stack_profiles/context.py, loop/stack_profiles/schemas.py, loop/stack_profiles/evidence.py, loop/stack_profiles/execution.py, loop/context_loop.py, harness/hooks/epic_yaml.py, loop/tests/test_stack_profile_classifier.py, loop/tests/test_stack_profile_evidence.py, loop/tests/test_stack_profile_execution_integration.py, harness/hooks/tests/test_epic_yaml_capability_checks.py, harness/hooks/tests/test_epic_yaml_capability_evidence.py, loop/tests/test_stack_profiles_integration.py"
+
+ac_plus:
+  - "TM-I2-076-01: Managed root + shard only hub tests: → finish denied (HALT managed_verification_requires_capability_checks)"
+  - "TM-I2-076-02: Managed armed step no capability_checks → check_after halt (halt payload; no green continuation)"
+  - "TM-I2-076-03: Agent-forged sidecar with succeeded status → finish denied (capability_evidence_non_authoritative)"
+  - "TM-I2-076-04: Hub root without manifest + hub tests → finish still valid (green; no capability requirement)"
+  - "TM-I2-076-05: Executor-written sidecar with provenance → finish accepts (green with matching declaration)"
+
+ac_minus:
+  - "No managed→hub fallback: presence of `dev-hub.project.yaml` MUST NOT allow hub `tests:` as sole verification."
+  - "No silent pass when `_enforce_capability_checks_for_armed_step` sees managed shard without checks."
+  - "No finish PASS on agent-written capability JSON regardless of fingerprint/status match."
+  - "No new optional flag default-off that re-enables hub fallback for managed roots."
+  - "No breaking hub self-test path when manifest absent."
+  - "No scope creep into 077 write-deny implementation, 078 test cache, 080 agents inventory."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (2910 passed, 4 skipped in 112.60s)"
+  - "integration rule (§0.11) — zero dangling references"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 2910 passed, 4 skipped in 112.60s (0:01:52)"

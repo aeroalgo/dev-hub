@@ -1,0 +1,230 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-099-execution-evidence-write-deny
+slug: execution-evidence-write-deny
+date: '2026-09-14'
+status: complete
+index_fingerprint: sha256:a5a399981784b6a80abb74eb514e385712cf1619151ecaa7bb1e4b16237a4bad
+findings: []
+coverage:
+- requirement_id: US-I2-001
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Как security boundary, я блокирую agent Write/Edit capability
+    sidecar до записи на диск.
+- requirement_id: US-I2-002
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как finish gate, я не принимаю capability JSON, появившийся
+    минуя executor, даже если deny обошли через shell heredoc.
+- requirement_id: US-I2-003
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как operator, я сохраняю I1 verifier receipt integrity — новый
+    deny не ломает runtime gate JSON paths.
+- requirement_id: US-I2-001 (AS)
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: 'Write deny on execution evidence: Write/Edit to `memory-bank/<role>/execution/<epic_id>/<step_id>/capability-<fingerprint>.json`
+    returns DENY before tool execution.'
+- requirement_id: US-I2-002 (AS)
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: 'deny covers role variants: paths under `memory-bank/back/execution/`,
+    `memory-bank/front/execution/`, `memory-bank/integration/execution/` denied uniformly.'
+- requirement_id: US-I2-003 (AS)
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: finish read rejects non-authoritative capability evidence lacking
+    executor `provenance_source`.
+- requirement_id: US-I2-004 (AS)
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: 'I1 gate receipts unaffected: existing runtime gate JSON receipt
+    integrity checks pass.'
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Extend `recorded_artifact_write_deny_reason` (or dedicated sibling
+    `execution_evidence_write_deny_reason`) to match `memory-bank/{back,front,integration}/execution/{epic_id}/{step_id}/capability-*.json`
+    using path-safe glob/regex; return stable deny string.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Wire new deny into `WritePolicyAdapter.evaluate` in `pretool_policy.py`
+    before other allows; Write and Edit aliases covered.
+- requirement_id: FR-003
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Deny MUST apply to agent tool boundary for all roles; executor/check-after
+    write path MUST remain allowed via allowlist (hook identity, subprocess writer,
+    or temp-file atomic replace from trusted caller — exact mechanism in DECOMPOSE,
+    but outcome is sole mutator).
+- requirement_id: FR-004
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Integrate finish/read non-authoritative rejection for capability
+    sidecars missing valid executor provenance (delegate to `read_capability_evidence`
+    from 076; 077 adds hook-level tests proving agent cannot establish authority via
+    Write).
+- requirement_id: FR-005
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Preserve I1 verifier receipt enforcement (FR-001…I1 FR-005);
+    no regression on TM-077-01…05; no new manual PASS paths.
+- requirement_id: NFR-001
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Deny reason strings MUST be machine-stable for pretool telemetry
+    and agent additionalContext.
+- requirement_id: NFR-002
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Path matching MUST use resolved relative path under project
+    root; no directory traversal bypass.
+- requirement_id: NFR-003
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: 'Performance: deny check is O(1) regex on path, no full events.jsonl
+    scan for execution paths.'
+- requirement_id: NFR-004
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: 'Provider parity: Claude pretool and Codex bridge route through
+    same `WritePolicyAdapter`.'
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: No agent Write/Edit success on capability execution sidecar
+    paths in pretool fixtures.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No finish PASS solely because forged sidecar exists with succeeded
+    status.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: No regression of I1 verifier receipt deny paths (runtime gate
+    JSON still governed by I1 rules).
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No implementation of managed->hub fallback fix (076 scope).
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No scope into TestFingerprintCache or clear_open_on_start.
+- requirement_id: TM-I2-077-01
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Agent Write capability sidecar denied
+- requirement_id: TM-I2-077-02
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Agent Edit existing capability sidecar denied
+- requirement_id: TM-I2-077-03
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Forged sidecar without provenance → finish fail
+- requirement_id: TM-I2-077-04
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: I1 verifier receipt positive path regression
+- requirement_id: TM-I2-077-05
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Executor/check-after write path still permitted
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

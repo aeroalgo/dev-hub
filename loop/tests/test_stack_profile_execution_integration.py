@@ -5,6 +5,8 @@ import subprocess
 import pytest
 import yaml
 
+from loop.context_loop import check_after, _enforce_capability_checks_for_armed_step
+from loop.stack_profiles.evidence import read_capability_evidence
 from loop.stack_profiles.execution import (
     CapabilityCheckSpec,
     execute_capability,
@@ -138,3 +140,166 @@ def test_executor_runs_each_explicit_python_rust_and_javascript_target_once(tmp_
         assert res.ok is True
 
     assert run_counts == {"api": 1, "worker": 1, "web": 1}
+
+
+def test_managed_missing_checks_halt(tmp_path: Path):
+    """Managed workspace armed step lacking capability_checks produces HALT managed_verification_requires_capability_checks."""
+    project_root = create_polyglot_project(tmp_path)
+
+    role = "back"
+    epic_id = "T-HUB-098"
+    step_id = "s03"
+
+    # Decompose index
+    decomp_index_rel = f"memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml"
+    (project_root / decomp_index_rel).parent.mkdir(parents=True, exist_ok=True)
+    (project_root / decomp_index_rel).write_text(
+        f"schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic_id}\n"
+        f"steps:\n"
+        f"  - id: {step_id}\n"
+        f"    file: {step_id}-test.yaml\n"
+        f"    title: Step {step_id}\n"
+        f"    status: pending\n",
+        encoding="utf-8",
+    )
+
+    # Shard lacking capability_checks
+    shard_missing_checks = (
+        "schema: epic-decompose/v1\n"
+        f"role: {role}\n"
+        f"step_id: {step_id}\n"
+        f"plan_id: {epic_id}\n"
+        "title: test missing checks\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "needs_creative: 'no'\n"
+        "goal: test\n"
+        "context: {}\n"
+        "delta: []\n"
+        "deletes: []\n"
+        "out_of_scope: []\n"
+        "skills: {}\n"
+        "checkpoints: []\n"
+        "tdd: []\n"
+    )
+    s_path = project_root / f"memory-bank/{role}/plan/{epic_id}/yaml/steps/{step_id}-test.yaml"
+    s_path.parent.mkdir(parents=True, exist_ok=True)
+    s_path.write_text(shard_missing_checks, encoding="utf-8")
+
+    res = _enforce_capability_checks_for_armed_step(
+        project_root,
+        decompose=decomp_index_rel,
+        step_id=step_id,
+        state={"role": role, "armed_epic": epic_id},
+    )
+    assert res is not None
+    assert res.get("ok") is False
+    assert res.get("halt") is True
+    assert res.get("diagnostic_code") == "managed_verification_requires_capability_checks"
+    assert "managed_verification_requires_capability_checks" in res.get("diagnostic_codes", [])
+
+    # In hub mode (no dev-hub.project.yaml), missing capability_checks is not halted
+    (project_root / "dev-hub.project.yaml").unlink()
+    res_hub = _enforce_capability_checks_for_armed_step(
+        project_root,
+        decompose=decomp_index_rel,
+        step_id=step_id,
+        state={"role": role, "armed_epic": epic_id},
+    )
+    assert res_hub is None
+
+
+def test_check_after_provenance_success(tmp_path: Path, monkeypatch):
+    """check_after writes capability evidence with valid provenance and permits continuation on matching capability pass."""
+    project_root = create_polyglot_project(tmp_path)
+
+    role = "back"
+    epic_id = "T-HUB-098"
+    step_id = "s03"
+
+    decomp_index_rel = f"memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml"
+    (project_root / decomp_index_rel).parent.mkdir(parents=True, exist_ok=True)
+    (project_root / decomp_index_rel).write_text(
+        f"schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic_id}\n"
+        f"steps:\n"
+        f"  - id: {step_id}\n"
+        f"    file: {step_id}-test.yaml\n"
+        f"    title: Step {step_id}\n"
+        f"    status: pending\n",
+        encoding="utf-8",
+    )
+
+    shard_with_checks = (
+        "schema: epic-decompose/v1\n"
+        f"role: {role}\n"
+        f"step_id: {step_id}\n"
+        f"plan_id: {epic_id}\n"
+        "title: test check after success\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "needs_creative: 'no'\n"
+        "goal: test\n"
+        "context: {}\n"
+        "delta: []\n"
+        "deletes: []\n"
+        "out_of_scope: []\n"
+        "skills: {}\n"
+        "checkpoints: []\n"
+        "tdd: []\n"
+        "capability_checks:\n"
+        "  - capability: test.full\n"
+        "    target: api\n"
+    )
+    s_path = project_root / f"memory-bank/{role}/plan/{epic_id}/yaml/steps/{step_id}-test.yaml"
+    s_path.parent.mkdir(parents=True, exist_ok=True)
+    s_path.write_text(shard_with_checks, encoding="utf-8")
+
+    ac_text = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        f"role: {role.upper()}\n"
+        "mode: IMPLEMENT\n"
+        f"epic_id: {epic_id}\n"
+        f"step_id: {step_id}\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{step_id}-test.yaml]({role}/plan/{epic_id}/yaml/steps/{step_id}-test.yaml)\n\n"
+        f"## Handoff BACK IMPLEMENT\n"
+        f"- **Следующий:** `BACK IMPLEMENT {step_id}`\n"
+    )
+    (project_root / "memory-bank" / "activeContext.md").write_text(ac_text, encoding="utf-8")
+
+    from harness.hooks.epic import save_epic_state, load_epic_state
+    st = load_epic_state(project_root)
+    st["active"] = True
+    st["armed_epic"] = epic_id
+    st["armed_step"] = step_id
+    st["role"] = role.upper()
+    st["armed_decompose"] = decomp_index_rel
+    save_epic_state(project_root, st)
+
+    class MockProcess:
+        def __init__(self, argv, cwd=None, shell=False, stdout=None, stderr=None, **kwargs):
+            self.returncode = 0
+
+        def communicate(self, timeout=None):
+            return (b"ok", b"")
+
+    monkeypatch.setattr(subprocess, "Popen", MockProcess)
+
+    res = check_after(project_root)
+    assert res.get("ok") is True
+    assert res.get("halt") is not True
+
+    spec = CapabilityCheckSpec(target="api", capability=CapabilityName.TEST_FULL)
+    evidence = read_capability_evidence(
+        project_root,
+        role=role,
+        epic_id=epic_id,
+        step_id=step_id,
+        declaration=spec,
+    )
+    assert evidence is not None
+    assert evidence.provenance_source == "executor"
+    assert evidence.status == "succeeded"
+    assert evidence.exit_code == 0

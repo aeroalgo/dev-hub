@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-100-context-fingerprint-search-wire
+title: s01 — red-tests-fingerprint-and-search-scope — red fixtures for test cache
+  pretool wiring, posttool invalidation, and search scope outside EPIC_LOOP IMPLEMENT
+status: completed
+date: '2026-09-15'
+decompose_ref: memory-bank/back/plan/T-HUB-100-context-fingerprint-search-wire/yaml/steps/s01-red-tests-fingerprint-and-search-scope.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added TDD red fixtures in harness/hooks/tests/test_context_scope_policy.py for search
+  outside scope denial outside EPIC_LOOP, is_context_policy_active predicate, subagent
+  search parity, and BashPolicyAdapter TestFingerprintCache lookup.
+- Added TDD red fixtures in harness/hooks/tests/test_posttool_dispatch.py for WritePostToolAdapter
+  invalidating TestFingerprintCache on file edits.
+- Verified cp3 baseline test fixtures for context ledger duplicate-read and plan-jump
+  policies remain green.
+files:
+- harness/hooks/tests/test_context_scope_policy.py
+- harness/hooks/tests/test_posttool_dispatch.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_posttool_dispatch.py
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py -k "test_bash_pretool_test_cache
+  or test_search_outside_scope_non_loop" -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_posttool_dispatch.py -k "test_write_posttool_invalidates_test_cache"
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py
+  -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_context_scope_policy.py harness/hooks/tests/test_posttool_dispatch.py
+  -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py
+  -q --tb=line`'
+grep_control: []
+verification_results:
+- 'cp1: 3 xfailed in test_context_scope_policy.py confirming red fixtures for Bash
+  pretool test cache lookup and search scope denial'
+- 'cp2: 1 xfailed in test_posttool_dispatch.py confirming red fixture for posttool
+  edit cache invalidation'
+- 'cp3: 18 passed in test_context_ledger.py and test_context_ledger_adapters.py for
+  duplicate-read and plan-jump regression'
+- 'total: 18 passed, 7 xfailed across test_context_scope_policy.py and test_posttool_dispatch.py'
+checkpoints:
+- id: cp1
+  criterion: Bash pretool test command lookup and search scope deny fail as red fixtures
+    on un-wired codebase.
+  status: done
+- id: cp2
+  criterion: Posttool file edit invalidation fails as red fixture on un-wired codebase.
+  status: done
+- id: cp3
+  criterion: Existing I1 ledger duplicate-read and plan-jump test suite remains green.
+  status: done
+resume_from: none

@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-098-managed-capability-sole-path
+title: s01 — s01 — context-classifier — pure project verification context classifier
+  IMPLEMENT
+status: completed
+date: '2026-09-14'
+decompose_ref: memory-bank/back/plan/T-HUB-098-managed-capability-sole-path/yaml/steps/s01-context-classifier.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented pure classify_project_verification_context in loop/stack_profiles/context.py
+- Added unit tests covering managed, hub, corrupt/invalid manifests, and env bypass
+  in loop/tests/test_stack_profile_classifier.py
+files:
+- loop/stack_profiles/context.py
+- loop/tests/test_stack_profile_classifier.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_stack_profile_classifier.py -q`'
+integration_check:
+- loop/tests/test_stack_profile_classifier.py verifies classify_project_verification_context
+  pure classifier behavior
+grep_control:
+- back: loop/stack_profiles/context.py
+  front: classify_project_verification_context
+verification_results:
+- 'cp1: bin/pytest loop/tests/test_stack_profile_classifier.py -q -k test_classify_managed
+  -> PASS'
+- 'cp2: bin/pytest loop/tests/test_stack_profile_classifier.py -q -k test_classify_hub_and_corrupt
+  -> PASS'
+checkpoints:
+- id: cp1
+  criterion: classify_project_verification_context returns 'managed' when valid dev-hub.project.yaml
+    exists at root
+  status: done
+- id: cp2
+  criterion: classify_project_verification_context returns 'hub' when manifest is
+    absent and fails closed on invalid manifest
+  status: done
+resume_from: cp1
