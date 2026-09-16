@@ -1,0 +1,76 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s01 — verify zero prod callers and freeze oracle baseline
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Верифицировать отсутствие prod-вызовов модели `LoopEvent` и модуля `loop/schemas/event.py` (0 prod callers).
+  Подтвердить полноту и прохождение набора тестов `loop/tests/test_event_v2_characterization.py` как freeze oracle.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-005
+    - US-001
+    - SC-001
+    - SC-002
+  nouns:
+    - loop/schemas/event.py
+    - harness/hooks/epic_events.py
+    - loop/tests/test_event_v2_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s01-verify-callers-and-characterization-baseline.yaml
+  ac_quotes:
+    - "rg: no loop.schemas.event; characterization PASS"
+    - "sole kinds/validate owner; behavior unchanged vs freeze oracle"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:55-85
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#baseline-scan-scope-b
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#consolidation-clusters
+  produces:
+    - audit evidence of zero prod callers for LoopEvent
+    - freeze oracle baseline verification evidence
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#fr-001
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#fr-005
+  files:
+    - loop/tests/test_event_v2_characterization.py
+
+as_built:
+  - "harness/hooks/epic_events.py содержит канонический валидатор validate_event и полный набор EVENT_KINDS (17 видов)"
+  - "loop/schemas/event.py содержит модель LoopEvent и устаревший EVENT_KINDS (16 видов)"
+
+delta:
+  - "Аудит grep по кодовой базе подтверждает, что LoopEvent не используется в prod-логике (только __init__.py и test_schemas_event.py)"
+  - "Фиксация freeze oracle прогона на test_event_v2_characterization.py"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Grep-контроль подтверждает отсутствие вызовов LoopEvent вне loop/schemas/ и loop/tests/test_schemas_event.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'LoopEvent', 'loop/', 'harness/'], capture_output=True, text=True); lines = [l for l in res.stdout.splitlines() if not any(x in l for x in ['loop/schemas/event.py', 'loop/schemas/__init__.py', 'loop/tests/test_schemas_event.py', 'loop/schemas/README.md'])]; sys.exit(0 if not lines else 1)\""
+  - id: cp2
+    criterion: Freeze oracle сьют test_event_v2_characterization.py проходит успешно
+    verify: "bin/pytest loop/tests/test_event_v2_characterization.py -q"
+
+verify: []
+tdd: []

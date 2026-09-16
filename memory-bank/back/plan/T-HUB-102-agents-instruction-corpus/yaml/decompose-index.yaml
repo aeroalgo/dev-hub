@@ -1,0 +1,39 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-102-agents-instruction-corpus
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 1
+  cut_list:
+  - cosmetic rules wording already green
+  - 076 executor changes
+  - 077 evidence schema
+  - 079 incident clearing
+  - 078 fingerprint cache
+  - runtime dashboard
+steps:
+- id: s01
+  file: s01-agents-corpus-discovery-inventory.yaml
+  title: Agents corpus discovery and regression guard in instruction inventory test
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-verify-implement-branch-rewrite.yaml
+  title: verify-implement agent instruction branch qualification rewrite
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-verify-bugfix-gate-repair-branch-rewrite.yaml
+  title: verify-bugfix and gate-repair agent instructions branch qualification rewrite
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-verify-qa-and-agents-parity-scan.yaml
+  title: verify-qa and remaining agents instruction scan and parity rewrite
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: Full sunset inventory scan, legacy fallback purge, and regression verification
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -3325,6 +3325,15 @@ def check_after(
         "fingerprint_repair": fingerprint_repair,
         "post_implement_phase": post_phase,
     }
+    if post_phase == "DONE":
+        return _run_tier0_check_after(
+            cwd_p,
+            {
+                **res,
+                **_epic_done_stop_result(cwd_p),
+                "post_implement_phase": post_phase,
+            },
+        )
     return _run_tier0_check_after(cwd_p, res)
 
 

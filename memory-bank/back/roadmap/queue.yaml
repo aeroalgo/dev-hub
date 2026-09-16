@@ -1,12 +1,18 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-102
-  epic_id: T-HUB-102-agents-instruction-corpus
-  plan: plan-T-HUB-102-agents-instruction-corpus.md
+- id: T-HUB-104
+  epic_id: T-HUB-104-plan-path-classifier-dedup
+  plan: plan-T-HUB-104-plan-path-classifier-dedup.md
   deps: []
-  kind: feature
-  batch: replan-spawn-075-080-20260914
+  kind: refactor
+  batch: plan-refactor-leftover-20260916
+- id: T-HUB-105
+  epic_id: T-HUB-105-roadmap-legacy-source-purge
+  plan: plan-T-HUB-105-roadmap-legacy-source-purge.md
+  deps: []
+  kind: refactor
+  batch: plan-refactor-leftover-20260916
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -488,6 +494,16 @@ done:
   kind: feature
   plan: plan-T-HUB-101-incident-clear-on-start-removal.md
   batch: replan-spawn-075-080-20260914
+- id: T-HUB-102
+  epic_id: T-HUB-102-agents-instruction-corpus
+  kind: feature
+  plan: plan-T-HUB-102-agents-instruction-corpus.md
+  batch: replan-spawn-075-080-20260914
+- id: T-HUB-103
+  epic_id: T-HUB-103-event-schema-sot-unify
+  kind: refactor
+  plan: plan-T-HUB-103-event-schema-sot-unify.md
+  batch: plan-refactor-leftover-20260916
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
@@ -576,3 +592,9 @@ batches:
     note: Parents 075–080 stay in done:. Tracking via plan/<parent>/md/replan-i2.yaml
       (skip|complete + parent_prompt + spawned_epic_ids). Spawned 098–102 link Parent-prompt
       in plan header. 075=skip; 076→098, 077→099, 078→100, 079→101, 080→102.
+  plan-refactor-leftover-20260916:
+    title: Post-098–102 leftover twin/shim consolidation
+    note: T-HUB-103 event schema SoT; T-HUB-104 plan-path classifier + board_sync
+      helper; T-HUB-105 roadmap legacy source + orchestrator epic_dir; clarify skipped
+      (user forced PLAN REFACTOR); details in plan/<epic_id>/md/plan.md; Covering
+      in md/prompt.md

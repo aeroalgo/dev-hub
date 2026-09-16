@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-102-agents-instruction-corpus
+title: s03 — verify-bugfix and gate-repair agent instructions branch qualification
+  rewrite IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/yaml/steps/s03-verify-bugfix-gate-repair-branch-rewrite.yaml
+skills_used:
+- tdd
+discovery: []
+gaps:
+  status: none
+done:
+- 'Квалифицированы команды VERIFY и секция Bash в harness/agents/verify-bugfix.md:
+  Hub (dev-hub self-test) с bin/pytest и timeout 300s vs Managed projects с capability_checks
+  и typed execution evidence, с сохранением запрета на frontend-тесты для сабагента.'
+- 'Квалифицированы упоминания pytest в harness/agents/gate-repair.md: Hub (dev-hub
+  self-test) targeted bin/pytest и parent-only full-suite vs Managed projects capability_checks
+  и typed execution evidence, с сохранением запрета на frontend-тесты для сабагента.'
+- Добавлен тест test_verify_bugfix_and_gate_repair_instruction_parity в loop/tests/test_stack_profile_instruction_inventory.py.
+files:
+- harness/agents/verify-bugfix.md
+- harness/agents/gate-repair.md
+- loop/tests/test_stack_profile_instruction_inventory.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  'bugfix or gate_repair'
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+grep_control: []
+verification_results:
+- 22 passed
+checkpoints:
+- id: cp1
+  criterion: harness/agents/verify-bugfix.md содержит явную квалификацию Hub vs Managed
+    для VERIFY
+  status: done
+- id: cp2
+  criterion: harness/agents/gate-repair.md содержит явную квалификацию Hub vs Managed
+    для pytest
+  status: done
+resume_from: done

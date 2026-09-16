@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s04 — delete orphan loop/schemas/event.py module IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s04-delete-orphan-event-schema-module.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Убедились в отсутствии prod callers у loop.schemas.event, после чего удалили модуль
+  loop/schemas/event.py
+gaps:
+  status: none
+done:
+- Удален orphan-модуль loop/schemas/event.py
+- Проверено отсутствие живых импортов loop.schemas.event в loop/ и harness/
+files:
+- loop/schemas/event.py
+deletes:
+- loop/schemas/event.py
+tests:
+- bin/pytest loop/tests/test_event_v2_characterization.py -q
+- bin/pytest loop/tests/test_schemas_gate_verdict.py loop/tests/test_schemas_handoff.py
+  loop/tests/test_schemas_board.py loop/tests/test_schemas_checkpoint.py loop/tests/test_schemas_state.py
+  -q
+integration_check:
+- test ! -e loop/schemas/event.py
+- python3 -c "import os, sys; sys.exit(0 if not os.path.exists('loop/schemas/event.py')
+  else 1)"
+grep_control: []
+verification_results:
+- '{"command": "bin/pytest loop/tests/test_event_v2_characterization.py -q", "outcome":
+  "PASS (9 passed)"}'
+- '{"command": "bin/pytest loop/tests/test_schemas_gate_verdict.py loop/tests/test_schemas_handoff.py
+  loop/tests/test_schemas_board.py loop/tests/test_schemas_checkpoint.py loop/tests/test_schemas_state.py
+  -q", "outcome": "PASS (29 passed)"}'
+checkpoints:
+- id: cp1
+  criterion: Файл loop/schemas/event.py отсутствует на диске
+  status: done
+- id: cp2
+  criterion: Попытка импорта из loop.schemas.event падает с ModuleNotFoundError
+  status: done
+- id: cp3
+  criterion: Поиск импортов loop.schemas.event в loop/ и harness/ дает 0 результатов
+  status: done
+resume_from: cp1

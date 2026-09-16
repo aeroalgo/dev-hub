@@ -23,7 +23,7 @@ Parent **обязан** передать:
 
 | Секция | Обязательна |
 |--------|-------------|
-| `Suite results` | да (команды + кратко pass/fail) — **обязан** содержать full-repo pytest при `suite_scope: full` |
+| `Suite results` | да (команды + кратко pass/fail) — **обязан** содержать full-suite результат при `suite_scope: full` (Hub dev-hub self-test: full-repo pytest / Managed: capability_checks) |
 | `ALLOW READ` | да (≤40; plan / freeze source / touched paths) |
 | `## Frozen QA checklist` + `checklist_sha256` | да (machine SoT матрицы; inject loop / parent) |
 
@@ -35,8 +35,10 @@ Parent **обязан** передать:
 
 Parent передаёт `suite_scope` + ровно один suite-command. **Не перезапускай pytest.**
 
-- `suite_scope: full` → в Suite results обязана быть full-команда `bin/pytest -q --tb=line` (или `timeout 300s .venv/bin/pytest -q --tb=line`).
-- `suite_scope: targeted` (после BUGFIX без runtime-path changes) → допустим targeted path/nodeid; **FAIL** только если suite claims противоречат evidence или command отсутствует.
+- `suite_scope: full`:
+  - Hub (dev-hub self-test): в Suite results обязана быть full-команда `bin/pytest -q --tb=line` (или `timeout 300s .venv/bin/pytest -q --tb=line`).
+  - Managed projects: верификация выполняется строго через stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest / unmanaged commands.
+- `suite_scope: targeted` (после BUGFIX без runtime-path changes) → допустим targeted path/nodeid или targeted capability checks; **FAIL** только если suite claims противоречат evidence или command отсутствует.
 - Если `suite_scope` не указан — требуй full (fail-closed).
 
 **FAIL** (`suite_not_full`) на full-path, если full-команды нет. Не гоняй suite сам.

@@ -1,0 +1,146 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести полное сканирование инвентаря Replacement / sunset A+B+C+I.
+  Подтвердить отсутствие модуля `loop/schemas/event.py`, экспортов `LoopEvent`, `EVENT_KINDS`, `EVENT_SCHEMA`
+  из `loop/schemas/__init__.py`, устаревших тестов и ссылок в документации.
+  Выполнить верификацию freeze oracle и регрессионного сьюта валидации событий.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - SC-001
+    - SC-002
+    - SC-003
+    - US-001
+    - US-002
+    - AC− #1
+    - AC− #2
+    - AC− #3
+    - AC− #4
+  nouns:
+    - loop/schemas/event.py
+    - loop/schemas/__init__.py
+    - loop/schemas/README.md
+    - loop/tests/test_schemas_event.py
+    - loop/tests/test_event_v2_characterization.py
+    - harness/hooks/epic_events.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Нет dual EVENT_KINDS."
+    - "Нет silent PASS через orphan model."
+    - "Нет живых тестов, требующих удалённый LoopEvent."
+    - "Нет optional schema module рядом с epic_events."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:65-75
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:197-215
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#replacement--sunset
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/decompose-index.md
+  produces:
+    - верифицированный отчет об отсутствии устаревших символов/файлов и успешном прохождении тестов
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#replacement--sunset
+  files: []
+
+as_built:
+  - "Все предыдущие шаги s01-s05 удалили orphan-модуль, очистили экспорты, переписали тесты и обновили документацию"
+
+delta:
+  - "Исполнение проверок grep_control по категориям A, B, C, I"
+  - "Запуск регрессионного сьюта тестов событий и валидации"
+
+sunset_inventory:
+  - symbol: loop/schemas/event.py
+    kind: A
+    replacement: harness/hooks/epic_events.py
+    policy: delete in-epic
+    rg_scope: loop/schemas/
+    expect: file absent on disk; zero imports
+  - symbol: loop/schemas/__init__.py::LoopEvent
+    kind: B
+    replacement: epic_events.validate_event
+    policy: delete in-epic
+    rg_scope: loop/schemas/__init__.py
+    expect: symbol removed from __all__ and imports
+  - symbol: loop/tests/test_schemas_event.py
+    kind: C
+    replacement: loop/tests/test_event_v2_characterization.py
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: no tests asserting orphan LoopEvent model
+  - symbol: loop/schemas/README.md LoopEvent row
+    kind: I
+    replacement: harness/hooks/epic_events.py reference
+    policy: delete in-epic
+    rg_scope: loop/schemas/README.md
+    expect: zero references to loop/schemas/event.py
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: loop/schemas/event.py
+    command: 'rg -n "from loop.schemas.event|import LoopEvent" loop/ harness/ || true'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: loop/schemas/__init__.py::LoopEvent
+    command: 'rg -n "LoopEvent|EVENT_KINDS|EVENT_SCHEMA" loop/schemas/__init__.py || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: loop/tests/test_schemas_event.py
+    command: 'rg -n "LoopEvent" loop/tests/ || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: loop/schemas/README.md LoopEvent
+    command: 'rg -n "loop/schemas/event.py" loop/schemas/README.md || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — модуль loop/schemas/event.py отсутствует, 0 prod callers
+    verify: "python3 -c \"import os, sys; sys.exit(0 if not os.path.exists('loop/schemas/event.py') else 1)\""
+  - id: cp2
+    criterion: Kind B — экспорты LoopEvent, EVENT_KINDS, EVENT_SCHEMA удалены из loop/schemas/__init__.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'LoopEvent', 'loop/schemas/__init__.py'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp3
+    criterion: Kind C — отсутствуют тесты, требующие модель LoopEvent
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'LoopEvent', 'loop/tests/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp4
+    criterion: Kind I — реестр loop/schemas/README.md не содержит ссылок на loop/schemas/event.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'loop/schemas/event.py', 'loop/schemas/README.md'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp5
+    criterion: Freeze oracle и регрессионный сьют валидации событий проходят успешно
+    verify: "bin/pytest loop/tests/test_event_v2_characterization.py -q"
+
+verify: []
+tdd: []

@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s02 — rewrite and consolidate schema event tests to live SoT IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s02-rewrite-and-consolidate-schema-tests.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Rewrote loop/tests/test_schemas_event.py to use canonical epic_events validation
+  API and build_event instead of dead LoopEvent model
+- Verified zero references to LoopEvent in loop/tests/
+gaps:
+  status: none
+done:
+- Removed LoopEvent imports and model tests from loop/tests/test_schemas_event.py
+- Converted test_schemas_event.py to canonical epic_events validate_event and build_event
+  tests
+- Verified all event tests pass cleanly without LoopEvent dependency
+files:
+- loop/tests/test_schemas_event.py
+- loop/tests/test_event_v2_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_schemas_event.py loop/tests/test_event_v2_characterization.py
+  -q
+integration_check:
+- bin/pytest loop/tests/test_schemas_event.py loop/tests/test_event_v2_characterization.py
+  -q -> 15 passed
+grep_control:
+- back: rg -n 'LoopEvent' loop/tests/ -> 0 matches
+  front: N/A
+verification_results:
+- 'cp1: PASS (0 matches for LoopEvent in loop/tests/)'
+- 'cp2: PASS (15 passed across test_schemas_event.py and test_event_v2_characterization.py)'
+checkpoints:
+- id: cp1
+  criterion: В файлах тестов loop/tests/ отсутствуют импорты LoopEvent из loop.schemas
+  status: done
+  done_at: '2026-09-16T05:47:20Z'
+- id: cp2
+  criterion: Набор тестов событий и валидации проходит успешно
+  status: done
+  done_at: '2026-09-16T05:47:24Z'
+resume_from: cp1

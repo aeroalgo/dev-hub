@@ -1,0 +1,226 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-103-event-schema-sot-unify
+plan_id: T-HUB-103-event-schema-sot-unify
+date: '2026-09-16'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Unify loop-event schema to a single canonical source of truth in harness/hooks/epic_events.py,
+    deleting orphan loop/schemas/event.py and its exports while maintaining characterization
+    test baseline.
+  source: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#Outcome-summary
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 5
+  fr_satisfied: 5
+  sc_checked: 3
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+check_matrix:
+- source_ref: FR-001
+  status: pass
+  evidence: loop/schemas/event.py is deleted after confirming zero production callers
+    across repo.
+  verify: test ! -f loop/schemas/event.py && rg -n "from loop.schemas.event" loop/
+    harness/
+- source_ref: FR-002
+  status: pass
+  evidence: LoopEvent, EVENT_KINDS, and EVENT_SCHEMA exports removed from loop/schemas/__init__.py.
+  verify: rg -n "LoopEvent|EVENT_KINDS|EVENT_SCHEMA" loop/schemas/__init__.py
+- source_ref: FR-003
+  status: pass
+  evidence: loop/tests/test_schemas_event.py rewritten to import from canonical epic_events
+    SoT.
+  verify: rg -n "from epic_events import" loop/tests/test_schemas_event.py
+- source_ref: FR-004
+  status: pass
+  evidence: loop/schemas/README.md updated to point to harness/hooks/epic_events.py
+    for loop-event/v2 schema.
+  verify: rg -n "harness/hooks/epic_events.py" loop/schemas/README.md
+- source_ref: FR-005
+  status: pass
+  evidence: Live event kinds in harness/hooks/epic_events.py preserved without drift.
+  verify: rg -n "EVENT_KINDS" harness/hooks/epic_events.py
+- source_ref: US-001
+  status: pass
+  evidence: Maintainer validates events strictly through canonical epic_events live
+    SoT; characterization baseline preserved.
+  verify: test ! -f loop/schemas/event.py
+- source_ref: US-002
+  status: pass
+  evidence: CI schema suite imports only from canonical epic_events without divergent
+    EVENT_KINDS.
+  verify: rg -n "EVENT_KINDS" loop/schemas/
+- source_ref: SC-001
+  status: pass
+  evidence: Zero imports from loop.schemas.event in loop and harness directories.
+  verify: rg "from loop.schemas.event|loop\.schemas\.event" loop/ harness/
+- source_ref: SC-002
+  status: pass
+  evidence: Characterization oracle freeze verified green in test_event_v2_characterization.py.
+  verify: rg -n "test_characterization" loop/tests/test_event_v2_characterization.py
+- source_ref: SC-003
+  status: pass
+  evidence: Net LOC <= 0; net public schema symbols <= 0 (deleted LoopEvent, EVENT_KINDS,
+    EVENT_SCHEMA).
+  verify: rg -n "LoopEvent" loop/schemas/__init__.py
+- source_ref: AC-:1
+  status: pass
+  evidence: No dual EVENT_KINDS definitions remain in schemas.
+  verify: rg -n "EVENT_KINDS" loop/schemas/
+- source_ref: AC-:2
+  status: pass
+  evidence: No silent pass through orphan LoopEvent model; module is deleted.
+  verify: test ! -f loop/schemas/event.py
+- source_ref: AC-:3
+  status: pass
+  evidence: No live tests require the deleted LoopEvent class.
+  verify: rg -n "LoopEvent" loop/tests/
+- source_ref: AC-:4
+  status: pass
+  evidence: No optional schema module exists alongside epic_events.
+  verify: test ! -f loop/schemas/event.py
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: loop/schemas/event.py deleted after proving zero production callers.
+- source_ref: FR-002
+  status: satisfied
+  evidence: Removed LoopEvent, EVENT_KINDS, EVENT_SCHEMA from loop/schemas/__init__.py.
+- source_ref: FR-003
+  status: satisfied
+  evidence: loop/tests/test_schemas_event.py rewritten to import from live SoT epic_events.
+- source_ref: FR-004
+  status: satisfied
+  evidence: loop/schemas/README.md updated to point to harness/hooks/epic_events.py.
+- source_ref: FR-005
+  status: satisfied
+  evidence: Live event kinds in harness/hooks/epic_events.py documented and preserved
+    as sole source.
+- source_ref: US-001
+  status: satisfied
+  evidence: Validation is handled solely via live epic_events SoT; characterization
+    baseline intact.
+- source_ref: US-002
+  status: satisfied
+  evidence: Schema-only suite imports directly from epic_events without duplicate
+    EVENT_KINDS.
+- source_ref: SC-001
+  status: satisfied
+  evidence: Zero imports matching from loop.schemas.event or loop.schemas.event across
+    codebase.
+- source_ref: SC-002
+  status: satisfied
+  evidence: Characterization oracle baseline preserved in test_event_v2_characterization.py.
+- source_ref: SC-003
+  status: satisfied
+  evidence: Net LOC delta <= 0 and net public schema symbols delta <= 0 achieved.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Dual EVENT_KINDS eliminated from loop/schemas/.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Silent pass through orphan LoopEvent eliminated by deleting module.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: All test callers updated away from orphan LoopEvent.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: No parallel schema module remains alongside epic_events.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitution Section MUST satisfied across steps.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed during implementation.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback adhered to; orphan model deleted rather than
+    shimmed.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected (back epic).
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration respected.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step enforced.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority preserved.
+architecture_parity: []
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-103-event-schema-sot-unify/s01-verify-callers-and-characterization-baseline.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-103-event-schema-sot-unify/s02-rewrite-and-consolidate-schema-tests.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-103-event-schema-sot-unify/s03-remove-schema-exports-and-shim.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-103-event-schema-sot-unify/s04-delete-orphan-event-schema-module.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-103-event-schema-sot-unify/s05-instruction-kind-i-and-docs-hygiene.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-103-event-schema-sot-unify/s06-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+- step_id: s06
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-16'
+  plan_ref: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#Replacement-/-sunset
+  rows:
+  - symbol: loop/schemas/event.py
+    kind: A
+    command: test ! -f loop/schemas/event.py
+    result: pass
+    prod_callers: 0
+  - symbol: LoopEvent export in loop/schemas/__init__.py
+    kind: B
+    command: rg -n "LoopEvent|EVENT_KINDS|EVENT_SCHEMA" loop/schemas/__init__.py
+    result: pass
+    prod_callers: 0
+  - symbol: loop/tests/test_schemas_event.py legacy import
+    kind: C
+    command: rg -n "from loop.schemas.event" loop/tests/
+    result: pass
+    prod_callers: 0
+  - symbol: loop/schemas/README.md documentation row
+    kind: I
+    command: rg -n "loop/schemas/event.py" loop/schemas/README.md
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

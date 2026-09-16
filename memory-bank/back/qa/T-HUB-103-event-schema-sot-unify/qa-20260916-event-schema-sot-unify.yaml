@@ -1,0 +1,54 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-103
+plan_id: T-HUB-103-event-schema-sot-unify
+epic_id: T-HUB-103-event-schema-sot-unify
+date: '2026-09-16'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 35bab8dc97adba910e77222c190c62999798b08376891f157c161bb70bf1f955
+verify_scope: full
+
+scope:
+  - "task: T-HUB-103"
+  - "epic: T-HUB-103-event-schema-sot-unify"
+  - "steps: s01–s06"
+  - "files: loop/schemas/event.py, loop/schemas/__init__.py, loop/schemas/README.md, loop/tests/test_schemas_event.py, loop/tests/test_event_v2_characterization.py, harness/hooks/epic_events.py"
+
+ac_plus:
+  - "FR-001: Delete `loop/schemas/event.py` after proving zero prod callers."
+  - "FR-002: Remove `LoopEvent`/`EVENT_KINDS`/`EVENT_SCHEMA` from `loop/schemas/__init__.py`."
+  - "FR-003: Delete or rewrite `test_schemas_event.py` to live SoT; consolidate fixtures with characterization where overlapping."
+  - "FR-004: Update `loop/schemas/README.md` to point to epic_events."
+  - "FR-005: Do not change live event kind set except to document existing epic_events as sole source (no feature kinds)."
+  - "US-001: Как maintainer, я валидирую events только через live epic_events SoT"
+  - "US-002: Как CI, schema-only suite не держит drift kinds"
+  - "SC-001: rg 'from loop.schemas.event|loop\\.schemas\\.event' loop harness → only historical comments if any; no imports."
+  - "SC-002: Freeze oracle green."
+  - "SC-003: net_loc ≤ 0; net public schema symbols ≤ 0."
+
+ac_minus:
+  - "Нет dual `EVENT_KINDS`."
+  - "Нет silent PASS через orphan model."
+  - "Нет живых тестов, требующих удалённый `LoopEvent`."
+  - "Нет «optional schema module» рядом с epic_events."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

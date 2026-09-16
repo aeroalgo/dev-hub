@@ -1,0 +1,340 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-102-agents-instruction-corpus
+plan_id: T-HUB-102-agents-instruction-corpus
+date: '2026-09-16'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Extend instruction inventory discovery and semantic scan to all active
+    harness/agents/*.md files, rewrite verify and gate agent instructions to branch-qualified
+    policies, and verify zero unqualified runner actions in the active corpus.
+  source: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md#Outcome-summary
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 12
+  fr_satisfied: 12
+  sc_checked: 0
+  layout_paths_total: 12
+  layout_paths_closed: 12
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: get_active_corpus_files() in loop/tests/test_stack_profile_instruction_inventory.py
+    includes harness/agents/**/*.md with symlink deduplication.
+- source_ref: FR-002
+  status: satisfied
+  evidence: scan_active_corpus applies classify_instruction_line uniformly across
+    discovered agents files and reports violations on unqualified test commands.
+- source_ref: FR-003
+  status: satisfied
+  evidence: harness/agents/verify-implement.md branches explicitly between Hub dev-hub
+    self-test bin/pytest and Managed project capability_checks execution evidence.
+- source_ref: FR-004
+  status: satisfied
+  evidence: harness/agents/verify-bugfix.md qualifies VERIFY bash commands with Hub
+    dev-hub self-test vs Managed project capability_checks while preserving frontend
+    constraints.
+- source_ref: FR-005
+  status: satisfied
+  evidence: harness/agents/verify-qa.md labels full-suite bin/pytest -q --tb=line
+    as Hub parent-only dev-hub verification and adds managed capability checks distinction.
+- source_ref: FR-006
+  status: satisfied
+  evidence: harness/agents/gate-repair.md qualifies VERIFY commands with Hub dev-hub
+    self-test label and managed project capability_checks evidence guidance.
+- source_ref: FR-007
+  status: satisfied
+  evidence: All active agent prompts under harness/agents/ scanned and confirmed free
+    of unqualified action runner literals in action context.
+- source_ref: FR-008
+  status: satisfied
+  evidence: test_agents_corpus_discovery_omission_regression and test_agents_corpus_stale_line_regression
+    in test_stack_profile_instruction_inventory.py guard against regression.
+- source_ref: FR-009
+  status: satisfied
+  evidence: Scope strictly bounded to agents instruction corpus; runtime executor,
+    evidence schema, and capability registry remain intact and unmutated.
+- source_ref: US-001
+  status: satisfied
+  evidence: verify-implement subagent instruction surface provides branch-qualified
+    hub vs managed verification paths without default unqualified runner recipes.
+- source_ref: US-002
+  status: satisfied
+  evidence: verify-qa, verify-bugfix, and gate-repair subagent instructions follow
+    the same branch-qualified policy as rules and skills.
+- source_ref: US-003
+  status: satisfied
+  evidence: Regression tests in test_stack_profile_instruction_inventory.py fail on
+    temporary fixture with unqualified runner line and pass on valid branch qualification.
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Agent role boundaries preserved; verify agents remain read-only where
+    specified and do not execute frontend tests.
+- source_ref: NFR-002
+  status: satisfied
+  evidence: get_active_corpus_files resolves canonical paths via Path.resolve() to
+    prevent duplicate corpus entries from symlinks.
+- source_ref: NFR-003
+  status: satisfied
+  evidence: classify_instruction_line handles negative and forbidden runner phrases
+    without false positives on read-only agents like verify-decompose.
+- source_ref: NFR-004
+  status: satisfied
+  evidence: Hub dev-hub test command bin/pytest -q --tb=line preserved under explicit
+    hub self-test context across instruction surfaces.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Corpus discovery scans harness/agents/**/*.md alongside cursor rules,
+    claude rules, and skills without omitting agent surfaces.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Zero unqualified runner recipes exist in action context across all active
+    agent instruction files.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Discovery uses dynamic glob matching harness/agents/**/*.md rather than
+    a hardcoded agent file allowlist.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Rules and agents maintain strict policy parity; both mandate capability_checks
+    and execution evidence for managed projects.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: No modifications made to stack-profile executor, evidence schema, or runtime
+    gate behaviors.
+- source_ref: AC-:6
+  status: satisfied
+  evidence: Valid negative and forbidden runner statements in agent prompts are preserved
+    and accepted by semantic classifier.
+- source_ref: AC-:7
+  status: satisfied
+  evidence: Symlinked agent paths deduplicated by canonical resolved path in get_active_corpus_files.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST clauses in project constitution observed across agents instruction
+    updates.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: TDD first discipline applied with discovery and regression tests authored
+    before prompt rewrites.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: Fail-closed behavior enforced; invalid or stale agent prompts trigger
+    inventory failure.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: Front tests parent-only rule respected; subagent prompt rewrites preserve
+    read-only constraints.
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: Lean context loading and step shard discipline maintained throughout epic
+    execution.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: Fail-closed policy prevents execution on ambiguous runner authority or
+    unmapped capabilities.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: Derived identity and traceability references strictly mapped to plan contracts
+    and schemas.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: Single step handoff generated per completed step across s01 to s05.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: Integration parity maintained across tool boundaries, rules, skills, and
+    agent instructions.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: Phase authority observed; AUDIT validates plan-to-runtime parity prior
+    to QA transition.
+- source_ref: layout:loop/tests/test_stack_profile_instruction_inventory.py
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py implements get_active_corpus_files
+    with agents discovery and regression checks.
+- source_ref: layout:harness/agents/**/*.md
+  status: satisfied
+  evidence: All markdown files in harness/agents/ adhere to branch-qualified test
+    execution policies.
+- source_ref: layout:harness/agents/verify-implement.md
+  status: satisfied
+  evidence: harness/agents/verify-implement.md contains branch-qualified Hub dev-hub
+    vs Managed capability verification instructions.
+- source_ref: layout:harness/agents/verify-bugfix.md
+  status: satisfied
+  evidence: harness/agents/verify-bugfix.md provides branch-qualified Hub dev-hub
+    vs Managed capability check instructions.
+- source_ref: layout:harness/agents/verify-qa.md
+  status: satisfied
+  evidence: harness/agents/verify-qa.md provides branch-qualified Hub dev-hub parent
+    suite vs Managed capability check instructions.
+- source_ref: layout:harness/agents/gate-repair.md
+  status: satisfied
+  evidence: harness/agents/gate-repair.md contains branch-qualified Hub dev-hub self-test
+    vs Managed capability instructions.
+- source_ref: layout:harness/agents/verify-decompose.md
+  status: satisfied
+  evidence: harness/agents/verify-decompose.md maintained as read-only gate agent
+    instruction surface.
+- source_ref: layout:harness/agents/analyze-verify.md
+  status: satisfied
+  evidence: harness/agents/analyze-verify.md maintained as read-only gate agent instruction
+    surface.
+- source_ref: layout:harness/agents/explorer.md
+  status: satisfied
+  evidence: harness/agents/explorer.md maintained as read-only codebase explorer agent
+    prompt.
+- source_ref: layout:harness/agents/sunset-inventory.md
+  status: satisfied
+  evidence: harness/agents/sunset-inventory.md maintained as read-only sunset inventory
+    extraction agent prompt.
+- source_ref: layout:harness/agents/reconcile-verify.md
+  status: satisfied
+  evidence: harness/agents/reconcile-verify.md maintained as read-only reconciliation
+    gate agent prompt.
+- source_ref: layout:harness/agents/verify-edit.md
+  status: satisfied
+  evidence: harness/agents/verify-edit.md maintained as read-only phase verify agent
+    prompt.
+architecture_parity:
+- layout_path: loop/tests/test_stack_profile_instruction_inventory.py
+  status: present
+  evidence: Discovery and scan functions in loop/tests/test_stack_profile_instruction_inventory.py
+    enforce agents corpus parity.
+- layout_path: harness/agents/**/*.md
+  status: present
+  evidence: All active agent markdown files in harness/agents/ comply with semantic
+    inventory branch qualification.
+- layout_path: harness/agents/verify-implement.md
+  status: present
+  evidence: verify-implement prompt incorporates branch-qualified Hub dev-hub vs Managed
+    project capability execution rules.
+- layout_path: harness/agents/verify-bugfix.md
+  status: present
+  evidence: verify-bugfix prompt incorporates branch-qualified Hub dev-hub vs Managed
+    project capability execution rules.
+- layout_path: harness/agents/verify-qa.md
+  status: present
+  evidence: verify-qa prompt distinguishes Hub parent full suite from Managed project
+    full capability checks.
+- layout_path: harness/agents/gate-repair.md
+  status: present
+  evidence: gate-repair prompt qualifies repair check commands with Hub dev-hub self-test
+    and Managed capability guidance.
+- layout_path: harness/agents/verify-decompose.md
+  status: present
+  evidence: verify-decompose agent prompt operates strictly as read-only decompose
+    gate verifier.
+- layout_path: harness/agents/analyze-verify.md
+  status: present
+  evidence: analyze-verify agent prompt operates strictly as read-only analyze gate
+    verifier.
+- layout_path: harness/agents/explorer.md
+  status: present
+  evidence: explorer agent prompt operates strictly as read-only codebase search gate.
+- layout_path: harness/agents/sunset-inventory.md
+  status: present
+  evidence: sunset-inventory agent prompt operates strictly as read-only sunset scanner.
+- layout_path: harness/agents/reconcile-verify.md
+  status: present
+  evidence: reconcile-verify agent prompt operates strictly as read-only reconciliation
+    gate.
+- layout_path: harness/agents/verify-edit.md
+  status: present
+  evidence: verify-edit agent prompt operates strictly as read-only phase verify gate.
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-102-agents-instruction-corpus/s01-agents-corpus-discovery-inventory.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-102-agents-instruction-corpus/s02-verify-implement-branch-rewrite.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-102-agents-instruction-corpus/s03-verify-bugfix-gate-repair-branch-rewrite.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-102-agents-instruction-corpus/s04-verify-qa-and-agents-parity-scan.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-102-agents-instruction-corpus/s05-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-16'
+  plan_ref: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md#Sunset-A-/-B-/-C-/-I
+  rows:
+  - symbol: get_active_corpus_files without harness/agents/**
+    kind: A
+    command: rg -n harness/agents loop/tests/test_stack_profile_instruction_inventory.py
+    result: pass
+    prod_callers: 0
+  - symbol: Inventory green with stale agents corpus
+    kind: A
+    command: rg -n test_agents_corpus_discovery_omission_regression loop/tests/test_stack_profile_instruction_inventory.py
+    result: pass
+    prod_callers: 0
+  - symbol: Agent-specific implicit allowlist
+    kind: A
+    command: rg -n allowlist loop/tests/test_stack_profile_instruction_inventory.py
+    result: pass
+    prod_callers: 0
+  - symbol: Treating agents as out-of-scope for instruction inventory
+    kind: C
+    command: rg -n harness/agents loop/tests/test_stack_profile_instruction_inventory.py
+    result: pass
+    prod_callers: 0
+  - symbol: Unqualified bin/pytest in verify agents as implicit managed default
+    kind: C
+    command: rg -n bin/pytest harness/agents/ | rg -v Hub
+    result: pass
+    prod_callers: 0
+  - symbol: Run VERIFY pytest without root classification
+    kind: C
+    command: rg -n VERIFY harness/agents/
+    result: pass
+    prod_callers: 0
+  - symbol: harness/agents/verify-implement.md unqualified bin/pytest
+    kind: I
+    command: rg -n bin/pytest harness/agents/verify-implement.md | rg -v Hub
+    result: pass
+    prod_callers: 0
+  - symbol: harness/agents/verify-bugfix.md bin/pytest without scope
+    kind: I
+    command: rg -n bin/pytest harness/agents/verify-bugfix.md | rg -v Hub
+    result: pass
+    prod_callers: 0
+  - symbol: harness/agents/verify-qa.md full-suite bin/pytest without hub-only label
+    kind: I
+    command: rg -n bin/pytest harness/agents/verify-qa.md | rg -v Hub
+    result: pass
+    prod_callers: 0
+  - symbol: harness/agents/gate-repair.md bin/pytest as universal check
+    kind: I
+    command: rg -n bin/pytest harness/agents/gate-repair.md | rg -v Hub
+    result: pass
+    prod_callers: 0
+  - symbol: Any other agent positive runner literal without hub/negative context
+    kind: I
+    command: rg -n bin/pytest harness/agents/ | rg -v Hub
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

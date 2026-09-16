@@ -1,0 +1,31 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-102-agents-instruction-corpus
+role: back
+source_qa: memory-bank/back/qa/T-HUB-102-agents-instruction-corpus/qa-20260916-agents-instruction-corpus.yaml
+checklist_sha256: 71d0f282a356b05f90ed5c64ab329c14c961e63513a86404ea0edeaffe5728fe
+created_at: '2026-09-16T00:00:00Z'
+updated_at: '2026-09-16T03:14:32Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-16T03:14:32Z'
+  evidence: 2955 passed, 4 skipped in 130.34s via bin/pytest -q --tb=line
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: loop/tests/test_roadmap_queue.py::test_repo_roadmap_queue_parses failed (assert
+    0 >= 1)
+  blocker_ref: 'suite_red: loop/tests/test_roadmap_queue.py::test_repo_roadmap_queue_parses:
+    assert len(out[''queue'']) >= 1 failed (0 >= 1) due to empty queue in memory-bank/back/roadmap/queue.yaml.'
+  fix_plan_ref: 'BACK BUGFIX BF-001: Resolve roadmap queue state in memory-bank/back/roadmap/queue.yaml
+    or adjust test_repo_roadmap_queue_parses to permit finished queue.'
+  targets:
+  - memory-bank/back/roadmap/queue.yaml
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+  evidence: 50 passed in loop/tests/test_roadmap_queue.py; full suite 2955 passed,
+    4 skipped via bin/pytest -q --tb=line
+  done_at: '2026-09-16T03:14:32Z'
+  notes: Open bugfix item from QA review on 2026-09-16.

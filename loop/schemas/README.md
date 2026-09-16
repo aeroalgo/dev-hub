@@ -11,7 +11,7 @@ This directory contains the machine-readable Pydantic schemas and models for the
 | `loop-sunset-inventory/v1` | `SunsetReport` | `loop/schemas/sunset_inventory.py` | Sunset inventory analysis and extraction report |
 | `loop-state/v1` | `LoopState` | `loop/schemas/state.py` | Loop execution state |
 | `loop-checkpoint/v1` | `LoopCheckpoint` | `loop/schemas/checkpoint.py` | Step checkpoint model |
-| `loop-event/v1` | `LoopEvent` | `loop/schemas/event.py` | Loop lifecycle event |
+| `loop-event/v2` | `LoopEventRecord` | `harness/hooks/epic_events.py` | Loop lifecycle event (v2 canonical SoT) |
 | `decompose-formula/v1` | `DecomposeFormula` | `loop/schemas/formula.py` | Typed skeleton for reusable DECOMPOSE formula |
 | `mb-board-card/v1` | `BoardCard` | `loop/schemas/board.py` | MindBridge board card model |
 

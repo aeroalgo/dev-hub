@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s02 — rewrite and consolidate schema event tests to live SoT
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать или удалить устаревшие тесты `loop/tests/test_schemas_event.py`, проверяющие удаляемую модель `LoopEvent`.
+  Перевести все необходимые проверки на канонический live API `epic_events.validate_event` / `build_event`,
+  исключить дублирование проверок со сьютом `test_event_v2_characterization.py`.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-002
+    - SC-002
+    - AC− #2
+    - AC− #3
+  nouns:
+    - loop/tests/test_schemas_event.py
+    - loop/tests/test_event_v2_characterization.py
+    - harness/hooks/epic_events.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s02-rewrite-and-consolidate-schema-tests.yaml
+  ac_quotes:
+    - "test_schemas_event gone or rewritten; no second EVENT_KINDS"
+    - "no test requires divergent LoopEvent kinds"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:65-75
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:188-196
+
+context:
+  consumes:
+    - loop/tests/test_schemas_event.py
+    - loop/tests/test_event_v2_characterization.py
+  produces:
+    - переписанный или удаленный test_schemas_event.py без зависимостей от LoopEvent
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#fr-003
+  files:
+    - loop/tests/test_schemas_event.py
+    - loop/tests/test_event_v2_characterization.py
+
+as_built:
+  - "loop/tests/test_schemas_event.py импортирует LoopEvent, EVENT_KINDS, EVENT_SCHEMA из loop.schemas.event"
+  - "loop/tests/test_event_v2_characterization.py тестирует канонический epic_events API"
+
+delta:
+  - "Удаление устаревших тестов модели LoopEvent или замена их на тесты live API validate_event"
+  - "Исключение импортов LoopEvent из тестовых файлов"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: В файлах тестов loop/tests/ отсутствуют импорты LoopEvent из loop.schemas
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'LoopEvent', 'loop/tests/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Набор тестов событий и валидации проходит успешно
+    verify: "bin/pytest loop/tests/test_event_v2_characterization.py -q"
+
+verify: []
+tdd: []

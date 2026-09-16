@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s05 — update schemas README and docstrings to live SoT
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить документацию `loop/schemas/README.md` и сопутствующие docstrings/комментарии (Kind I),
+  устранив упоминания удаленной схемы `LoopEvent` и зафиксировав `harness/hooks/epic_events.py`
+  как единственный канонический SoT для `loop-event/v2`.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - SC-001
+  nouns:
+    - loop/schemas/README.md
+    - harness/hooks/epic_events.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s05-instruction-kind-i-and-docs-hygiene.yaml
+  ac_quotes:
+    - "Update loop/schemas/README.md to point to epic_events."
+    - "Do not change live event kind set except to document existing epic_events as sole source."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:65-75
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:135-155
+
+context:
+  consumes:
+    - loop/schemas/README.md
+  produces:
+    - обновленный loop/schemas/README.md с указанием на epic_events
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#fr-004
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#fr-005
+  files:
+    - loop/schemas/README.md
+
+as_built:
+  - "В таблице loop/schemas/README.md присутствует строка: loop-event/v1 | LoopEvent | loop/schemas/event.py"
+
+delta:
+  - "Обновление таблицы в README.md: замена строки LoopEvent на указание канонического расположения в harness/hooks/epic_events.py"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: В loop/schemas/README.md отсутствует устаревшая строка со ссылкой на loop/schemas/event.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'loop/schemas/event.py', 'loop/schemas/README.md'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: В loop/schemas/README.md явно указан путь к harness/hooks/epic_events.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'epic_events.py', 'loop/schemas/README.md'], capture_output=True, text=True); sys.exit(0 if res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []

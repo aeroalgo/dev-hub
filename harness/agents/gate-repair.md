@@ -63,13 +63,16 @@ VERIFY:
 - <exact command from parent>
 ```
 
-Для repair после `verify-qa` секция `VERIFY` обязана содержать **targeted**
-pytest по файлам из ALLOW WRITE (path/nodeid/`-k`). Полный
-`bin/pytest -q --tb=line` гоняет parent перед следующим `verify-qa`, не
-`gate-repair`. Если parent ошибочно передал только full suite — выполни его
-один раз как указано, но не добавляй второй full-прогон сам.
+Для Hub (dev-hub self-test) repair после `verify-qa` секция `VERIFY` обязана
+содержать **targeted** `bin/pytest` по файлам из ALLOW WRITE (path/nodeid/`-k`).
+Полный hub-only parent-suite `bin/pytest -q --tb=line` гоняет parent перед следующим
+`verify-qa`, не `gate-repair`. Для managed projects repair выполняется строго через
+stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest.
+Если parent ошибочно передал только full suite — выполни его один раз как указано,
+но не добавляй второй full-прогон сам.
 
-Иначе выполняй **ровно** команду VERIFY от parent (pytest, CLI validate, и т.п.) — **не** подменяй и не выдумывай другую проверку.
+Иначе выполняй **ровно** команду VERIFY от parent (Hub dev-hub self-test: `bin/pytest …` /
+Managed: `capability_checks`, CLI validate) — **не** подменяй и не выдумывай другую проверку.
 
 ## Scope (HARD)
 

@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-102-agents-instruction-corpus
+title: s02 — verify-implement agent instruction branch qualification rewrite IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/yaml/steps/s02-verify-implement-branch-rewrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Переписана секция bash-команд (пункт 6) в harness/agents/verify-implement.md с
+  явным ветвлением: Hub (dev-hub self-test) с bin/pytest и timeout 300s vs Managed
+  projects с capability_checks и typed execution evidence.'
+- Сохранены ограничения subagent, scope-check через touch-ledger и forbidden-правила
+  для неквалифицированных raw runners.
+files:
+- harness/agents/verify-implement.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+grep_control: []
+verification_results:
+- 21 passed
+checkpoints:
+- id: cp1
+  criterion: harness/agents/verify-implement.md содержит явную ветку Hub self-test
+    и ветку Managed capability_checks
+  status: done
+- id: cp2
+  criterion: harness/agents/verify-implement.md проходит семантический классификатор
+    без нарушений
+  status: done
+resume_from: done

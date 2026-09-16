@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-102-agents-instruction-corpus
+title: verify-bugfix and gate-repair agent instructions branch qualification rewrite
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать harness/agents/verify-bugfix.md и harness/agents/gate-repair.md,
+  квалифицировав команды VERIFY и рецепты запуска тестов (Hub dev-hub self-test vs
+  managed capability_checks), сохраняя запрет на frontend-тесты для сабагентов.
+
+plan_contract:
+  fr_ids:
+    - FR-I2-004
+    - FR-I2-006
+  nouns:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/gate-repair.md
+    - VERIFY
+    - capability_checks
+  layout_paths:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/gate-repair.md
+  ac_quotes:
+    - "AC+ #2: Semantic inventory FAIL on pre-rewrite agents (verify-implement, verify-bugfix, verify-qa, gate-repair); PASS after branch-qualified rewrite."
+    - "AC+ #3: Every direct runner literal in agents action context carries hub-only marker or is replaced with managed capability_checks/evidence language."
+    - "AC− #2: Нет unqualified managed pytest/cargo/npm recipe в agents action context."
+    - "AC− #4: Нет dual authority: rules say capability_checks, agents say bare pytest."
+  plan_jumps:
+    - "back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md:94-116"
+
+context:
+  consumes:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/gate-repair.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/gate-repair.md
+  plan_refs:
+    - FR-I2-004
+    - FR-I2-006
+  files:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/gate-repair.md
+
+as_built:
+  - "harness/agents/verify-bugfix.md: предписывает bin/pytest в секции VERIFY и bash-секции без указания root."
+  - "harness/agents/gate-repair.md: содержит упоминания bin/pytest -q --tb=line без квалификации hub-only parent."
+
+delta:
+  - "harness/agents/verify-bugfix.md: квалифицировать команды VERIFY: Hub self-test vs managed capability_checks."
+  - "harness/agents/gate-repair.md: квалифицировать упоминания pytest как Hub dev-hub self-test / parent-only suite."
+
+deletes: []
+wire_complete_required: false
+out_of_scope:
+  - "Правка verify-qa.md и других агентов (шаг s04)."
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/agents/verify-bugfix.md содержит явную квалификацию Hub vs Managed для VERIFY"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'bugfix' -q --tb=line"
+  - id: cp2
+    criterion: "harness/agents/gate-repair.md содержит явную квалификацию Hub vs Managed для pytest"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'gate_repair' -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'bugfix or gate_repair'"
+tdd:
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_verify_bugfix_and_gate_repair_instruction_parity"

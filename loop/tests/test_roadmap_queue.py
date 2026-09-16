@@ -465,8 +465,9 @@ def test_repo_roadmap_queue_parses() -> None:
     assert out["ok"] is True
     assert out["path"].endswith("roadmap/queue.yaml")
     assert out["version"] == "roadmap-queue/v2"
-    assert len(out["queue"]) >= 1
+    assert isinstance(out["queue"], list)
     assert all(item.get("id") and item.get("plan") for item in out["queue"])
+    assert len(out["done"]) >= 1
 
 
 def test_queue_rel_from_roadmap() -> None:

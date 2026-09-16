@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-102-agents-instruction-corpus
+title: verify-qa and remaining agents instruction scan and parity rewrite
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать harness/agents/verify-qa.md, разделив hub-only full suite parent reference от
+  managed capability checks, и проверить все остальные файлы harness/agents/*.md на отсутствие
+  неквалифицированных runner-литералов, сохранив запреты и read-only ограничения.
+
+plan_contract:
+  fr_ids:
+    - FR-I2-005
+    - FR-I2-007
+  nouns:
+    - harness/agents/verify-qa.md
+    - harness/agents/analyze-verify.md
+    - harness/agents/explorer.md
+    - harness/agents/reconcile-verify.md
+    - harness/agents/sunset-inventory.md
+    - harness/agents/verify-decompose.md
+    - harness/agents/verify-edit.md
+    - harness/agents/verify-publish.md
+    - harness/agents/verify-script.md
+  layout_paths:
+    - harness/agents/verify-qa.md
+    - harness/agents/analyze-verify.md
+    - harness/agents/explorer.md
+    - harness/agents/reconcile-verify.md
+    - harness/agents/sunset-inventory.md
+    - harness/agents/verify-decompose.md
+    - harness/agents/verify-edit.md
+    - harness/agents/verify-publish.md
+    - harness/agents/verify-script.md
+  ac_quotes:
+    - "AC+ #4: Read-only agents (verify-decompose, analyze-verify) remain valid without false positives."
+    - "AC+ #5: Hub exception for dev-hub verify/QA (bin/pytest with timeout) preserved under explicit hub context."
+    - "AC− #6: Нет удаления valid negative/forbidden pytest phrases in agents."
+    - "NFR-I2-003: Classifier continues to accept negative/forbidden phrases without false positive on read-only agents."
+  plan_jumps:
+    - "back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md:94-116"
+
+context:
+  consumes:
+    - harness/agents/**/*.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - harness/agents/verify-qa.md
+    - harness/agents/*.md
+  plan_refs:
+    - FR-I2-005
+    - FR-I2-007
+  files:
+    - harness/agents/verify-qa.md
+
+as_built:
+  - "harness/agents/verify-qa.md: содержит bin/pytest -q --tb=line для suite_scope: full без явного указания Hub parent full-suite context."
+  - "Остальные агенты: содержат negative patterns или read-only инструкции, требующие верификации на отсутствие false positives."
+
+delta:
+  - "harness/agents/verify-qa.md: маркировать full-suite команду как Hub dev-hub parent suite и добавить managed full capability checks."
+  - "harness/agents/*.md: подтвердить отсутствие неквалифицированных runner-инструкций во всех файлах агентов."
+
+deletes: []
+wire_complete_required: false
+out_of_scope:
+  - "Тесты regression guard и финальный purge (шаг s05)."
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/agents/verify-qa.md содержит явную маркировку Hub parent suite vs Managed full capability checks"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'verify_qa' -q --tb=line"
+  - id: cp2
+    criterion: "Все read-only и специализированные агенты проходят инвентаризацию без ложных срабатываний"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'test_readonly_agents_instruction_parity' -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'qa or readonly or agents'"
+tdd:
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_verify_qa_instruction_parity"
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_readonly_agents_instruction_parity"

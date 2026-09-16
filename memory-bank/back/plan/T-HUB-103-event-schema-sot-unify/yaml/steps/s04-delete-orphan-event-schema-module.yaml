@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s04 — delete orphan loop/schemas/event.py module
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить orphan-модуль `loop/schemas/event.py`, содержащий дублирующую модель `LoopEvent` и устаревшую таблицу `EVENT_KINDS`.
+  Обеспечить единый Source of Truth (SoT) для схемы событий и валидации в `harness/hooks/epic_events.py`.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - US-001
+    - SC-001
+    - SC-003
+    - AC− #1
+    - AC− #2
+    - AC− #4
+  nouns:
+    - loop/schemas/event.py
+    - harness/hooks/epic_events.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s04-delete-orphan-event-schema-module.yaml
+  ac_quotes:
+    - "Delete loop/schemas/event.py after proving zero prod callers."
+    - "Нет dual EVENT_KINDS."
+    - "Нет optional schema module рядом с epic_events."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:65-75
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md:135-155
+
+context:
+  consumes:
+    - loop/schemas/event.py
+  produces:
+    - удаленный файл loop/schemas/event.py
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md#fr-001
+  files: []
+
+as_built:
+  - "Файл loop/schemas/event.py существует на диске и содержит дублирующий класс LoopEvent"
+
+delta:
+  - "Физическое удаление файла loop/schemas/event.py"
+
+deletes:
+  - loop/schemas/event.py
+
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-104-plan-path-classifier-dedup"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Файл loop/schemas/event.py отсутствует на диске
+    verify: "python3 -c \"import os, sys; sys.exit(0 if not os.path.exists('loop/schemas/event.py') else 1)\""
+  - id: cp2
+    criterion: Попытка импорта из loop.schemas.event падает с ModuleNotFoundError
+    verify: "python3 -c \"try:\n    import loop.schemas.event\n    raise AssertionError('Module import should fail')\nexcept ModuleNotFoundError:\n    pass\""
+  - id: cp3
+    criterion: Поиск импортов loop.schemas.event в loop/ и harness/ дает 0 результатов
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'from loop.schemas.event|loop\\\\.schemas\\\\.event', 'loop/', 'harness/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+
+verify: []
+tdd: []

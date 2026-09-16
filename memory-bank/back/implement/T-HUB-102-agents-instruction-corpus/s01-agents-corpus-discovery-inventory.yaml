@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-102-agents-instruction-corpus
+title: s01 — Agents corpus discovery and regression guard in instruction inventory
+  test IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/yaml/steps/s01-agents-corpus-discovery-inventory.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Расширена функция get_active_corpus_files() в test_stack_profile_instruction_inventory.py
+  для детерминированного обнаружения всех активных файлов harness/agents/**/*.md с
+  дедупликацией symlinked .agents проекций.
+- Добавлен regression test test_agents_corpus_discovery для проверки обнаружения всех
+  12 инструкций агентов и дедупликации symlink-структур.
+- Добавлен regression test test_agents_corpus_omission_guard для предотвращения регрессии
+  пропуска каталога agents.
+- Обновлён NEGATIVE_PAT классификатора для поддержки negative/forbidden runner contexts
+  в read-only агентах.
+files:
+- loop/tests/test_stack_profile_instruction_inventory.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  'agents or corpus'
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+grep_control: []
+verification_results:
+- 3 passed
+- 21 passed
+checkpoints:
+- id: cp1
+  criterion: get_active_corpus_files() возвращает все активные файлы harness/agents/**/*.md
+    без дубликатов
+  status: done
+- id: cp2
+  criterion: Тест обнаружения фиксирует пропуск каталога agents как ошибку
+  status: done
+resume_from: done

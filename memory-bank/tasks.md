@@ -2,7 +2,11 @@
 
 ## Active
 
-| T-HUB-095…097 | PLAN REFACTOR leftover dual-path/shim (post 087–090) | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · batch plan-refactor-leftover-20260914 · kind=refactor · **095** epic-runtime import · **096** layout resolve · **097** offline event/DAG hygiene · next BACK DECOMPOSE T-HUB-095-epic-runtime-import-sole-path |
+| T-HUB-103…105 | PLAN REFACTOR leftover twin/shim (post 098–102) | L2 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · batch plan-refactor-leftover-20260916 · kind=refactor · **103** event schema SoT · **104** plan-path classifier · **105** roadmap legacy source · next BACK DECOMPOSE T-HUB-103-event-schema-sot-unify |
+| T-HUB-103 | Event schema SoT unify | L2 | PLAN done | queued | [plan](back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md) · [prompt](back/plan/T-HUB-103-event-schema-sot-unify/md/prompt.md) · C1 |
+| T-HUB-104 | Plan-path classifier dedup | L2 | PLAN done | queued | [plan](back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md) · [prompt](back/plan/T-HUB-104-plan-path-classifier-dedup/md/prompt.md) · C2+C3 |
+| T-HUB-105 | Roadmap legacy source purge | L2 | PLAN done | queued | [plan](back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md) · [prompt](back/plan/T-HUB-105-roadmap-legacy-source-purge/md/prompt.md) · C7+D1 |
+| T-HUB-095…097 | PLAN REFACTOR leftover dual-path/shim (post 087–090) | L3 | PLAN done | done | [queue](back/roadmap/queue.yaml) · batch plan-refactor-leftover-20260914 · moved to done |
 | T-HUB-095 | Epic runtime import sole path | L3 | PLAN done | queued | [plan](back/plan/T-HUB-095-epic-runtime-import-sole-path/md/plan.md) · [prompt](back/plan/T-HUB-095-epic-runtime-import-sole-path/md/prompt.md) · C1+C2 |
 | T-HUB-096 | Layout/plan resolve sole path | L3 | PLAN done | queued | [plan](back/plan/T-HUB-096-layout-resolve-sole-path/md/plan.md) · [prompt](back/plan/T-HUB-096-layout-resolve-sole-path/md/prompt.md) · C4 |
 | T-HUB-097 | Offline event/DAG adapter hygiene | L2–L3 | PLAN done | queued | [plan](back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/plan.md) · [prompt](back/plan/T-HUB-097-event-dag-offline-adapter-hygiene/md/prompt.md) · C3+C5 |

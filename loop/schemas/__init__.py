@@ -24,7 +24,6 @@ from loop.schemas.checkpoint import (
     CheckpointRecord,
 )
 from loop.schemas.epic_layout_schema import EpicLayoutKind, EpicLayoutResolveRequest
-from loop.schemas.event import EVENT_KINDS, EVENT_SCHEMA, LoopEvent
 from loop.schemas.formula import DecomposeFormula, FormulaStep, load_formula
 from loop.schemas.gate_verdict import GateVerdictRecord, GateVerdictValue
 from loop.schemas.handoff import LoopHandoffFrontmatter, LoopHandoffRole
@@ -52,8 +51,6 @@ __all__ = [
     "CHECKPOINT_RESUME_POLICIES",
     "CHECKPOINT_STAGES",
     "CHECKPOINT_STATUSES",
-    "EVENT_KINDS",
-    "EVENT_SCHEMA",
     "SCHEMA_EPIC_BUGFIX_QUEUE",
     "SCHEMA_LOOP_SUNSET_INVENTORY",
     "SCHEMA_ROADMAP_CADENCE",
@@ -71,7 +68,6 @@ __all__ = [
     "FormulaStep",
     "GateVerdictRecord",
     "GateVerdictValue",
-    "LoopEvent",
     "LoopHandoffFrontmatter",
     "LoopHandoffRole",
     "ResyncEvidence",

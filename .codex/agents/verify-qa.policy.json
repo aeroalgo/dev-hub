@@ -1,7 +1,7 @@
 {
   "name": "verify-qa",
   "policy_fingerprint": "sha256:aff522c5dda6ddf2f9460f9043daaef198204fa644760c41c7dd5bb03857ad63",
-  "source_prompt_sha256": "e7ace2a79b400028f538d1ca271890f1d54bcdfab6c50f3329947ca6cb259eb0",
+  "source_prompt_sha256": "360b5ef08345f6c77d010d5a55618a33f1844335a56ee048e1e2ba4ccb505a6a",
   "disallowedTools": [
     "Write",
     "Edit",

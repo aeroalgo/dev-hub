@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-102-agents-instruction-corpus
+title: Agents corpus discovery and regression guard in instruction inventory test
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить функцию get_active_corpus_files() в test_stack_profile_instruction_inventory.py
+  для детерминированного обнаружения всех активных файлов harness/agents/**/*.md с
+  дедупликацией symlinked .agents проекций. Добавить regression test на обнаружение корпуса.
+
+plan_contract:
+  fr_ids:
+    - FR-I2-001
+    - FR-I2-008
+  nouns:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+    - harness/agents/**/*.md
+    - .agents/agents/**
+    - get_active_corpus_files
+  layout_paths:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  ac_quotes:
+    - "AC+ #1: get_active_corpus_files() returns all active harness/agents/**/*.md; omission regression test fails if agents excluded."
+    - "AC− #1: Нет inventory, inspectящего только cursor/claude/skills без agents."
+    - "AC− #7: Нет duplicate corpus entries from symlinked .agents tree."
+  plan_jumps:
+    - "back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md:94-116"
+
+context:
+  consumes:
+    - harness/agents/**/*.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  plan_refs:
+    - FR-I2-001
+    - FR-I2-008
+  files:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+
+as_built:
+  - "loop/tests/test_stack_profile_instruction_inventory.py: get_active_corpus_files сканирует rules, skills, entrypoints, templates, docs, но не включает harness/agents."
+
+delta:
+  - "loop/tests/test_stack_profile_instruction_inventory.py: добавить обнаружение harness/agents/**/*.md с дедупликацией по resolve()."
+  - "loop/tests/test_stack_profile_instruction_inventory.py: добавить тесты test_agents_corpus_discovery и test_agents_corpus_omission_guard."
+
+deletes: []
+wire_complete_required: false
+out_of_scope:
+  - "Правка инструкций harness/agents/*.md (шаги s02-s04)."
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "get_active_corpus_files() возвращает все активные файлы harness/agents/**/*.md без дубликатов"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'test_agents_corpus_discovery' -q --tb=line"
+  - id: cp2
+    criterion: "Тест обнаружения фиксирует пропуск каталога agents как ошибку"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'test_agents_corpus_omission_guard' -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'agents or corpus'"
+tdd:
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_agents_corpus_discovery"
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_agents_corpus_omission_guard"

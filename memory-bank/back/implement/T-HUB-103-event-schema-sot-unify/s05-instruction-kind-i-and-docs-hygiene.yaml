@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s05 — update schemas README and docstrings to live SoT IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s05-instruction-kind-i-and-docs-hygiene.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Обновлена таблица реестра схем в loop/schemas/README.md с указанием loop-event/v2
+  и канонического расположения в harness/hooks/epic_events.py
+gaps:
+  status: none
+done:
+- Заменена устаревшая строка с loop-event/v1 и loop/schemas/event.py на loop-event/v2
+  и harness/hooks/epic_events.py в loop/schemas/README.md
+- Проверено отсутствие упоминаний loop/schemas/event.py в loop/schemas/README.md
+files:
+- loop/schemas/README.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_event_v2_characterization.py -q
+integration_check:
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', 'loop/schemas/event.py',
+  'loop/schemas/README.md'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip()
+  else 1)"
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', 'epic_events.py',
+  'loop/schemas/README.md'], capture_output=True, text=True); sys.exit(0 if res.stdout.strip()
+  else 1)"
+grep_control: []
+verification_results:
+- '{"command": "bin/pytest loop/tests/test_event_v2_characterization.py -q", "outcome":
+  "PASS (9 passed)"}'
+- '{"command": "rg -n loop/schemas/event.py loop/schemas/README.md", "outcome": "PASS
+  (0 matches)"}'
+- '{"command": "rg -n epic_events.py loop/schemas/README.md", "outcome": "PASS (matches
+  found)"}'
+checkpoints:
+- id: cp1
+  criterion: В loop/schemas/README.md отсутствует устаревшая строка со ссылкой на
+    loop/schemas/event.py
+  status: done
+- id: cp2
+  criterion: В loop/schemas/README.md явно указан путь к harness/hooks/epic_events.py
+  status: done
+resume_from: cp1

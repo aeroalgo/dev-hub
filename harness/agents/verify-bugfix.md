@@ -37,12 +37,18 @@ Parent **обязан** передать только:
    - `AC+` ← секция Changes Implemented / список изменённых файлов+поведения (≥1; иначе `FAIL checklist_empty:AC+`)
    - `AC−` ← не ломать unrelated / dispositions ineligible / явный out-of-scope (≥1; иначе `FAIL checklist_empty:AC−`)
    - `§0.11` ← counterparts для путей из Changes (≥1; иначе `FAIL checklist_empty:§0.11`)
-   - `VERIFY` ← секция Verification / команды `bin/pytest…` (иначе `FAIL checklist_empty:VERIFY`)
+   - `VERIFY` ← секция Verification / команды (Hub dev-hub self-test: `bin/pytest…` / Managed: `capability_checks`) (иначе `FAIL checklist_empty:VERIFY`)
 0c. **QA queue mapping:** если в ALLOW есть QA source `blockers`/`fix_plan`, каждый eligible blocker присутствует в queue; partial → `FAIL` (`qa_blockers_incomplete`).
 1. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 2. Пронумеруй `AC−` → для каждого: докажи **только** по файлам из `ALLOW READ` (Read или `git diff -- <этот path>`). Нарушение в ALLOW → `FAIL`.
 3. Пройди `§0.11` checklist по пунктам (только ALLOW). Orphan / missing counterpart → `FAIL`.
-4. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff -- <ALLOW path>` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout; `git status` / whole-repo `git diff` без path filter; FAIL/BLOCKERS по файлам вне ALLOW. Red → `FAIL`.
+4. Bash только:
+   - Test verify:
+     - Hub (dev-hub self-test): `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …` из VERIFY.
+     - Managed projects: верификация выполняется строго через stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest / unmanaged commands.
+   - Inspect: `git diff -- <ALLOW path>` · `rg …` · `ls` · `head` · `wc`.
+   - Единственное исключение — ровно один финальный `validate-boundary` command ниже.
+   - **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout; unmanaged / generic raw test runner execution for managed projects without capability_checks; `git status` / whole-repo `git diff` без path filter; FAIL/BLOCKERS по файлам вне ALLOW. Red → `FAIL`.
 5. Budget: ≤12 Read calls, ≤10 конкретных файлов в ALLOW READ; после validator tool calls запрещены.
 
 ## Pre-emit validate-boundary (HARD)

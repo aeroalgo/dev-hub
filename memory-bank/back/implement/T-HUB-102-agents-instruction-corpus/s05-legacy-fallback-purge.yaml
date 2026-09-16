@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-102-agents-instruction-corpus
+title: s05 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used:
+- tdd
+discovery: []
+gaps:
+  status: none
+done:
+- 'Kind A: подтверждено полное динамическое обнаружение активного корпуса агентов
+  в get_active_corpus_files без ручного allowlist.'
+- 'Kind C: подтверждено отсутствие неквалифицированных runner fallback/dual-path конструкций
+  во всем активном корпусе инструкций (включая harness/agents/**/*.md).'
+- 'Kind I: подтверждена актуализация всех agent prompts на branch-qualified формулировки
+  (Hub dev-hub self-test vs Managed capability_checks).'
+- 'Регрессионный прогон: полный тестовый набор dev-hub (2479 тестов) и набор тестов
+  runtime-sync / instruction inventory успешно пройдены.'
+files:
+- loop/tests/test_stack_profile_instruction_inventory.py
+- harness/agents/verify-implement.md
+- harness/agents/verify-bugfix.md
+- harness/agents/verify-qa.md
+- harness/agents/gate-repair.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/ -q --tb=line
+grep_control: []
+verification_results:
+- 24 passed in loop/tests/test_stack_profile_instruction_inventory.py
+- 2479 passed in full dev-hub suite
+checkpoints:
+- id: cp1
+  criterion: Kind A — get_active_corpus_files включает agents, единый классификатор
+  status: done
+- id: cp2
+  criterion: Kind C — 0 fallback / 0 dual-path / fail-closed corpus inclusion
+  status: done
+- id: cp3
+  criterion: Kind I — Все agent prompts переписаны на branch-qualified формулировки
+  status: done
+- id: cp4
+  criterion: Полный dev-hub regression suite green
+  status: done
+resume_from: done

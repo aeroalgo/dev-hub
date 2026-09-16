@@ -1,0 +1,193 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-102-agents-instruction-corpus
+title: s05 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: проверить отсутствие остатков устаревших runner-инструкций
+  по всем таблицам sunset A/B/C/I, подтвердить 0 violations во всем активном корпусе
+  инструкций (включая harness/agents/**/*.md) и зеленый статус полного regression suite.
+
+plan_contract:
+  fr_ids:
+    - FR-I2-002
+    - FR-I2-008
+    - FR-I2-009
+  nouns:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+    - sunset_inventory
+    - grep_control
+    - harness/agents/**/*.md
+  layout_paths:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+    - harness/agents/
+  ac_quotes:
+    - "AC+ #6: No change to 076 executor, 077 receipt, FRONT parent-only authority, or test.e2e vocabulary."
+    - "AC+ #7: Full hub suite green after I2 changes."
+    - "AC− #3: Нет ручного allowlist файлов agents вместо discovery glob."
+    - "AC− #5: Нет изменения executor/evidence/incident/fingerprint runtime behavior."
+    - "NFR-I2-004: Full hub suite regression after changes: bin/pytest -q --tb=line remains valid hub QA command in plan/QA matrix only."
+  plan_jumps:
+    - "back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md:128-161"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - FR-I2-002
+    - FR-I2-008
+    - FR-I2-009
+  files:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+    - harness/agents/verify-implement.md
+    - harness/agents/verify-bugfix.md
+    - harness/agents/verify-qa.md
+    - harness/agents/gate-repair.md
+
+as_built:
+  - "loop/tests/test_stack_profile_instruction_inventory.py: содержит полное обнаружение активного корпуса инструкций включая agents."
+  - "harness/agents/: все агенты содержат явные branch-qualified формулировки Hub dev-hub self-test vs Managed capability checks."
+
+delta:
+  - "Провести финальную верификацию по всем строкам sunset_inventory и grep_control."
+  - "Подтвердить 0 violations во всем active corpus и полный прогон тестового набора."
+
+sunset_inventory:
+  - symbol: "get_active_corpus_files без harness/agents/**"
+    kind: A
+    replacement: "get_active_corpus_files с discovery harness/agents/**/*.md и dedup"
+    policy: "delete in-epic"
+    rg_scope: "loop/tests/test_stack_profile_instruction_inventory.py"
+    expect: "agents glob присутствует в get_active_corpus_files"
+  - symbol: "Inventory green при stale agents corpus"
+    kind: A
+    replacement: "scan_active_corpus включает harness/agents в violations check"
+    policy: "delete in-epic"
+    rg_scope: "loop/tests/test_stack_profile_instruction_inventory.py"
+    expect: "stale agent prompts вызывают failure"
+  - symbol: "Agent-specific implicit allowlist"
+    kind: A
+    replacement: "единый classifier для rules, skills, entrypoints и agents"
+    policy: "delete in-epic"
+    rg_scope: "loop/tests/test_stack_profile_instruction_inventory.py"
+    expect: "нет специального ослабленного allowlist для agents"
+  - symbol: "Treating agents as out-of-scope for instruction inventory"
+    kind: C
+    replacement: "fail-closed inclusion of agents in active corpus"
+    policy: "delete in-epic"
+    rg_scope: "loop/tests/"
+    expect: "agents являются обязательной частью corpus"
+  - symbol: "Unqualified bin/pytest in verify agents as implicit managed default"
+    kind: C
+    replacement: "Hub-only + managed capability branches"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/"
+    expect: "нет голого bin/pytest без hub-only маркера в action context"
+  - symbol: "Run VERIFY pytest without root classification"
+    kind: C
+    replacement: "Explicit hub self-test vs capability_checks"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/"
+    expect: "VERIFY секции содержат branch qualification"
+  - symbol: "harness/agents/verify-implement.md unqualified bin/pytest / .venv/bin/pytest recipes"
+    kind: I
+    replacement: "Hub-only branch + managed capability_checks branch"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/verify-implement.md"
+    expect: "zero unqualified runner action lines"
+  - symbol: "harness/agents/verify-bugfix.md bin/pytest… from VERIFY without scope"
+    kind: I
+    replacement: "Branch-qualified VERIFY commands"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/verify-bugfix.md"
+    expect: "zero unqualified runner action lines"
+  - symbol: "harness/agents/verify-qa.md full-suite bin/pytest -q --tb=line without hub-only label"
+    kind: I
+    replacement: "Hub dev-hub parent full suite + managed full capability alternative"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/verify-qa.md"
+    expect: "zero unqualified runner action lines"
+  - symbol: "harness/agents/gate-repair.md bin/pytest -q --tb=line as universal check"
+    kind: I
+    replacement: "Hub-only/parent-only dev-hub self-test label"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/gate-repair.md"
+    expect: "zero unqualified runner action lines"
+  - symbol: "Any other agent positive runner literal without hub/negative context"
+    kind: I
+    replacement: "Branch-qualified or read-only classification"
+    policy: "delete in-epic"
+    rg_scope: "harness/agents/"
+    expect: "zero unqualified runner action lines in all agent prompts"
+
+deletes: []
+wire_complete_required: false
+out_of_scope:
+  - "Изменение executor 076 runtime behavior"
+  - "Изменение receipt 077 runtime behavior"
+  - "Изменение FRONT parent-only authority"
+  - "Изменение test.e2e vocabulary"
+  - "Изменение executor/evidence/incident/fingerprint runtime behavior"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: "get_active_corpus_files discovery"
+    command: 'rg -n "harness/agents" loop/tests/test_stack_profile_instruction_inventory.py'
+    expect: "matches present showing agents discovery in get_active_corpus_files"
+  - id: inv-c-01
+    kind: C
+    symbol: "unqualified pytest action in agents"
+    command: 'bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line'
+    expect: "0 violations across full discovered active corpus"
+  - id: inv-i-01
+    kind: I
+    symbol: "verify-implement unqualified recipes"
+    command: 'rg -n "bin/pytest" harness/agents/verify-implement.md | rg -v "Hub|dev-hub"'
+    expect: "no unqualified bin/pytest in verify-implement"
+  - id: inv-i-02
+    kind: I
+    symbol: "verify-bugfix unqualified recipes"
+    command: 'rg -n "bin/pytest" harness/agents/verify-bugfix.md | rg -v "Hub|dev-hub"'
+    expect: "no unqualified bin/pytest in verify-bugfix"
+  - id: inv-i-03
+    kind: I
+    symbol: "verify-qa unqualified recipes"
+    command: 'rg -n "bin/pytest" harness/agents/verify-qa.md | rg -v "Hub|dev-hub|parent"'
+    expect: "no unqualified bin/pytest in verify-qa"
+  - id: inv-i-04
+    kind: I
+    symbol: "gate-repair unqualified recipes"
+    command: 'rg -n "bin/pytest" harness/agents/gate-repair.md | rg -v "Hub|dev-hub|parent"'
+    expect: "no unqualified bin/pytest in gate-repair"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — get_active_corpus_files включает agents, единый классификатор"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'corpus or agents'"
+  - id: cp2
+    criterion: "Kind C — 0 fallback / 0 dual-path / fail-closed corpus inclusion"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'test_no_unqualified_runner_action_lines_in_active_corpus'"
+  - id: cp3
+    criterion: "Kind I — Все agent prompts переписаны на branch-qualified формулировки"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line"
+  - id: cp4
+    criterion: "Полный dev-hub regression suite green"
+    verify: "bin/pytest loop/tests/ -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line"
+tdd:
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_no_unqualified_runner_action_lines_in_active_corpus"

@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-102-agents-instruction-corpus
+title: s04 — verify-qa and remaining agents instruction scan and parity rewrite IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-102-agents-instruction-corpus/yaml/steps/s04-verify-qa-and-agents-parity-scan.yaml
+skills_used:
+- tdd
+discovery: []
+gaps:
+  status: none
+done:
+- 'Квалифицированы команды Suite results и Suite gate в harness/agents/verify-qa.md:
+  Hub (dev-hub self-test) parent suite с bin/pytest и timeout 300s vs Managed projects
+  с capability_checks и typed execution evidence, с сохранением запрета ''не гоняй
+  pytest'' для сабагента.'
+- Просканированы все остальные файлы harness/agents/*.md (analyze-verify, explorer,
+  reconcile-verify, sunset-inventory, verify-decompose, verify-edit, verify-publish,
+  verify-script) — подтверждено отсутствие неквалифицированных runner-инструкций и
+  корректное сохранение negative/forbidden паттернов.
+- Добавлены тесты test_verify_qa_instruction_parity и test_readonly_agents_instruction_parity
+  в loop/tests/test_stack_profile_instruction_inventory.py.
+files:
+- harness/agents/verify-qa.md
+- loop/tests/test_stack_profile_instruction_inventory.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  'verify_qa or readonly_agents'
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+grep_control: []
+verification_results:
+- 24 passed
+checkpoints:
+- id: cp1
+  criterion: harness/agents/verify-qa.md содержит явную маркировку Hub parent suite
+    vs Managed full capability checks
+  status: done
+- id: cp2
+  criterion: Все read-only и специализированные агенты проходят инвентаризацию без
+    ложных срабатываний
+  status: done
+resume_from: done

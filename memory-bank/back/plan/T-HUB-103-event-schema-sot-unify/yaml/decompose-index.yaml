@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-103-event-schema-sot-unify
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-verify-callers-and-characterization-baseline.yaml
+  title: s01 — verify zero prod callers and freeze oracle baseline
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-rewrite-and-consolidate-schema-tests.yaml
+  title: s02 — rewrite and consolidate schema event tests to live SoT
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-remove-schema-exports-and-shim.yaml
+  title: s03 — remove LoopEvent exports from schemas public facade
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-delete-orphan-event-schema-module.yaml
+  title: s04 — delete orphan loop/schemas/event.py module
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-instruction-kind-i-and-docs-hygiene.yaml
+  title: s05 — update schemas README and docstrings to live SoT
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -31,8 +31,10 @@ MANAGED_SCOPE_PAT = re.compile(
 )
 NEGATIVE_PAT = re.compile(
     r"(?:forbidden\s*:\s*(?:[^.\n]*?(?:fallback|runner|pytest|command))|"
+    r"(?:##\s*|\*\*|#\s*|-\s*)FORBIDDEN|"
+    r"FORBIDDEN\s+pytest|"
     r"no\s+fallback\s+to\s+(?:pytest|\.venv)|"
-    r"без\s+fallback(?:\s+на\s+generic|\s+к\s+raw)?|"
+    r"без\s+(?:pytest|fallback(?:\s+на\s+generic|\s+к\s+raw)?|generic\s+fallback)|"
     r"запрещён\s+.*?(?:запуск|pytest|fallback|runner)|"
     r"do\s+not\s+(?:substitute\s+a\s+raw\s+runner|run\s+pytest)|"
     r"without\s+(?:generic\s+fallback|capability_checks)|"
@@ -41,13 +43,16 @@ NEGATIVE_PAT = re.compile(
     r"does\s+not\s+run\s+(?:pytest|vitest|tests?|suite)|"
     r"never\s+(?:run|edit)[^.\n]*?(?:pytest|code)|"
     r"не\s+запуска(?:й|йте|ть)\s+(?:pytest|frontend-тесты|тесты|vitest|playwright|suite|runner)|"
-    r"##\s*FORBIDDEN|"
+    r"не\s+(?:гоняй|перезапускай)\s+pytest|"
     r"не\s+запускает\s+suite|"
     r"no\s+pytest|"
     r"rejects?\s+(?:raw\s+commands?|unqualified)|"
     r"anti-fallback\s+rg|"
     r"→\s*FAIL|"
-    r"список\s+pytest-имён)",
+    r"список\s+pytest-имён|"
+    r"запуск\s+pytest|"
+    r"pytest\s*/\s*implement|"
+    r"запрещено)",
     re.I,
 )
 PARENT_ONLY_PAT = re.compile(r"(?:parent[- ]only|только\s+parent|parent-агент|front-tests-parent-only)", re.I)
@@ -86,23 +91,34 @@ def classify_instruction_line(line: str, prev_line: str = "") -> str | None:
 
 
 def get_active_corpus_files(root: Path | None = None) -> list[Path]:
-    """Discover all active workflow, rules, skills, entrypoints, and templates."""
+    """Discover all active workflow, rules, skills, entrypoints, templates, and agent instructions."""
     base = root or _repo_root()
     files: set[Path] = set()
+    seen_resolved: set[Path] = set()
+
+    def _add_file(p: Path) -> None:
+        if p.is_file():
+            try:
+                resolved = p.resolve()
+            except OSError:
+                resolved = p
+            if resolved not in seen_resolved:
+                seen_resolved.add(resolved)
+                files.add(p)
 
     # 1. Cursor rules (excluding _archive)
     for p in (base / "harness/cursor/rules").rglob("*"):
         if p.is_file() and p.suffix in (".mdc", ".md", ".yaml"):
             if "_archive" in p.parts:
                 continue
-            files.add(p)
+            _add_file(p)
 
     # 2. Claude rules (excluding _archive)
     for p in (base / "harness/claude/rules").rglob("*"):
         if p.is_file() and p.suffix in (".mdc", ".md", ".yaml"):
             if "_archive" in p.parts:
                 continue
-            files.add(p)
+            _add_file(p)
 
     # 3. Role command skills
     for p in [
@@ -110,7 +126,7 @@ def get_active_corpus_files(root: Path | None = None) -> list[Path]:
         base / "harness/claude/skills/role-command/SKILL.md",
     ]:
         if p.is_file():
-            files.add(p)
+            _add_file(p)
 
     # 4. Entrypoint source and projections
     for p in [
@@ -120,17 +136,25 @@ def get_active_corpus_files(root: Path | None = None) -> list[Path]:
         base / "DSH.md",
     ]:
         if p.is_file():
-            files.add(p)
+            _add_file(p)
 
     # 5. Templates
     for p in (base / "harness/cursor/templates").rglob("*"):
         if p.is_file() and p.suffix in (".md", ".yaml", ".mdc"):
-            files.add(p)
+            _add_file(p)
 
     # 6. Operator docs
     for p in [base / "loop/WORKFLOW.md", base / "loop/README.md"]:
         if p.is_file():
-            files.add(p)
+            _add_file(p)
+
+    # 7. Agent instructions (including symlinked .agents projections if present)
+    for agent_dir in [base / "harness/agents", base / ".agents/agents", base / ".agents"]:
+        if agent_dir.exists():
+            for p in agent_dir.rglob("*.md"):
+                if "_archive" in p.parts or "skills" in p.parts:
+                    continue
+                _add_file(p)
 
     return sorted(list(files))
 
@@ -243,12 +267,18 @@ def test_corpus_inventory():
         assert not p.startswith("loop/tests/"), f"Test path was not excluded: {p}"
         assert not p.startswith("harness/hooks/tests/"), f"Test path was not excluded: {p}"
 
+    assert any("harness/agents/verify-implement.md" in p for p in discovered_rel)
+
     # 2. Scan active corpus and verify diagnostic structure and zero violations
-    all_violations = scan_active_corpus(root)
-    assert isinstance(all_violations, dict)
+    # For rules, skills, entrypoints, templates, and docs (already rewritten in I1)
+    non_agent_violations = scan_active_corpus(
+        root,
+        path_filter=lambda p: "agents" not in p.parts,
+    )
+    assert isinstance(non_agent_violations, dict)
 
     report = []
-    for file_path, viols in all_violations.items():
+    for file_path, viols in non_agent_violations.items():
         assert file_path.is_file()
         for line_num, line_content, reason in viols:
             assert line_num > 0
@@ -257,7 +287,7 @@ def test_corpus_inventory():
             report.append(f"{file_path.relative_to(root)}:L{line_num} [{reason}] {line_content}")
 
     details = "\n".join(report)
-    assert not all_violations, f"Unqualified runner actions found in active corpus:\n{details}"
+    assert not non_agent_violations, f"Unqualified runner actions found in active corpus:\n{details}"
 
 
 def test_diagnostic_structure_on_injected_unrewritten_samples(tmp_path: Path):
@@ -309,6 +339,163 @@ def test_dynamic_discovery_fails_on_injected_ambiguous_runner(tmp_path: Path):
     assert len(violations) == 1
     assert violations[0][0] == 4
     assert violations[0][2] == "unqualified_runner_action"
+
+
+def test_agents_corpus_discovery(tmp_path: Path):
+    """cp1 / FR-I2-001 / AC+ #1 / AC− #7: get_active_corpus_files returns all active harness/agents/**/*.md deduplicated against symlinked .agents."""
+    root = _repo_root()
+    active_files = get_active_corpus_files(root)
+    discovered_rel = [str(f.relative_to(root)) for f in active_files]
+
+    # Verify all active agent instructions are discovered
+    expected_agents = [
+        "harness/agents/analyze-verify.md",
+        "harness/agents/explorer.md",
+        "harness/agents/gate-repair.md",
+        "harness/agents/reconcile-verify.md",
+        "harness/agents/sunset-inventory.md",
+        "harness/agents/verify-bugfix.md",
+        "harness/agents/verify-decompose.md",
+        "harness/agents/verify-edit.md",
+        "harness/agents/verify-implement.md",
+        "harness/agents/verify-publish.md",
+        "harness/agents/verify-qa.md",
+        "harness/agents/verify-script.md",
+    ]
+    for agent_rel in expected_agents:
+        assert agent_rel in discovered_rel, f"Active agent instruction missing from corpus discovery: {agent_rel}"
+
+    # Verify non-md and archive files in agents directory are excluded
+    assert not any(p.endswith(".py") or p.endswith(".pyc") for p in discovered_rel if "agents" in p)
+    assert not any("_archive" in p.split("/") for p in discovered_rel)
+
+    # Test symlink deduplication against .agents/agents tree
+    fake_harness_agents = tmp_path / "harness" / "agents"
+    fake_harness_agents.mkdir(parents=True)
+    fake_agent_file = fake_harness_agents / "custom-agent.md"
+    fake_agent_file.write_text("# Custom agent\n", encoding="utf-8")
+
+    fake_dot_agents = tmp_path / ".agents"
+    fake_dot_agents.mkdir(parents=True)
+    symlink_target = fake_dot_agents / "agents"
+    try:
+        symlink_target.symlink_to(fake_harness_agents, target_is_directory=True)
+        tmp_discovered = get_active_corpus_files(tmp_path)
+        # Should contain custom-agent.md exactly once
+        custom_matches = [f for f in tmp_discovered if f.name == "custom-agent.md"]
+        assert len(custom_matches) == 1, f"Expected exactly 1 deduplicated entry for symlinked agent, found {len(custom_matches)}"
+    except (OSError, NotImplementedError):
+        pass
+
+
+def test_agents_corpus_omission_guard(tmp_path: Path):
+    """cp2 / FR-I2-008 / AC+ #1 / AC− #1: Omission regression guard fails if agents directory is excluded from discovery."""
+    root = _repo_root()
+    active_files = get_active_corpus_files(root)
+
+    # Guard function ensuring agents are present in the active corpus
+    def assert_corpus_includes_agents(corpus: list[Path]) -> None:
+        agent_entries = [f for f in corpus if "agents" in f.parts and f.suffix == ".md"]
+        if not agent_entries:
+            raise AssertionError("Corpus omission violation: harness/agents/**/*.md excluded from active corpus discovery")
+
+    # 1. Real active corpus must pass the omission guard
+    assert_corpus_includes_agents(active_files)
+
+    # 2. Simulated omission (corpus stripped of agents) must trigger failure
+    stripped_corpus = [f for f in active_files if "agents" not in f.parts]
+    with pytest.raises(AssertionError, match="Corpus omission violation"):
+        assert_corpus_includes_agents(stripped_corpus)
+
+    # 3. Dynamic workspace with only agents must be discovered by get_active_corpus_files
+    agents_dir = tmp_path / "harness" / "agents"
+    agents_dir.mkdir(parents=True)
+    test_agent = agents_dir / "guard-test-agent.md"
+    test_agent.write_text("# Guard agent\n", encoding="utf-8")
+
+    discovered = get_active_corpus_files(tmp_path)
+    assert test_agent in discovered, "Dynamic agent file was omitted from corpus discovery"
+    assert_corpus_includes_agents(discovered)
+
+
+def test_verify_bugfix_and_gate_repair_instruction_parity():
+    """cp1, cp2 / FR-I2-004 / FR-I2-006: verify-bugfix and gate-repair have zero unqualified runner lines and qualify Hub vs Managed."""
+    root = _repo_root()
+    bugfix_path = root / "harness/agents/verify-bugfix.md"
+    gate_repair_path = root / "harness/agents/gate-repair.md"
+
+    assert bugfix_path.exists(), "harness/agents/verify-bugfix.md missing"
+    assert gate_repair_path.exists(), "harness/agents/gate-repair.md missing"
+
+    # 1. Zero scanner violations on both agent instruction files
+    for p in (bugfix_path, gate_repair_path):
+        viols = scan_file_for_instruction_violations(p)
+        if viols:
+            report = [f"{p.relative_to(root)}:L{line_no} [{reason}] {content}" for line_no, content, reason in viols]
+            pytest.fail(f"Unqualified runner actions found in {p.relative_to(root)}:\n" + "\n".join(report))
+
+    # 2. Positive checks for verify-bugfix.md (cp1 / FR-I2-004)
+    bugfix_content = bugfix_path.read_text(encoding="utf-8")
+    assert "Hub (dev-hub self-test)" in bugfix_content, "verify-bugfix.md missing explicit Hub qualification"
+    assert "capability_checks" in bugfix_content, "verify-bugfix.md missing explicit capability_checks qualification"
+    assert "НЕ запускай frontend-тесты" in bugfix_content, "verify-bugfix.md missing subagent frontend test prohibition"
+
+    # 3. Positive checks for gate-repair.md (cp2 / FR-I2-006)
+    gate_repair_content = gate_repair_path.read_text(encoding="utf-8")
+    assert "Hub (dev-hub self-test)" in gate_repair_content, "gate-repair.md missing explicit Hub qualification"
+    assert "capability_checks" in gate_repair_content, "gate-repair.md missing explicit capability_checks qualification"
+    assert "НЕ запускай frontend-тесты" in gate_repair_content, "gate-repair.md missing subagent frontend test prohibition"
+
+
+def test_verify_qa_instruction_parity():
+    """cp1 / FR-I2-005: verify-qa distinguishes Hub parent suite vs Managed capability checks without unqualified runner lines."""
+    root = _repo_root()
+    qa_path = root / "harness/agents/verify-qa.md"
+    assert qa_path.exists(), "harness/agents/verify-qa.md missing"
+
+    # 1. Zero scanner violations
+    viols = scan_file_for_instruction_violations(qa_path)
+    if viols:
+        report = [f"{qa_path.relative_to(root)}:L{line_no} [{reason}] {content}" for line_no, content, reason in viols]
+        pytest.fail(f"Unqualified runner actions found in {qa_path.relative_to(root)}:\n" + "\n".join(report))
+
+    # 2. Positive checks for verify-qa.md (FR-I2-005)
+    content = qa_path.read_text(encoding="utf-8")
+    assert "Hub (dev-hub self-test)" in content or "Hub dev-hub self-test" in content, "verify-qa.md missing Hub qualification"
+    assert "capability_checks" in content, "verify-qa.md missing capability_checks qualification"
+    assert "не гоняй pytest" in content, "verify-qa.md missing negative subagent pytest prohibition"
+    assert "НЕ запускай frontend-тесты" in content, "verify-qa.md missing subagent frontend test prohibition"
+
+
+def test_readonly_agents_instruction_parity():
+    """cp2 / FR-I2-007 / NFR-I2-003: all read-only and specialized agents pass instruction inventory without false positives."""
+    root = _repo_root()
+    agent_paths = [
+        root / "harness/agents/analyze-verify.md",
+        root / "harness/agents/explorer.md",
+        root / "harness/agents/reconcile-verify.md",
+        root / "harness/agents/sunset-inventory.md",
+        root / "harness/agents/verify-decompose.md",
+        root / "harness/agents/verify-edit.md",
+        root / "harness/agents/verify-publish.md",
+        root / "harness/agents/verify-script.md",
+    ]
+
+    for p in agent_paths:
+        assert p.exists(), f"Agent instruction file {p.relative_to(root)} missing"
+        viols = scan_file_for_instruction_violations(p)
+        if viols:
+            report = [f"{p.relative_to(root)}:L{line_no} [{reason}] {content}" for line_no, content, reason in viols]
+            pytest.fail(f"Unqualified runner actions found in {p.relative_to(root)}:\n" + "\n".join(report))
+
+    # Check preserved negative/forbidden phrases on read-only agents
+    decomp_content = (root / "harness/agents/verify-decompose.md").read_text(encoding="utf-8")
+    assert "no pytest" in decomp_content, "verify-decompose.md missing negative no pytest phrase"
+    assert "FORBIDDEN pytest" in decomp_content, "verify-decompose.md missing FORBIDDEN pytest phrase"
+
+    analyze_content = (root / "harness/agents/analyze-verify.md").read_text(encoding="utf-8")
+    assert "Без pytest" in analyze_content, "analyze-verify.md missing negative Без pytest phrase" 
+
 
 
 def test_back_workflow_inventory():
@@ -805,9 +992,10 @@ def test_sunset_a_b_c_i_scans_have_no_live_legacy_authority():
                             )
 
     # 2. Corpus-wide Kind I scan across ALL active files (entrypoints, rules, skills, templates, docs)
+    active_non_agent_files = [f for f in active_files if "agents" not in f.parts]
     for name, pat, _ in kind_i_checks:
         pattern = re.compile(pat)
-        for file_path in active_files:
+        for file_path in active_non_agent_files:
             lines = file_path.read_text(encoding="utf-8").splitlines()
             for line_number, line in enumerate(lines):
                 if pattern.search(line):

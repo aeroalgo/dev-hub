@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s03 — remove LoopEvent exports from schemas public facade IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s03-remove-schema-exports-and-shim.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Проверено отсутствие использования LoopEvent, EVENT_KINDS, EVENT_SCHEMA из loop.schemas
+  в продакшн коде
+gaps:
+  status: none
+done:
+- Удалены импорты LoopEvent, EVENT_KINDS, EVENT_SCHEMA из loop/schemas/__init__.py
+- Удалены LoopEvent, EVENT_KINDS, EVENT_SCHEMA из __all__ в loop/schemas/__init__.py
+files:
+- loop/schemas/__init__.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_event_v2_characterization.py -q
+- bin/pytest loop/tests/test_schemas_gate_verdict.py loop/tests/test_schemas_handoff.py
+  loop/tests/test_schemas_board.py loop/tests/test_schemas_checkpoint.py loop/tests/test_schemas_state.py
+  -q
+integration_check:
+- python3 -c 'from loop.schemas import LoopEvent' завершается ImportError
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_event_v2_characterization.py -q'', ''outcome'':
+  ''PASS (9 passed)''}'
+- '{''command'': ''bin/pytest loop/tests/test_schemas_gate_verdict.py loop/tests/test_schemas_handoff.py
+  loop/tests/test_schemas_board.py loop/tests/test_schemas_checkpoint.py loop/tests/test_schemas_state.py
+  -q'', ''outcome'': ''PASS (29 passed)''}'
+checkpoints:
+- id: cp1
+  criterion: В loop/schemas/__init__.py отсутствуют упоминания LoopEvent, EVENT_KINDS,
+    EVENT_SCHEMA
+  status: done
+- id: cp2
+  criterion: Попытка импорта LoopEvent из loop.schemas падает с ImportError
+  status: done

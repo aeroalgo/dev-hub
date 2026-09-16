@@ -1,19 +1,13 @@
 ---
-schema: loop-handoff/v1 # handoff
+schema: loop-handoff/v1
 role: BACK
-mode: DECOMPOSE
-epic_id: T-HUB-102-agents-instruction-corpus
-step_id: DECOMPOSE
+mode: DONE
+epic_id: T-HUB-103-event-schema-sot-unify
 ---
 
 ## load_now
-1. [plan.md](back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md) — source plan/artifact for pre-implement phase DECOMPOSE.
-2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (layout v2: md/decompose-index.md + yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).
-3. `.cursor/rules/back_developer/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.
-4. Target decompose: [`decompose-index.yaml`](back/plan/T-HUB-102-agents-instruction-corpus/yaml/decompose-index.yaml) (layout v2: `back/plan/T-HUB-102-agents-instruction-corpus/md/decompose-index.md` + `back/plan/T-HUB-102-agents-instruction-corpus/yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml`).
+1. [memory-bank/back/qa/T-HUB-103-event-schema-sot-unify/qa-20260916-event-schema-sot-unify.yaml](memory-bank/back/qa/T-HUB-103-event-schema-sot-unify/qa-20260916-event-schema-sot-unify.yaml) — QA report.
 
-## Handoff DECOMPOSE
-- # epic_id: T-HUB-102-agents-instruction-corpus — NOT short queue id
-- **Эпик:** T-HUB-102-agents-instruction-corpus (BACK).
-- **Режим/шаг:** `BACK DECOMPOSE`.
-- **Дальше:** выполнить `BACK DECOMPOSE`.
+## Handoff BACK DONE
+- **Дальше:** EPIC_DONE
+- **Context Telemetry:** unique_reads=0, duplicate_reads=0, bytes_read=0, ranges_read=0, monolith_attempts=0, search_exceptions=0, highest_repeat=none (green)

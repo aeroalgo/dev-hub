@@ -1,0 +1,54 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-102-agents-instruction-corpus
+plan_id: T-HUB-102-agents-instruction-corpus
+epic_id: T-HUB-102-agents-instruction-corpus
+date: '2026-09-16'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 71d0f282a356b05f90ed5c64ab329c14c961e63513a86404ea0edeaffe5728fe
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-102-agents-instruction-corpus"
+  - "epic: T-HUB-102-agents-instruction-corpus"
+  - "steps: s01–s05"
+  - "files: harness/agents/**/*.md, loop/tests/test_stack_profile_instruction_inventory.py"
+
+ac_plus:
+  - "`get_active_corpus_files()` returns all active `harness/agents/**/*.md`; omission regression test fails if agents excluded."
+  - "Semantic inventory FAIL on pre-rewrite agents (`verify-implement`, `verify-bugfix`, `verify-qa`, `gate-repair`); PASS after branch-qualified rewrite."
+  - "Every direct runner literal in agents action context carries hub-only marker or is replaced with managed `capability_checks`/evidence language."
+  - "Read-only agents (`verify-decompose`, `analyze-verify`) remain valid without false positives."
+  - "Hub exception for dev-hub verify/QA (`bin/pytest` with timeout) preserved under explicit hub context."
+  - "No change to 076 executor, 077 receipt, FRONT parent-only authority, or `test.e2e` vocabulary."
+  - "Full hub suite green after I2 changes."
+
+ac_minus:
+  - "Нет inventory, inspectящего только cursor/claude/skills без agents."
+  - "Нет unqualified managed pytest/cargo/npm recipe в agents action context."
+  - "Нет ручного allowlist файлов agents вместо discovery glob."
+  - "Нет dual authority: rules say capability_checks, agents say bare pytest."
+  - "Нет изменения executor/evidence/incident/fingerprint runtime behavior."
+  - "Нет удаления valid negative/forbidden pytest phrases in agents."
+  - "Нет duplicate corpus entries from symlinked `.agents` tree."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

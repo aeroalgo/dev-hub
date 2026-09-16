@@ -1226,11 +1226,13 @@ def test_check_after_commits_next_step_for_post_implement_phase(
         tmp_path,
         fingerprint_before=ctx.fingerprint_context(before_text),
     )
-    assert after.get("ok") is True, after
+    assert after.get("ok") is False, after
     cp = json.loads(checkpoint_path(tmp_path).read_text(encoding="utf-8"))
     assert cp.get("resume_policy") == "next_step"
     assert cp.get("stage") == "committed"
     assert after.get("post_implement_phase") == "DONE"
+    assert after.get("stop") == "EPIC_DONE"
+    assert after.get("complete") is True
 
 
 def test_arm_clears_stale_checkpoint(tmp_path: Path, monkeypatch) -> None:

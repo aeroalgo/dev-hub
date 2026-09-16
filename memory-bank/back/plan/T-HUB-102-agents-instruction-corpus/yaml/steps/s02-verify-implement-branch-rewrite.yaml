@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-102-agents-instruction-corpus
+title: verify-implement agent instruction branch qualification rewrite
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать harness/agents/verify-implement.md, заменив безусловные bash-рецепты
+  bin/pytest и timeout 300s .venv/bin/pytest на явное ветвление: dev-hub self-test vs
+  managed capability_checks + typed evidence, сохраняя границы subagent и scope-check.
+
+plan_contract:
+  fr_ids:
+    - FR-I2-003
+  nouns:
+    - harness/agents/verify-implement.md
+    - capability_checks
+    - bin/pytest
+    - scope-check
+  layout_paths:
+    - harness/agents/verify-implement.md
+  ac_quotes:
+    - "AC+ #2: Semantic inventory FAIL on pre-rewrite agents (verify-implement, verify-bugfix, verify-qa, gate-repair); PASS after branch-qualified rewrite."
+    - "AC+ #3: Every direct runner literal in agents action context carries hub-only marker or is replaced with managed capability_checks/evidence language."
+    - "AC− #2: Нет unqualified managed pytest/cargo/npm recipe в agents action context."
+    - "NFR-I2-001: Agents rewrite preserves subagent role boundaries (verify = read-only where specified; no frontend test execution by subagent)."
+  plan_jumps:
+    - "back/plan/T-HUB-102-agents-instruction-corpus/md/plan.md:94-116"
+
+context:
+  consumes:
+    - harness/agents/verify-implement.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - harness/agents/verify-implement.md
+  plan_refs:
+    - FR-I2-003
+  files:
+    - harness/agents/verify-implement.md
+
+as_built:
+  - "harness/agents/verify-implement.md: предписывает unqualified bin/pytest / .venv/bin/pytest рецепты в bash-секции без явного разделения корней."
+
+delta:
+  - "harness/agents/verify-implement.md: квалифицировать bash-команды и правила верификации: Hub (dev-hub self-test): bin/pytest …; Managed projects: capability_checks + typed execution evidence."
+
+deletes: []
+wire_complete_required: false
+out_of_scope:
+  - "Правка других файлов агентов (s03, s04)."
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/agents/verify-implement.md содержит явную ветку Hub self-test и ветку Managed capability_checks"
+    verify: "rg -n 'Hub|Managed|capability_checks' harness/agents/verify-implement.md"
+  - id: cp2
+    criterion: "harness/agents/verify-implement.md проходит семантический классификатор без нарушений"
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -k 'implement' -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'implement'"
+tdd:
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_verify_implement_instruction_parity"

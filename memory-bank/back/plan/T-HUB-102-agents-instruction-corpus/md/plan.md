@@ -57,11 +57,11 @@ I2 закрывает только agents corpus gap: расширить discove
 
 | # | Story | Priority | Independent Test |
 |---|---|---|---|
-| US-I2-001 | Как verify-implement subagent, я должен видеть hub-only vs managed branch, чтобы не запускать `bin/pytest` в managed project root. | P0 | Corpus scan включает `harness/agents/verify-implement.md`; stale unqualified line fails; rewritten branch passes. |
-| US-I2-002 | Как verify-qa/verify-bugfix/gate-repair agent, я должен следовать той же policy, что rules/skills, при описании test commands. | P0 | All four named agents pass semantic inventory; no unqualified action runner literal. |
-| US-I2-003 | Как maintainer inventory test, я хочу, чтобы новый agent file с `bin/pytest` без hub marker автоматически ломал CI. | P0 | Temp fixture under `harness/agents/` with stale line → inventory FAIL; removal → PASS. |
+| US-001 | Как verify-implement subagent, я должен видеть hub-only vs managed branch, чтобы не запускать `bin/pytest` в managed project root. | P0 | Corpus scan включает `harness/agents/verify-implement.md`; stale unqualified line fails; rewritten branch passes. |
+| US-002 | Как verify-qa/verify-bugfix/gate-repair agent, я должен следовать той же policy, что rules/skills, при описании test commands. | P0 | All four named agents pass semantic inventory; no unqualified action runner literal. |
+| US-003 | Как maintainer inventory test, я хочу, чтобы новый agent file с `bin/pytest` без hub marker автоматически ломал CI. | P0 | Temp fixture under `harness/agents/` with stale line → inventory FAIL; removal → PASS. |
 
-### Acceptance Scenarios — US-I2-001
+### Acceptance Scenarios — US-001
 
 - **Given:** `harness/agents/verify-implement.md` содержит `bin/pytest …` или `timeout 300s .venv/bin/pytest …` без hub-only context.
 - **When:** `get_active_corpus_files()` + semantic scan runs.
@@ -71,7 +71,7 @@ I2 закрывает только agents corpus gap: расширить discove
 - **When:** inventory runs.
 - **Then:** PASS; hub exception preserved for dev-hub verify context.
 
-### Acceptance Scenarios — US-I2-002
+### Acceptance Scenarios — US-002
 
 - **Given:** `verify-bugfix.md` instructs `bin/pytest…` from VERIFY section unconditionally.
 - **When:** classifier evaluates action context.
@@ -85,7 +85,7 @@ I2 закрывает только agents corpus gap: расширить discove
 - **When:** inventory runs.
 - **Then:** PASS only if labeled hub-only / parent-only dev-hub self-test; FAIL if readable as managed default.
 
-### Acceptance Scenarios — US-I2-003
+### Acceptance Scenarios — US-003
 
 - **Given:** developer adds `harness/agents/new-verify.md` with unqualified `cargo test`.
 - **When:** inventory discovery runs.
@@ -93,35 +93,38 @@ I2 закрывает только agents corpus gap: расширить discove
 
 ## Functional Requirements (FR)
 
-- **FR-I2-001:** `get_active_corpus_files()` MUST discover all non-archive `harness/agents/**/*.md` (and symlink-resolved agent paths under `.agents/` if present, deduplicated by resolved path).
-- **FR-I2-002:** Semantic inventory (`scan_active_corpus`, violation reporting) MUST apply to discovered agents files with same `classify_instruction_line` contract as rules/skills.
-- **FR-I2-003:** `harness/agents/verify-implement.md` MUST rewrite test-command sections: hub-only `bin/pytest` branch for dev-hub verify + managed `capability_checks`/evidence branch; retain scope-check and ALLOW-path constraints.
-- **FR-I2-004:** `harness/agents/verify-bugfix.md` MUST rewrite VERIFY/bash sections with branch-qualified runner policy; preserve subagent HARD RULE (no frontend tests).
-- **FR-I2-005:** `harness/agents/verify-qa.md` MUST distinguish hub full-suite reference (parent-run, hub-only) from managed capability full checks; «не гоняй pytest» subagent rule unchanged.
-- **FR-I2-006:** `harness/agents/gate-repair.md` MUST label any pytest mention as hub-only dev-hub self-test or parent-only action; no universal managed recipe.
-- **FR-I2-007:** All other `harness/agents/*.md` with positive runner literals (`pytest`, `cargo`, `npm`, raw shell test commands) MUST be scanned and rewritten or proven read-only/negative context only.
-- **FR-I2-008:** Inventory tests MUST include regression fixture/agent corpus test proving agents directory omission cannot recur (fail if `harness/agents` excluded from discovery).
-- **FR-I2-009:** I2 MUST NOT alter stack-profile executor, evidence schema, capability registry, receipt provenance (077), or runtime execution paths (076).
+- **FR-001:** `get_active_corpus_files()` MUST discover all non-archive `harness/agents/**/*.md` (and symlink-resolved agent paths under `.agents/` if present, deduplicated by resolved path).
+- **FR-002:** Semantic inventory (`scan_active_corpus`, violation reporting) MUST apply to discovered agents files with same `classify_instruction_line` contract as rules/skills.
+- **FR-003:** `harness/agents/verify-implement.md` MUST rewrite test-command sections: hub-only `bin/pytest` branch for dev-hub verify + managed `capability_checks`/evidence branch; retain scope-check and ALLOW-path constraints.
+- **FR-004:** `harness/agents/verify-bugfix.md` MUST rewrite VERIFY/bash sections with branch-qualified runner policy; preserve subagent HARD RULE (no frontend tests).
+- **FR-005:** `harness/agents/verify-qa.md` MUST distinguish hub full-suite reference (parent-run, hub-only) from managed capability full checks; «не гоняй pytest» subagent rule unchanged.
+- **FR-006:** `harness/agents/gate-repair.md` MUST label any pytest mention as hub-only dev-hub self-test or parent-only action; no universal managed recipe.
+- **FR-007:** All other `harness/agents/*.md` with positive runner literals (`pytest`, `cargo`, `npm`, raw shell test commands) MUST be scanned and rewritten or proven read-only/negative context only.
+- **FR-008:** Inventory tests MUST include regression fixture/agent corpus test proving agents directory omission cannot recur (fail if `harness/agents` excluded from discovery).
+- **FR-009:** I2 MUST NOT alter stack-profile executor, evidence schema, capability registry, receipt provenance (077), or runtime execution paths (076).
 
 ## NFR
 
-- **NFR-I2-001:** Agents rewrite preserves subagent role boundaries (verify = read-only where specified; no frontend test execution by subagent).
-- **NFR-I2-002:** Discovery addition must not double-count symlinked copies (`harness/agents` vs `.agents/agents` projection).
-- **NFR-I2-003:** Classifier continues to accept negative/forbidden phrases («FORBIDDEN: pytest without timeout») without false positive on read-only agents (`verify-decompose`, `analyze-verify`).
-- **NFR-I2-004:** Full hub suite regression after changes: `bin/pytest -q --tb=line` remains valid hub QA command in plan/QA matrix only.
+- **NFR-001:** Agents rewrite preserves subagent role boundaries (verify = read-only where specified; no frontend test execution by subagent).
+- **NFR-002:** Discovery addition must not double-count symlinked copies (`harness/agents` vs `.agents/agents` projection).
+- **NFR-003:** Classifier continues to accept negative/forbidden phrases («FORBIDDEN: pytest without timeout») without false positive on read-only agents (`verify-decompose`, `analyze-verify`).
+- **NFR-004:** Full hub suite regression after changes: `bin/pytest -q --tb=line` remains valid hub QA command in plan/QA matrix only.
 
 ## Target layout
 
 | Surface / owner | Paths | I2 responsibility |
 |---|---|---|
-| Corpus discovery | `loop/tests/test_stack_profile_instruction_inventory.py::get_active_corpus_files` | Add `harness/agents/**/*.md` glob; symlink dedup. |
-| Semantic scan | same module: `scan_active_corpus`, `classify_instruction_line`, agent-specific tests | Wire agents into existing classifier; add agents regression test. |
+| Corpus discovery | `loop/tests/test_stack_profile_instruction_inventory.py` | Add `harness/agents/**/*.md` glob; symlink dedup. |
 | Verify implement | `harness/agents/verify-implement.md` | Branch-qualified hub/managed test policy in bash/VERIFY sections. |
 | Verify bugfix | `harness/agents/verify-bugfix.md` | Same branch contract for VERIFY commands. |
 | Verify QA | `harness/agents/verify-qa.md` | Hub full-suite parent reference vs managed capability wording. |
 | Gate repair | `harness/agents/gate-repair.md` | Hub-only/parent-only pytest mentions. |
-| Other agents | `harness/agents/verify-*.md`, `explorer.md`, `sunset-inventory.md`, etc. | Scan; rewrite only if positive unqualified runner literal in action context. |
-| Symlink projection | `.agents/agents/**` (if exists) | Resolve for parity check; canonical write surface = `harness/agents/**`. |
+| Verify decompose | `harness/agents/verify-decompose.md` | Read-only gate agent instruction surface. |
+| Analyze verify | `harness/agents/analyze-verify.md` | Read-only gate agent instruction surface. |
+| Explorer agent | `harness/agents/explorer.md` | Read-only codebase explorer agent prompt. |
+| Sunset inventory | `harness/agents/sunset-inventory.md` | Read-only sunset extraction agent prompt. |
+| Reconcile verify | `harness/agents/reconcile-verify.md` | Read-only reconciliation agent prompt. |
+| Other verify agents | `harness/agents/verify-edit.md` | Read-only phase verify agent prompt. |
 
 **Wire-complete ladder I2:** extend discovery → rewrite agent instructions → wire scan → enforce (regression tests) → purge unqualified agent runner authority.
 
@@ -183,19 +186,19 @@ I2 закрывает только agents corpus gap: расширить discove
 
 | ID | Priority | Scenario | Command / fixture | Expected | Maps |
 |---|---|---|---|---|---|
-| TM-080-I2-01 | P0 | Agents corpus discovery | `bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'agents or corpus'` | `harness/agents/**` in discovered set; omission test FAIL if excluded | FR-I2-001,008; AC-1 |
-| TM-080-I2-02 | P0 | verify-implement branch parity | same test `-k implement or verify_implement` | Stale unqualified lines FAIL pre-rewrite; PASS post-rewrite | FR-I2-003; AC-2,3 |
-| TM-080-I2-03 | P0 | verify-bugfix / verify-qa / gate-repair | same test `-k 'bugfix or verify_qa or gate_repair'` | All named agents branch-qualified; exact path diagnostics | FR-I2-004,005,006; AC-2,3 |
-| TM-080-I2-04 | P0 | Agents regression guard | fixture test adding stale agent line | Inventory FAIL on regression; PASS after fix | FR-I2-008; G080-I2-03 |
-| TM-080-I2-05 | P1 | Read-only agents unaffected | `-k 'decompose or analyze_verify'` | No false positive on FORBIDDEN/read-only agents | NFR-I2-003; AC-4 |
-| TM-080-I2-06 | P1 | Full hub regression | `bin/pytest -q --tb=line` | Entire suite green; I1 rules parity intact | AC-7; FR-I2-009 |
+| TM-080-I2-01 | P0 | Agents corpus discovery | `bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'agents or corpus'` | `harness/agents/**` in discovered set; omission test FAIL if excluded | FR-001,008; AC-1 |
+| TM-080-I2-02 | P0 | verify-implement branch parity | same test `-k implement or verify_implement` | Stale unqualified lines FAIL pre-rewrite; PASS post-rewrite | FR-003; AC-2,3 |
+| TM-080-I2-03 | P0 | verify-bugfix / verify-qa / gate-repair | same test `-k 'bugfix or verify_qa or gate_repair'` | All named agents branch-qualified; exact path diagnostics | FR-004,005,006; AC-2,3 |
+| TM-080-I2-04 | P0 | Agents regression guard | fixture test adding stale agent line | Inventory FAIL on regression; PASS after fix | FR-008; G080-I2-03 |
+| TM-080-I2-05 | P1 | Read-only agents unaffected | `-k 'decompose or analyze_verify'` | No false positive on FORBIDDEN/read-only agents | NFR-003; AC-4 |
+| TM-080-I2-06 | P1 | Full hub regression | `bin/pytest -q --tb=line` | Entire suite green; I1 rules parity intact | AC-7; FR-009 |
 
 ## Review readiness
 
 | Gate | Required | Status | Evidence |
 |---|---|---|---|
 | Prompt Epic alignment | I2 gaps ⊆ Done when #2 + Forbidden after | done | Agents omission breaks corpus validation requirement |
-| Gap-only scope | No executor/evidence expansion | done | FR-I2-009; out-of-scope epics listed |
+| Gap-only scope | No executor/evidence expansion | done | FR-009; out-of-scope epics listed |
 | Technology axiom | Same classifier as I1 rules | done | Reuse classify_instruction_line |
 | qa_consumes | ≥3 TM | done | TM-080-I2-01…06 |
 | Delivery closure | P0 boundaries | done | See below |

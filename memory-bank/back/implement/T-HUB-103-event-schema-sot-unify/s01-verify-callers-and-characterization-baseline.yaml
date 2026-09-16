@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-103-event-schema-sot-unify
+title: s01 — verify zero prod callers and freeze oracle baseline IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-103-event-schema-sot-unify/yaml/steps/s01-verify-callers-and-characterization-baseline.yaml
+skills_used:
+- writing-plans
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- rg search across loop/ and harness/ for LoopEvent confirmed 0 prod callers (only
+  loop/schemas/event.py, loop/schemas/__init__.py, loop/tests/test_schemas_event.py,
+  loop/schemas/README.md match)
+- Freeze oracle test suite loop/tests/test_event_v2_characterization.py passed 9/9
+  characterization tests
+gaps:
+  status: none
+done:
+- Verified zero prod callers for LoopEvent across entire codebase
+- Verified freeze oracle characterization suite baseline (9 passed in loop/tests/test_event_v2_characterization.py)
+files:
+- loop/tests/test_event_v2_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_event_v2_characterization.py -q
+integration_check:
+- bin/pytest loop/tests/test_event_v2_characterization.py -q -> 9 passed
+grep_control:
+- back: rg -n 'LoopEvent' loop/ harness/ -> 0 external callers
+  front: N/A
+verification_results:
+- 'cp1: PASS (0 prod callers)'
+- 'cp2: PASS (9 passed in 1.31s)'
+checkpoints:
+- id: cp1
+  criterion: Grep-контроль подтверждает отсутствие вызовов LoopEvent вне loop/schemas/
+    и loop/tests/test_schemas_event.py
+  status: done
+- id: cp2
+  criterion: Freeze oracle сьют test_event_v2_characterization.py проходит успешно
+  status: done
