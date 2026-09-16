@@ -1,12 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-104
-  epic_id: T-HUB-104-plan-path-classifier-dedup
-  plan: plan-T-HUB-104-plan-path-classifier-dedup.md
-  deps: []
-  kind: refactor
-  batch: plan-refactor-leftover-20260916
 - id: T-HUB-105
   epic_id: T-HUB-105-roadmap-legacy-source-purge
   plan: plan-T-HUB-105-roadmap-legacy-source-purge.md
@@ -503,6 +497,11 @@ done:
   epic_id: T-HUB-103-event-schema-sot-unify
   kind: refactor
   plan: plan-T-HUB-103-event-schema-sot-unify.md
+  batch: plan-refactor-leftover-20260916
+- id: T-HUB-104
+  epic_id: T-HUB-104-plan-path-classifier-dedup
+  kind: refactor
+  plan: plan-T-HUB-104-plan-path-classifier-dedup.md
   batch: plan-refactor-leftover-20260916
 batches:
   workflow-loop-hardening:

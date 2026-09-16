@@ -11,36 +11,11 @@ from harness.hooks.epic.core import (
     validate_active_context_shape,
 )
 from loop.mb_finish.schemas import LoadNowItem, LoopHandoffMeta
-from loop.mb_load.plan_section import load_plan_section
+from loop.mb_load.plan_section import is_markdown_plan_path, load_plan_section
 from loop.mb_load.resolver import resolve_bundle_paths
 from loop.mb_load.schemas import MbLoadFile, MbLoadRequest, MbLoadResult
 from loop.schemas.active_context import parse_handoff_meta
 
-
-def is_markdown_plan_path(path: str | Path) -> bool:
-    """Classifier for markdown plan/gap/decompose files that must NOT have content in MbLoadFile.
-
-    Matches:
-      - **/md/plan.md or path ending with /md/plan.md or md/plan.md
-      - memory-bank/**/plan-*.md or plan-*.md
-      - **/gap-*.md or gap-*.md
-      - **/decompose-index.md or decompose-index.md
-      - **/analyze-*.md or analyze-*.md
-    """
-    p_str = str(path).replace("\\", "/").strip()
-    name = Path(p_str).name
-
-    if p_str == "md/plan.md" or p_str.endswith("/md/plan.md"):
-        return True
-    if name == "decompose-index.md":
-        return True
-    if name.startswith("plan-") and name.endswith(".md"):
-        return True
-    if name.startswith("gap-") and name.endswith(".md"):
-        return True
-    if name.startswith("analyze-") and name.endswith(".md"):
-        return True
-    return False
 
 
 def _parse_load_now_with_optional(text: str) -> dict[str, bool]:

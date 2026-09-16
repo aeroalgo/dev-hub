@@ -1,0 +1,76 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s02 — move markdown classifier and share regex pattern in plan_section
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перенести каноническую реализацию `is_markdown_plan_path` в `loop/mb_load/plan_section.py`,
+  объединив проверку `plan.md` через общий regex `_PLAN_PATTERN` и исключив дублирование логики совпадения путей.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - US-001
+    - SC-001
+    - AC− #1
+  nouns:
+    - loop/mb_load/plan_section.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s02-move-classifier-and-share-plan-pattern.yaml
+  ac_quotes:
+    - "Move is_markdown_plan_path into plan_section"
+    - "Share overlapping plan.md regex between whole-plan and markdown classifiers"
+    - "Single definition; matrix PASS"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:48-66
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:124-144
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#consolidation-clusters
+    - loop/tests/test_plan_path_classifier_characterization.py
+  produces:
+    - unified classifier implementation in loop/mb_load/plan_section.py
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-001
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-002
+  files:
+    - loop/mb_load/plan_section.py
+
+as_built:
+  - "loop/mb_load/plan_section.py реализует только is_whole_plan_path"
+
+delta:
+  - "Добавление функции is_markdown_plan_path в loop/mb_load/plan_section.py"
+  - "Переиспользование _PLAN_PATTERN или общего хелпера для распознавания plan.md в обеих функциях классификации"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: is_markdown_plan_path доступна для импорта из loop.mb_load.plan_section
+    verify: "python3 -c \"from loop.mb_load.plan_section import is_markdown_plan_path; assert callable(is_markdown_plan_path)\""
+  - id: cp2
+    criterion: Freeze oracle и модульные тесты plan_section проходят успешно
+    verify: "bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_plan_jump_context_policy.py -q"
+
+verify: []
+tdd: []

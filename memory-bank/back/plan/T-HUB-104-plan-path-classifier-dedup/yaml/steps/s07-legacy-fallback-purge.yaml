@@ -1,0 +1,153 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s07 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: провести полное сканирование инвентаря Replacement / sunset A+B+C+I.
+  Подтвердить отсутствие дублирующих тел классификаторов путей в `loop/mb_load/session.py`,
+  отсутствие дублирующих локальных хелперов `_plan_path` в `loop/board_sync/`,
+  убедиться в сохранении инвариантов freeze oracle и успешном прохождении всех тестов.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - SC-001
+    - SC-002
+    - SC-003
+    - US-001
+    - US-002
+    - AC− #1
+    - AC− #2
+    - AC− #3
+    - AC− #4
+  nouns:
+    - loop/mb_load/plan_section.py
+    - loop/mb_load/session.py
+    - loop/board_sync/_epic_paths.py
+    - loop/board_sync/epic_resolver.py
+    - loop/board_sync/scan_gates.py
+    - loop/tests/test_plan_path_classifier_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s07-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Нет двух полных classifier bodies."
+    - "Нет двух sys.path hacks for find_plan_md_path in board_sync."
+    - "Нет extract без delete siblings."
+    - "Нет изменения deny matrix без явного behavior epic."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:55-66
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:185-200
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#replacement--sunset
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/decompose-index.md
+  produces:
+    - verified evidence of sunset inventory purge and complete regression test pass
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#replacement--sunset
+  files: []
+
+as_built:
+  - "Все предыдущие шаги s01-s06 объединили классификаторы в plan_section, удалили тело из session, выделили _epic_paths и удалили дубликаты из board_sync"
+
+delta:
+  - "Исполнение проверок grep_control по категориям A, B, C, I"
+  - "Запуск регрессионного сьюта тестов классификаторов и board_sync"
+
+sunset_inventory:
+  - symbol: loop/mb_load/session.py::is_markdown_plan_path implementation body
+    kind: A
+    replacement: loop/mb_load/plan_section.py::is_markdown_plan_path
+    policy: delete in-epic
+    rg_scope: loop/mb_load/session.py
+    expect: only re-export or call to plan_section; zero duplicate branch body
+  - symbol: loop/board_sync/epic_resolver.py::_plan_path
+    kind: B
+    replacement: loop/board_sync/_epic_paths.py::plan_path
+    policy: delete in-epic
+    rg_scope: loop/board_sync/epic_resolver.py
+    expect: function deleted; caller uses _epic_paths
+  - symbol: loop/board_sync/scan_gates.py::_plan_path
+    kind: B
+    replacement: loop/board_sync/_epic_paths.py::plan_path
+    policy: delete in-epic
+    rg_scope: loop/board_sync/scan_gates.py
+    expect: function deleted; caller uses _epic_paths
+  - symbol: loop/tests/test_mb_load_session.py duplicate asserts
+    kind: C
+    replacement: loop/tests/test_plan_path_classifier_characterization.py
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: consolidated test coverage without redundant copies
+  - symbol: loop/board_sync/ sys.path hack comments
+    kind: I
+    replacement: clean import from loop.board_sync._epic_paths
+    policy: delete in-epic
+    rg_scope: loop/board_sync/
+    expect: zero sys.path insertions for epic_paths in resolver/gates
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: loop/mb_load/session.py duplicate definition
+    command: 'python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"^def is_markdown_plan_path\", \"loop/\"], capture_output=True, text=True); lines = res.stdout.strip().splitlines(); sys.exit(0 if len(lines) == 1 and \"loop/mb_load/plan_section.py\" in lines[0] else 1)"'
+    expect: exactly one definition in plan_section.py
+  - id: inv-b-01
+    kind: B
+    symbol: loop/board_sync/ duplicate _plan_path
+    command: 'python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"^def _plan_path\", \"loop/board_sync/\"], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)"'
+    expect: zero local _plan_path definitions
+  - id: inv-c-01
+    kind: C
+    symbol: loop/tests/ duplicate classifier asserts
+    command: 'bin/pytest loop/tests/test_plan_path_classifier_characterization.py -q'
+    expect: characterization suite pass
+  - id: inv-i-01
+    kind: I
+    symbol: loop/board_sync/ sys.path insertions
+    command: 'python3 -c "import subprocess, sys; res = subprocess.run([\"rg\", \"-n\", \"sys.path.insert.*hooks\", \"loop/board_sync/\"], capture_output=True, text=True); lines = [l for l in res.stdout.splitlines() if \"_epic_paths.py\" not in l]; sys.exit(0 if not lines else 1)"'
+    expect: no sys.path hacks in epic_resolver or scan_gates
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — в кодовой базе осталась ровно одна реализация def is_markdown_plan_path в plan_section.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', '^def is_markdown_plan_path', 'loop/'], capture_output=True, text=True); lines = res.stdout.strip().splitlines(); sys.exit(0 if len(lines) == 1 and 'loop/mb_load/plan_section.py' in lines[0] else 1)\""
+  - id: cp2
+    criterion: Kind B — локальные функции _plan_path удалены из loop/board_sync/epic_resolver.py и scan_gates.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', '^def _plan_path', 'loop/board_sync/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp3
+    criterion: Kind C — freeze oracle и модульные тесты классификаторов путей проходят успешно
+    verify: "bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py -q"
+  - id: cp4
+    criterion: Kind I — в epic_resolver.py и scan_gates.py отсутствуют прямые sys.path манипуляции для epic_paths
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', 'sys.path.insert.*hooks', 'loop/board_sync/'], capture_output=True, text=True); lines = [l for l in res.stdout.splitlines() if '_epic_paths.py' not in l]; sys.exit(0 if not lines else 1)\""
+  - id: cp5
+    criterion: Регрессионный сьют тестов mb_load и board_sync проходит успешно
+    verify: "bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py -q"
+
+verify: []
+tdd: []

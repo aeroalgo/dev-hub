@@ -524,18 +524,7 @@ step_id: s02
 
 def test_path_only_classifier_and_load_session_plan_md(tmp_path: Path):
     """FR-002, FR-003, US-001, US-004: plan markdown paths have empty content, full sha256/size, path_only diagnostic."""
-    from loop.mb_load.session import is_markdown_plan_path
     import hashlib
-
-    # Unit checks on is_markdown_plan_path
-    assert is_markdown_plan_path("memory-bank/back/plan/T-HUB-072/md/plan.md") is True
-    assert is_markdown_plan_path("md/plan.md") is True
-    assert is_markdown_plan_path("memory-bank/back/plan/plan-T-HUB-072.md") is True
-    assert is_markdown_plan_path("memory-bank/back/plan/gap-01.md") is True
-    assert is_markdown_plan_path("memory-bank/back/plan/decompose-index.md") is True
-    assert is_markdown_plan_path("memory-bank/back/analyze/analyze-01.md") is True
-    assert is_markdown_plan_path("memory-bank/back/plan/s01.yaml") is False
-    assert is_markdown_plan_path("memory-bank/back/plan/state.json") is False
 
     # Integration via load_session with role/mode where plan.md is allowed (e.g. DECOMPOSE)
     plan_body = "# Mega Plan Document\n" + ("line content\n" * 100)

@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s05 — cutover epic_resolver and scan_gates and delete local twin helpers
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переключить модули `loop/board_sync/epic_resolver.py` и `loop/board_sync/scan_gates.py` на использование
+  общего хелпера `loop/board_sync/_epic_paths.py`, удалить обе локальные реализации `_plan_path`, `_find_decompose`
+  и связанные sys.path манипуляции (copies_removed_count >= 2).
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-002
+    - SC-002
+    - SC-003
+    - AC− #2
+    - AC− #3
+  nouns:
+    - loop/board_sync/epic_resolver.py
+    - loop/board_sync/scan_gates.py
+    - loop/board_sync/_epic_paths.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s05-cutover-board-sync-callers-and-delete-twin-helpers.yaml
+  ac_quotes:
+    - "Delete both _plan_path copies"
+    - "rg 'def _plan_path' loop/board_sync → zero"
+    - "copies_removed_count = 2; fail if extract leaves either body"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:50-66
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:128-144
+
+context:
+  consumes:
+    - loop/board_sync/_epic_paths.py
+  produces:
+    - clean callers in epic_resolver and scan_gates without duplicate path helper bodies
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-003
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#sc-002
+  files:
+    - loop/board_sync/epic_resolver.py
+    - loop/board_sync/scan_gates.py
+
+as_built:
+  - "loop/board_sync/epic_resolver.py содержит дубликаты _plan_path, _epic_id_from_plan_path, _find_decompose"
+  - "loop/board_sync/scan_gates.py содержит дубликаты _plan_path, _find_decompose"
+
+delta:
+  - "Импорт функций разрешения путей из loop.board_sync._epic_paths в epic_resolver.py и scan_gates.py"
+  - "Удаление локальных функций _plan_path, _epic_id_from_plan_path, _find_decompose из обоих файлов"
+
+deletes:
+  - "loop/board_sync/epic_resolver.py::_plan_path"
+  - "loop/board_sync/epic_resolver.py::_find_decompose"
+  - "loop/board_sync/epic_resolver.py::_epic_id_from_plan_path"
+  - "loop/board_sync/scan_gates.py::_plan_path"
+  - "loop/board_sync/scan_gates.py::_find_decompose"
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: В модулях loop/board_sync/epic_resolver.py и scan_gates.py отсутствуют локальные объявления _plan_path
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', '^def _plan_path', 'loop/board_sync/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip() else 1)\""
+  - id: cp2
+    criterion: Тесты epic_resolver и scan_gates проходят успешно
+    verify: "bin/pytest loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py -q"
+
+verify: []
+tdd: []

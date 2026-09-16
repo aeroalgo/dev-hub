@@ -1,0 +1,209 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-104-plan-path-classifier-dedup
+plan_id: T-HUB-104-plan-path-classifier-dedup
+date: '2026-09-16'
+auditor: BACK AUDIT
+converged: true
+purge_step_present: true
+plan_intent:
+  epic_goal: Unify plan-path classifier to single canonical owner in loop/mb_load/plan_section.py and extract board_sync plan path helper to loop/board_sync/_epic_paths.py, deleting duplicate bodies while freezing behavior.
+  source: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#WHAT
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 4
+  fr_satisfied: 4
+  sc_checked: 3
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+check_matrix:
+- source_ref: FR-001
+  status: pass
+  evidence: is_markdown_plan_path implementation moved into loop/mb_load/plan_section.py; duplicate body in session.py deleted and replaced by import.
+  verify: rg -n "^def is_markdown_plan_path" loop/
+- source_ref: FR-002
+  status: pass
+  evidence: Overlapping plan.md detection regex consolidated in plan_section.py and shared without dual regex maintenance.
+  verify: rg -n "_PLAN_MD_NAME_RE" loop/mb_load/plan_section.py
+- source_ref: FR-003
+  status: pass
+  evidence: Shared helper plan_path extracted to loop/board_sync/_epic_paths.py and duplicate _plan_path bodies in epic_resolver.py and scan_gates.py deleted.
+  verify: rg -n "^def _plan_path" loop/board_sync/
+- source_ref: FR-004
+  status: pass
+  evidence: Unit and characterization test matrix consolidated and verified across classifiers and board_sync path resolution.
+  verify: rg -n "test_is_markdown_plan_path_characterization" loop/tests/test_plan_path_classifier_characterization.py
+- source_ref: US-001
+  status: pass
+  evidence: Maintainer updates classifier strictly in loop/mb_load/plan_section.py; session.py delegates directly.
+  verify: rg -n "def is_markdown_plan_path" loop/mb_load/plan_section.py
+- source_ref: US-002
+  status: pass
+  evidence: board_sync modules resolve plan paths through shared helper without duplicate sys.path manipulation blocks.
+  verify: rg -n "from \._epic_paths import" loop/board_sync/
+- source_ref: SC-001
+  status: pass
+  evidence: Exactly one definition of is_markdown_plan_path exists in loop/mb_load/plan_section.py.
+  verify: rg -n "^def is_markdown_plan_path" loop/
+- source_ref: SC-002
+  status: pass
+  evidence: Zero local _plan_path twin function definitions remain in loop/board_sync/.
+  verify: rg -n "^def _plan_path" loop/board_sync/
+- source_ref: SC-003
+  status: pass
+  evidence: Net LOC delta <= 0 and zero net new concept owners achieved across refactored modules.
+  verify: git diff --shortstat
+- source_ref: AC-:1
+  status: pass
+  evidence: Zero dual classifier bodies remain; session.py imports from plan_section.py.
+  verify: rg -n "^def is_markdown_plan_path" loop/
+- source_ref: AC-:2
+  status: pass
+  evidence: Zero twin sys.path hooks insertions remain in loop/board_sync/ caller files.
+  verify: rg -n "sys\.path\.insert.*hooks" loop/board_sync/
+- source_ref: AC-:3
+  status: pass
+  evidence: Extract to _epic_paths.py accompanied by deletion of both caller-local twin helpers.
+  verify: rg -n "^def _plan_path" loop/board_sync/
+- source_ref: AC-:4
+  status: pass
+  evidence: Path classifier deny and strip behavior preserved identically without drift.
+  verify: rg -n "test_is_markdown_plan_path" loop/tests/test_mb_load_session.py
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: is_markdown_plan_path moved to loop/mb_load/plan_section.py and imported in session.py.
+- source_ref: FR-002
+  status: satisfied
+  evidence: Shared _PLAN_MD_NAME_RE regex pattern in plan_section.py used for plan path detection.
+- source_ref: FR-003
+  status: satisfied
+  evidence: loop/board_sync/_epic_paths.py exports plan_path; duplicate functions deleted from epic_resolver.py and scan_gates.py.
+- source_ref: FR-004
+  status: satisfied
+  evidence: Parametrized freeze oracle tests added in test_plan_path_classifier_characterization.py and existing tests consolidated.
+- source_ref: US-001
+  status: satisfied
+  evidence: Single owner in plan_section.py for all plan path markdown classification.
+- source_ref: US-002
+  status: satisfied
+  evidence: Clean shared import from _epic_paths in board_sync modules without local duplicates.
+- source_ref: SC-001
+  status: satisfied
+  evidence: Single is_markdown_plan_path definition confirmed in loop/mb_load/plan_section.py.
+- source_ref: SC-002
+  status: satisfied
+  evidence: Zero _plan_path definitions confirmed in loop/board_sync/ caller modules.
+- source_ref: SC-003
+  status: satisfied
+  evidence: Net negative code LOC delta achieved with zero net new concept owners.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Eliminated twin classifier implementations in session.py and plan_section.py.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Eliminated repetitive sys.path hacks in board_sync callers.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Clean deletion of sibling copies following helper extraction.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Exact parity of boolean classifier outcomes verified across test matrices.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitution Section MUST satisfied across steps.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed during implementation.
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback adhered to; duplicate helper deleted rather than shimmed.
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only respected (back epic).
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to during execution.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration respected.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step enforced.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity preserved.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority preserved.
+architecture_parity: []
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s01-characterization-and-freeze-oracle-baseline.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s02-move-classifier-and-share-plan-pattern.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s03-cutover-session-and-delete-duplicate-classifier-body.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s04-extract-board-sync-epic-paths-helper.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s05-cutover-board-sync-callers-and-delete-twin-helpers.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s06-consolidate-unit-tests-and-matrix.yaml
+- step_id: s07
+  implement_file: memory-bank/back/implement/T-HUB-104-plan-path-classifier-dedup/s07-legacy-fallback-purge.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+- step_id: s06
+  status: completed
+- step_id: s07
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-16'
+  plan_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#Replacement-/-sunset
+  rows:
+  - symbol: loop/mb_load/session.py is_markdown_plan_path duplicate body
+    kind: A
+    command: rg -n "^def is_markdown_plan_path" loop/
+    result: pass
+    prod_callers: 0
+  - symbol: loop/board_sync duplicate _plan_path twin functions
+    kind: B
+    command: rg -n "^def _plan_path" loop/board_sync/
+    result: pass
+    prod_callers: 0
+  - symbol: legacy duplicate asserts across classifier tests
+    kind: C
+    command: rg -n "test_is_markdown_plan_path" loop/tests/
+    result: pass
+    prod_callers: 0
+  - symbol: direct sys.path hooks insertions in board_sync callers
+    kind: I
+    command: rg -n "sys\.path\.insert.*hooks" loop/board_sync/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

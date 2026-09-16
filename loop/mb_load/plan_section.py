@@ -9,9 +9,13 @@ from harness.hooks.epic.core import read_active_context
 from loop.paths.pack_layout import resolve_mb_root
 from loop.schemas.active_context import parse_handoff_meta
 
+_PLAN_MD_SUBPATTERN = r"plan-[^/\\]+\.md|md[/\\]plan\.md"
 _PLAN_PATTERN = re.compile(
-    r"(?:^|[/\\])(?:plan-[^/\\]+\.md|plan\.md|md[/\\]plan\.md)$",
+    rf"(?:^|[/\\])(?:{_PLAN_MD_SUBPATTERN}|plan\.md)$",
     re.IGNORECASE,
+)
+_MARKDOWN_PLAN_PATTERN = re.compile(
+    rf"(?:^|[/\\])(?:{_PLAN_MD_SUBPATTERN}|gap-[^/\\]*\.md|analyze-[^/\\]*\.md|decompose-index\.md)$",
 )
 _UNRESTRICTED_MODES = frozenset({"PLAN", "DECOMPOSE", "ANALYZE", "AUDIT", "CREATIVE", "CLARIFY"})
 
@@ -20,6 +24,12 @@ def is_whole_plan_path(path: str | Path) -> bool:
     """Return True if path represents a markdown plan file."""
     p_str = str(path).replace("\\", "/").strip()
     return bool(_PLAN_PATTERN.search(p_str))
+
+
+def is_markdown_plan_path(path: str | Path) -> bool:
+    """Classifier for markdown plan/gap/decompose files that must NOT have content in MbLoadFile."""
+    p_str = str(path).replace("\\", "/").strip()
+    return bool(_MARKDOWN_PLAN_PATTERN.search(p_str))
 
 
 def parse_plan_jump(jump_ref: str) -> tuple[str, int | None, int | None]:

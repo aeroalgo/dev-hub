@@ -1,0 +1,59 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-104
+plan_id: T-HUB-104-plan-path-classifier-dedup
+epic_id: T-HUB-104-plan-path-classifier-dedup
+date: '2026-09-16'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: 57824d195fe0e16cbc904e8dbc89b9d19d0d9fc500ceaa3f478a485029b1df69
+verify_scope: full
+
+scope:
+  - "task: T-HUB-104"
+  - "epic: T-HUB-104-plan-path-classifier-dedup"
+  - "steps: s01–s07"
+  - "files: loop/mb_load/plan_section.py, loop/mb_load/session.py, loop/board_sync/_epic_paths.py, loop/board_sync/epic_resolver.py, loop/board_sync/scan_gates.py, loop/tests/test_plan_path_classifier_characterization.py, loop/tests/test_mb_load_session.py, loop/tests/test_plan_jump_context_policy.py"
+
+ac_plus:
+  - "FR-001: Move `is_markdown_plan_path` into `plan_section` (or unify under one name with aliases); delete session implementation body."
+  - "FR-002: Share overlapping plan.md detection between whole-plan and markdown classifiers without dual regex maintenance."
+  - "FR-003: Extract `board_sync` plan path helper; delete both `_plan_path` copies."
+  - "FR-004: Consolidate tests into one parametrized matrix where duplicated."
+  - "US-001: Maintainer меняет classifier в одном модуле"
+  - "US-002: board_sync resolve plan без copy-paste"
+  - "SC-001: `rg 'def is_markdown_plan_path' loop` → one definition (plan_section)."
+  - "SC-002: `rg 'def _plan_path' loop/board_sync` → zero (or only in helper if named differently once)."
+  - "SC-003: net_loc ≤ 0; owners ≤ 0 growth."
+
+ac_minus:
+  - "Нет двух полных classifier bodies."
+  - "Нет двух sys.path hacks for `find_plan_md_path` in board_sync."
+  - "Нет extract без delete siblings."
+  - "Нет изменения deny matrix без явного behavior epic."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (2997 passed, 4 skipped in 131.37s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL (2 gaps)"
+
+issues:
+  - "B1: ac_gap:FR-004 — дублирующиеся classifier asserts остаются в loop/tests/test_mb_load_session.py:530; удалить их, оставив parametrized matrix."
+  - "B2: ac_gap:AC−4 — loop/mb_load/plan_section.py:17 допускает suffix-префиксы и меняет case behavior через IGNORECASE; восстановить прежнюю deny matrix."
+
+blockers:
+  - "ac_gap: FR-004: дублирующиеся classifier asserts остаются в loop/tests/test_mb_load_session.py:530; удалить их, оставив parametrized matrix."
+  - "ac_gap: AC−4: loop/mb_load/plan_section.py:17 допускает suffix-префиксы и меняет case behavior через IGNORECASE; восстановить прежнюю deny matrix."
+
+fix_plan:
+  - "BACK BUGFIX BF-003: Remove duplicated classifier assertions in loop/tests/test_mb_load_session.py and rely on parametrized matrix; verify via bin/pytest loop/tests/test_mb_load_session.py -q --tb=line"
+  - "BACK BUGFIX BF-004: Restore original case and boundary behavior in loop/mb_load/plan_section.py to preserve exact deny matrix; verify via bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py -q --tb=line"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # PASSED (2997 passed, 4 skipped in 131.37s)"

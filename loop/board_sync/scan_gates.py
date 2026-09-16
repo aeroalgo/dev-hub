@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 
+from ._epic_paths import find_decompose_index_path, plan_path
 from .card_model import CardKind
 from .epic_resolver import resolve_epic_next_action
 from .scan_mb import WorkItem
@@ -95,8 +96,8 @@ def scan_gates(
             for epic_id in _known_epics(project, role, steps):
                 key = (project, role, epic_id)
                 epic_steps = by_workspace_epic.get(key, [])
-                decompose = _find_decompose(project, role, epic_id)
-                plan = _plan_path(project, role, epic_id)
+                decompose = find_decompose_index_path(project, role, epic_id)
+                plan = plan_path(project, role, epic_id)
 
                 # Queue entries are the only source for a PLAN gate. A
                 # decompose index can still be scanned in an unqueued fixture
@@ -220,30 +221,6 @@ def _known_epics(project: Path, role: str, steps: list[WorkItem]) -> set[str]:
                 if (child / "md" / "plan.md").is_file() or (child / "yaml").is_dir():
                     result.add(child.name)
     return result
-
-def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:
-    import sys
-    from pathlib import Path as _Path
-
-    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-    if str(hooks) not in sys.path:
-        sys.path.insert(0, str(hooks))
-    from epic_paths import find_decompose_index_path
-
-    return find_decompose_index_path(project, role, epic_id)
-
-
-def _plan_path(project: Path, role: str, epic_id: str) -> Path | None:
-    import sys
-    from pathlib import Path as _Path
-
-    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-    if str(hooks) not in sys.path:
-        sys.path.insert(0, str(hooks))
-    from epic_paths import find_plan_md_path
-
-    return find_plan_md_path(project, role, epic_id)
-
 
 def _pre_gates(
     workspace_ref: WorkspaceRef,

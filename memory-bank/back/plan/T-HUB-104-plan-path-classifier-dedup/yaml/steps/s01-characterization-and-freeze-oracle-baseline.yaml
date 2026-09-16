@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s01 — characterization baseline & freeze oracle test matrix
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать characterization baseline и freeze oracle тесты для классификаторов путей планов
+  (is_whole_plan_path, is_markdown_plan_path) и хелперов путей board_sync (_plan_path, _epic_id_from_plan_path, _find_decompose)
+  до проведения рефакторинга для гарантии сохранения неизменности поведения (behavior freeze).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - US-001
+    - US-002
+    - SC-002
+  nouns:
+    - loop/mb_load/plan_section.py
+    - loop/mb_load/session.py
+    - loop/board_sync/epic_resolver.py
+    - loop/board_sync/scan_gates.py
+    - loop/tests/test_plan_path_classifier_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s01-characterization-and-freeze-oracle-baseline.yaml
+  ac_quotes:
+    - "Capture classifier matrix tests (red if drift)."
+    - "Targeted pytest freeze oracles."
+    - "Same booleans as pre-merge; same Path|None."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:55-66
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:105-144
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#consolidation-clusters
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#refactor-inventory
+  produces:
+    - freeze oracle test matrix covering existing path classifications and board_sync resolutions
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-001
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-002
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-003
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-004
+  files:
+    - loop/tests/test_plan_path_classifier_characterization.py
+
+as_built:
+  - "loop/mb_load/plan_section.py содержит is_whole_plan_path с regex _PLAN_PATTERN"
+  - "loop/mb_load/session.py содержит отдельную функцию is_markdown_plan_path с ветвлениями по типам файлов"
+  - "loop/board_sync/epic_resolver.py и loop/board_sync/scan_gates.py содержат дублирующиеся блоки _plan_path с манипуляцией sys.path"
+
+delta:
+  - "Создание набора тестов loop/tests/test_plan_path_classifier_characterization.py, фиксирующего полную матрицу путей (plan.md, gap, analyze, decompose-index, yaml, json) и поведение board_sync path helpers"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Freeze oracle сьют создан и проверяет существующие классификаторы и хелперы путей
+    verify: "bin/pytest loop/tests/test_plan_path_classifier_characterization.py -q"
+  - id: cp2
+    criterion: Существующие тесты mb_load и board_sync проходят успешно
+    verify: "bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py -q"
+
+verify: []
+tdd: []

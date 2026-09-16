@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s06 — consolidate unit tests and verify parametrized test matrix
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить и консолидировать модульные тесты для классификаторов путей планов (`test_mb_load_session.py`, `test_plan_jump_context_policy.py`)
+  и резолверов `board_sync` (`test_board_sync_epic_resolver.py`, `test_board_sync_scan_gates.py`),
+  устранив дублирование тестовых проверок и подтвердив единый источник истины.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - US-001
+    - US-002
+    - SC-002
+  nouns:
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_plan_jump_context_policy.py
+    - loop/tests/test_plan_path_classifier_characterization.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s06-consolidate-unit-tests-and-matrix.yaml
+  ac_quotes:
+    - "Consolidate tests into one parametrized matrix where duplicated"
+    - "merge test_mb_load_session classifier units + test_plan_jump_context_policy whole-plan"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:129-136
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:175-182
+
+context:
+  consumes:
+    - loop/mb_load/plan_section.py
+    - loop/board_sync/_epic_paths.py
+  produces:
+    - consolidated unit test suite testing canonical classifier APIs and board_sync helper
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-004
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#test-refactor
+  files:
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_plan_jump_context_policy.py
+
+as_built:
+  - "Тесты в test_mb_load_session.py проверяли отдельную функцию session.is_markdown_plan_path"
+  - "Тесты в test_plan_jump_context_policy.py проверяли plan_section.is_whole_plan_path"
+
+delta:
+  - "Консолидация модульных проверок классификаторов на импорт из loop.mb_load.plan_section"
+  - "Обновление тестов board_sync на использование канонического хелпера loop/board_sync/_epic_paths.py"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Модульные тесты mb_load используют канонический модуль классификатора plan_section
+    verify: "bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py -q"
+  - id: cp2
+    criterion: Полный набор связанных тестов проходит успешно
+    verify: "bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py -q"
+
+verify: []
+tdd: []

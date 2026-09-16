@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s04 — extract shared loop/board_sync/_epic_paths.py helper IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s04-extract-board-sync-epic-paths-helper.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- loop/board_sync/epic_resolver.py and loop/board_sync/scan_gates.py have duplicate
+  sys.path manipulation and helper functions for resolving epic paths
+- created loop/board_sync/_epic_paths.py to provide shared functions
+gaps:
+  status: none
+done:
+- Создан модуль loop/board_sync/_epic_paths.py с функциями plan_path, epic_id_from_plan_path,
+  find_decompose_index_path
+files:
+- loop/board_sync/_epic_paths.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q
+integration_check:
+- python3 -c "from loop.board_sync._epic_paths import plan_path, epic_id_from_plan_path,
+  find_decompose_index_path; assert all(callable(f) for f in (plan_path, epic_id_from_plan_path,
+  find_decompose_index_path))"
+grep_control: []
+verification_results:
+- '{"checkpoint": "cp1", "command": "python3 -c \"from loop.board_sync._epic_paths
+  import plan_path, epic_id_from_plan_path, find_decompose_index_path; assert all(callable(f)
+  for f in (plan_path, epic_id_from_plan_path, find_decompose_index_path))\"", "outcome":
+  "PASS"}'
+- '{"checkpoint": "cp2", "command": "bin/pytest loop/tests/test_plan_path_classifier_characterization.py
+  loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py
+  -q", "outcome": "PASS"}'
+checkpoints:
+- id: cp1
+  criterion: Модуль loop.board_sync._epic_paths успешно импортируется и предоставляет
+    необходимые функции
+  status: done
+  done_at: '2026-09-16T07:35:00Z'
+- id: cp2
+  criterion: Freeze oracle и smoke-тесты board_sync проходят успешно
+  status: done
+  done_at: '2026-09-16T07:35:05Z'
+resume_from: cp1

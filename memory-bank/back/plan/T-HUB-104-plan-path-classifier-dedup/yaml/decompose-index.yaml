@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-104-plan-path-classifier-dedup
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-characterization-and-freeze-oracle-baseline.yaml
+  title: s01 — characterization baseline & freeze oracle test matrix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-move-classifier-and-share-plan-pattern.yaml
+  title: s02 — move markdown classifier and share regex pattern in plan_section
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-cutover-session-and-delete-duplicate-classifier-body.yaml
+  title: s03 — cutover session loader to plan_section and delete duplicate body
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-extract-board-sync-epic-paths-helper.yaml
+  title: s04 — extract shared loop/board_sync/_epic_paths.py helper
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-cutover-board-sync-callers-and-delete-twin-helpers.yaml
+  title: s05 — cutover epic_resolver and scan_gates and delete local twin helpers
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-consolidate-unit-tests-and-matrix.yaml
+  title: s06 — consolidate unit tests and verify parametrized test matrix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-legacy-fallback-purge.yaml
+  title: s07 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  next_phase: BACK IMPLEMENT
+  status: completed

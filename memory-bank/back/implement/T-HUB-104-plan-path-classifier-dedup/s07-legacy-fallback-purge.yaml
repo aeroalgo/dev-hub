@@ -1,0 +1,108 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s07 — legacy-fallback-purge — full sunset inventory scan and deletion verification
+  IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s07-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- 'Sunset inventory verified: Kind A (single definition of is_markdown_plan_path in
+  plan_section.py), Kind B (0 local _plan_path definitions in loop/board_sync/), Kind
+  C (all classifier characterization and unit tests pass), Kind I (zero sys.path hack
+  comments / manipulations in epic_resolver and scan_gates).'
+gaps:
+  status: none
+done:
+- 'Verified Kind A: exactly one definition of is_markdown_plan_path exists in loop/mb_load/plan_section.py'
+- 'Verified Kind B: zero local _plan_path twin helpers exist in loop/board_sync/ (epic_resolver.py
+  and scan_gates.py use loop.board_sync._epic_paths)'
+- 'Verified Kind C: characterization baseline and freeze oracle tests pass cleanly'
+- 'Verified Kind I: no direct sys.path hooks insertions remain in epic_resolver or
+  scan_gates'
+- Verified complete regression suite across mb_load and board_sync passes cleanly
+files:
+- loop/tests/test_plan_path_classifier_characterization.py
+deletes: []
+wire_complete:
+  call_sites:
+  - loop/mb_load/session.py -> loop.mb_load.plan_section.is_markdown_plan_path
+  - loop/board_sync/epic_resolver.py -> loop.board_sync._epic_paths.plan_path
+  - loop/board_sync/scan_gates.py -> loop.board_sync._epic_paths.plan_path
+  enforce_path: loop/tests/test_plan_path_classifier_characterization.py
+  dual_path_rg: Zero duplicate classifier bodies or _plan_path twin helpers remain
+  instruction_rg: All module imports route to plan_section and _epic_paths
+  deny_old_proven: false
+tests:
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', '^def is_markdown_plan_path',
+  'loop/'], capture_output=True, text=True); lines = res.stdout.strip().splitlines();
+  sys.exit(0 if len(lines) == 1 and 'loop/mb_load/plan_section.py' in lines[0] else
+  1)"
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', '^def _plan_path',
+  'loop/board_sync/'], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip()
+  else 1)"
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py -q
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', 'sys.path.insert.*hooks',
+  'loop/board_sync/'], capture_output=True, text=True); lines = [l for l in res.stdout.splitlines()
+  if '_epic_paths.py' not in l]; sys.exit(0 if not lines else 1)"
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q
+integration_check:
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '{''checkpoint'': ''cp1'', ''command'': ''rg is_markdown_plan_path single definition'',
+  ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp2'', ''command'': ''rg _plan_path zero definitions'', ''outcome'':
+  ''PASS''}'
+- '{''checkpoint'': ''cp3'', ''command'': ''pytest classifier matrix test suite'',
+  ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp4'', ''command'': ''rg sys.path hack check'', ''outcome'':
+  ''PASS''}'
+- '{''checkpoint'': ''cp5'', ''command'': ''pytest full regression suite'', ''outcome'':
+  ''PASS''}'
+checkpoints:
+- id: cp1
+  criterion: Kind A — в кодовой базе осталась ровно одна реализация def is_markdown_plan_path
+    в plan_section.py
+  status: done
+  done_at: '2026-09-16T08:00:00Z'
+- id: cp2
+  criterion: Kind B — локальные функции _plan_path удалены из loop/board_sync/epic_resolver.py
+    и scan_gates.py
+  status: done
+  done_at: '2026-09-16T08:00:05Z'
+- id: cp3
+  criterion: Kind C — freeze oracle и модульные тесты классификаторов путей проходят
+    успешно
+  status: done
+  done_at: '2026-09-16T08:00:10Z'
+- id: cp4
+  criterion: Kind I — в epic_resolver.py и scan_gates.py отсутствуют прямые sys.path
+    манипуляции для epic_paths
+  status: done
+  done_at: '2026-09-16T08:00:15Z'
+- id: cp5
+  criterion: Регрессионный сьют тестов mb_load и board_sync проходит успешно
+  status: done
+  done_at: '2026-09-16T08:00:20Z'
+resume_from: cp1

@@ -1,0 +1,84 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-104-plan-path-classifier-dedup
+role: back
+source_qa: memory-bank/back/qa/T-HUB-104-plan-path-classifier-dedup/qa-20260916-plan-path-classifier-dedup-r3.yaml
+checklist_sha256: 57824d195fe0e16cbc904e8dbc89b9d19d0d9fc500ceaa3f478a485029b1df69
+created_at: '2026-09-16T08:03:43Z'
+updated_at: '2026-09-16T09:30:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-16T12:42:00Z'
+  evidence: 3005 passed, 4 skipped in 133.65s (bin/pytest -q --tb=line)
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: 4 failures in harness/hooks/tests/test_hook_registration_consolidation.py
+    (test_settings_unique_realpath, test_registration_entry_count_reduction, test_claude_codex_materialization_parity,
+    test_zero_prod_callers_for_deleted_hooks)
+  blocker_ref: 'suite_red: 4 failures in harness/hooks/tests/test_hook_registration_consolidation.py
+    (test_settings_unique_realpath, test_registration_entry_count_reduction, test_claude_codex_materialization_parity,
+    test_zero_prod_callers_for_deleted_hooks)'
+  fix_plan_ref: 'BACK BUGFIX BF-001: Resolve hook registration consolidation test
+    failures in harness/hooks/tests/test_hook_registration_consolidation.py; verify
+    via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+    --tb=line'
+  targets:
+  - harness/hooks/tests/test_hook_registration_consolidation.py
+  verify: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+    --tb=line
+  evidence: 7 passed in 2.65s (bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line)
+  done_at: '2026-09-16T08:15:00Z'
+  notes: Restored canonical .claude/settings.json matching harness/manifest.yaml (purged
+    legacy hook registrations).
+- id: BF-002
+  status: done
+  class: suite_red
+  title: 1 failure in loop/tests/test_hub_link_harness.py (test_product_settings_hook_paths_resolve)
+  blocker_ref: 'suite_red: 1 failure in loop/tests/test_hub_link_harness.py (test_product_settings_hook_paths_resolve)'
+  fix_plan_ref: 'BACK BUGFIX BF-002: Resolve product settings hook resolution test
+    failure in loop/tests/test_hub_link_harness.py; verify via bin/pytest loop/tests/test_hub_link_harness.py
+    -q --tb=line'
+  targets:
+  - loop/tests/test_hub_link_harness.py
+  verify: bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line
+  evidence: 5 passed in 5.02s (bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line)
+  done_at: '2026-09-16T08:16:00Z'
+  notes: Restored canonical .claude/settings.json without missing product hook script
+    references.
+- id: BF-003
+  status: done
+  class: ac_gap
+  title: Duplicated classifier assertions remain in loop/tests/test_mb_load_session.py:530
+  blocker_ref: 'ac_gap: FR-004: дублирующиеся classifier asserts остаются в loop/tests/test_mb_load_session.py:530;
+    удалить их, оставив parametrized matrix.'
+  fix_plan_ref: 'BACK BUGFIX BF-003: Remove duplicated classifier assertions in loop/tests/test_mb_load_session.py
+    and rely on parametrized matrix; verify via bin/pytest loop/tests/test_mb_load_session.py
+    -q --tb=line'
+  targets:
+  - loop/tests/test_mb_load_session.py
+  verify: bin/pytest loop/tests/test_mb_load_session.py -q --tb=line
+  notes: Removed duplicate classifier assertions from test_path_only_classifier_and_load_session_plan_md;
+    preserved integration assertions.
+  evidence: 20 passed in 2.95s (bin/pytest loop/tests/test_mb_load_session.py -q --tb=line)
+  done_at: '2026-09-16T08:50:00Z'
+- id: BF-004
+  status: done
+  class: prior_open
+  title: Baseline markdown classifier behavior for empty suffix paths in loop/mb_load/plan_section.py:18
+  blocker_ref: 'prior_open: BF-004: restore baseline markdown classifier behavior for empty suffix paths'
+  fix_plan_ref: 'BACK BUGFIX BF-004: Restore original case and boundary behavior in
+    loop/mb_load/plan_section.py to preserve exact deny matrix; verify via bin/pytest
+    loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+    loop/tests/test_plan_jump_context_policy.py -q --tb=line'
+  targets:
+  - loop/mb_load/plan_section.py
+  - loop/tests/test_plan_path_classifier_characterization.py
+  verify: bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+    loop/tests/test_plan_jump_context_policy.py -q --tb=line
+  notes: is_markdown_plan_path matches baseline behavior where gap-*.md matches startswith('gap-') and endswith('.md') including empty suffix 'gap-.md'.
+  evidence: 76 passed in 1.97s (bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py -q --tb=line)
+  done_at: '2026-09-16T12:38:00Z'

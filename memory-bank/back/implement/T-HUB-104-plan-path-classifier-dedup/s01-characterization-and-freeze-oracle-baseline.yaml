@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s01 — characterization baseline & freeze oracle test matrix IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s01-characterization-and-freeze-oracle-baseline.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Created characterization baseline tests for is_whole_plan_path and is_markdown_plan_path
+  classifiers.
+- Created freeze oracle tests for board_sync path helpers (_plan_path, _find_decompose,
+  _epic_id_from_plan_path).
+gaps:
+  status: none
+done:
+- Created loop/tests/test_plan_path_classifier_characterization.py covering the full
+  matrix of path types and board_sync resolution behavior.
+- Verified characterization suite passes and baseline existing test suites remain
+  green.
+files:
+- loop/tests/test_plan_path_classifier_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py -q
+- bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py
+  loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py
+  -q
+integration_check:
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py -q passed (44
+  passed).
+- Existing test suites in mb_load and board_sync passed (48 passed).
+grep_control: []
+verification_results:
+- '{"checkpoint": "cp1", "command": "bin/pytest loop/tests/test_plan_path_classifier_characterization.py
+  -q", "outcome": "PASS"}'
+- '{"checkpoint": "cp2", "command": "bin/pytest loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q", "outcome": "PASS"}'
+checkpoints:
+- id: cp1
+  criterion: Freeze oracle сьют создан и проверяет существующие классификаторы и хелперы
+    путей
+  status: done
+  done_at: '2026-09-16T07:14:27Z'
+- id: cp2
+  criterion: Существующие тесты mb_load и board_sync проходят успешно
+  status: done
+  done_at: '2026-09-16T07:14:31Z'
+resume_from: cp1

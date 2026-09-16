@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s02 — move markdown classifier and share regex pattern in plan_section IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s02-move-classifier-and-share-plan-pattern.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Defined is_markdown_plan_path in loop/mb_load/plan_section.py.
+- Shared _PLAN_MD_SUBPATTERN between _PLAN_PATTERN and _MARKDOWN_PLAN_PATTERN in plan_section.py.
+gaps:
+  status: none
+done:
+- Added is_markdown_plan_path classifier to loop/mb_load/plan_section.py.
+- Shared _PLAN_MD_SUBPATTERN regex subpattern across whole-plan and markdown classifiers.
+files:
+- loop/mb_load/plan_section.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_plan_jump_context_policy.py
+  -q
+integration_check:
+- python3 -c "from loop.mb_load.plan_section import is_markdown_plan_path; assert
+  callable(is_markdown_plan_path)"
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_plan_jump_context_policy.py
+  -q passed (48 passed).
+grep_control: []
+verification_results:
+- '{"checkpoint": "cp1", "command": "python3 -c \"from loop.mb_load.plan_section import
+  is_markdown_plan_path; assert callable(is_markdown_plan_path)\"", "outcome": "PASS"}'
+- '{"checkpoint": "cp2", "command": "bin/pytest loop/tests/test_plan_path_classifier_characterization.py
+  loop/tests/test_plan_jump_context_policy.py -q", "outcome": "PASS"}'
+checkpoints:
+- id: cp1
+  criterion: is_markdown_plan_path доступна для импорта из loop.mb_load.plan_section
+  status: done
+  done_at: '2026-09-16T07:22:00Z'
+- id: cp2
+  criterion: Freeze oracle и модульные тесты plan_section проходят успешно
+  status: done
+  done_at: '2026-09-16T07:22:05Z'
+resume_from: cp1

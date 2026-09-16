@@ -8,8 +8,6 @@ import pytest
 import yaml
 
 from loop.mb_load.plan_section import (
-    evaluate_plan_read,
-    is_whole_plan_path,
     load_plan_jumps,
     materialize_plan_jump,
     parse_plan_jump,

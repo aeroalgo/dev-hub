@@ -25,6 +25,11 @@ from analyze_gate import critical_count as _critical_count
 from analyze_gate import latest_analyze as _latest_analyze
 from loop.decompose_gate import decompose_shards_diagnostic
 
+from ._epic_paths import (
+    epic_id_from_plan_path,
+    find_decompose_index_path,
+    plan_path,
+)
 from .plan_next import parse_plan_next, validate_plan_next
 
 _COMPLETED_STATUSES = frozenset({"completed", "done"})
@@ -65,9 +70,9 @@ def resolve_epic_next_action(
       4. Post-implement lifecycle -> AUDIT / QA / BUGFIX / DONE
     """
     project_path = Path(project).resolve()
-    plan = _plan_path(project_path, role, epic_id)
-    canonical_id = _epic_id_from_plan_path(plan) or epic_id
-    decompose = _find_decompose(project_path, role, canonical_id)
+    plan = plan_path(project_path, role, epic_id)
+    canonical_id = epic_id_from_plan_path(plan) or epic_id
+    decompose = find_decompose_index_path(project_path, role, canonical_id)
 
     plan_rel = _relative(plan, project_path)
     decompose_rel = _relative(decompose, project_path)
@@ -266,42 +271,6 @@ def _phase_from_command(command: str) -> str:
     if len(parts) >= 2:
         return parts[1].upper()
     return parts[0].upper()
-
-
-def _plan_path(project: Path, role: str, epic_id: str) -> Path | None:
-    import sys
-    from pathlib import Path as _Path
-
-    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-    if str(hooks) not in sys.path:
-        sys.path.insert(0, str(hooks))
-    from epic_paths import find_plan_md_path
-
-    return find_plan_md_path(project, role, epic_id)
-
-
-def _epic_id_from_plan_path(plan: Path | None) -> str | None:
-    import sys
-    from pathlib import Path as _Path
-
-    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-    if str(hooks) not in sys.path:
-        sys.path.insert(0, str(hooks))
-    from epic_paths import epic_id_from_plan_path
-
-    return epic_id_from_plan_path(plan)
-
-
-def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:
-    import sys
-    from pathlib import Path as _Path
-
-    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-    if str(hooks) not in sys.path:
-        sys.path.insert(0, str(hooks))
-    from epic_paths import find_decompose_index_path
-
-    return find_decompose_index_path(project, role, epic_id)
 
 
 def _relative(path: Path | None, root: Path) -> str | None:

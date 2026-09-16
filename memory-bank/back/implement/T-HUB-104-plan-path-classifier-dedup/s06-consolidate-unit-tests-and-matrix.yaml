@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s06 — consolidate unit tests and verify parametrized test matrix IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s06-consolidate-unit-tests-and-matrix.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Consolidated unit tests in loop/tests/test_mb_load_session.py to import is_markdown_plan_path
+  from loop.mb_load.plan_section
+- Cleaned up unused imports in loop/tests/test_plan_jump_context_policy.py
+- Verified test matrix across all related test suites
+gaps:
+  status: none
+done:
+- Updated loop/tests/test_mb_load_session.py to use canonical plan_section classifier
+  import
+- Removed unused classifier imports in loop/tests/test_plan_jump_context_policy.py
+- Updated characterization baseline to reflect the shared helper in loop/board_sync/_epic_paths.py
+files:
+- loop/tests/test_mb_load_session.py
+- loop/tests/test_plan_jump_context_policy.py
+- loop/tests/test_plan_path_classifier_characterization.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py
+  -q
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q
+integration_check:
+- bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q
+grep_control: []
+verification_results:
+- '{''checkpoint'': ''cp1'', ''command'': ''bin/pytest loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_jump_context_policy.py -q'', ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp2'', ''command'': ''bin/pytest loop/tests/test_plan_path_classifier_characterization.py
+  loop/tests/test_mb_load_session.py loop/tests/test_plan_jump_context_policy.py loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q'', ''outcome'': ''PASS''}'
+checkpoints:
+- id: cp1
+  criterion: Модульные тесты mb_load используют канонический модуль классификатора
+    plan_section
+  status: done
+  done_at: '2026-09-16T07:44:00Z'
+- id: cp2
+  criterion: Полный набор связанных тестов проходит успешно
+  status: done
+  done_at: '2026-09-16T07:44:05Z'
+resume_from: cp1

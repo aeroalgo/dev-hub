@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s04 — extract shared loop/board_sync/_epic_paths.py helper
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Выделить общий компактный хелпер-модуль `loop/board_sync/_epic_paths.py`, предоставляющий
+  канонические функции разрешения путей планов (`plan_path`, `epic_id_from_plan_path`, `find_decompose_index_path`)
+  без необходимости дублирования sys.path-хаков в модулях board_sync.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - US-002
+    - SC-002
+    - AC− #2
+  nouns:
+    - loop/board_sync/_epic_paths.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s04-extract-board-sync-epic-paths-helper.yaml
+  ac_quotes:
+    - "Extract board_sync plan path helper"
+    - "Sole board_sync plan resolve helper"
+    - "Нет двух sys.path hacks for find_plan_md_path in board_sync"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:50-66
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:128-144
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#consolidation-clusters
+  produces:
+    - module loop/board_sync/_epic_paths.py
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-003
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#sc-002
+  files:
+    - loop/board_sync/_epic_paths.py
+
+as_built:
+  - "loop/board_sync/epic_resolver.py и loop/board_sync/scan_gates.py независимо содержат локальные копии _plan_path, _find_decompose и sys.path манипуляций"
+
+delta:
+  - "Создание модуля loop/board_sync/_epic_paths.py с функциями plan_path, epic_id_from_plan_path, find_decompose_index_path"
+
+deletes: []
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Модуль loop.board_sync._epic_paths успешно импортируется и предоставляет необходимые функции
+    verify: "python3 -c \"from loop.board_sync._epic_paths import plan_path, epic_id_from_plan_path, find_decompose_index_path; assert all(callable(f) for f in (plan_path, epic_id_from_plan_path, find_decompose_index_path))\""
+  - id: cp2
+    criterion: Freeze oracle и smoke-тесты board_sync проходят успешно
+    verify: "bin/pytest loop/tests/test_plan_path_classifier_characterization.py loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py -q"
+
+verify: []
+tdd: []

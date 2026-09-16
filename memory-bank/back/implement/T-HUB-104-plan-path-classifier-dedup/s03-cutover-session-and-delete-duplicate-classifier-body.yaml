@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s03 — s03 — cutover session loader to plan_section and delete duplicate body
+  IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s03-cutover-session-and-delete-duplicate-classifier-body.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- loop/mb_load/session.py contained a duplicate 20-line implementation of is_markdown_plan_path
+- cut over session.py to import is_markdown_plan_path from loop.mb_load.plan_section
+gaps:
+  status: none
+done:
+- Удалено дублирующее тело функции is_markdown_plan_path из loop/mb_load/session.py
+- Импортирован is_markdown_plan_path из loop.mb_load.plan_section в loop/mb_load/session.py
+  для обратной совместимости
+files:
+- loop/mb_load/session.py
+deletes:
+- loop/mb_load/session.py:is_markdown_plan_path implementation body
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_path_classifier_characterization.py
+  -q
+integration_check:
+- python3 -c "import subprocess, sys; res = subprocess.run(['rg', '-n', '^def is_markdown_plan_path',
+  'loop/'], capture_output=True, text=True); lines = res.stdout.strip().splitlines();
+  sys.exit(0 if len(lines) == 1 and 'loop/mb_load/plan_section.py' in lines[0] else
+  1)"
+- bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_path_classifier_characterization.py
+  -q (64 passed)
+grep_control: []
+verification_results:
+- '{"checkpoint": "cp1", "command": "python3 -c \"import subprocess, sys; res = subprocess.run([''rg'',
+  ''-n'', ''^def is_markdown_plan_path'', ''loop/''], capture_output=True, text=True);
+  lines = res.stdout.strip().splitlines(); sys.exit(0 if len(lines) == 1 and ''loop/mb_load/plan_section.py''
+  in lines[0] else 1)\"", "outcome": "PASS"}'
+- '{"checkpoint": "cp2", "command": "bin/pytest loop/tests/test_mb_load_session.py
+  loop/tests/test_plan_path_classifier_characterization.py -q", "outcome": "PASS"}'
+checkpoints:
+- id: cp1
+  criterion: В кодовой базе loop/ осталась ровно одна сигнатура def is_markdown_plan_path
+    в plan_section.py
+  status: done
+  done_at: '2026-09-16T07:29:00Z'
+- id: cp2
+  criterion: Тесты сессии и freeze oracle проходят успешно
+  status: done
+  done_at: '2026-09-16T07:29:05Z'
+resume_from: cp1

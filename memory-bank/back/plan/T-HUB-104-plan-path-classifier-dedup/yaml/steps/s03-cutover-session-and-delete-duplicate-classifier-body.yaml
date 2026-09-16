@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s03 — cutover session loader to plan_section and delete duplicate body
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переключить `loop/mb_load/session.py` на импорт `is_markdown_plan_path` из `loop.mb_load.plan_section`,
+  удалить дублирующее тело функции из `session.py` (сохранив re-export для обратной совместимости вызовов),
+  ликвидировав множественное владение классификацией.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - US-001
+    - SC-001
+    - SC-003
+    - AC− #1
+  nouns:
+    - loop/mb_load/session.py
+    - loop/mb_load/plan_section.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s03-cutover-session-and-delete-duplicate-classifier-body.yaml
+  ac_quotes:
+    - "Delete session implementation body"
+    - "rg 'def is_markdown_plan_path' loop → one definition (plan_section)"
+    - "Нет двух полных classifier bodies"
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:58-66
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md:124-144
+
+context:
+  consumes:
+    - loop/mb_load/plan_section.py
+  produces:
+    - single classifier definition in plan_section with clean re-export or call in session.py
+  plan_refs:
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#fr-001
+    - memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/md/plan.md#sc-001
+  files:
+    - loop/mb_load/session.py
+
+as_built:
+  - "loop/mb_load/session.py содержит полное 20-строчное тело функции is_markdown_plan_path"
+  - "loop/mb_load/plan_section.py содержит единую каноническую реализацию is_markdown_plan_path"
+
+delta:
+  - "Удаление отдельной реализации is_markdown_plan_path из loop/mb_load/session.py"
+  - "Импорт is_markdown_plan_path из loop.mb_load.plan_section в loop/mb_load/session.py"
+
+deletes:
+  - "loop/mb_load/session.py:is_markdown_plan_path implementation body"
+wire_complete_required: false
+
+out_of_scope:
+  - "follow_up: T-HUB-103-event-schema-sot-unify"
+  - "follow_up: T-HUB-105-roadmap-legacy-source-purge"
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - python-testing-patterns
+    - architecture-patterns
+    - python-design-patterns
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: В кодовой базе loop/ осталась ровно одна сигнатура def is_markdown_plan_path в plan_section.py
+    verify: "python3 -c \"import subprocess, sys; res = subprocess.run(['rg', '-n', '^def is_markdown_plan_path', 'loop/'], capture_output=True, text=True); lines = res.stdout.strip().splitlines(); sys.exit(0 if len(lines) == 1 and 'loop/mb_load/plan_section.py' in lines[0] else 1)\""
+  - id: cp2
+    criterion: Тесты сессии и freeze oracle проходят успешно
+    verify: "bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_plan_path_classifier_characterization.py -q"
+
+verify: []
+tdd: []

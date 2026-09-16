@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-104-plan-path-classifier-dedup
+title: s05 — cutover epic_resolver and scan_gates and delete local twin helpers IMPLEMENT
+status: completed
+date: '2026-09-16'
+decompose_ref: memory-bank/back/plan/T-HUB-104-plan-path-classifier-dedup/yaml/steps/s05-cutover-board-sync-callers-and-delete-twin-helpers.yaml
+skills_used:
+- .agents/skills/writing-plans/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+- .agents/skills/python-design-patterns/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Switched callers in loop/board_sync/epic_resolver.py and loop/board_sync/scan_gates.py
+  to use loop.board_sync._epic_paths
+- Removed redundant twin functions _plan_path, _epic_id_from_plan_path, and _find_decompose
+gaps:
+  status: none
+done:
+- Switched loop/board_sync/epic_resolver.py to import plan_path, epic_id_from_plan_path,
+  find_decompose_index_path from loop.board_sync._epic_paths
+- Switched loop/board_sync/scan_gates.py to import plan_path, find_decompose_index_path
+  from loop.board_sync._epic_paths
+- Deleted local twin helper definitions _plan_path, _epic_id_from_plan_path, _find_decompose
+  from epic_resolver.py and _plan_path, _find_decompose from scan_gates.py
+files:
+- loop/board_sync/epic_resolver.py
+- loop/board_sync/scan_gates.py
+deletes:
+- loop/board_sync/epic_resolver.py::_plan_path
+- loop/board_sync/epic_resolver.py::_find_decompose
+- loop/board_sync/epic_resolver.py::_epic_id_from_plan_path
+- loop/board_sync/scan_gates.py::_plan_path
+- loop/board_sync/scan_gates.py::_find_decompose
+tests:
+- bin/pytest loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py
+  -q
+integration_check:
+- python3 -c "import subprocess, sys; res = subprocess.run(["rg", "-n", "^def _plan_path",
+  "loop/board_sync/"], capture_output=True, text=True); sys.exit(0 if not res.stdout.strip()
+  else 1)"
+grep_control: []
+verification_results:
+- '{"checkpoint": "cp1", "command": "python3 -c "import subprocess, sys; res = subprocess.run([\"rg\",
+  \"-n\", \"^def _plan_path\", \"loop/board_sync/\"], capture_output=True, text=True);
+  sys.exit(0 if not res.stdout.strip() else 1)"", "outcome": "PASS"}'
+- '{"checkpoint": "cp2", "command": "bin/pytest loop/tests/test_board_sync_epic_resolver.py
+  loop/tests/test_board_sync_scan_gates.py -q", "outcome": "PASS"}'
+checkpoints:
+- id: cp1
+  criterion: В модулях loop/board_sync/epic_resolver.py и scan_gates.py отсутствуют
+    локальные объявления _plan_path
+  status: done
+  done_at: '2026-09-16T07:40:00Z'
+- id: cp2
+  criterion: Тесты epic_resolver и scan_gates проходят успешно
+  status: done
+  done_at: '2026-09-16T07:40:05Z'
+resume_from: cp1
