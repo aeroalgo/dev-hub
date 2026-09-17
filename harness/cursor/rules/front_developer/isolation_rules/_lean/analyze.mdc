@@ -20,6 +20,9 @@ alwaysApply: false
 
 ## Abort
 
+- skills gate / empty `impl` на code / Core missing → CRITICAL `skills_*` → DECOMPOSE;
+
+
 - нет `epic_id` → reject, ad-hoc ANALYZE не допускается;
 - попытка править code/decompose/implement → FAIL;
 - запуск тестов → FAIL;

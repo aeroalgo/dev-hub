@@ -189,7 +189,15 @@ def scaffold_decompose(
             "out_of_scope": [],
             "skills": {
                 "code_surface": "api",
-                "impl": ["modern-python", "python-testing-patterns"],
+                "impl": [
+                    ".agents/skills/tdd/SKILL.md",
+                    ".agents/skills/python-testing-patterns/SKILL.md",
+                    ".agents/skills/modern-python/SKILL.md",
+                    ".agents/skills/python-anti-patterns/SKILL.md",
+                    ".agents/skills/fastapi-templates/SKILL.md",
+                    ".agents/skills/async-python-patterns/SKILL.md",
+                    ".agents/skills/python-error-handling/SKILL.md",
+                ],
             },
             "checkpoints": [],
             "verify": [],

@@ -59,6 +59,8 @@ alwaysApply: false
 
 **Defaults (не docs-only):** `api` → #2–4; `service` → #3–4; `ws` → #3 #4 #7; `sql` → #5 (+#6 если SQL); `infra` → #9/#10/#11 только по факту.
 
+**Omit:** default situational, которого нет в `impl`, обязан быть в `skills.omit_justification` (map `skill_id → reason`, reason непустой). Иначе DECOMPOSE/ANALYZE/`validate-decompose-tree` FAIL. `impl: []` на `code_surface ≠ docs` = FAIL.
+
 ---
 
 ## Checklist — CREATIVE → Skills gate (situational)

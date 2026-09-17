@@ -68,8 +68,20 @@ out_of_scope: []
 # Bare «deferred» / «leave for later» без follow_up ID = FAIL (validate-traceability CRITICAL).
 
 skills:
-  code_surface: api
-  impl: []
+  # HARD gate: code_surface ≠ docs → Core ∪ situational; docs → impl: [] only.
+  # Copy-paste empty impl on api/service/sql/… = DECOMPOSE FAIL (validate-decompose-tree).
+  code_surface: api  # api|service|sql|ws|model|infra|test|ui|docs
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/fastapi-templates/SKILL.md
+    - .agents/skills/async-python-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    # Adjust situational to surface; omit via omit_justification with reason (cap situational ≤6)
+  # omit_justification:
+  #   fastapi-templates: "no HTTP routes in this step"
 
 checkpoints:
   - id: cp1

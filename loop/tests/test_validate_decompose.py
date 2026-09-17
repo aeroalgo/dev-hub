@@ -10,7 +10,23 @@ _HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
 if str(_HOOKS) not in sys.path:
     sys.path.insert(0, str(_HOOKS))
 
-from epic_yaml import validate_decompose_full  # noqa: E402
+from epic_yaml import (  # noqa: E402
+    back_api_default_skill_paths,
+    validate_decompose_full,
+    validate_decompose_tree,
+    _validate_decompose_skills,
+    load_decompose,
+)
+
+_VALID_BACK_SKILLS = {
+    "code_surface": "api",
+    "impl": back_api_default_skill_paths(),
+}
+_VALID_INTEG_SKILLS = {
+    "code_surface": "api",
+    "impl": [".agents/skills/modern-python/SKILL.md"],
+}
+
 
 _MINIMAL_DECOMPOSE_INDEX_MD = """\
 # decompose-demo
@@ -38,6 +54,8 @@ def _write_minimal_index_md(dec: Path) -> None:
 
 
 def _write(p: Path, data: dict) -> Path:
+    role = str(data.get("role") or "integ")
+    default_skills = _VALID_BACK_SKILLS if role == "back" else _VALID_INTEG_SKILLS
     base = {
         "schema": "epic-decompose/v1",
         "role": "integ",
@@ -59,8 +77,14 @@ def _write(p: Path, data: dict) -> Path:
             {"id": "cp1", "criterion": "c", "verify": "rg -n 'foo-cp1' src"},
             {"id": "cp2", "criterion": "c2", "verify": "rg -n 'bar-cp2' src"},
         ],
+        "skills": dict(default_skills),
     }
     base.update(data)
+    if "skills" not in data:
+        role2 = str(base.get("role") or "integ")
+        base["skills"] = (
+            dict(_VALID_BACK_SKILLS) if role2 == "back" else dict(_VALID_INTEG_SKILLS)
+        )
     p.write_text(
         yaml.safe_dump(base, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
@@ -435,3 +459,108 @@ steps:
     assert loaded["source"] == "yaml"
     assert loaded["steps"][0]["title"] == "demo step from yaml"
     assert loaded["steps"][0]["status"] == "completed"
+
+
+def test_skills_empty_impl_on_api_fails(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "s01-x.yaml",
+        {
+            "role": "back",
+            "step_id": "s01",
+            "skills": {"code_surface": "api", "impl": []},
+        },
+    )
+    errors, _ = validate_decompose_full(p)
+    assert any("empty on code_surface" in e or "skills.impl" in e for e in errors)
+
+
+def test_skills_core_partial_fails(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "s01-x.yaml",
+        {
+            "role": "back",
+            "step_id": "s01",
+            "skills": {
+                "code_surface": "api",
+                "impl": [
+                    ".agents/skills/tdd/SKILL.md",
+                    ".agents/skills/fastapi-templates/SKILL.md",
+                    ".agents/skills/async-python-patterns/SKILL.md",
+                    ".agents/skills/python-error-handling/SKILL.md",
+                ],
+            },
+        },
+    )
+    errors, _ = validate_decompose_full(p)
+    assert any("Core(4) incomplete" in e for e in errors)
+
+
+def test_skills_situational_omit_justification_ok(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "s01-x.yaml",
+        {
+            "role": "back",
+            "step_id": "s01",
+            "skills": {
+                "code_surface": "api",
+                "impl": [
+                    ".agents/skills/tdd/SKILL.md",
+                    ".agents/skills/python-testing-patterns/SKILL.md",
+                    ".agents/skills/modern-python/SKILL.md",
+                    ".agents/skills/python-anti-patterns/SKILL.md",
+                    ".agents/skills/async-python-patterns/SKILL.md",
+                    ".agents/skills/python-error-handling/SKILL.md",
+                ],
+                "omit_justification": {
+                    "fastapi-templates": "no HTTP routes; service-only step",
+                },
+            },
+        },
+    )
+    errors, _ = validate_decompose_full(p)
+    assert not any("fastapi-templates" in e and "missing default" in e for e in errors)
+    assert not any("Core(4)" in e for e in errors)
+
+
+def test_skills_docs_empty_impl_ok(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "s01-x.yaml",
+        {
+            "role": "back",
+            "step_id": "s01",
+            "skills": {"code_surface": "docs", "impl": []},
+        },
+    )
+    errors, _ = validate_decompose_full(p)
+    assert not any("skills" in e for e in errors)
+
+
+def test_validate_decompose_tree_rejects_empty_skills(tmp_path: Path) -> None:
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "demo"
+    (dec / "yaml" / "steps").mkdir(parents=True)
+    _write_minimal_index_md(dec)
+    (dec / "yaml" / "decompose-index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-ok.yaml\n"
+        "  title: ok\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(
+        dec / "yaml" / "steps" / "s01-ok.yaml",
+        {
+            "step_id": "s01",
+            "plan_id": "demo",
+            "role": "back",
+            "skills": {"code_surface": "api", "impl": []},
+        },
+    )
+    errs = validate_decompose_tree(
+        tmp_path, "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
+    )
+    assert errs
+    assert any("skills" in e for e in errs)

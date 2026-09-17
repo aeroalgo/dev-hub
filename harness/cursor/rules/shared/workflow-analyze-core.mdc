@@ -23,17 +23,23 @@ alwaysApply: false
 9. **Step granularity** — BACK/FRONT: `>9` sNN без justification в index; или micro-ladder (schema→core→CLI→wire×N→docs→tests как отдельные sNN без отдельных outcome); или audit-* хвост >1 sNN без product outcome; или **`s01-*-red-tests` как отдельный shard без production behavior** (TDD = процесс внутри шага: failing tests + impl + green = один `sNN`). INTEG: layer-first micro-split одного element. Category: `step_granularity`. → **HIGH** (не блокирует IMPLEMENT сам по себе). Канон: behavior-first §3a.
 10. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
 11. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
+12. **Skills gate (HARD)** — на **каждый** `sNN`/`eNN` из index: секция `skills.code_surface` + `skills.impl`.  
+    - `code_surface: docs` → `impl: []` только.  
+    - иначе (api|service|sql|ws|model|infra|test|ui): `impl` **не** пустой; BACK Core(4) / FRONT Impl Core(6) целиком ∈ `impl`; session skills (`writing-plans`/…) в `impl` = FAIL.  
+    - Surface defaults (BACK: `api`→fastapi+async+errors; `service`→async+errors; `ws`→+websocket; `sql`→sqlalchemy; FRONT `ui`→playwright-best-practices) — каждый missing id либо в `impl`, либо в `skills.omit_justification` / `skills_omit` с **непустой** причиной. Bare omit / copy-paste `impl: []` с template = FAIL.  
+    - Situational вне role allowlist или >cap (BACK ≤6 / FRONT ≤4) = FAIL.  
+    Categories: `skills_core_missing` · `skills_situational_unjustified` · `skills_impl_empty` · `skills_allowlist`. → **CRITICAL**. Канон: `skills-gate-situational.mdc` · `validate-decompose-tree` (machine). FRONT Design Core при `visible_ui: yes` — отдельный check пакета в step `skills.design`/`design_skills` (отсутствие пакета = CRITICAL `skills_design_core_missing`).
 
 Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
 
 ## Severity heuristic
 
-- **CRITICAL** — отсутствует core P1/FR; нерешённый CRITICAL marker; **dilution**, **optional_sot**, **layout_dilution** или **FR remap**; IMPLEMENT нельзя начинать.
+- **CRITICAL** — отсутствует core P1/FR; нерешённый CRITICAL marker; **dilution**, **optional_sot**, **layout_dilution**, **FR remap** или **skills gate** (`skills_*`); IMPLEMENT нельзя начинать.
 - **HIGH** — покрытие ниже 80%, более трёх существенных HIGH gaps, отсутствует обязательный acceptance path, dilution/optional_sot non-P1, **step_granularity**.
 - **MEDIUM** — non-core gap, частичное покрытие или неоднозначность, которую можно закрыть до cutover.
 - **LOW** — naming/style drift без влияния на decomposition, tests или runtime behavior.
 
-`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution, Optional-SoT, Layout dilution, FR remap**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`. **step_granularity** = HIGH → IMPLEMENT допустим, но DECOMPOSE lean preferred на следующем эпике.
+`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution, Optional-SoT, Layout dilution, FR remap, Skills gate**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`. **step_granularity** = HIGH → IMPLEMENT допустим, но DECOMPOSE lean preferred на следующем эпике.
 
 **Promote:** `ANALYZE deferred` **FORBIDDEN** как путь в IMPLEMENT. Только artifact `critical_count=0`.
 
@@ -49,6 +55,7 @@ alwaysApply: false
 - Optional-SoT / ladder pass выполнен; add-only / optional SoT на boundary FR ≠ `covered`;
 - Layout dilution pass выполнен; Target layout paths + Notes deferred без queue ≠ `covered`;
 - FR remap pass выполнен; coverage `plan_text_verbatim` совпадает с plan FR nouns;
+- Skills gate pass выполнен по **каждому** step (`skills_*` CRITICAL → DECOMPOSE);
 - metrics пересчитаны после всех passes;
 - **Нет** рекомендации IMPLEMENT при `critical_count>0` и **нет** soft-defer в Handoff.
 - CRITICAL вынесены в `next_actions[]`;

@@ -25,7 +25,7 @@ alwaysApply: false
 2. `memory-bank/back/plan/<epic>/md/plan.md` → headers + **полные** FR/AC/Target layout sections;
 3. `memory-bank/back/plan/<epic>/md/decompose-index.md` (+ `yaml/decompose-index.yaml`) → coverage map (**сверить verbatim FR**);
 4. `index.yaml` → steps/status;
-5. sample `sNN` → headers, `goal`, `delta`, `plan_refs`, **`plan_contract`**.
+5. sample/`all` `sNN` → headers, `goal`, `delta`, `plan_refs`, **`plan_contract`**, **`skills`** (`code_surface`/`impl`/`omit_justification`).
 
 Implement YAML не загружается. Подробнее: `_lean/analyze.mdc`.
 
@@ -33,7 +33,7 @@ Implement YAML не загружается. Подробнее: `_lean/analyze.m
 
 1. Подтверди `epic_id` и read-only scope.
 2. Inventories: plan FR/SC/US/AC±/NFR/layout **verbatim** ↔ `sNN` `plan_refs`/`plan_contract`/`produces`/`files`; Notes `deferred` без `follow_up: T-…`+queue → CRITICAL `layout_dilution`.
-3. Запусти detection passes из `shared/workflow-analyze-core.mdc` (включая Dilution, Optional-SoT, **Layout dilution**, **FR remap**).
+3. Запусти detection passes из `shared/workflow-analyze-core.mdc` (включая Dilution, Optional-SoT, **Layout dilution**, **FR remap**, **Skills gate**).
 4. Severity + IDs `A1…`; cap 50.
 5. Запиши `analyze-YYYYMMDD-<slug>.yaml`; coverage rows с `plan_text_verbatim`.
 6. Handoff только по FINISH-канону; plan/decompose не патчить.
@@ -56,7 +56,7 @@ CRITICAL → **не** стартовать IMPLEMENT. Нет soft-defer.
 | Результат | Следующий шаг |
 |---|---|
 | `critical_count = 0` | `BACK IMPLEMENT s01` (или первый pending) |
-| CRITICAL (dilution/layout/remap/coverage) | `BACK DECOMPOSE` (или CLARIFY/PLAN по причине) |
+| CRITICAL (dilution/layout/remap/coverage/skills) | `BACK DECOMPOSE` (или CLARIFY/PLAN по причине) |
 | только HIGH/MEDIUM/LOW | IMPLEMENT разрешён; перечислить `next_actions` |
 
 Handoff: artifact path, coverage %, critical/high, recommendation, один next step.

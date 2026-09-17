@@ -9,7 +9,7 @@ status: draft | complete
 findings:
   - id: A1
     severity: CRITICAL | HIGH | MEDIUM | LOW
-    category: Duplication | Ambiguity | Underspecification | Coverage Gaps | Dilution | Optional-SoT | Layout dilution | FR remap | Inconsistency | Constitution
+    category: Duplication | Ambiguity | Underspecification | Coverage Gaps | Dilution | Optional-SoT | Layout dilution | FR remap | Inconsistency | Constitution | skills_core_missing | skills_situational_unjustified | skills_impl_empty | skills_allowlist | skills_design_core_missing
     message: <concise finding>
     plan_ref: <plan section or n/a>
     step_ref: <sNN or n/a>

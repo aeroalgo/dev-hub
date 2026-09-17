@@ -115,7 +115,23 @@ def render_step(
     res.setdefault("delta", [f"Implement {formula_step.title} for {plan_id}"])
     res.setdefault("deletes", [])
     res.setdefault("out_of_scope", [])
-    res.setdefault("skills", {"code_surface": "api", "impl": []})
+    try:
+        from epic_yaml import back_api_default_skill_paths
+        _skill_paths = back_api_default_skill_paths()
+    except Exception:
+        _skill_paths = [
+            ".agents/skills/tdd/SKILL.md",
+            ".agents/skills/python-testing-patterns/SKILL.md",
+            ".agents/skills/modern-python/SKILL.md",
+            ".agents/skills/python-anti-patterns/SKILL.md",
+            ".agents/skills/fastapi-templates/SKILL.md",
+            ".agents/skills/async-python-patterns/SKILL.md",
+            ".agents/skills/python-error-handling/SKILL.md",
+        ]
+    res.setdefault(
+        "skills",
+        {"code_surface": "api", "impl": list(_skill_paths)},
+    )
     res.setdefault("verify", [])
     res.setdefault("tdd", [])
 

@@ -902,6 +902,273 @@ def _decompose_test_scope_errors(
     return errors
 
 
+
+_DOCS_SURFACES = frozenset({"docs"})
+_CODE_SURFACES = frozenset(
+    {"api", "service", "sql", "ws", "model", "infra", "test", "ui"}
+)
+_ALLOWED_SURFACES = _DOCS_SURFACES | _CODE_SURFACES
+
+_SESSION_FORBIDDEN_SKILLS = frozenset(
+    {"writing-plans", "brainstorming", "executing-plans", "breakdown-plan"}
+)
+
+_BACK_CORE_IDS = (
+    "tdd",
+    "python-testing-patterns",
+    "modern-python",
+    "python-anti-patterns",
+)
+_FRONT_CORE_IDS = (
+    "tdd",
+    "frontend-testing",
+    "frontend-patterns",
+    "next-best-practices",
+    "vercel-react-best-practices",
+    "vercel-composition-patterns",
+)
+
+_BACK_SITUATIONAL_ALLOW = frozenset(
+    {
+        "fastapi-templates",
+        "async-python-patterns",
+        "python-error-handling",
+        "sqlalchemy-postgres",
+        "supabase-postgres-best-practices",
+        "websocket-engineer",
+        "python-performance-optimization",
+        "python-configuration",
+        "python-observability",
+        "python-resilience",
+        "python-type-safety",
+    }
+)
+_FRONT_SITUATIONAL_ALLOW = frozenset(
+    {
+        "playwright-best-practices",
+        "playwright-generate-test",
+        "web-design-guidelines",
+        "vercel-react-view-transitions",
+    }
+)
+
+_BACK_SURFACE_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "api": (
+        "fastapi-templates",
+        "async-python-patterns",
+        "python-error-handling",
+    ),
+    "service": ("async-python-patterns", "python-error-handling"),
+    "ws": (
+        "async-python-patterns",
+        "python-error-handling",
+        "websocket-engineer",
+    ),
+    "sql": ("sqlalchemy-postgres",),
+    "model": (),
+    "infra": (),
+    "test": (),
+    "ui": (),
+}
+_FRONT_SURFACE_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "ui": ("playwright-best-practices",),
+    "api": (),
+    "service": (),
+    "sql": (),
+    "ws": (),
+    "model": (),
+    "infra": (),
+    "test": (),
+}
+
+_BACK_SITUATIONAL_CAP = 6
+_FRONT_SITUATIONAL_CAP = 4
+
+
+def skill_id_from_path(raw: str) -> str:
+    """Normalize `.agents/skills/<id>/SKILL.md` or bare `<id>` → skill id."""
+    s = (raw or "").strip().replace("\\", "/")
+    if not s:
+        return ""
+    if s.endswith("/SKILL.md"):
+        s = s[: -len("/SKILL.md")]
+    elif s.endswith("SKILL.md"):
+        s = s[: -len("SKILL.md")].rstrip("/")
+    parts = [p for p in s.split("/") if p]
+    if "skills" in parts:
+        i = parts.index("skills")
+        if i + 1 < len(parts):
+            return parts[i + 1]
+    return parts[-1] if parts else ""
+
+
+def back_core_skill_paths() -> list[str]:
+    return [f".agents/skills/{sid}/SKILL.md" for sid in _BACK_CORE_IDS]
+
+
+def back_api_default_skill_paths() -> list[str]:
+    return (
+        back_core_skill_paths()
+        + [f".agents/skills/{sid}/SKILL.md" for sid in _BACK_SURFACE_DEFAULTS["api"]]
+    )
+
+
+def _validate_decompose_skills(
+    doc: "EpicDecomposeDoc",
+    sid: str | None = None,
+) -> list[str]:
+    """Fail-closed skills gate for decompose shards (DECOMPOSE FINISH / ANALYZE).
+
+    docs → impl may be empty.
+    code surfaces → Core required (BACK/FRONT); surface defaults must be in
+    impl or listed under skills.omit_justification with non-empty reason.
+    """
+    prefix = f"{sid}: " if sid else ""
+    errors: list[str] = []
+    skills = doc.skills if isinstance(doc.skills, dict) else {}
+    if not skills:
+        errors.append(
+            f"{prefix}skills: required (code_surface + impl); "
+            "empty skills on shard = skills gate skipped"
+        )
+        return errors
+
+    surface = str(skills.get("code_surface") or "").strip().lower()
+    if not surface:
+        errors.append(f"{prefix}skills.code_surface: required")
+        return errors
+    if surface not in _ALLOWED_SURFACES:
+        errors.append(
+            f"{prefix}skills.code_surface: unknown {surface!r}; "
+            f"allowed={sorted(_ALLOWED_SURFACES)}"
+        )
+        return errors
+
+    impl_raw = skills.get("impl")
+    if impl_raw is None:
+        errors.append(f"{prefix}skills.impl: required (use [] only for docs)")
+        return errors
+    if not isinstance(impl_raw, list):
+        errors.append(f"{prefix}skills.impl: must be a list")
+        return errors
+
+    impl_ids = [skill_id_from_path(str(x)) for x in impl_raw]
+    impl_ids = [x for x in impl_ids if x]
+    impl_set = set(impl_ids)
+
+    omit_raw = skills.get("omit_justification")
+    if omit_raw is None:
+        omit_raw = skills.get("skills_omit")
+    omit: dict[str, str] = {}
+    if omit_raw is not None:
+        if not isinstance(omit_raw, dict):
+            errors.append(
+                f"{prefix}skills.omit_justification: must be map skill_id → reason"
+            )
+        else:
+            for k, v in omit_raw.items():
+                kid = skill_id_from_path(str(k)) or str(k).strip()
+                reason = str(v or "").strip()
+                if not kid:
+                    continue
+                if not reason:
+                    errors.append(
+                        f"{prefix}skills.omit_justification.{kid}: "
+                        "empty reason forbidden"
+                    )
+                else:
+                    omit[kid] = reason
+
+    forbidden_hit = sorted(impl_set & _SESSION_FORBIDDEN_SKILLS)
+    if forbidden_hit:
+        errors.append(
+            f"{prefix}skills.impl: session skills forbidden in impl: "
+            + ", ".join(forbidden_hit)
+        )
+
+    if surface in _DOCS_SURFACES:
+        if impl_ids:
+            errors.append(
+                f"{prefix}skills.impl: must be [] when code_surface=docs "
+                f"(got {len(impl_ids)} entries)"
+            )
+        return errors
+
+    if not impl_ids:
+        errors.append(
+            f"{prefix}skills.impl: empty on code_surface={surface!r} "
+            "(docs-only marker); fill Core ∪ situational or set code_surface: docs"
+        )
+        return errors
+
+    role = (doc.role or "").strip().lower()
+    if role == "back":
+        missing_core = [c for c in _BACK_CORE_IDS if c not in impl_set]
+        if missing_core:
+            errors.append(
+                f"{prefix}skills.impl: Core(4) incomplete — missing "
+                + ", ".join(missing_core)
+            )
+        situational = [x for x in impl_ids if x not in _BACK_CORE_IDS]
+        extra = sorted(
+            {x for x in situational if x not in _BACK_SITUATIONAL_ALLOW}
+        )
+        if extra:
+            errors.append(
+                f"{prefix}skills.impl: situational outside BACK allowlist: "
+                + ", ".join(extra)
+            )
+        if len(situational) > _BACK_SITUATIONAL_CAP:
+            errors.append(
+                f"{prefix}skills.impl: situational count {len(situational)} "
+                f"> cap {_BACK_SITUATIONAL_CAP}"
+            )
+        for expected in _BACK_SURFACE_DEFAULTS.get(surface, ()):
+            if expected in impl_set:
+                continue
+            if expected in omit:
+                continue
+            errors.append(
+                f"{prefix}skills.impl: missing default situational "
+                f"{expected!r} for code_surface={surface!r} "
+                "(add to impl or skills.omit_justification with reason)"
+            )
+    elif role == "front":
+        missing_core = [c for c in _FRONT_CORE_IDS if c not in impl_set]
+        if missing_core:
+            errors.append(
+                f"{prefix}skills.impl: Impl Core(6) incomplete — missing "
+                + ", ".join(missing_core)
+            )
+        situational = [x for x in impl_ids if x not in _FRONT_CORE_IDS]
+        extra = sorted(
+            {x for x in situational if x not in _FRONT_SITUATIONAL_ALLOW}
+        )
+        if extra:
+            errors.append(
+                f"{prefix}skills.impl: situational outside FRONT allowlist: "
+                + ", ".join(extra)
+            )
+        if len(situational) > _FRONT_SITUATIONAL_CAP:
+            errors.append(
+                f"{prefix}skills.impl: situational count {len(situational)} "
+                f"> cap {_FRONT_SITUATIONAL_CAP}"
+            )
+        for expected in _FRONT_SURFACE_DEFAULTS.get(surface, ()):
+            if expected in impl_set or expected in omit:
+                continue
+            errors.append(
+                f"{prefix}skills.impl: missing default situational "
+                f"{expected!r} for code_surface={surface!r} "
+                "(add to impl or skills.omit_justification with reason)"
+            )
+    elif role == "integ":
+        # INTEG: non-empty impl already enforced; no role Core set.
+        pass
+
+    return errors
+
+
 def validate_decompose_full(
     path: Path,
 ) -> tuple[list[str], list[str]]:
@@ -1075,6 +1342,8 @@ def validate_decompose_full(
                 "wire_complete_required: true but no negative/DENY verify "
                 "(need rg/dual_path/deny/halt/fail-closed/import-audit in verify)"
             )
+
+    errors.extend(_validate_decompose_skills(doc))
 
     return errors, warnings
 
@@ -1630,6 +1899,7 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
             continue
         errors.extend(_decompose_test_scope_errors(decompose_doc, sid))
         errors.extend(_validate_shard_plan_contract(sid, shard))
+        errors.extend(_validate_decompose_skills(decompose_doc, sid))
     return errors
 
 
