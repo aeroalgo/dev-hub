@@ -1,12 +1,6 @@
 version: roadmap-queue/v2
 role: back
-queue:
-- id: T-HUB-106
-  epic_id: T-HUB-106-dsh-runtime-full-purge
-  plan: plan-T-HUB-106-dsh-runtime-full-purge.md
-  deps: []
-  kind: feature
-  batch: dsh-runtime-full-purge-20260916
+queue: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -508,6 +502,11 @@ done:
   kind: refactor
   plan: plan-T-HUB-105-roadmap-legacy-source-purge.md
   batch: plan-refactor-leftover-20260916
+- id: T-HUB-106
+  epic_id: T-HUB-106-dsh-runtime-full-purge
+  kind: feature
+  plan: plan-T-HUB-106-dsh-runtime-full-purge.md
+  batch: dsh-runtime-full-purge-20260916
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

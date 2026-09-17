@@ -133,7 +133,6 @@ def get_active_corpus_files(root: Path | None = None) -> list[Path]:
         base / "harness/instructions/main.md",
         base / "AGENTS.md",
         base / "CLAUDE.md",
-        base / "DSH.md",
     ]:
         if p.is_file():
             _add_file(p)
@@ -631,12 +630,11 @@ def test_role_command_skills_parity():
 
 
 def test_entrypoints_parity():
-    """TM-080-06 / FR-007 / SC-006 / AC-7 / AC−-5: AGENTS.md, CLAUDE.md, DSH.md, and main.md have exact Root classification & Testing parity."""
+    """TM-080-06 / FR-007 / SC-006 / AC-7 / AC−-5: AGENTS.md, CLAUDE.md, and main.md have exact Root classification & Testing parity."""
     root = _repo_root()
     entrypoint_files = [
         root / "AGENTS.md",
         root / "CLAUDE.md",
-        root / "DSH.md",
         root / "harness/instructions/main.md",
     ]
     sections = {}
@@ -659,7 +657,7 @@ def test_entrypoints_inventory():
     root = _repo_root()
     viols = scan_active_corpus(
         root,
-        path_filter=lambda p: p.name in ("main.md", "AGENTS.md", "CLAUDE.md", "DSH.md"),
+        path_filter=lambda p: p.name in ("main.md", "AGENTS.md", "CLAUDE.md"),
     )
     if viols:
         report = []
@@ -800,7 +798,6 @@ def test_entrypoints_and_templates_have_semantic_destination_parity():
     entrypoint_files = [
         root / "AGENTS.md",
         root / "CLAUDE.md",
-        root / "DSH.md",
         root / "harness/instructions/main.md",
     ]
     sections = {}

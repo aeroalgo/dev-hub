@@ -197,22 +197,13 @@ def test_tm008_verify_qa_blocked_in_file() -> None:
     assert "BLOCKED" in content or "qa_blocked" in content
 
 
-def test_tm009_dsh_preset_files_map() -> None:
-    presets_dir = ROOT / "dsh" / "presets"
-    for agent_name in ["verify-implement", "verify-bugfix", "verify-qa", "verify-decompose"]:
-        preset_file = presets_dir / f"{agent_name}.prompt.md"
-        assert preset_file.is_file(), f"Preset missing: {preset_file}"
-
 
 def test_legacy_stubs_removed() -> None:
     # T-HUB-039 s10: alias stubs deleted — not symlinks, not regenerated presets.
     legacy_files = ["verify.md", "reviewer.md"]
-    legacy_presets = ["verify.prompt.md", "reviewer.prompt.md"]
     for stub in legacy_files:
         assert not (ROOT / ".claude" / "agents" / stub).exists()
         assert not (ROOT / "harness" / "agents" / stub).exists()
-    for preset in legacy_presets:
-        assert not (ROOT / "dsh" / "presets" / preset).exists()
 
 
 def test_tm010_dead_assign_regression() -> None:

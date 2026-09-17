@@ -4428,7 +4428,7 @@ def post_implement_phase(
 ) -> tuple[str, Path | None, Path | None]:
     """Reduce the ordered artifact events to AUDIT, QA, BUGFIX, or DONE."""
     decision = reduce_epic_lifecycle(cwd, role_dir, epic_id)
-    phase = str(decision["phase"])
+    phase = lifecycle_arm_phase(str(decision["phase"]), decision)
     qa = latest_qa_pass_artifact_for_reference(cwd, role_dir, epic_id)
     if phase == "DONE":
         return phase, qa, None

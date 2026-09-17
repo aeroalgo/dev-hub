@@ -230,7 +230,7 @@ class TestPathAndConfigResolution:
             os.environ.clear()
             os.environ.update(env_backup)
 
-    def test_load_project_environment_dsh_bridge(self, tmp_path: Path) -> None:
+    def test_load_project_environment_codex(self, tmp_path: Path) -> None:
         env_backup = dict(os.environ)
         try:
             hub = tmp_path / "hub"
@@ -238,9 +238,9 @@ class TestPathAndConfigResolution:
             proj = tmp_path / "proj"
             proj.mkdir()
 
-            load_project_environment(proj, hub, runtime_name="dsh")
-            assert os.environ["DSH_HOOKS_BRIDGE"] == "1"
-            assert os.environ["CLAUDE_PROJECT_DIR"] == str(proj)
+            load_project_environment(proj, hub, runtime_name="codex")
+            assert "DSH_HOOKS_BRIDGE" not in os.environ
+            assert os.environ["CLAUDE_PROJECT_DIR"] == str(hub)
         finally:
             os.environ.clear()
             os.environ.update(env_backup)

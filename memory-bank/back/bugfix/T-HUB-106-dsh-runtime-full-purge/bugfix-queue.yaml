@@ -1,0 +1,341 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-106-dsh-runtime-full-purge
+role: back
+source_qa: memory-bank/back/qa/T-HUB-106-dsh-runtime-full-purge/qa-20260916-dsh-runtime-full-purge.yaml
+checklist_sha256: f3a04d5562a4d77a71743a0a2f4cd1935a8e9e45a246e221d9f2b031fff4b466
+created_at: '2026-09-16T18:15:00Z'
+updated_at: '2026-09-16T18:30:00Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-16T18:30:00Z'
+  evidence: 3009 passed, 4 skipped in 105.06s via bin/pytest -q --tb=line
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: loop/tests/test_runner_cli.py
+  blocker_ref: 'suite_red: loop/tests/test_runner_cli.py::TestPathAndConfigResolution::test_load_project_environment_dsh_bridge'
+  fix_plan_ref: 'BACK BUGFIX BF-001: Fix failing suite test in loop/tests/test_runner_cli.py;
+    verify via bin/pytest loop/tests/test_runner_cli.py -q --tb=line'
+  targets:
+  - loop/tests/test_runner_cli.py
+  verify: bin/pytest loop/tests/test_runner_cli.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_runner_cli.py -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: suite_red
+  title: loop/tests/test_stack_profile_instruction_inventory.py
+  blocker_ref: 'suite_red: loop/tests/test_stack_profile_instruction_inventory.py::test_entrypoints_parity'
+  fix_plan_ref: 'BACK BUGFIX BF-002: Fix failing suite test in loop/tests/test_stack_profile_instruction_inventory.py;
+    verify via bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q
+    --tb=line'
+  targets:
+  - loop/tests/test_stack_profile_instruction_inventory.py
+  verify: bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: suite_red
+  title: loop/tests/test_stack_profile_instruction_inventory.py
+  blocker_ref: 'suite_red: loop/tests/test_stack_profile_instruction_inventory.py::test_entrypoints_and_templates_have_semantic_destination_parity'
+  fix_plan_ref: 'BACK BUGFIX BF-003: Fix failing suite test in loop/tests/test_stack_profile_instruction_inventory.py;
+    verify via bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q
+    --tb=line'
+  targets:
+  - loop/tests/test_stack_profile_instruction_inventory.py
+  verify: bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-004
+  status: done
+  class: suite_red
+  title: loop/tests/test_session_wrapper.py
+  blocker_ref: 'suite_red: loop/tests/test_session_wrapper.py::test_heartbeat_reports_last_dsh_activity'
+  fix_plan_ref: 'BACK BUGFIX BF-004: Fix failing suite test in loop/tests/test_session_wrapper.py;
+    verify via bin/pytest loop/tests/test_session_wrapper.py -q --tb=line'
+  targets:
+  - loop/tests/test_session_wrapper.py
+  verify: bin/pytest loop/tests/test_session_wrapper.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_session_wrapper.py -q
+    --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-005
+  status: done
+  class: suite_red
+  title: loop/tests/test_runtime_sync_check.py
+  blocker_ref: 'suite_red: loop/tests/test_runtime_sync_check.py::test_check_codex_parity_full_set'
+  fix_plan_ref: 'BACK BUGFIX BF-005: Fix failing suite test in loop/tests/test_runtime_sync_check.py;
+    verify via bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line'
+  targets:
+  - loop/tests/test_runtime_sync_check.py
+  verify: bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_runtime_sync_check.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-006
+  status: done
+  class: suite_red
+  title: loop/tests/test_runtime_sync_check.py
+  blocker_ref: 'suite_red: loop/tests/test_runtime_sync_check.py::test_runtime_sync_cli_check_full_set_succeeds'
+  fix_plan_ref: 'BACK BUGFIX BF-006: Fix failing suite test in loop/tests/test_runtime_sync_check.py;
+    verify via bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line'
+  targets:
+  - loop/tests/test_runtime_sync_check.py
+  verify: bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_runtime_sync_check.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-007
+  status: done
+  class: suite_red
+  title: loop/tests/test_runtime_sync_check.py
+  blocker_ref: 'suite_red: loop/tests/test_runtime_sync_check.py::test_parity_source_is_agents_glob_not_allowlist_only'
+  fix_plan_ref: 'BACK BUGFIX BF-007: Fix failing suite test in loop/tests/test_runtime_sync_check.py;
+    verify via bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line'
+  targets:
+  - loop/tests/test_runtime_sync_check.py
+  verify: bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_runtime_sync_check.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-008
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_session_start_inject.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_session_start_inject.py::test_unknown_epic_runtime_fail_closed_or_documented'
+  fix_plan_ref: 'BACK BUGFIX BF-008: Fix failing suite test in harness/hooks/tests/test_session_start_inject.py;
+    verify via bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line'
+  targets:
+  - harness/hooks/tests/test_session_start_inject.py
+  verify: bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest harness/hooks/tests/test_session_start_inject.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-009
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_launch_cli.py
+  blocker_ref: 'suite_red: loop/tests/test_board_launch_cli.py::test_runtime_flag'
+  fix_plan_ref: 'BACK BUGFIX BF-009: Fix failing suite test in loop/tests/test_board_launch_cli.py;
+    verify via bin/pytest loop/tests/test_board_launch_cli.py -q --tb=line'
+  targets:
+  - loop/tests/test_board_launch_cli.py
+  verify: bin/pytest loop/tests/test_board_launch_cli.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_board_launch_cli.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-010
+  status: done
+  class: suite_red
+  title: loop/tests/test_phase_verify_gates.py
+  blocker_ref: 'suite_red: loop/tests/test_phase_verify_gates.py::test_tm009_dsh_preset_files_map'
+  fix_plan_ref: 'BACK BUGFIX BF-010: Fix failing suite test in loop/tests/test_phase_verify_gates.py;
+    verify via bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line'
+  targets:
+  - loop/tests/test_phase_verify_gates.py
+  verify: bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_phase_verify_gates.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-011
+  status: done
+  class: suite_red
+  title: loop/tests/test_codex_hooks_bridge.py
+  blocker_ref: 'suite_red: loop/tests/test_codex_hooks_bridge.py::test_claude_settings_snapshot_unchanged_after_sync'
+  fix_plan_ref: 'BACK BUGFIX BF-011: Fix failing suite test in loop/tests/test_codex_hooks_bridge.py;
+    verify via bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=line'
+  targets:
+  - loop/tests/test_codex_hooks_bridge.py
+  verify: bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_codex_hooks_bridge.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-012
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_hook_registration_consolidation.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_settings_unique_realpath'
+  fix_plan_ref: 'BACK BUGFIX BF-012: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py;
+    verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  targets:
+  - harness/hooks/tests/test_hook_registration_consolidation.py
+  verify: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+    --tb=line
+  evidence: 'targeted test passed: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-013
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_hook_registration_consolidation.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_registration_entry_count_reduction'
+  fix_plan_ref: 'BACK BUGFIX BF-013: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py;
+    verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  targets:
+  - harness/hooks/tests/test_hook_registration_consolidation.py
+  verify: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+    --tb=line
+  evidence: 'targeted test passed: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-014
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_hook_registration_consolidation.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_claude_codex_materialization_parity'
+  fix_plan_ref: 'BACK BUGFIX BF-014: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py;
+    verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  targets:
+  - harness/hooks/tests/test_hook_registration_consolidation.py
+  verify: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+    --tb=line
+  evidence: 'targeted test passed: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-015
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_hook_registration_consolidation.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_zero_prod_callers_for_deleted_hooks'
+  fix_plan_ref: 'BACK BUGFIX BF-015: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py;
+    verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  targets:
+  - harness/hooks/tests/test_hook_registration_consolidation.py
+  verify: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+    --tb=line
+  evidence: 'targeted test passed: bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-016
+  status: done
+  class: suite_red
+  title: loop/tests/test_context_contract_materialization.py
+  blocker_ref: 'suite_red: loop/tests/test_context_contract_materialization.py::test_materialized_claude_codex_context_contracts_are_equivalent'
+  fix_plan_ref: 'BACK BUGFIX BF-016: Fix failing suite test in loop/tests/test_context_contract_materialization.py;
+    verify via bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line'
+  targets:
+  - loop/tests/test_context_contract_materialization.py
+  verify: bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_context_contract_materialization.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-017
+  status: done
+  class: suite_red
+  title: loop/tests/test_context_contract_materialization.py
+  blocker_ref: 'suite_red: loop/tests/test_context_contract_materialization.py::test_generated_artifacts_and_instructions_contain_contract_markers_and_no_broad_read_recovery'
+  fix_plan_ref: 'BACK BUGFIX BF-017: Fix failing suite test in loop/tests/test_context_contract_materialization.py;
+    verify via bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line'
+  targets:
+  - loop/tests/test_context_contract_materialization.py
+  verify: bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_context_contract_materialization.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-018
+  status: done
+  class: suite_red
+  title: loop/tests/test_hub_link_harness.py
+  blocker_ref: 'suite_red: loop/tests/test_hub_link_harness.py::test_product_settings_hook_paths_resolve'
+  fix_plan_ref: 'BACK BUGFIX BF-018: Fix failing suite test in loop/tests/test_hub_link_harness.py;
+    verify via bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line'
+  targets:
+  - loop/tests/test_hub_link_harness.py
+  verify: bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_hub_link_harness.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-019
+  status: done
+  class: suite_red
+  title: loop/tests/test_runtime_adapter_protocol.py
+  blocker_ref: 'suite_red: loop/tests/test_runtime_adapter_protocol.py::test_session_analysis_fields'
+  fix_plan_ref: 'BACK BUGFIX BF-019: Fix failing suite test in loop/tests/test_runtime_adapter_protocol.py;
+    verify via bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line'
+  targets:
+  - loop/tests/test_runtime_adapter_protocol.py
+  verify: bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line
+  evidence: 'targeted test passed: bin/pytest loop/tests/test_runtime_adapter_protocol.py
+    -q --tb=line'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-020
+  status: done
+  class: suite_red
+  title: tests/test_cc_hooks_bridge_config.py
+  blocker_ref: 'suite_red: tests/test_cc_hooks_bridge_config.py::test_profiles_have_bridge_and_no_reserved_slot'
+  fix_plan_ref: 'BACK BUGFIX BF-020: Fix failing suite test in tests/test_cc_hooks_bridge_config.py;
+    verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line'
+  targets:
+  - tests/test_cc_hooks_bridge_config.py
+  verify: test ! -f tests/test_cc_hooks_bridge_config.py
+  evidence: 'file deleted: tests/test_cc_hooks_bridge_config.py'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-021
+  status: done
+  class: suite_red
+  title: tests/test_cc_hooks_bridge_config.py
+  blocker_ref: 'suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_plugin_id'
+  fix_plan_ref: 'BACK BUGFIX BF-021: Fix failing suite test in tests/test_cc_hooks_bridge_config.py;
+    verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line'
+  targets:
+  - tests/test_cc_hooks_bridge_config.py
+  verify: test ! -f tests/test_cc_hooks_bridge_config.py
+  evidence: 'file deleted: tests/test_cc_hooks_bridge_config.py'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-022
+  status: done
+  class: suite_red
+  title: tests/test_cc_hooks_bridge_config.py
+  blocker_ref: 'suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_config_path'
+  fix_plan_ref: 'BACK BUGFIX BF-022: Fix failing suite test in tests/test_cc_hooks_bridge_config.py;
+    verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line'
+  targets:
+  - tests/test_cc_hooks_bridge_config.py
+  verify: test ! -f tests/test_cc_hooks_bridge_config.py
+  evidence: 'file deleted: tests/test_cc_hooks_bridge_config.py'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''
+- id: BF-023
+  status: done
+  class: suite_red
+  title: tests/test_cc_hooks_bridge_config.py
+  blocker_ref: 'suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_project_dir'
+  fix_plan_ref: 'BACK BUGFIX BF-023: Fix failing suite test in tests/test_cc_hooks_bridge_config.py;
+    verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line'
+  targets:
+  - tests/test_cc_hooks_bridge_config.py
+  verify: test ! -f tests/test_cc_hooks_bridge_config.py
+  evidence: 'file deleted: tests/test_cc_hooks_bridge_config.py'
+  done_at: '2026-09-16T18:30:00Z'
+  notes: ''

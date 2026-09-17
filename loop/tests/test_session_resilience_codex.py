@@ -88,6 +88,28 @@ def test_session_resilience_codex_unsupported_tool_is_repairable(tmp_path: Path)
     assert analysis["abort_kind"] == "transient"
 
 
+def test_session_resilience_codex_antigravity_400_is_retryable(tmp_path: Path):
+    log_file = tmp_path / "codex-antigravity-400.log"
+    log_file.write_text(
+        "SESSION_START session=session-12 mode=headless command=codex\n"
+        '{"type":"error","message":"Reconnecting... 1/5 '
+        '(stream disconnected before completion: stream closed before response.completed)"}\n'
+        '{"type":"error","message":"[400]: Antigravity upstream error (400)"}\n'
+        '{"type":"turn.failed","error":{"message":'
+        '"Request contains an invalid argument."}}\n'
+        "SESSION_END session=session-12 exit_code=1 elapsed=267.0s\n",
+        encoding="utf-8",
+    )
+    analysis = analyze_session_log(log_file, exit_code=1, runtime="codex")
+
+    assert analysis["outcome"] == "transient_abort"
+    assert analysis["aborted"] is True
+    assert analysis["retryable"] is True
+    assert analysis["abort_kind"] == "transient"
+    assert analysis["reason"] is not None
+    assert analysis["reason"].startswith("codex_transient_api_error:")
+
+
 def test_session_resilience_codex_subagent_start_smoke(tmp_path: Path) -> None:
     """Smoke test for SubagentStart hook under session resilience codex context."""
     from harness.hooks._lib import CONTRACTS, HARD_RULE, normalize_type

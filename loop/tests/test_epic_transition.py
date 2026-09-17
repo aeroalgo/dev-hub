@@ -815,6 +815,117 @@ def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
     assert res.get("armed_step") == "s01"
 
 
+def test_arm_phase_allows_same_step_after_aborted_session(tmp_path: Path) -> None:
+    """Outer/manual re-arm after loop abort must not hit step_loop_forbidden."""
+    import json
+    from loop.epic_transition import arm_phase
+    from harness.hooks.epic.core import save_epic_state
+    from epic_paths import epic_dir
+
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "armed_epic": "T-TEST-001",
+            "armed_role": "BACK",
+            "armed_step": "BUGFIX",
+            "last_finished_step": "BUGFIX",
+            "last_finished_epic": "T-TEST-001",
+            "armed_after_finish": "BUGFIX",
+        },
+    )
+    marker_dir = epic_dir(tmp_path)
+    marker_dir.mkdir(parents=True, exist_ok=True)
+    (marker_dir / "last-session.json").write_text(
+        json.dumps(
+            {
+                "status": "aborted",
+                "step_id": "BUGFIX",
+                "exit_code": 1,
+                "abort_kind": "fatal",
+                "outcome": "unknown_failure",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    res = arm_phase(tmp_path, "T-TEST-001", "BUGFIX", "back")
+    assert res.get("ok") is True, res
+    assert str(res.get("armed_step") or "").upper() == "BUGFIX"
+    assert res.get("recovery_rearm") is True
+    assert res.get("diagnostic_code") != "step_loop_forbidden"
+
+
+def test_arm_epic_qa_failed_arms_bugfix_not_qa(tmp_path: Path) -> None:
+    """qa_failed must arm BUGFIX even when last_finished_step is QA (no step_loop_forbidden)."""
+    from loop.epic_transition import arm_epic
+    from harness.hooks.epic.core import save_epic_state
+    from epic import _append_event
+
+    epic_id = "T-QAFAIL-001"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md" / "plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# plan\n", encoding="utf-8")
+    decomp = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "yaml"
+    decomp.mkdir(parents=True, exist_ok=True)
+    (decomp / "decompose-index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic_id}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: steps/s01.yaml\n"
+        "  status: completed\n"
+        "  next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+    (decomp / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp / "steps" / "s01.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
+        encoding="utf-8",
+    )
+    art_dir = tmp_path / "memory-bank" / "back" / "events" / epic_id
+    art_dir.mkdir(parents=True, exist_ok=True)
+    for kind in ("audit_done", "qa_fail"):
+        art = art_dir / f"art-{kind}.txt"
+        art.write_text(f"artifact for {kind}", encoding="utf-8")
+        _append_event(tmp_path, "back", epic_id, kind, art)
+    bf = tmp_path / "memory-bank" / "back" / "bugfix" / epic_id
+    bf.mkdir(parents=True, exist_ok=True)
+    (bf / "bugfix-queue.yaml").write_text(
+        "schema: epic-bugfix-queue/v1\n"
+        f"epic_id: {epic_id}\n"
+        "role: back\n"
+        "current_id: BF-001\n"
+        "verification:\n  status: pending\n"
+        "items:\n"
+        "- id: BF-001\n"
+        "  status: open\n"
+        "  class: suite_red\n"
+        "  title: demo\n"
+        "  blocker_ref: suite_red: demo\n"
+        "  fix_plan_ref: BACK BUGFIX BF-001\n"
+        "  targets: []\n"
+        "  verify: bin/pytest -q\n",
+        encoding="utf-8",
+    )
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "armed_epic": epic_id,
+            "last_finished_step": "QA",
+            "last_finished_epic": epic_id,
+            "armed_after_finish": "BUGFIX",
+        },
+    )
+
+    res = arm_epic(tmp_path, epic_id, role="back")
+    assert res.get("ok") is True, res
+    assert str(res.get("phase") or "").upper() == "BUGFIX"
+    assert str(res.get("armed_step") or "").upper() == "BUGFIX"
+    assert res.get("diagnostic_code") != "step_loop_forbidden"
+
+
 def test_arm_phase_allows_same_phase_on_different_epic(tmp_path: Path) -> None:
     """Cross-epic DECOMPOSE after another epic finished DECOMPOSE must not step_loop_forbidden."""
     from loop.epic_transition import arm_phase

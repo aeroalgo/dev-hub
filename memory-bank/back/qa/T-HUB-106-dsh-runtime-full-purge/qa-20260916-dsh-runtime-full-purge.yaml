@@ -1,0 +1,59 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-106
+plan_id: T-HUB-106-dsh-runtime-full-purge
+epic_id: T-HUB-106-dsh-runtime-full-purge
+date: '2026-09-16'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: f3a04d5562a4d77a71743a0a2f4cd1935a8e9e45a246e221d9f2b031fff4b466
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-106"
+  - "epic: T-HUB-106-dsh-runtime-full-purge"
+  - "steps: s01–s08"
+  - "files: loop/**, harness/**, tests/**"
+
+ac_plus:
+  - "Registry и factory не отдают DSH adapter; `dsh` → явная ошибка."
+  - "Дерево `dsh/` отсутствует в репо."
+  - "`bin/loop` / `runtime_sync` / prepare_session не принимают `dsh` как valid choice."
+  - "Prod-код без `DshAdapter`, `get_dsh_preset` live path, `DSH_HOOKS_BRIDGE` dsh-only wiring."
+  - "Obsolete DSH tests удалены; mixed tests переписаны на claude/codex или deny."
+  - "Live Kind I не учит DSH как supported runtime; `DSH.md` и dsh-runbook/architecture dsh-runtime удалены."
+  - "Targeted pytest green без восстановления DSH."
+  - "SC-001: `rg` prod: нет `DshAdapter` / `runtime_adapters.dsh` / registry key `dsh:`"
+  - "SC-002: `test -d dsh` → false"
+  - "SC-003: CLI/env `dsh` → fail"
+  - "SC-004: Kind I live teaching patterns = 0"
+  - "SC-005: Targeted DSH-related suite deleted/rewritten; no restore-legacy to green"
+
+ac_minus:
+  - "Нет второго entrypoint на роль agent-runtime через DSH."
+  - "Нет soft default / silent `dsh`→`claude`."
+  - "Misconfig `EPIC_RUNTIME=dsh` → fail at start (non-zero / raise), не stub."
+  - "Нет prod dual-path registry с ключом `dsh` после эпика."
+  - "Нет живых тестов, требующих DSH-контракт."
+  - "Нет Kind I, требующих DSH как live SoT (на allowlist instruction paths)."
+  - "Нет optional SoT «dsh available but deprecated» без follow-up ID."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (3009 passed, 4 skipped in 109.89s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS (verify-qa)"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 3009 passed, 4 skipped in 109.89s"

@@ -1,0 +1,128 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-106
+plan_id: T-HUB-106-dsh-runtime-full-purge
+epic_id: T-HUB-106-dsh-runtime-full-purge
+date: '2026-09-16'
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: f3a04d5562a4d77a71743a0a2f4cd1935a8e9e45a246e221d9f2b031fff4b466
+verify_scope: full
+
+scope:
+  - "task: T-HUB-106"
+  - "epic: T-HUB-106-dsh-runtime-full-purge"
+  - "steps: s01–s08"
+  - "files: loop/**, harness/**, tests/**"
+
+ac_plus:
+  - "Registry и factory не отдают DSH adapter; `dsh` → явная ошибка."
+  - "Дерево `dsh/` отсутствует в репо."
+  - "`bin/loop` / `runtime_sync` / prepare_session не принимают `dsh` как valid choice."
+  - "Prod-код без `DshAdapter`, `get_dsh_preset` live path, `DSH_HOOKS_BRIDGE` dsh-only wiring."
+  - "Obsolete DSH tests удалены; mixed tests переписаны на claude/codex или deny."
+  - "Live Kind I не учит DSH как supported runtime; `DSH.md` и dsh-runbook/architecture dsh-runtime удалены."
+  - "Targeted pytest green без восстановления DSH."
+  - "SC-001: `rg` prod: нет `DshAdapter` / `runtime_adapters.dsh` / registry key `dsh:`"
+  - "SC-002: `test -d dsh` → false"
+  - "SC-003: CLI/env `dsh` → fail"
+  - "SC-004: Kind I live teaching patterns = 0"
+  - "SC-005: Targeted DSH-related suite deleted/rewritten; no restore-legacy to green"
+
+ac_minus:
+  - "Нет второго entrypoint на роль agent-runtime через DSH."
+  - "Нет soft default / silent `dsh`→`claude`."
+  - "Misconfig `EPIC_RUNTIME=dsh` → fail at start (non-zero / raise), не stub."
+  - "Нет prod dual-path registry с ключом `dsh` после эпика."
+  - "Нет живых тестов, требующих DSH-контракт."
+  - "Нет Kind I, требующих DSH как live SoT (на allowlist instruction paths)."
+  - "Нет optional SoT «dsh available but deprecated» без follow-up ID."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (FAILED: 20 failed, 3 errors)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL (suite_red)"
+
+issues:
+  - "suite_red: loop/tests/test_runner_cli.py::TestPathAndConfigResolution::test_load_project_environment_dsh_bridge"
+  - "suite_red: loop/tests/test_stack_profile_instruction_inventory.py::test_entrypoints_parity"
+  - "suite_red: loop/tests/test_stack_profile_instruction_inventory.py::test_entrypoints_and_templates_have_semantic_destination_parity"
+  - "suite_red: loop/tests/test_session_wrapper.py::test_heartbeat_reports_last_dsh_activity"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_check_codex_parity_full_set"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_runtime_sync_cli_check_full_set_succeeds"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_parity_source_is_agents_glob_not_allowlist_only"
+  - "suite_red: harness/hooks/tests/test_session_start_inject.py::test_unknown_epic_runtime_fail_closed_or_documented"
+  - "suite_red: loop/tests/test_board_launch_cli.py::test_runtime_flag"
+  - "suite_red: loop/tests/test_phase_verify_gates.py::test_tm009_dsh_preset_files_map"
+  - "suite_red: loop/tests/test_codex_hooks_bridge.py::test_claude_settings_snapshot_unchanged_after_sync"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_settings_unique_realpath"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_registration_entry_count_reduction"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_claude_codex_materialization_parity"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_zero_prod_callers_for_deleted_hooks"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_materialized_claude_codex_context_contracts_are_equivalent"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_generated_artifacts_and_instructions_contain_contract_markers_and_no_broad_read_recovery"
+  - "suite_red: loop/tests/test_hub_link_harness.py::test_product_settings_hook_paths_resolve"
+  - "suite_red: loop/tests/test_runtime_adapter_protocol.py::test_session_analysis_fields"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_profiles_have_bridge_and_no_reserved_slot"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_plugin_id"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_config_path"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_project_dir"
+
+blockers:
+  - "suite_red: loop/tests/test_runner_cli.py::TestPathAndConfigResolution::test_load_project_environment_dsh_bridge"
+  - "suite_red: loop/tests/test_stack_profile_instruction_inventory.py::test_entrypoints_parity"
+  - "suite_red: loop/tests/test_stack_profile_instruction_inventory.py::test_entrypoints_and_templates_have_semantic_destination_parity"
+  - "suite_red: loop/tests/test_session_wrapper.py::test_heartbeat_reports_last_dsh_activity"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_check_codex_parity_full_set"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_runtime_sync_cli_check_full_set_succeeds"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_parity_source_is_agents_glob_not_allowlist_only"
+  - "suite_red: harness/hooks/tests/test_session_start_inject.py::test_unknown_epic_runtime_fail_closed_or_documented"
+  - "suite_red: loop/tests/test_board_launch_cli.py::test_runtime_flag"
+  - "suite_red: loop/tests/test_phase_verify_gates.py::test_tm009_dsh_preset_files_map"
+  - "suite_red: loop/tests/test_codex_hooks_bridge.py::test_claude_settings_snapshot_unchanged_after_sync"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_settings_unique_realpath"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_registration_entry_count_reduction"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_claude_codex_materialization_parity"
+  - "suite_red: harness/hooks/tests/test_hook_registration_consolidation.py::test_zero_prod_callers_for_deleted_hooks"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_materialized_claude_codex_context_contracts_are_equivalent"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_generated_artifacts_and_instructions_contain_contract_markers_and_no_broad_read_recovery"
+  - "suite_red: loop/tests/test_hub_link_harness.py::test_product_settings_hook_paths_resolve"
+  - "suite_red: loop/tests/test_runtime_adapter_protocol.py::test_session_analysis_fields"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_profiles_have_bridge_and_no_reserved_slot"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_plugin_id"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_config_path"
+  - "suite_red: tests/test_cc_hooks_bridge_config.py::test_bridge_fragment_has_project_dir"
+
+fix_plan:
+  - "BACK BUGFIX BF-001: Fix failing suite test in loop/tests/test_runner_cli.py; verify via bin/pytest loop/tests/test_runner_cli.py -q --tb=line"
+  - "BACK BUGFIX BF-002: Fix failing suite test in loop/tests/test_stack_profile_instruction_inventory.py; verify via bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line"
+  - "BACK BUGFIX BF-003: Fix failing suite test in loop/tests/test_stack_profile_instruction_inventory.py; verify via bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line"
+  - "BACK BUGFIX BF-004: Fix failing suite test in loop/tests/test_session_wrapper.py; verify via bin/pytest loop/tests/test_session_wrapper.py -q --tb=line"
+  - "BACK BUGFIX BF-005: Fix failing suite test in loop/tests/test_runtime_sync_check.py; verify via bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line"
+  - "BACK BUGFIX BF-006: Fix failing suite test in loop/tests/test_runtime_sync_check.py; verify via bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line"
+  - "BACK BUGFIX BF-007: Fix failing suite test in loop/tests/test_runtime_sync_check.py; verify via bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line"
+  - "BACK BUGFIX BF-008: Fix failing suite test in harness/hooks/tests/test_session_start_inject.py; verify via bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+  - "BACK BUGFIX BF-009: Fix failing suite test in loop/tests/test_board_launch_cli.py; verify via bin/pytest loop/tests/test_board_launch_cli.py -q --tb=line"
+  - "BACK BUGFIX BF-010: Fix failing suite test in loop/tests/test_phase_verify_gates.py; verify via bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line"
+  - "BACK BUGFIX BF-011: Fix failing suite test in loop/tests/test_codex_hooks_bridge.py; verify via bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=line"
+  - "BACK BUGFIX BF-012: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py; verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q --tb=line"
+  - "BACK BUGFIX BF-013: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py; verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q --tb=line"
+  - "BACK BUGFIX BF-014: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py; verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q --tb=line"
+  - "BACK BUGFIX BF-015: Fix failing suite test in harness/hooks/tests/test_hook_registration_consolidation.py; verify via bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q --tb=line"
+  - "BACK BUGFIX BF-016: Fix failing suite test in loop/tests/test_context_contract_materialization.py; verify via bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line"
+  - "BACK BUGFIX BF-017: Fix failing suite test in loop/tests/test_context_contract_materialization.py; verify via bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line"
+  - "BACK BUGFIX BF-018: Fix failing suite test in loop/tests/test_hub_link_harness.py; verify via bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line"
+  - "BACK BUGFIX BF-019: Fix failing suite test in loop/tests/test_runtime_adapter_protocol.py; verify via bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line"
+  - "BACK BUGFIX BF-020: Fix failing suite test in tests/test_cc_hooks_bridge_config.py; verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line"
+  - "BACK BUGFIX BF-021: Fix failing suite test in tests/test_cc_hooks_bridge_config.py; verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line"
+  - "BACK BUGFIX BF-022: Fix failing suite test in tests/test_cc_hooks_bridge_config.py; verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line"
+  - "BACK BUGFIX BF-023: Fix failing suite test in tests/test_cc_hooks_bridge_config.py; verify via bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # FAILED (20 failed, 3 errors)"

@@ -48,6 +48,77 @@ _COMPOSITE_PHASE_BASES = {
     "PLAN REFACTOR": "PLAN",
 }
 _ARM_EPIC_KWARGS = frozenset({"require_plan"})
+
+
+def _allow_same_step_rearm_after_error(
+    cwd: Path,
+    *,
+    last_finished: str,
+    armed_step: str,
+    st_before: dict[str, Any],
+) -> bool:
+    """True when outer/manual re-arm of the finished step is recovery, not auto-loop.
+
+    Loop abort / non-clean last session on *this* step → allow. Intended next
+    after finish (armed_after_finish) that never got a clean session → allow.
+    Clean finish→same-step auto-promote stays forbidden.
+    """
+    if not last_finished or not armed_step or last_finished != armed_step:
+        return False
+    intended = str(st_before.get("armed_after_finish") or "").strip().lower()
+    if intended and intended == armed_step:
+        return True
+    try:
+        from epic_paths import epic_dir
+    except ImportError:
+        try:
+            from harness.hooks.epic_paths import epic_dir
+        except ImportError:
+            return False
+    marker = epic_dir(cwd) / "last-session.json"
+    if not marker.is_file():
+        return False
+    try:
+        import json
+
+        payload = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    session_step = str(
+        payload.get("step_id") or payload.get("resume_from") or ""
+    ).strip().lower()
+    if session_step and session_step != armed_step:
+        return False
+    status = str(payload.get("status") or "").strip().lower()
+    if status in {"aborted", "error", "failed", "timeout"}:
+        return True
+    if payload.get("retryable") is True:
+        return True
+    abort_kind = str(payload.get("abort_kind") or "").strip().lower()
+    if abort_kind in {"fatal", "transient", "unknown"}:
+        return True
+    outcome = str(payload.get("outcome") or "").strip().lower()
+    if outcome in {
+        "transient_abort",
+        "unknown_failure",
+        "permanent_failure",
+        "timeout",
+        "signal",
+        "malformed_result",
+        "aborted_before_action",
+    }:
+        return True
+    exit_code = payload.get("exit_code")
+    try:
+        if exit_code is not None and int(exit_code) != 0:
+            return True
+    except (TypeError, ValueError):
+        pass
+    return False
+
+
 _LOOP_HANDOFF_SCHEMA = "loop-handoff/v1"
 _LOOP_HANDOFF_SCHEMA_LINE = f"schema: {_LOOP_HANDOFF_SCHEMA}"
 
@@ -763,7 +834,11 @@ def arm_epic(
                 pass
         return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
     if phase in {"AUDIT", "QA", "BUGFIX"}:
-        return arm_phase(cwd_p, epic_id, phase, role, decompose_rel=action.decompose_rel)
+        # Post-implement phases must honor resolver phase (BUGFIX on qa_failed).
+        # Passing decompose_rel would route arm_phase into _arm_from_decompose and
+        # re-arm QA from post_implement_phase — ignoring BUGFIX and tripping
+        # step_loop_forbidden against last_finished_step=QA.
+        return arm_phase(cwd_p, epic_id, phase, role)
     return {
         "ok": False,
         "error": f"unhandled phase {phase} for epic {epic_id}",
@@ -966,15 +1041,15 @@ def arm_phase(
             else:
                 res = arm_epic(cwd_p, epic_id, role=role, **_arm_epic_kwargs(kwargs))
         elif lifecycle_phase_u in ("AUDIT", "QA", "BUGFIX"):
-            if decompose_rel:
-                res = _arm_from_decompose(cwd_p, decompose_rel)
-            else:
-                res = _arm_post_implement(
-                    cwd_p,
-                    epic_id=epic_id,
-                    role=role,
-                    phase=lifecycle_phase_u,
-                )
+            # Honor explicit phase. Never fall through to _arm_from_decompose:
+            # empty implement queue re-derives post-implement phase and can
+            # ignore BUGFIX (qa_failed), then collide with last_finished=QA.
+            res = _arm_post_implement(
+                cwd_p,
+                epic_id=epic_id,
+                role=role,
+                phase=lifecycle_phase_u,
+            )
         elif lifecycle_phase_u == "DONE":
             if decompose_rel:
                 res = _arm_from_decompose(cwd_p, decompose_rel)
@@ -1002,11 +1077,19 @@ def arm_phase(
         if "role" not in res:
             res["role"] = role
 
-        # Anti-loop: same epic + same step only. Cross-epic phase reuse (DECOMPOSE/PLAN/…) is allowed.
+        # Anti-loop: block only clean auto-promote that would re-arm the step just
+        # finished in the same epic. Manual / outer prepare after a session abort
+        # must be allowed — identity is re-synced by the arm helpers below.
         armed_step_val = str(res.get("armed_step") or res.get("step_id") or "").strip().lower()
         armed_epic_val = str(res.get("epic_id") or epic_id or "").strip()
         same_epic = (not last_finished_epic) or (not armed_epic_val) or (
             last_finished_epic == armed_epic_val
+        )
+        recovery_rearm = _allow_same_step_rearm_after_error(
+            cwd_p,
+            last_finished=last_finished,
+            armed_step=armed_step_val,
+            st_before=st_before,
         )
         if (
             same_epic
@@ -1015,6 +1098,7 @@ def arm_phase(
             and armed_step_val == last_finished
             and not res.get("complete")
             and not res.get("stop")
+            and not recovery_rearm
         ):
             return {
                 "ok": False,
@@ -1028,6 +1112,17 @@ def arm_phase(
                 "last_finished_epic": last_finished_epic or None,
                 "armed_step": armed_step_val,
             }
+        if recovery_rearm and res.get("ok") is not False:
+            res["recovery_rearm"] = True
+            from epic.core import load_epic_state as _load, save_epic_state as _save
+
+            st_sync = _load(cwd_p)
+            st_sync["armed_step"] = str(res.get("armed_step") or res.get("step_id") or st_sync.get("armed_step"))
+            st_sync["phase"] = str(res.get("phase") or st_sync.get("phase") or st_sync.get("armed_step"))
+            st_sync["active"] = True
+            st_sync["status"] = "armed"
+            st_sync["halt_reason"] = None
+            _save(cwd_p, st_sync)
         if (
             res.get("ok") is not False
             and last_finished_epic

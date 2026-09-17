@@ -639,6 +639,8 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     bugfix_phase_active = (
         str(state.get("phase") or state.get("armed_step") or "").upper() == "BUGFIX"
         or str(state.get("phase") or "").upper().endswith("BUGFIX")
+        or str(state.get("step") or "").upper() == "BUGFIX"
+        or str(state.get("projection", {}).get("phase") or "").upper() == "BUGFIX"
     )
     if not bugfix_phase_active:
         return MbFinishResult(

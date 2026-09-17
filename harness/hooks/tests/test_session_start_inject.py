@@ -227,12 +227,6 @@ def test_session_start_payload_passes_epic_runtime(monkeypatch, tmp_path):
 def test_unknown_epic_runtime_fail_closed_or_documented(monkeypatch, tmp_path):
     monkeypatch.setenv("EPIC_LOOP", "1")
     monkeypatch.setenv("EPIC_RUNTIME", "unknown-runtime")
-    with patch("harness.hooks.epic.core.load_epic_state", return_value={"active": "T-01", "status": "running"}), \
-         patch("loop.mb_load.session.load_session", return_value=MbLoadResult(ok=True, fingerprint="fp1")):
-        res = session_start_payload(tmp_path)
-        assert res is not None
-        ctx = res["additionalContext"]
-        # Documented default for unknown runtime in prompt_builder is claude-code / CLAUDE.md
-        assert "- runtime: `claude-code`" in ctx
-        assert "- entrypoint: `CLAUDE.md`" in ctx
-
+    with patch("harness.hooks.epic.core.load_epic_state", return_value={"active": "T-01", "status": "running"}):
+        with pytest.raises(ValueError, match="unsupported runtime"):
+            session_start_payload(tmp_path)

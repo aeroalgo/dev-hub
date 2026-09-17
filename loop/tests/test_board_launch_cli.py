@@ -91,7 +91,7 @@ def test_runtime_flag(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr("loop.board_sync.cli.arm_loop_from_card", fake_pipeline)
 
     assert main(
-        ["arm-loop", "--task-id", "mb-demo", "--runtime", "dsh"],
+        ["arm-loop", "--task-id", "mb-demo", "--runtime", "codex"],
         client=_client(tmp_path),
     ) == 0
     assert seen[0].env_extra == {}

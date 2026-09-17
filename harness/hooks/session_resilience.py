@@ -43,7 +43,9 @@ _AUTH_BANNED_PATTERNS = AUTH_BANNED_PATTERNS
 
 _PERMANENT_FAILURE_PATTERNS = _AUTH_BANNED_PATTERNS + (
     re.compile(r"(?i)(?:CLI|command) error:[^\\n]*"),
-    re.compile(r"(?i)invalid (?:config|option|argument)"),
+    re.compile(r"(?i)invalid (?:config|option)\b"),
+    # CLI-style "invalid argument" — not provider "Request contains an invalid argument"
+    re.compile(r"(?i)(?<!contains an )invalid argument\b"),
     re.compile(r"(?i)auth_failed"),
     re.compile(r"(?i)unsupported_tool_call:\s*\S+"),
     re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
@@ -118,6 +120,10 @@ _TRANSIENT_ABORT_PATTERNS = (
     re.compile(r"(?i)response above may be incomplete"),
     re.compile(r"(?i)response stalled mid.?stream"),
     re.compile(r"(?i)stream ended unexpectedly"),
+    re.compile(r"(?i)stream disconnected before completion"),
+    re.compile(r"(?i)stream closed before response\.completed"),
+    re.compile(r"(?i)antigravity upstream error"),
+    re.compile(r"(?i)upstream error\s*\(\s*400\s*\)"),
     re.compile(r"(?i)connection (?:reset|aborted|closed)"),
     re.compile(r"(?i)^\s*(?:session\s+)?aborted\s*$"),
     re.compile(r"(?i)API Error:\s*Stream idle timeout[^\n]*"),
@@ -608,6 +614,10 @@ def classify_abort(
         return "fatal"
     if _match_patterns(r, _FATAL_ABORT_PATTERNS):
         return "fatal"
+    # Adapter-tagged transient reasons win over substring permanent matches
+    # (e.g. Antigravity "contains an invalid argument" inside the payload).
+    if r.lower().startswith("codex_transient_api_error:"):
+        return "transient"
     if _match_patterns(r, _PERMANENT_FAILURE_PATTERNS) or is_structured_model_substitution_reason(r):
         return "fatal"
     if _match_patterns(r, _TRANSIENT_ABORT_PATTERNS):
@@ -1036,9 +1046,19 @@ def analyze_session_log(
         or _match_patterns(reason or "", (_MODEL_RESTRICTED_RE,))
     )
     malformed = bool(_match_patterns(reason or "", _MALFORMED_RESULT_PATTERNS))
-    permanent = model_sub or bool(
-        _match_patterns(reason or "", _PERMANENT_FAILURE_PATTERNS)
-    ) or reason == "command not found" or exit_code == 127
+    tagged_transient = bool(
+        reason and str(reason).lower().startswith("codex_transient_api_error:")
+    )
+    permanent = (
+        False
+        if tagged_transient
+        else (
+            model_sub
+            or bool(_match_patterns(reason or "", _PERMANENT_FAILURE_PATTERNS))
+            or reason == "command not found"
+            or exit_code == 127
+        )
+    )
     if gate_diagnostic:
         return result_payload(
             outcome=SessionOutcome.UNKNOWN_FAILURE.value,

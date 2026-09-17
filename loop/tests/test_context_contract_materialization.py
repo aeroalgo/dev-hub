@@ -34,7 +34,6 @@ def test_materialized_claude_codex_context_contracts_are_equivalent(repo_root: P
     # 1. Root instructions parity
     claude_inst = (repo_root / "CLAUDE.md").read_text(encoding="utf-8")
     agents_inst = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
-    dsh_inst = (repo_root / "DSH.md").read_text(encoding="utf-8")
     main_inst = (repo_root / "harness/instructions/main.md").read_text(encoding="utf-8")
 
     shared_markers = [
@@ -47,7 +46,6 @@ def test_materialized_claude_codex_context_contracts_are_equivalent(repo_root: P
     for marker in shared_markers:
         assert marker in claude_inst, f"CLAUDE.md missing shared contract marker: {marker}"
         assert marker in agents_inst, f"AGENTS.md missing shared contract marker: {marker}"
-        assert marker in dsh_inst, f"DSH.md missing shared contract marker: {marker}"
         assert marker in main_inst, f"main.md missing shared contract marker: {marker}"
 
     # 2. Codex and Claude agent policy materialization parity
@@ -207,7 +205,6 @@ def test_generated_artifacts_and_instructions_contain_contract_markers_and_no_br
         repo_root / "harness/instructions/main.md",
         repo_root / "CLAUDE.md",
         repo_root / "AGENTS.md",
-        repo_root / "DSH.md",
         repo_root / "loop/runtime_materializers/agent_policy.py",
         repo_root / "loop/runtime_materializers/hooks_json.py",
         repo_root / "loop/runtime_materializers/codex_agent_toml.py",

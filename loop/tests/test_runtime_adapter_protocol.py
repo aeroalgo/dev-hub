@@ -58,18 +58,15 @@ def test_session_analysis_fields():
     analysis = SessionAnalysis(
         reason="error occurred",
         retry=True,
-        dsh_abort_kind="transient",
         structured_output={"key": "val"},
     )
     assert analysis.reason == "error occurred"
     assert analysis.retry is True
-    assert analysis.dsh_abort_kind == "transient"
     assert analysis.structured_output == {"key": "val"}
 
     default_analysis = SessionAnalysis()
     assert default_analysis.reason is None
     assert default_analysis.retry is False
-    assert default_analysis.dsh_abort_kind is None
     assert default_analysis.structured_output is None
 
 

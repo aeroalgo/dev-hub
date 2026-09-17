@@ -26,7 +26,15 @@ _CODEX_UNSUPPORTED_TOOL_LOOSE_RE = re.compile(
 )
 _CODEX_NATIVE_COLLAB_FEATURE = "multi_agent"
 _CODEX_TRANSIENT_STATUS_RE = re.compile(
-    r"(?i)\b(?:429|500|502|503|504)\b[^\n]*(?:service|server|gateway|capacity|temporarily|unavailable|error)"
+    r"(?i)(?:"
+    r"\b(?:429|500|502|503|504)\b[^\n]*(?:service|server|gateway|capacity|temporarily|unavailable|error)"
+    r"|antigravity upstream error"
+    r"|upstream error\s*\(\s*400\s*\)"
+    r"|stream disconnected before completion"
+    r"|stream closed before response\.completed"
+    r"|reconnecting\.\.\.\s*\d+/\d+"
+    r"|request contains an invalid argument"
+    r")"
 )
 
 
@@ -83,6 +91,15 @@ def _codex_error_text(raw_log: str) -> str:
                 value = obj.get(key)
                 if isinstance(value, str) and value.strip():
                     errors.append(value.strip())
+        elif obj_type == "turn.failed":
+            err = obj.get("error")
+            if isinstance(err, dict):
+                for key in ("message", "error", "detail"):
+                    value = err.get(key)
+                    if isinstance(value, str) and value.strip():
+                        errors.append(value.strip())
+            elif isinstance(err, str) and err.strip():
+                errors.append(err.strip())
         elif obj_type == "item.completed":
             item = obj.get("item") if isinstance(obj.get("item"), dict) else {}
             if item.get("type") == "error":

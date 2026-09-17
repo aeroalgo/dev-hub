@@ -172,6 +172,29 @@ def test_analyze_codex_503_is_retryable():
     assert analysis.reason.startswith("codex_transient_api_error:")
 
 
+def test_analyze_codex_antigravity_400_stream_disconnect_is_retryable():
+    adapter = CodexAdapter()
+    raw_log = (
+        "SESSION_START session=session-12 mode=headless command=codex\n"
+        '{"type":"error","message":"Reconnecting... 1/5 '
+        '(stream disconnected before completion: stream closed before response.completed)"}\n'
+        '{"type":"error","message":"{\\"error\\":{\\"message\\":\\"[400]: Antigravity upstream error (400)\\",'
+        '\\"type\\":\\"invalid_request_error\\",\\"code\\":\\"bad_request\\"},'
+        '\\"upstream_details\\":{\\"error\\":{\\"code\\":400,'
+        '\\"message\\":\\"Request contains an invalid argument.\\",'
+        '\\"status\\":\\"INVALID_ARGUMENT\\"}}}\\n"}\n'
+        '{"type":"turn.failed","error":{"message":"[400]: Antigravity upstream error (400)"}}\n'
+        "SESSION_END session=session-12 exit_code=1 elapsed=267.0s\n"
+    )
+    ctx = SessionContext(prompt="do task", phase="BUGFIX", extras={"exit_code": 1})
+
+    analysis = adapter.analyze_log(raw_log, ctx)
+
+    assert analysis.retry is True
+    assert analysis.reason is not None
+    assert analysis.reason.startswith("codex_transient_api_error:")
+
+
 def test_analyze_exit0_aborted_in_agent_prose_not_abort():
     adapter = CodexAdapter()
     raw_log = (
