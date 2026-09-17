@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 from harness.hooks.epic.core import (
+    _append_event,
     atomic_write_text,
     extract_handoff_block,
     load_decompose_steps_fail_closed,
@@ -30,7 +31,9 @@ from loop.mb_finish.transaction import (
     commit_staged_files,
     get_finish_tx_path,
     read_finish_tx,
+    recover_finish_transaction,
     rollback_staged_files,
+    stage_epic_state_in_tx,
     stage_file_in_tx,
     validate_identity,
     write_finish_tx,
@@ -623,6 +626,125 @@ def test_crash_after_context_recover_aligns(tmp_path: Path) -> None:
     assert "@s02" not in ctx_text
 
 
+def test_crash_after_context_and_state_recover_as_one_cursor(
+    tmp_path: Path,
+) -> None:
+    """A partial cursor commit must never leave AC and state on different steps."""
+    from loop.context_loop import prepare_session
+
+    fixture = _setup_epic_fixture(tmp_path)
+    act_path: Path = fixture["act_path"]
+    state = load_epic_state(tmp_path)
+    state["armed_step"] = "s02"
+    state["phase"] = "BACK IMPLEMENT"
+
+    tx_id = "tx-cursor-pair"
+    staged_act = stage_file_in_tx(
+        tmp_path,
+        tx_id,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        "- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n"
+        "## Handoff BACK IMPLEMENT\n- **Шаг:** `s02`\n",
+    )
+    staged_state = stage_epic_state_in_tx(tmp_path, tx_id, state)
+    write_finish_tx(
+        tmp_path,
+        FinishTxRecord(
+            tx_id=tx_id,
+            epic_id="T-EPIC-DEMO",
+            step_id="s02",
+            phase="BACK IMPLEMENT",
+            state=FinishTxState.CONTEXT_WRITTEN,
+            staged_files=[staged_act, staged_state],
+            recovery_token=tx_id,
+        ),
+    )
+
+    act_path.write_text(
+        (tmp_path / staged_act.stage_path).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    state_path = tmp_path / ".claude/runtime/epic/state.json"
+    state_path.write_text(
+        (tmp_path / staged_state.stage_path).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    result = prepare_session(tmp_path, model="test-model")
+    assert result.get("ok") is True, result
+    assert "s01" in act_path.read_text(encoding="utf-8")
+    assert load_epic_state(tmp_path).get("armed_step") == "s01"
+    assert not get_finish_tx_path(tmp_path).exists()
+
+
+def test_stage_epic_state_in_external_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The DEV_HUB runtime state can live outside the project transaction root."""
+    hub_root = tmp_path / "dev-hub"
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    monkeypatch.setenv("DEV_HUB", str(hub_root))
+    monkeypatch.setenv("PROJECT_ROOT", str(project_root))
+
+    state = {"armed_epic": "T-EPIC-DEMO", "armed_step": "BUGFIX", "phase": "BUGFIX"}
+    staged = stage_epic_state_in_tx(project_root, "tx-external-runtime", state)
+
+    target = Path(staged.rel_path)
+    assert target.is_absolute()
+    assert target == hub_root / "runtime" / project_root.name / "epic" / "state.json"
+    assert not target.exists()
+    assert (project_root / staged.stage_path).exists()
+
+    commit_staged_files(project_root, [staged])
+    assert json.loads(target.read_text(encoding="utf-8"))["armed_step"] == "BUGFIX"
+
+
+def test_crash_after_lifecycle_event_recovers_staged_cursor(
+    tmp_path: Path,
+) -> None:
+    """A durable lifecycle event makes a prepared cursor transaction committable."""
+    fixture = _setup_epic_fixture(tmp_path)
+    act_path: Path = fixture["act_path"]
+    qa_artifact = tmp_path / "memory-bank/back/qa/T-EPIC-DEMO/qa-run.yaml"
+    qa_artifact.parent.mkdir(parents=True, exist_ok=True)
+    qa_artifact.write_text("verdict: pass\nepic_id: T-EPIC-DEMO\n", encoding="utf-8")
+    assert _append_event(tmp_path, "back", "T-EPIC-DEMO", "qa_pass", qa_artifact)
+
+    state = load_epic_state(tmp_path)
+    state["armed_step"] = "DONE"
+    state["phase"] = "DONE"
+    tx_id = "tx-event-before-cursor"
+    staged_act = stage_file_in_tx(
+        tmp_path,
+        tx_id,
+        "memory-bank/activeContext.md",
+        "## load_now\n- `memory-bank/back/qa/T-EPIC-DEMO/qa-run.yaml`\n\n"
+        "## Handoff BACK DONE\n- EPIC_DONE\n",
+    )
+    staged_state = stage_epic_state_in_tx(tmp_path, tx_id, state)
+    write_finish_tx(
+        tmp_path,
+        FinishTxRecord(
+            tx_id=tx_id,
+            epic_id="T-EPIC-DEMO",
+            step_id="QA",
+            phase="BACK QA",
+            state=FinishTxState.PREPARED,
+            staged_files=[staged_act, staged_state],
+            recovery_token=tx_id,
+            event_role_dir="back",
+            event_kind="qa_pass",
+            event_artifact="memory-bank/back/qa/T-EPIC-DEMO/qa-run.yaml",
+        ),
+    )
+
+    recovered = recover_finish_transaction(tmp_path)
+    assert recovered["action"] == "committed_event_remainder"
+    assert "DONE" in act_path.read_text(encoding="utf-8")
+    assert load_epic_state(tmp_path).get("armed_step") == "DONE"
+    assert not get_finish_tx_path(tmp_path).exists()
+
+
 def test_crash_after_index_pre_marker_recover(tmp_path: Path) -> None:
     """FR-013 / TM-002 / AC−3: Crash after index before committed marker -> recovers remainder."""
     from loop.context_loop import prepare_session
@@ -844,7 +966,3 @@ def test_prepare_recover_not_exception_only() -> None:
     assert "recover_finish_transaction" in content, "prepare_session must call recover_finish_transaction"
     # Ensure it is called in prepare_session before returning/dispatching
     assert "def prepare_session" in content
-
-
-
-

@@ -51,6 +51,9 @@ class FinishTxRecord(BaseModel):
     state: FinishTxState
     staged_files: list[FinishTxStagedFile] = Field(default_factory=list)
     recovery_token: str | None = None
+    event_role_dir: str | None = None
+    event_kind: str | None = None
+    event_artifact: str | None = None
     error: str | None = None
 
 
@@ -129,6 +132,28 @@ def stage_file_in_tx(
     )
 
 
+def stage_epic_state_in_tx(
+    cwd: Path | str,
+    tx_id: str,
+    state: dict,
+) -> FinishTxStagedFile:
+    """Stage the canonical runtime state as part of a finish/arm transaction."""
+    from harness.hooks.epic.core import _serialize_epic_state, state_path
+
+    cwd_path = Path(cwd)
+    state_target = state_path(cwd_path)
+    try:
+        rel_path = state_target.relative_to(cwd_path).as_posix()
+    except ValueError:
+        rel_path = str(state_target)
+    return stage_file_in_tx(
+        cwd_path,
+        tx_id,
+        rel_path,
+        _serialize_epic_state(cwd_path, state),
+    )
+
+
 def commit_staged_files(cwd: Path | str, staged_files: list[FinishTxStagedFile]) -> None:
     """Replace target files with staged files atomically (fsync + replace via atomic_write_text)."""
     cwd_path = Path(cwd)
@@ -194,6 +219,20 @@ def recover_finish_transaction(cwd: Path | str) -> dict[str, Any]:
             if rec.state == FinishTxState.COMMITTED:
                 cleanup_finish_tx(cwd_path)
                 return {"ok": True, "recovered": True, "state": rec.state.value, "action": "cleaned_committed"}
+            elif rec.state in {FinishTxState.PREPARED, FinishTxState.CONTEXT_WRITTEN} and rec.event_kind and rec.event_artifact:
+                from harness.hooks.epic.core import event_persisted
+
+                event_path = cwd_path / rec.event_artifact
+                if event_persisted(
+                    cwd_path,
+                    rec.event_role_dir or "back",
+                    rec.epic_id,
+                    rec.event_kind,
+                    event_path,
+                ):
+                    commit_staged_files(cwd_path, rec.staged_files)
+                    cleanup_finish_tx(cwd_path)
+                    return {"ok": True, "recovered": True, "state": rec.state.value, "action": "committed_event_remainder"}
             elif rec.state == FinishTxState.INDEX_WRITTEN:
                 # Crash after index before committed marker: commit remainder and mark clean
                 commit_staged_files(cwd_path, rec.staged_files)
@@ -206,4 +245,3 @@ def recover_finish_transaction(cwd: Path | str) -> dict[str, Any]:
                 return {"ok": True, "recovered": True, "state": rec.state.value, "action": "rolled_back"}
 
     return {"ok": True, "recovered": False, "reason": "no_journal"}
-

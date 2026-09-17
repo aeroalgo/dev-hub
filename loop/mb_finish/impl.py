@@ -7,6 +7,7 @@ from pathlib import Path
 from harness.hooks._lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _append_event,
+    apply_last_finish_tool,
     event_persisted,
     _verify_pass_ready_for_step,
     atomic_write_text,
@@ -38,6 +39,7 @@ from loop.mb_finish.transaction import (
     commit_staged_files,
     recover_finish_transaction,
     rollback_staged_files,
+    stage_epic_state_in_tx,
     stage_file_in_tx,
     write_finish_tx,
 )
@@ -352,79 +354,6 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[err_msg or "QA validation failed"],
         )
 
-    try:
-        backup = read_active_context(cwd)
-    except OSError:
-        backup = ""
-
-    # Transaction Journal: stage activeContext, commit and record states
-    tx_id = f"tx-qa-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
-    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
-
-    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
-    tx_rec = FinishTxRecord(
-        tx_id=tx_id,
-        epic_id=epic_id or "",
-        step_id="QA",
-        phase="BACK QA",
-        state=FinishTxState.PREPARED,
-        staged_files=[staged_act],
-        recovery_token=tx_id,
-    )
-    write_finish_tx(cwd, tx_rec)
-
-    try:
-        commit_staged_files(cwd, [staged_act])
-        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
-        write_finish_tx(cwd, tx_rec)
-    except ActiveContextLocked as exc:
-        rollback_staged_files(cwd, tx_rec.staged_files)
-        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
-        tx_rec.error = str(exc)
-        write_finish_tx(cwd, tx_rec)
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["runner_owns_active_context"],
-            shape_errors=[str(exc)],
-        )
-    except Exception as exc:
-        rollback_staged_files(cwd, tx_rec.staged_files)
-        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
-        tx_rec.error = str(exc)
-        write_finish_tx(cwd, tx_rec)
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["active_context_write_failed"],
-            shape_errors=[str(exc)],
-        )
-
-    role_dir = role.lower()
-    if role_dir == "integ":
-        role_dir = "integration"
-    if epic_id:
-        qa_kind = "qa_fail" if qa_verdict in {"fail", "blocked"} else "qa_pass"
-        event_written = _append_event(cwd, role_dir, epic_id, qa_kind, qa_art)
-        if not event_written and not event_persisted(
-            cwd, role_dir, epic_id, qa_kind, qa_art
-        ):
-            # The context has already been committed to the finish journal,
-            # so restore it before returning.  A phase must never report DONE
-            # while its durable reducer event is missing.
-            rollback_staged_files(cwd, tx_rec.staged_files)
-            tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
-            tx_rec.error = "qa lifecycle event was not persisted"
-            write_finish_tx(cwd, tx_rec)
-            return MbFinishResult(
-                ok=False,
-                diagnostic_codes=["qa_event_persist_failed"],
-                shape_errors=[
-                    "QA finish rolled back: qa_pass/qa_fail lifecycle event was not persisted"
-                ],
-            )
-        reconcile_epic_events(cwd, role_dir, epic_id)
-
-    sync_cursor_from_index(cwd)
-
     st = load_epic_state(cwd)
     st["armed_step"] = next_mode
     st["phase"] = next_mode
@@ -455,10 +384,6 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
             verdict=qa_verdict,
         )
         if freeze_errors:
-            rollback_staged_files(cwd, tx_rec.staged_files)
-            tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
-            tx_rec.error = "; ".join(freeze_errors)
-            write_finish_tx(cwd, tx_rec)
             return MbFinishResult(
                 ok=False,
                 diagnostic_codes=["qa_checklist_enforce_failed"],
@@ -489,21 +414,84 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
                 )
         if freeze is not None:
             persist_freeze(st, freeze)
-    save_epic_state(cwd, st)
-
-    # Mark committed in journal
-    tx_rec.state = FinishTxState.COMMITTED
-    write_finish_tx(cwd, tx_rec)
 
     fp_data = f"qa:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(
+    apply_last_finish_tool(
         cwd,
+        st,
         "mb-finish qa",
         fp,
         finished_step="QA",
         armed_after_finish=next_mode,
+        handoff_text=rendered,
     )
+
+    tx_id = f"tx-qa-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
+
+    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
+    staged_state = stage_epic_state_in_tx(cwd, tx_id, st)
+    tx_rec = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id or "",
+        step_id="QA",
+        phase="BACK QA",
+        state=FinishTxState.PREPARED,
+        staged_files=[staged_act, staged_state],
+        recovery_token=tx_id,
+        event_role_dir=role_dir if epic_id else None,
+        event_kind=("qa_fail" if qa_verdict in {"fail", "blocked"} else "qa_pass") if epic_id else None,
+        event_artifact=qa_rel if epic_id else None,
+    )
+    write_finish_tx(cwd, tx_rec)
+
+    if epic_id:
+        qa_kind = "qa_fail" if qa_verdict in {"fail", "blocked"} else "qa_pass"
+        event_written = _append_event(cwd, role_dir, epic_id, qa_kind, qa_art)
+        if not event_written and not event_persisted(
+            cwd, role_dir, epic_id, qa_kind, qa_art
+        ):
+            rollback_staged_files(cwd, tx_rec.staged_files)
+            tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+            tx_rec.error = "qa lifecycle event was not persisted"
+            write_finish_tx(cwd, tx_rec)
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["qa_event_persist_failed"],
+                shape_errors=[
+                    "QA finish rolled back: qa_pass/qa_fail lifecycle event was not persisted"
+                ],
+            )
+        reconcile_epic_events(cwd, role_dir, epic_id)
+
+    try:
+        commit_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
+        write_finish_tx(cwd, tx_rec)
+    except ActiveContextLocked as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
+    except Exception as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["active_context_write_failed"],
+            shape_errors=[str(exc)],
+        )
+
+    tx_rec.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd, tx_rec)
 
     return MbFinishResult(
         ok=True,
@@ -704,78 +692,6 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
-    try:
-        backup = read_active_context(cwd)
-    except OSError:
-        backup = ""
-
-    # Transaction Journal: stage activeContext, commit and record states
-    tx_id = f"tx-bugfix-{epic_id}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
-    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
-
-    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
-    tx_rec = FinishTxRecord(
-        tx_id=tx_id,
-        epic_id=epic_id,
-        step_id="BUGFIX",
-        phase="BACK BUGFIX",
-        state=FinishTxState.PREPARED,
-        staged_files=[staged_act],
-        recovery_token=tx_id,
-    )
-    write_finish_tx(cwd, tx_rec)
-
-    try:
-        commit_staged_files(cwd, [staged_act])
-        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
-        write_finish_tx(cwd, tx_rec)
-    except ActiveContextLocked as exc:
-        rollback_staged_files(cwd, tx_rec.staged_files)
-        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
-        tx_rec.error = str(exc)
-        write_finish_tx(cwd, tx_rec)
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["runner_owns_active_context"],
-            shape_errors=[str(exc)],
-        )
-    except Exception as exc:
-        rollback_staged_files(cwd, tx_rec.staged_files)
-        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
-        tx_rec.error = str(exc)
-        write_finish_tx(cwd, tx_rec)
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["active_context_write_failed"],
-            shape_errors=[str(exc)],
-        )
-
-    appended = _append_event(cwd, role_dir, epic_id, "bugfix_done", bugfix_art)
-    if not appended and not event_persisted(
-        cwd, role_dir, epic_id, "bugfix_done", bugfix_art
-    ):
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["bugfix_event_not_persisted"],
-            shape_errors=[
-                "bugfix_done event was not written to the epic event log; "
-                "BUGFIX→QA transition is not atomic without it"
-            ],
-        )
-    reconcile_epic_events(cwd, role_dir, epic_id)
-    decision = reduce_epic_lifecycle(cwd, role_dir, epic_id)
-    life_phase = lifecycle_arm_phase(str(decision.get("phase") or "QA"), decision)
-    if life_phase == "BUGFIX" or str(decision.get("reason_code") or "") == "qa_failed":
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["bugfix_event_stale_vs_qa_fail"],
-            shape_errors=[
-                "bugfix_done did not reopen QA after the latest qa_fail "
-                f"(reason={decision.get('reason_code')!r}, artifact={bugfix_rel}); "
-                "finish the current BUGFIX artifact, not a leftover one"
-            ],
-        )
-
     st = load_epic_state(cwd)
     st["armed_step"] = "QA"
     st["phase"] = "QA"
@@ -816,23 +732,99 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     elif freeze is not None:
         freeze = with_verify_scope(freeze, "prior_only")
         persist_freeze(st, freeze)
-    save_epic_state(cwd, st)
-
-    # Mark committed in journal
-    tx_rec.state = FinishTxState.COMMITTED
-    write_finish_tx(cwd, tx_rec)
-
-    sync_cursor_from_index(cwd)
 
     fp_data = f"bugfix:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(
+    apply_last_finish_tool(
         cwd,
+        st,
         "mb-finish bugfix",
         fp,
         finished_step="BUGFIX",
         armed_after_finish="QA",
+        handoff_text=rendered,
     )
+
+    tx_id = f"tx-bugfix-{epic_id}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
+
+    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
+    staged_state = stage_epic_state_in_tx(cwd, tx_id, st)
+    tx_rec = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id,
+        step_id="BUGFIX",
+        phase="BACK BUGFIX",
+        state=FinishTxState.PREPARED,
+        staged_files=[staged_act, staged_state],
+        recovery_token=tx_id,
+        event_role_dir=role_dir,
+        event_kind="bugfix_done",
+        event_artifact=bugfix_rel,
+    )
+    write_finish_tx(cwd, tx_rec)
+
+    reconcile_epic_events(cwd, role_dir, epic_id)
+    appended = _append_event(cwd, role_dir, epic_id, "bugfix_done", bugfix_art)
+    if not appended and not event_persisted(
+        cwd, role_dir, epic_id, "bugfix_done", bugfix_art
+    ):
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = "bugfix lifecycle event was not persisted"
+        write_finish_tx(cwd, tx_rec)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_event_not_persisted"],
+            shape_errors=[
+                "bugfix_done event was not written to the epic event log; "
+                "BUGFIX→QA transition is not atomic without it"
+            ],
+        )
+    decision = reduce_epic_lifecycle(cwd, role_dir, epic_id)
+    life_phase = lifecycle_arm_phase(str(decision.get("phase") or "QA"), decision)
+    if life_phase == "BUGFIX" or str(decision.get("reason_code") or "") == "qa_failed":
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = "bugfix event did not advance lifecycle"
+        write_finish_tx(cwd, tx_rec)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_event_stale_vs_qa_fail"],
+            shape_errors=[
+                "bugfix_done did not reopen QA after the latest qa_fail "
+                f"(reason={decision.get('reason_code')!r}, artifact={bugfix_rel}); "
+                "finish the current BUGFIX artifact, not a leftover one"
+            ],
+        )
+
+    try:
+        commit_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
+        write_finish_tx(cwd, tx_rec)
+    except ActiveContextLocked as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
+    except Exception as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["active_context_write_failed"],
+            shape_errors=[str(exc)],
+        )
+
+    tx_rec.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd, tx_rec)
 
     return MbFinishResult(
         ok=True,

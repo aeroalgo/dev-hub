@@ -170,6 +170,14 @@ def test_finish_bugfix_requires_artifact_then_arms_qa(tmp_path: Path) -> None:
     st = load_epic_state(tmp_path)
     assert st.get("armed_step") == "QA"
     assert st.get("phase") == "QA"
+    assert st.get("last_finish_tool", {}).get("step_id") == "BUGFIX"
+    from loop.mb_finish.transaction import read_finish_tx
+    tx = read_finish_tx(tmp_path)
+    assert tx is not None
+    assert {item.rel_path for item in tx.staged_files} >= {
+        "memory-bank/activeContext.md",
+        ".claude/runtime/epic/state.json",
+    }
 
     decision = reduce_epic_lifecycle(tmp_path, "back", epic)
     assert decision["reason_code"] == "bugfix_reopens_qa"
@@ -211,6 +219,7 @@ def test_prepare_session_keeps_bugfix_when_qa_failed(
     ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
     assert "mode: BUGFIX" in ac
     assert "Handoff BACK BUGFIX" in ac
+    assert "bugfix-queue.yaml" in ac
 
 
 def test_prepare_session_promotes_qa_after_bugfix_done(

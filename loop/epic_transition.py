@@ -10,6 +10,7 @@ Public contract:
   get_verify_agent(phase: str, *, pack_id=None, cwd=None) -> str | None
 """
 from __future__ import annotations
+import hashlib
 import os
 import re
 import sys
@@ -258,15 +259,30 @@ def _arm_post_implement(
     """Arm activeContext for post-implement phases (AUDIT, QA, BUGFIX)."""
     cwd_p = Path(cwd).resolve()
     from epic.core import (
-        _write_active_context_or_lock,
         active_context_path,
         build_post_implement_active_context,
         clear_runner_checkpoint,
         latest_qa_pass_artifact_for_reference,
         load_epic_state,
-        save_epic_state,
+        utc_now,
     )
-    from epic_paths import find_decompose_index_path
+    from loop.mb_finish.transaction import (
+        FinishTxRecord,
+        FinishTxState,
+        commit_staged_files,
+        rollback_staged_files,
+        stage_epic_state_in_tx,
+        stage_file_in_tx,
+        write_finish_tx,
+    )
+    from epic_paths import find_decompose_index_path, role_from_decompose_path
+
+    armed_decompose = str(load_epic_state(cwd_p).get("armed_decompose") or "").strip()
+    index_role = role_from_decompose_path(armed_decompose) if armed_decompose else None
+    if index_role:
+        role = {"BACK": "back", "FRONT": "front", "INTEG": "integration"}.get(
+            index_role.upper(), role
+        )
 
     try:
         from loop.paths.pack_layout import resolve_mb_root
@@ -276,7 +292,12 @@ def _arm_post_implement(
         mb_root_name = "memory-bank"
 
     qa_p = latest_qa_pass_artifact_for_reference(cwd_p, role, epic_id)
-    resolved_idx = find_decompose_index_path(cwd_p, role, epic_id)
+    armed_idx = cwd_p / armed_decompose if armed_decompose else None
+    resolved_idx = (
+        armed_idx
+        if armed_idx is not None and armed_idx.is_file()
+        else find_decompose_index_path(cwd_p, role, epic_id)
+    )
     if resolved_idx is not None:
         rel_idx = resolved_idx.relative_to(cwd_p).as_posix()
     else:
@@ -306,9 +327,6 @@ def _arm_post_implement(
         qa_path=qa_p if qa_p and qa_p.is_file() else None,
         cwd=cwd_p,
     )
-    locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
-    if locked:
-        return locked
     clear_runner_checkpoint(cwd_p)
     st = load_epic_state(cwd_p)
     st["active"] = True
@@ -320,7 +338,43 @@ def _arm_post_implement(
     st["phase"] = phase
     st["role"] = role_u
     st["pending_fingerprint_before"] = None
-    save_epic_state(cwd_p, st)
+
+    act_path = active_context_path(cwd_p)
+    act_rel = act_path.relative_to(cwd_p).as_posix()
+    tx_id = (
+        f"tx-arm-{epic_id}-"
+        f"{hashlib.sha256(f'{phase}:{utc_now()}'.encode('utf-8')).hexdigest()[:8]}"
+    )
+    staged_files = [
+        stage_file_in_tx(cwd_p, tx_id, act_rel, body),
+        stage_epic_state_in_tx(cwd_p, tx_id, st),
+    ]
+    tx_rec = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id,
+        step_id=phase,
+        phase=f"{role_u} {phase}",
+        state=FinishTxState.PREPARED,
+        staged_files=staged_files,
+        recovery_token=tx_id,
+    )
+    write_finish_tx(cwd_p, tx_rec)
+    try:
+        commit_staged_files(cwd_p, staged_files)
+    except Exception as exc:
+        rollback_staged_files(cwd_p, staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd_p, tx_rec)
+        return {
+            "ok": False,
+            "diagnostic_code": "atomic_arm_failed",
+            "error": str(exc),
+            "epic_id": epic_id,
+            "phase": phase,
+        }
+    tx_rec.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd_p, tx_rec)
     return {
         "ok": True,
         "complete": False,

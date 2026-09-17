@@ -1949,6 +1949,35 @@ def prepare_session(
     proj_phase = str(
         proj.get("phase") or projection.get("phase") or state.get("phase") or ""
     ).upper()
+    if proj_phase == "BUGFIX":
+        from loop.bugfix_queue import bugfix_queue_path
+
+        bugfix_epic = str(
+            state.get("armed_epic") or projection.get("epic_id") or ""
+        ).strip()
+        bugfix_role = str(
+            state.get("role") or state.get("armed_role") or "back"
+        ).lower()
+        if bugfix_epic:
+            queue_path = bugfix_queue_path(cwd_p, bugfix_role, bugfix_epic)
+            queue_rel = queue_path.relative_to(cwd_p).as_posix()
+            if queue_path.is_file() and queue_rel not in extract_load_now(text):
+                from loop.epic_transition import arm_phase as arm_bugfix_phase
+
+                arm_res = arm_bugfix_phase(
+                    cwd_p,
+                    bugfix_epic,
+                    "BUGFIX",
+                    bugfix_role,
+                )
+                if isinstance(arm_res, dict) and arm_res.get("ok"):
+                    text = read_active_context(cwd_p)
+                    state = load_epic_state(cwd_p)
+                    projection = rebuild_epic_projection(cwd_p)
+                    proj = projection.get("projection") if isinstance(projection.get("projection"), dict) else {}
+                    proj_phase = str(
+                        proj.get("phase") or projection.get("phase") or state.get("phase") or ""
+                    ).upper()
     # Reducer arm wins over stale AC handoff: qa_failed → BUGFIX must not be
     # overwritten by a premature Handoff BACK QA / BACK AUDIT. Inverse: after
     # bugfix_done the reducer says QA — do not keep a stale BUGFIX arm.

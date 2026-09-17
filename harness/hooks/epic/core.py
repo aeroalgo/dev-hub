@@ -705,47 +705,99 @@ def _epic_state_unlock(handle: Any, path: Path | None = None) -> None:
         pass
 
 
+def _serialize_epic_state(cwd: str | Path, state: dict[str, Any]) -> str:
+    """Prepare the canonical state payload without writing it.
+
+    Finish/arm transactions use this to stage ``state.json`` next to the
+    activeContext file.  Keeping the serialization path shared with
+    ``save_epic_state`` prevents the two atomic paths from drifting apart.
+    """
+    p = state_path(cwd)
+    if p.is_file():
+        try:
+            on_disk = json.loads(p.read_text(encoding="utf-8"))
+            if isinstance(on_disk, dict):
+                for key in ("drift_counters", "schema_retry_counts", "sidecars"):
+                    if key in on_disk and isinstance(on_disk[key], dict):
+                        merged = dict(on_disk[key])
+                        if isinstance(state.get(key), dict):
+                            merged.update(state[key])
+                        state[key] = merged
+                if "retry_count" in on_disk and on_disk["retry_count"] is not None:
+                    disk_rc = int(on_disk["retry_count"] or 0)
+                    state_rc = int(state.get("retry_count") or 0)
+                    if disk_rc > state_rc:
+                        state["retry_count"] = disk_rc
+        except Exception:
+            pass
+
+    state["updated_at"] = utc_now()
+    projection = state.get("projection") if isinstance(state.get("projection"), dict) else {}
+    state["state_schema_version"] = "loop-state/v2"
+    state["schema_version"] = "loop-state/v2"
+    state["runtime"] = _runtime_snapshot(state)
+    state["dag"] = {
+        "pipeline_id": state.get("dag_pipeline") or state.get("pipeline_id"),
+        "cursor": state.get("dag_cursor") or state.get("fanout_cursor"),
+        "done": sorted({str(item) for item in state.get("dag_done") or []}),
+    }
+    state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"), cwd=cwd)
+    state["diagnostic_codes"] = sorted(
+        set(state.get("diagnostic_codes") or [])
+        | set(projection.get("diagnostic_codes") or [])
+    )
+    return json.dumps(state, ensure_ascii=False, indent=2) + "\n"
+
+
 def save_epic_state(cwd: str | Path, state: dict[str, Any]) -> None:
     p = state_path(cwd)
     lock = _epic_state_lock(p)
     try:
-        if p.is_file():
-            try:
-                on_disk = json.loads(p.read_text(encoding="utf-8"))
-                if isinstance(on_disk, dict):
-                    for key in ("drift_counters", "schema_retry_counts", "sidecars"):
-                        if key in on_disk and isinstance(on_disk[key], dict):
-                            merged = dict(on_disk[key])
-                            if isinstance(state.get(key), dict):
-                                merged.update(state[key])
-                            state[key] = merged
-                    if "retry_count" in on_disk and on_disk["retry_count"] is not None:
-                        disk_rc = int(on_disk["retry_count"] or 0)
-                        state_rc = int(state.get("retry_count") or 0)
-                        if disk_rc > state_rc:
-                            state["retry_count"] = disk_rc
-            except Exception:
-                pass
-
-        state["updated_at"] = utc_now()
-        projection = state.get("projection") if isinstance(state.get("projection"), dict) else {}
-        state["state_schema_version"] = "loop-state/v2"
-        state["schema_version"] = "loop-state/v2"
-        state["runtime"] = _runtime_snapshot(state)
-        state["dag"] = {
-            "pipeline_id": state.get("dag_pipeline") or state.get("pipeline_id"),
-            "cursor": state.get("dag_cursor") or state.get("fanout_cursor"),
-            "done": sorted({str(item) for item in state.get("dag_done") or []}),
-        }
-        state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"), cwd=cwd)
-        state["diagnostic_codes"] = sorted(
-            set(state.get("diagnostic_codes") or [])
-            | set(projection.get("diagnostic_codes") or [])
-        )
-        text = json.dumps(state, ensure_ascii=False, indent=2) + "\n"
+        text = _serialize_epic_state(cwd, state)
         atomic_write_text(p, text)
     finally:
         _epic_state_unlock(lock, p)
+
+
+def apply_last_finish_tool(
+    cwd: str | Path,
+    state: dict[str, Any],
+    name: str,
+    fingerprint: str | None = None,
+    *,
+    finished_step: str | None = None,
+    armed_after_finish: str | None = None,
+    handoff_text: str | None = None,
+) -> dict[str, Any]:
+    """Apply a finish receipt to an in-memory state for atomic staging."""
+    ts = utc_now()
+    if not fingerprint:
+        step_val = finished_step or state.get("armed_step") or name
+        raw_fp = f"{step_val}:{ts}"
+        fingerprint = hashlib.sha256(raw_fp.encode("utf-8")).hexdigest()
+    handoff = handoff_text if handoff_text is not None else read_active_context(cwd)
+    state["last_finish_tool"] = {
+        "name": str(name),
+        "at": ts,
+        "fingerprint": str(fingerprint),
+        "step_id": str(finished_step or state.get("armed_step") or ""),
+        "session_id": state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
+        "phase_run_id": state.get("phase_run_id") or state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
+        "epic_id": state.get("armed_epic"),
+        "handoff_sha256": hashlib.sha256(handoff.encode("utf-8")).hexdigest(),
+    }
+    if finished_step is not None:
+        state["last_finished_step"] = str(finished_step)
+        state["last_finished_epic"] = str(state.get("armed_epic") or "").strip() or None
+        state.pop("finish_failed_step", None)
+        if str(state.get("gate_diagnostic") or "") == "finish_command_failed":
+            state["gate_diagnostic"] = None
+        if str(state.get("repair_required") or "") == "gate-repair":
+            state["repair_required"] = None
+            state["halt_reason"] = None
+    if armed_after_finish is not None:
+        state["armed_after_finish"] = str(armed_after_finish)
+    return state
 
 
 def write_last_finish_tool(
@@ -758,33 +810,14 @@ def write_last_finish_tool(
 ) -> bool:
     """Write last_finish_tool record into epic state."""
     st = load_epic_state(cwd)
-    ts = utc_now()
-    if not fingerprint:
-        step_val = finished_step or st.get("armed_step") or name
-        raw_fp = f"{step_val}:{ts}"
-        fingerprint = hashlib.sha256(raw_fp.encode("utf-8")).hexdigest()
-    st["last_finish_tool"] = {
-        "name": str(name),
-        "at": ts,
-        "fingerprint": str(fingerprint),
-        "step_id": str(finished_step or st.get("armed_step") or ""),
-        "session_id": st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
-        "phase_run_id": st.get("phase_run_id") or st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
-        "epic_id": st.get("armed_epic"),
-        "handoff_sha256": hashlib.sha256(read_active_context(cwd).encode("utf-8")).hexdigest(),
-    }
-    if finished_step is not None:
-        st["last_finished_step"] = str(finished_step)
-        finished_epic = str(st.get("armed_epic") or "").strip()
-        st["last_finished_epic"] = finished_epic or None
-        st.pop("finish_failed_step", None)
-        if str(st.get("gate_diagnostic") or "") == "finish_command_failed":
-            st["gate_diagnostic"] = None
-        if str(st.get("repair_required") or "") == "gate-repair":
-            st["repair_required"] = None
-            st["halt_reason"] = None
-    if armed_after_finish is not None:
-        st["armed_after_finish"] = str(armed_after_finish)
+    apply_last_finish_tool(
+        cwd,
+        st,
+        name,
+        fingerprint,
+        finished_step=finished_step,
+        armed_after_finish=armed_after_finish,
+    )
     save_epic_state(cwd, st)
     return True
 
@@ -4806,6 +4839,26 @@ def build_post_implement_active_context(
                 f"decompose index.yaml (implement queue исчерпана; эпик {epic_id})",
             )
         )
+        if phase_u == "BUGFIX":
+            from loop.bugfix_queue import bugfix_queue_path, load_bugfix_queue
+
+            queue_path = bugfix_queue_path(cwd, role_dir, epic_id)
+            if queue_path.is_file():
+                queue_rel = queue_path.relative_to(cwd).as_posix()
+                load_now.insert(
+                    0,
+                    (
+                        queue_rel,
+                        "bugfix queue — status SoT; first open/in_progress item",
+                    ),
+                )
+                try:
+                    queue = load_bugfix_queue(queue_path)
+                except (OSError, ValueError, yaml.YAMLError):
+                    queue = None
+                source_qa = getattr(queue, "source_qa", None) if queue else None
+                if source_qa and (cwd / source_qa).is_file():
+                    load_now.append((source_qa, "QA source for BUGFIX blockers"))
     if qa_path is not None and qa_path.is_file():
         try:
             qa_rel = qa_path.relative_to(cwd).as_posix()
@@ -4846,6 +4899,18 @@ def build_post_implement_active_context(
             f"- **Режим/шаг:** `{role_u} QA`.",
             "- **Сделано:** implement queue исчерпана.",
             "- **ARCHIVE:** вне loop после EPIC_DONE (не в QA сессии).",
+        ]
+    elif phase_u == "BUGFIX":
+        next_hint = (
+            f"выполнить `{role_u} BUGFIX`: прочитать bugfix-queue.yaml, взять первый "
+            "open/in_progress, исправить причину, записать targeted evidence; "
+            "после terminal queue + full verification + verify-bugfix PASS — mb-finish bugfix"
+        )
+        custom_lines = [
+            f"- **Эпик:** {epic_id} — QA blockers требуют исправления.",
+            f"- **Режим/шаг:** `{role_u} BUGFIX`.",
+            "- **SoT:** bugfix-queue.yaml; prose bugfix-*.md — только отчёт.",
+            "- **Порядок:** первый open/in_progress → targeted green → evidence → done.",
         ]
     elif phase_u == "DONE":
         next_hint = None
