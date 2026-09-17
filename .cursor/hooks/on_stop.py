@@ -43,6 +43,9 @@ def main() -> None:
     if lst.is_file():
         lst.unlink()
 
+    if code:
+        raise SystemExit(code)
+
 
 if __name__ == "__main__":
     main()

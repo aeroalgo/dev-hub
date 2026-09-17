@@ -54,7 +54,7 @@ def detect_and_run_tests(root: Path) -> tuple[str, int]:
                 out = (r.stdout or "") + (r.stderr or "")
                 return out, r.returncode
         except (OSError, json.JSONDecodeError, subprocess.TimeoutExpired) as e:
-            return f"(npm test skipped: {e})", 0
+            return f"(npm test failed: {e})", 2
 
     if (root / "pyproject.toml").is_file() or (root / "pytest.ini").is_file() or (root / "setup.cfg").is_file():
         tests_dir = root / "tests"
@@ -85,4 +85,4 @@ def detect_and_run_tests(root: Path) -> tuple[str, int]:
             out = (r.stdout or "") + (r.stderr or "")
             return out, r.returncode
 
-    return "(тесты: не найден npm test / pytest / make test — настрой проект или расширь hooks/_wf.py)", 0
+    return "(тесты не найдены: настрой npm test, pytest или make test)", 2

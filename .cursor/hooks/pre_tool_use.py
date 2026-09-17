@@ -11,15 +11,26 @@ if str(HOOKS) not in sys.path:
 from _lib import active_context_write_deny_reason  # noqa: E402
 
 
+def _deny(message: str) -> None:
+    print(
+        json.dumps(
+            {
+                "permission": "deny",
+                "user_message": message,
+                "agent_message": "Cursor hook не смог безопасно проверить операцию; запись запрещена.",
+            }
+        )
+    )
+    raise SystemExit(2)
+
+
 def main() -> None:
     try:
         payload = json.load(sys.stdin)
-    except Exception:
-        print(json.dumps({"permission": "allow"}))
-        return
+    except (json.JSONDecodeError, TypeError, ValueError):
+        _deny("Некорректный JSON в запросе Cursor hook.")
     if not isinstance(payload, dict):
-        print(json.dumps({"permission": "allow"}))
-        return
+        _deny("Некорректный формат запроса Cursor hook.")
     tool = str(payload.get("tool_name") or payload.get("tool") or "")
     if tool and tool not in {"Write", "Edit", "TabWrite", "NotebookEdit"}:
         print(json.dumps({"permission": "allow"}))
@@ -43,8 +54,7 @@ def main() -> None:
             cwd, file_path, contents, same_session=False
         )
     except Exception:
-        print(json.dumps({"permission": "allow"}))
-        return
+        _deny("Не удалось проверить запись в activeContext.md.")
     if not reason:
         print(json.dumps({"permission": "allow"}))
         return

@@ -18,7 +18,7 @@ from loop.runner.config import (
     run_preflight_checks,
 )
 
-USAGE_TEXT = """Usage: ./loop/loop.sh [EPIC] [MODEL] [MODE] [options]
+USAGE_TEXT = """Usage: ./bin/loop [EPIC] [MODEL] [MODE] [options]
 
 Context-first автоцикл. Курсор = memory-bank/activeContext.md.
 
@@ -36,7 +36,7 @@ Examples:
 MODE:
   implement
       Force the activeContext cursor to run an IMPLEMENT step.
-  ./loop/loop.sh --status
+  ./bin/loop --status
 
 Options:
   --epic EPIC_ID
