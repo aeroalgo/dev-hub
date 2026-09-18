@@ -75,9 +75,8 @@ IDEA PIPELINE      →  /idea-pipeline
 | `/integ-security` | INTEG SECURITY |
 | `/integ-security-plan` | INTEG SECURITY PLAN |
 | `/integ-security-decompose` | INTEG SECURITY DECOMPOSE |
-| `/loop-run` | **LOOP** — шпаргалка: запуск `./loop/loop.sh` **снаружи** сессии |
-| `/epic-run` | alias → `/loop-run` (без `--track`) |
-| `/program-run` | alias → `/loop-run` (DAG/`GAP_FANOUT` через актуальные флаги) |
+| `/epic-status` | read-only статус единого cursor |
+| `/epic-halt` | остановка через единый cursor |
 
 Остальные INTEG-команды — через chat (`INTEG IMPLEMENT`, …); slash — по мере добавления в `.claude/commands/`.
 
@@ -121,7 +120,7 @@ IDEA PIPELINE      →  /idea-pipeline
 | `.claude/rules/` | Path-scoped доп. правила |
 | `.claude/rules/language.md` | **Always-on** — русский язык чата (Layer 0) |
 | `.claude/rules/front-tests-parent-only.md` | **Always-on** — frontend-тесты только в parent, never subagent |
-| `.claude/settings.json` | hooks + `permissions` (Edit/Read scoped to repo; loop `dontAsk`) |
+| `.claude/settings.json` | permissions (Edit/Read scoped to repo) |
 | `.claude/settings.local.json.example` | локальный overlay; `cp` → `settings.local.json` (gitignored) |
 | `~/.claude/rules/02-front-tests-parent-only.md` | **Глобально** — frontend-тесты только parent |
 | `.venv/bin/graphify` | CLI графа (не в PATH) — из **корня репо**: `query` / `path` / `explain` / `update .` → только `<repo>/graphify-out/` |
@@ -147,8 +146,8 @@ IDEA PIPELINE      →  /idea-pipeline
 2. В `overlay` укажите `managed: true`, режим `optional|search|gate`, `requires_model` и defaults `default_loop`/`default_chat`.
 3. Добавьте `PROJECT_AGENT_RESEARCHER_MODEL=sonnet` в `.claude/project.env`.
 4. При необходимости задайте независимые selectors `PROJECT_AGENT_RESEARCHER_MODEL_CHAT=1` и `PROJECT_AGENT_RESEARCHER_MODEL_LOOP=0` (отсутствие сохраняет default loop=1/chat=0).
-5. Выполните `./loop/loop.sh --status` и проверьте policy/diagnostics для нового агента.
-6. Не редактируйте `.claude/hooks/_lib.py` или `.claude/settings.json`: registry автоматически обнаруживает `.claude/agents/*.md`.
+5. Выполните `./bin/loop status --json` и проверьте единый cursor.
+6. Не редактируйте `.claude/settings.json`: registry автоматически обнаруживает `.claude/agents/*.md`.
 7. Тест добавляйте только для non-generic gate-поведения; generic managed policy уже покрывается registry/policy tests.
 
 ## 9router

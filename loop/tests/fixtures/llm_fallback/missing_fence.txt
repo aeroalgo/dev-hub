@@ -1,3 +1,0 @@
-This is a prose response without any JSON fence block.
-VERDICT: PASS
-Reason: text only.

@@ -1,1 +1,0 @@
-"""Workflow pack registry package."""

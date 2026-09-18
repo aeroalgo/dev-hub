@@ -108,57 +108,6 @@ agents:
       codex:
         materialize: true
         target: ".codex/agents/verify-publish.toml"
-hooks:
-  session-start:
-    source: "harness/hooks/session-start.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.SessionStart"
-      codex:
-        hooks_json_entry: true
-  user-prompt:
-    source: "harness/hooks/user-prompt.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.UserPromptSubmit"
-      codex:
-        hooks_json_entry: true
-  pretool-dispatch:
-    source: "harness/hooks/pretool-dispatch.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PreToolUse"
-      codex:
-        hooks_json_entry: true
-  posttool-dispatch:
-    source: "harness/hooks/posttool-dispatch.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PostToolUse"
-      codex:
-        hooks_json_entry: true
-  subagent-start:
-    source: "harness/hooks/subagent-start.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.SubagentStart"
-      codex:
-        hooks_json_entry: true
-  subagent-stop:
-    source: "harness/hooks/subagent-stop.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.SubagentStop"
-      codex:
-        hooks_json_entry: true
-  stop-gate:
-    source: "harness/hooks/stop-gate.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.StopGate"
-      codex:
-        hooks_json_entry: true
-  # Out of scope (FR-012 compliance): session-end, permission-request, pre-compact, post-compact
 instructions:
   main:
     source: "harness/instructions/main.md"

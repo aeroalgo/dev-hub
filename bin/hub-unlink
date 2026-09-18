@@ -120,7 +120,6 @@ if [[ "$MODE" == "alongside" ]]; then
     ".cursor/schemas:$DEV_HUB/.cursor/schemas" \
     ".claude/agents:$DEV_HUB/harness/agents" \
     ".claude/commands:$DEV_HUB/harness/claude/commands" \
-    ".claude/hooks:$DEV_HUB/harness/hooks" \
     ".claude/instructions:$DEV_HUB/harness/instructions" \
     ".claude/instructions:$DEV_HUB/harness/claude/instructions" \
     ".claude/rules:$DEV_HUB/harness/claude/rules" \
@@ -183,7 +182,7 @@ fi
 # Full mode: removes legacy full symlinks tree
 for name in \
   .cursor/rules .cursor/templates .agents AGENTS.md CLAUDE.md \
-  .claude/agents .claude/hooks .claude/skills .claude/commands \
+  .claude/agents .claude/skills .claude/commands \
   .claude/instructions .claude/rules .claude/settings.json .claude/project.env \
   .claude/project.env.local
 do

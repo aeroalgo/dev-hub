@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Run hub loop against a product repo.
+# Run the single-cursor loop against a product repo.
 # Usage:
-#   ./bin/loop [/path/to/project] gpt
-#   PROJECT_ROOT=/path/to/project ./bin/loop gpt
-#   ./bin/loop <runtime> <epic> <model>
+#   ./bin/loop /path/to/project run --epic E1 --model <model>
+#   PROJECT_ROOT=/path/to/project ./bin/loop run --epic E1 --model <model>
 set -euo pipefail
 HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cd "$HUB_ROOT"
+  exec python3 -m loop.kernel "$@"
+fi
 
 case "${1:-}" in
   claude|codex)
@@ -44,13 +48,5 @@ export DEV_HUB="$HUB_ROOT"
 export HUB_ROOT
 export CLAUDE_PROJECT_DIR="$HUB_ROOT"
 
-if [[ "${1:-}" == "doctor" ]]; then
-  shift
-  exec python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT" doctor "$@"
-elif [[ "${1:-}" == "dashboard" ]]; then
-  shift
-  exec python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT" dashboard-render "$@"
-fi
-
 cd "$HUB_ROOT"
-exec python3 -m loop.runner "$@"
+exec python3 -m loop.kernel "$@"

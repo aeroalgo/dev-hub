@@ -4,14 +4,20 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from loop.workflow.tool_gates.protocol import (
-    ToolGateAdapter,
-    ToolGateContext,
-    ToolGateResult,
-)
+
+@dataclass(frozen=True)
+class ToolGateContext:
+    cwd: Path
+
+
+@dataclass(frozen=True)
+class ToolGateResult:
+    ok: bool
+    diagnostic_codes: list[str] = field(default_factory=list)
 
 
 class RenderCheckAdapter:

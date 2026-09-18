@@ -1,5 +1,0 @@
-step_id: s01
-plan_refs: [FR-001]
-out_of_scope: []
-as_built:
-  - "`non_existent_file_path_xyz.py` is referenced here"

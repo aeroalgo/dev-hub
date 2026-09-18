@@ -7,11 +7,10 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: hub-link [--mode alongside|full] [--pack PACK_ID] [--with-skills] [--dry-run] [PRODUCT_ROOT]
+Usage: hub-link [--mode alongside|full] [--with-skills] [--dry-run] [PRODUCT_ROOT]
 
 Options:
   --mode alongside|full   Install mode (default: alongside)
-  --pack PACK_ID          Workflow pack ID (e.g. video-production) to link/copy pack rules
   --with-skills           In alongside mode, install .agents/skills link (fail-closed if exists as regular dir)
   --dry-run               Print actions without modifying files
   --product PATH          Product root path (alternative to positional argument)
@@ -21,7 +20,6 @@ EOF
 
 MODE="alongside"
 WITH_SKILLS=0
-PACK_ID=""
 DRY_RUN=0
 PRODUCT_OVERRIDE=""
 POSITIONAL_ARGS=()
@@ -38,18 +36,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --mode=*)
       MODE="${1#*=}"
-      shift
-      ;;
-    --pack)
-      if [[ $# -lt 2 ]]; then
-        echo "ERROR: --pack requires a pack ID argument" >&2
-        exit 2
-      fi
-      PACK_ID="$2"
-      shift 2
-      ;;
-    --pack=*)
-      PACK_ID="${1#*=}"
       shift
       ;;
     --dry-run)
@@ -168,65 +154,6 @@ copy_or_link_file() {
   fi
 }
 
-install_pack_rules() {
-  local pack_id="$1"
-  if [[ -z "$pack_id" ]]; then
-    return 0
-  fi
-  local reg_file="$DEV_HUB/loop/workflow_pack_registry.yaml"
-  if [[ ! -f "$reg_file" ]]; then
-    echo "ERROR: pack registry not found: $reg_file" >&2
-    exit 2
-  fi
-  local rules_root
-  rules_root="$(python3 - "$reg_file" "$pack_id" <<'PY'
-import sys, yaml
-reg_path = sys.argv[1]
-pack_id = sys.argv[2]
-try:
-    with open(reg_path, 'r', encoding='utf-8') as f:
-        data = yaml.safe_load(f) or {}
-    packs = data.get('packs', {})
-    if pack_id not in packs:
-        print(f"NOT_FOUND", file=sys.stderr)
-        sys.exit(1)
-    print(packs[pack_id].get('rules_root', ''))
-except Exception as e:
-    print(f"ERROR: {e}", file=sys.stderr)
-    sys.exit(1)
-PY
-)" || {
-    echo "ERROR: pack '$pack_id' not found in $reg_file" >&2
-    exit 2
-  }
-
-  if [[ -z "$rules_root" ]]; then
-    echo "ERROR: pack '$pack_id' has no rules_root defined" >&2
-    exit 2
-  fi
-
-  local src_rules="$DEV_HUB/$rules_root"
-  if [[ ! -d "$src_rules" ]]; then
-    echo "ERROR: pack rules_root directory missing in hub: $src_rules" >&2
-    exit 2
-  fi
-
-  local base_name
-  base_name="$(basename "$rules_root")"
-  local dest_rules=".cursor/rules/$base_name"
-
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[dry-run] would copy/link pack rules: $src_rules -> $PRODUCT_ROOT/$dest_rules"
-    return 0
-  fi
-
-  mkdir -p "$PRODUCT_ROOT/.cursor/rules"
-  # Copy pack rules tree into product repo .cursor/rules/<base_name>
-  mkdir -p "$PRODUCT_ROOT/$dest_rules"
-  cp -R "$src_rules"/* "$PRODUCT_ROOT/$dest_rules/" 2>/dev/null || true
-  echo "copy pack rules: $rules_root -> $dest_rules"
-}
-
 if [[ "$MODE" == "alongside" ]]; then
   if [[ ! -d "$DEV_HUB/harness" ]]; then
     echo "ERROR: hub harness directory missing: $DEV_HUB/harness" >&2
@@ -294,17 +221,8 @@ if [[ "$MODE" == "alongside" ]]; then
     link_one "CLAUDE.harness.md" "$DEV_HUB/harness/claude/CLAUDE.harness.md"
   fi
 
-  # 6. Merge settings.json if harness settings exist
-  if [[ -f "$DEV_HUB/harness/claude/settings.harness.json" ]]; then
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      echo "[dry-run] merge settings.json with $DEV_HUB/harness/claude/settings.harness.json"
-    else
-      python3 "$DEV_HUB/loop/hub_settings_merge.py" "$PRODUCT_ROOT/.claude/settings.json" "$DEV_HUB/harness/claude/settings.harness.json"
-    fi
-  fi
-
-  # 7. Mirror hub consumer layout in the product:
-  #   harness shell symlinks + .codex (runtime-sync output in hub) + .cursor/hooks*
+  # 6. Mirror hub consumer layout in the product:
+  #   harness shell symlinks + .codex (runtime-sync output in hub)
   # Fail-closed if a destination already exists as a regular file/dir.
   for pair in \
     ".cursor/rules:$DEV_HUB/harness/cursor/rules" \
@@ -314,7 +232,6 @@ if [[ "$MODE" == "alongside" ]]; then
     ".cursor/schemas:$DEV_HUB/.cursor/schemas" \
     ".claude/agents:$DEV_HUB/harness/agents" \
     ".claude/commands:$DEV_HUB/harness/claude/commands" \
-    ".claude/hooks:$DEV_HUB/harness/hooks" \
     ".claude/instructions:$DEV_HUB/harness/instructions" \
     ".claude/rules:$DEV_HUB/harness/claude/rules" \
     ".claude/skills:$DEV_HUB/harness/claude/skills" \
@@ -346,11 +263,6 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 9. Pack rules (if --pack specified)
-  if [[ -n "$PACK_ID" ]]; then
-    install_pack_rules "$PACK_ID"
-  fi
-
   echo "OK alongside links in $PRODUCT_ROOT"
   exit 0
 fi
@@ -380,12 +292,12 @@ if [[ -d "$DEV_HUB/harness" ]]; then
   link_one "harness" "$DEV_HUB/harness"
 fi
 
-# Claude Code extension: agents/hooks/settings from hub; runtime stays local per product.
+# Claude Code extension: agents/settings from hub; runtime stays local per product.
 if [[ ! -d "$DEV_HUB/.claude" ]]; then
   echo "ERROR: hub .claude missing: $DEV_HUB/.claude" >&2
   exit 2
 fi
-for sub in agents hooks skills commands instructions rules; do
+for sub in agents skills commands instructions rules; do
   if [[ -e "$DEV_HUB/.claude/$sub" ]]; then
     link_one ".claude/$sub" "$DEV_HUB/.claude/$sub"
   fi
@@ -406,11 +318,6 @@ if [[ ! -f "$PRODUCT_ROOT/.dev-hub" ]]; then
   rel_hub="$(rel_or_abs "$PRODUCT_ROOT" "$DEV_HUB")"
   printf '%s\n' "$rel_hub" > "$PRODUCT_ROOT/.dev-hub"
   echo "write   .dev-hub → $rel_hub"
-fi
-
-# Pack rules (if --pack specified in full mode)
-if [[ -n "$PACK_ID" ]]; then
-  install_pack_rules "$PACK_ID"
 fi
 
 echo "OK Cursor + Claude Code links in $PRODUCT_ROOT"

@@ -1,3 +1,3 @@
-# Context-first loop package.
+"""Single-cursor loop runtime."""
 
-__all__ = []
+__all__ = ["kernel"]

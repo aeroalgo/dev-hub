@@ -1,7 +1,0 @@
-schema: epic-decompose-index/v1
-plan_id: T-HUB-ORPHANTASK
-steps:
-  - id: s01
-    file: s01.yaml
-  - id: s02
-    file: s02.yaml

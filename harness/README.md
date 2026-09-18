@@ -1,9 +1,9 @@
 # Harness
 
-`harness/` is the canonical Source of Truth (SoT) for repo hooks, agents, instructions, skills, commands, and rules.
+`harness/` is the canonical Source of Truth (SoT) for agents, instructions, skills, commands, and rules.
 
 - `harness/` contains the behavior and business logic of execution rules.
-- `.claude/` in dev-hub acts as a thin symlink shell referencing `harness/` (`harness/agents/`, `harness/hooks/`, `harness/claude/commands/`, `harness/claude/skills/`, `harness/claude/rules/`).
+- `.claude/` in dev-hub acts as a thin symlink shell referencing `harness/` (`harness/agents/`, `harness/claude/commands/`, `harness/claude/skills/`, `harness/claude/rules/`).
 - `.agents/skills` in dev-hub is a thin symlink shell referencing `harness/skills/`.
 - `harness/cursor/rules/` is the canonical Source of Truth for cursor rules; `@.cursor/rules` references remain functional via symlinks.
 
@@ -17,7 +17,6 @@
 | Claude Rules | `harness/claude/rules/` | `.claude/rules` -> `harness/claude/rules` |
 | Agent Skills | `harness/skills/` | `.agents/skills` -> `harness/skills` |
 | Claude Agents | `harness/agents/` | `.claude/agents` -> `harness/agents` |
-| Claude Hooks | `harness/hooks/` | `.claude/hooks` -> `harness/hooks` |
 | Cursor Rules | `harness/cursor/rules/` | `.cursor/rules` -> `harness/cursor/rules` |
 | Cursor Templates | `harness/cursor/templates/` | `.cursor/templates` -> `harness/cursor/templates` |
 
@@ -45,7 +44,7 @@ Non-destructive integration designed for external product repositories. It layer
 - Places router stub at `.cursor/rules.d/dev-hub-harness-router.mdc`
 - Symlinks `CLAUDE.harness.md` -> `$DEV_HUB/harness/claude/CLAUDE.harness.md`
 - Symlinks `AGENTS.md` and `CLAUDE.md` to the canonical files in `$DEV_HUB`; existing regular entrypoints are left untouched and cause a fail-closed conflict
-- Merges hooks from `harness/claude/settings.harness.json` into `.claude/settings.json` preserving user permissions; hook commands point to `harness/hooks/*.py` (via product `harness/` symlink), not `.claude/hooks/`
+- Keeps `harness/claude/settings.harness.json` as an empty runtime overlay; loop state is owned by `loop/kernel`.
 
 Project targets and workflow pack configuration are defined solely in root `dev-hub.project.yaml` (`dev-hub-project/v1`). Old config locations (`project.yaml`, `.dev-hub/project.yaml`) are removed and not read. Example template: `harness/templates/dev-hub.project.yaml`.
 
@@ -71,7 +70,7 @@ Full replacement mode used for dev-hub dogfooding and complete environment repli
 
 #### What full mode does:
 - Symlinks `.cursor/rules`, `.cursor/templates`, `.agents`, `CLAUDE.md`, and `harness/` directly to dev-hub
-- Symlinks all `.claude/` subdirectories (`agents`, `hooks`, `skills`, `commands`, `instructions`, `rules`) and root files (`settings.json`, `project.env`)
+- Symlinks all active `.claude/` subdirectories (`agents`, `skills`, `commands`, `instructions`, `rules`) and root files (`settings.json`, `project.env`)
 - Sets up `.claude/runtime` and `.claude/worktrees`
 - Replaces configuration with hub-managed symlinks
 

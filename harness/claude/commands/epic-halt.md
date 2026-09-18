@@ -1,12 +1,11 @@
 ---
 description: EPIC HALT — остановить автоцикл decompose
 ---
-Halt the epic loop now:
+Останови epic loop через единственный владелец состояния:
 
 ```bash
-python3 .claude/hooks/epic_resolve.py halt --reason "${ARGUMENTS:-manual halt from /epic-halt}"
-python3 .claude/hooks/epic_resolve.py status
+./bin/loop halt --reason "${ARGUMENTS:-manual halt from /epic-halt}" --json
 ```
 
-Кратко подтверди status=halted.
+Кратко подтверди `status=halted`.
 $ARGUMENTS
