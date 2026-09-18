@@ -12,27 +12,50 @@ alwaysApply: false
 
 **Процесс:** `workflow-*.mdc` → gates `isolation_rules/_lean/<mode>.mdc`. Скиллы — только из workflow.
 
+## Happy path
+
 | Режим | Процесс |
 |-------|---------|
 | `INTEG VAN` | @.cursor/rules/integration_developer/workflow-van.mdc |
 | `INTEG GAP` | @.cursor/rules/integration_developer/workflow-gap.mdc |
 | `INTEG GAP CLOSE` | @.cursor/rules/integration_developer/workflow-gap-close.mdc |
-| `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc — orchestrator: Phase 0 + Phase 1 |
+| `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc — Phase 0 auto-clarify + Phase 1 (+ inline roadmap-merge) |
+| `INTEG PLAN REFACTOR` | @.cursor/rules/integration_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (фаза 2 cadence-блока: строго после replan pair_ids; refactor epic или noop) |
 | `INTEG CLARIFY` | @.cursor/rules/integration_developer/workflow-clarify.mdc — добор / revisit / standalone |
-| `INTEG ANALYZE` | @.cursor/rules/integration_developer/workflow-analyze.mdc — read-only проверка wire/contract plan до IMPLEMENT |
-| `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc — recovery-only |
 | `INTEG DECOMPOSE` | @.cursor/rules/integration_developer/workflow-decompose.mdc |
+| `INTEG ANALYZE` | @.cursor/rules/integration_developer/workflow-analyze.mdc |
 | `INTEG CREATIVE` | @.cursor/rules/integration_developer/workflow-creative.mdc |
 | `INTEG IMPLEMENT` | @.cursor/rules/integration_developer/workflow-implement.mdc |
-| `INTEG AUDIT` | @.cursor/rules/integration_developer/workflow-audit.mdc — post-IMPLEMENT intent↔evidence + remediation loop |
+| `INTEG AUDIT` | @.cursor/rules/integration_developer/workflow-audit.mdc |
+| `INTEG QA` | @.cursor/rules/integration_developer/workflow-qa.mdc |
+| `INTEG ARCHIVE NOW` | @.cursor/rules/integration_developer/workflow-archive.mdc |
 | `INTEG TASK` | @.cursor/rules/integration_developer/workflow-task.mdc |
 | `INTEG BUGFIX` | @.cursor/rules/integration_developer/workflow-bugfix.mdc |
 | `INTEG REFACTOR` | @.cursor/rules/integration_developer/workflow-refactor.mdc |
-| `INTEG ARCHIVE NOW` | @.cursor/rules/integration_developer/workflow-archive.mdc |
-| `INTEG QA` | @.cursor/rules/integration_developer/workflow-qa.mdc |
 | `INTEG SECURITY` · `INTEG SECURITY PLAN` · `INTEG SECURITY DECOMPOSE` | @.cursor/rules/integration_developer/workflow-security.mdc |
 
-**Archive (не gate):** `workflow-reflect.mdc` — не hot path; после QA = DONE.
+## Recovery / ad-hoc (не next после PLAN)
+
+| Режим | Процесс |
+|-------|---------|
+| `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc — только если canon устарел без PLAN |
+| `INTEG RECONCILE` | @.cursor/rules/integration_developer/workflow-reconcile.mdc — drift после hotfix или фаза resync cadence-блока (`--from-queue`) |
+| `INTEG REPLAN` | @.cursor/rules/integration_developer/workflow-replan.mdc — после QA: skip\|spawn новых epic_id (не overwrite parent); SoT = parent `## Epic` + код; marker `replan-i2\|i3.yaml`; spawn без Parent-prompt/QA links; cadence pair_ids one-hop |
+| `INTEG JANITOR` | @.cursor/rules/integration_developer/workflow-janitor.mdc |
+
+## Cadence block (Kind I order)
+
+Каденс-блок (`memory-bank/integration/roadmap/cadence.yaml`) выполняется каждые N feature-эпиков (every-2) в строгом порядке: `REPLAN -> Refactor -> Resync -> Reset/Idle`:
+1. `phase=replan`: REPLAN для `pair_ids` (one-hop per parent ID; critical gaps → spawn new epics + marker; else skip evidence; forbid overwrite parent / replan-of-replan in-block).
+2. `phase=refactor`: PLAN REFACTOR (строго после закрытия всех pair_ids в replan; refactor epic `kind: refactor` или noop evidence).
+3. `phase=resync`: вызов reconcile для всех эпиков очереди `queue.yaml` (через CLI/API `--from-queue`), структурированная фиксация `ResyncEvidence` в `cadence.yaml`, инвалидация планов HOW при HIGH drift без мутации §Epic, fail-closed блокировка resume при необработанном HIGH drift.
+4. `phase=idle` (reset): сброс фазы в `idle` и обнуление счётчика фич (`on_resync_done` / `reset_cadence_idle`) для возобновления движения feature-эпиков.
+
+**Anti-carry policy:** строгий запрет (FORBIDDEN) на перенос незакрытых FR в соседние feature-эпики (no neighbor carry) и запрет скользящих окон (sliding window).
+
+**Note:** loop SoT cadence сейчас wired для `back/`; INTEG cadence path — канон rules/artifacts; auto-arm loop для integration — follow-up.
+
+**Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.
 
 Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / create).  
 As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc (`INTEG VAN` = все shards).  

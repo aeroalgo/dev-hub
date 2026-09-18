@@ -9,27 +9,50 @@ alwaysApply: false
 **Core:** @.cursor/rules/front_developer/mainrule-core.mdc  
 **Процесс:** `workflow-*.mdc` → gates `isolation_rules/_lean/<mode>.mdc`. Скиллы — только из workflow.
 
+## Happy path
+
 | Режим | Процесс |
 |-------|---------|
 | `FRONT VAN` | @.cursor/rules/front_developer/workflow-van.mdc |
-| `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc — orchestrator: Phase 0 + Phase 1 |
+| `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc — Phase 0 auto-clarify + Phase 1 (+ inline roadmap-merge) |
+| `FRONT PLAN REFACTOR` | @.cursor/rules/front_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (фаза 2 cadence-блока: строго после replan pair_ids; refactor epic или noop) |
 | `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — добор / revisit / standalone |
-| `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
-| `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc — recovery-only (PLAN делает merge inline) |
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
+| `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc |
 | `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |
 | `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
-| `FRONT AUDIT` | @.cursor/rules/front_developer/workflow-audit.mdc — post-IMPLEMENT intent↔evidence + remediation loop |
+| `FRONT AUDIT` | @.cursor/rules/front_developer/workflow-audit.mdc |
+| `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |
+| `FRONT ARCHIVE NOW` | @.cursor/rules/front_developer/workflow-archive.mdc |
 | `FRONT TASK` | @.cursor/rules/front_developer/workflow-task.mdc |
 | `FRONT BUGFIX` | @.cursor/rules/front_developer/workflow-bugfix.mdc |
 | `FRONT REFACTOR` | @.cursor/rules/front_developer/workflow-refactor.mdc |
-| `FRONT ARCHIVE NOW` | @.cursor/rules/front_developer/workflow-archive.mdc |
-| `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |
 | `FRONT SECURITY` · `FRONT SECURITY PLAN` · `FRONT SECURITY DECOMPOSE` | @.cursor/rules/front_developer/workflow-security.mdc |
 
-**Archive (не gate):** `workflow-reflect.mdc` — не hot path; после QA = DONE.
+## Recovery / ad-hoc (не next после PLAN)
 
-Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / создание структуры).  
+| Режим | Процесс |
+|-------|---------|
+| `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc — только если canon устарел без PLAN |
+| `FRONT RECONCILE` | @.cursor/rules/front_developer/workflow-reconcile.mdc — drift после hotfix или фаза resync cadence-блока (`--from-queue`) |
+| `FRONT REPLAN` | @.cursor/rules/front_developer/workflow-replan.mdc — после QA: skip\|spawn новых epic_id (не overwrite parent); SoT = parent `## Epic` + код; marker `replan-i2\|i3.yaml`; spawn без Parent-prompt/QA links; cadence pair_ids one-hop |
+| `FRONT JANITOR` | @.cursor/rules/front_developer/workflow-janitor.mdc |
+
+## Cadence block (Kind I order)
+
+Каденс-блок (`memory-bank/front/roadmap/cadence.yaml`) выполняется каждые N feature-эпиков (every-2) в строгом порядке: `REPLAN -> Refactor -> Resync -> Reset/Idle`:
+1. `phase=replan`: REPLAN для `pair_ids` (one-hop per parent ID; critical gaps → spawn new epics + marker; else skip evidence; forbid overwrite parent / replan-of-replan in-block).
+2. `phase=refactor`: PLAN REFACTOR (строго после закрытия всех pair_ids в replan; refactor epic `kind: refactor` или noop evidence).
+3. `phase=resync`: вызов reconcile для всех эпиков очереди `queue.yaml` (через CLI/API `--from-queue`), структурированная фиксация `ResyncEvidence` в `cadence.yaml`, инвалидация планов HOW при HIGH drift без мутации §Epic, fail-closed блокировка resume при необработанном HIGH drift.
+4. `phase=idle` (reset): сброс фазы в `idle` и обнуление счётчика фич (`on_resync_done` / `reset_cadence_idle`) для возобновления движения feature-эпиков.
+
+**Anti-carry policy:** строгий запрет (FORBIDDEN) на перенос незакрытых FR в соседние feature-эпики (no neighbor carry) и запрет скользящих окон (sliding window).
+
+**Note:** loop SoT cadence сейчас wired для `back/`; FRONT cadence path — канон rules/artifacts; auto-arm loop для front — follow-up.
+
+**Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.
+
+Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / структура).  
 As-built UI: `memory-bank/architecture/frontend.md` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
 FINISH: @.cursor/rules/shared/finish-block.mdc  
 

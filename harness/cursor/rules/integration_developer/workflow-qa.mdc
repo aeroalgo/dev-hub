@@ -5,15 +5,20 @@ alwaysApply: false
 ### Команда: INTEG QA
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
-**Скиллы:** query-builder · verification-before-completion · frontend-testing · python-testing-patterns · playwright-best-practices · playwright-generate-test
+
+**Скиллы (core — lazy, 1–2 за сессию по gates):**  
+verification-before-completion · query-builder · playwright-best-practices · owasp-security-check — `@.agents/skills/<name>/SKILL.md`
+
+**FORBIDDEN:** suite через subagent; epic-scoped pytest вместо full (hub).
 
 **Процесс**:
-1. `OK INTEG QA - Верификация интеграции` → **Gates**
-2. §Contract + §0.11 + INTEG-CHECKLIST; tests — gates (Hub dev-hub self-test: **full** `bin/pytest -q --tb=line` без path/`-k`, epic-scoped = FAIL; Managed project: full `capability_checks: [test.full]` with typed execution evidence)
-3. `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
-4. fail|blocked → seed/merge `integration/bugfix/<epic_id>/bugfix-queue.yaml`; §Fix plan остаётся source rows (`INTEG|BACK|FRONT BUGFIX <subject>`)
-5. **FINISH:** finish-block (`code_changed: no`|`yes` если дописали тесты) + Handoff  
+1. `OK INTEG QA - Выполняю техническую валидацию` → **Gates**
+2. Lean load §7; §0.11 + contract; проверки — gates
+2a. **Full suite (HARD):** Hub full `bin/pytest -q --tb=line` + parent-only Vitest/Playwright; leftover + `sot_enforce_scan`; behavior smoke. Канон: `_lean/qa.mdc`
+2b. Epic QA load: `#qa-consumes` через offset/grep когда есть.
+3. qa-артефакт: `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`. Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
+4. fail|blocked → §Fix plan: полный eligible список; anti-ratchet.
+5. **FINISH:** finish-block (`code_changed: no`) + `## Handoff INTEG QA` — только после полного прохода  
    Next: Handoff в `memory-bank/activeContext.md` + decompose index
-   **FORBIDDEN:** копировать цепочки pass/blocked/fail → … здесь
 
-**Верификация**: gates + contract + scenario + Handoff (+ leftover mock/legacy/fallback при brownfield; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)
+**Верификация**: gates + verify-qa + Handoff (+ leftover/Kind I + `sot_enforce_scan`; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8)

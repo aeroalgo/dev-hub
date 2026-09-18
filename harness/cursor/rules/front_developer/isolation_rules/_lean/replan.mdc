@@ -1,0 +1,59 @@
+---
+description: "REPLAN gates — spawn follow-up epics; parent prompt immutable"
+alwaysApply: false
+---
+# REPLAN — gates
+
+## Gates
+
+1. Вход только после PASS `FRONT QA`, с parent `plan/<epic_id>/md/prompt.md`
+   и номером iteration hop (2 после I1, 3 после spawned I2 QA).
+2. Секция `## Epic` в **parent** `md/prompt.md` — единственный критерий outcome
+   (не Covering, не plan.md). Parent prompt **не** переписывать.
+3. **Context allowlist (HARD):** REPLAN читает только parent `## Epic` + код.
+   Parent plan/decompose/implement/analyze/audit/QA (кроме факта PASS) и
+   соседние `plan/**` — **не** вход анализа.
+4. **Spawn model (HARD):** critical gaps → **новые** epic_id + `plan/<new>/`;
+   parent `plan.md` / decompose / `done:` **не** overwrite / не reset.
+5. Marker обязателен: `plan/<parent>/md/replan-i2.yaml` или `replan-i3.yaml`
+   (`schema: replan-outcome/v1`, `outcome: skip|complete`, `parent_prompt`,
+   `spawned_epic_ids`, `plan_overwritten: false`). `parent_prompt` — lineage
+   в marker only, не `load_now`.
+6. При `complete` spawned `plan.md` шапка содержит `iteration: 2|3`,
+   `Replan-of: <parent_epic_id>` (id only), `Prompt:` на **свой** `md/prompt.md`;
+   spawn upsert в голову `queue.yaml`. **FORBIDDEN** в шапке spawn:
+   `Parent-prompt` / `Parent-replan` / `Parent I1 QA` / пути к parent artifacts.
+7. Gap classes только `outcome_gap|legacy_removal|hardening`; иначе
+   `backlog_candidates` (не spawn).
+8. После I3 новый spawn hop запрещён. Только FINAL OUTCOME REVIEW /
+   точечный BUGFIX по parent Epic.
+
+## Abort
+
+- Нет parent `md/prompt.md` / нет `## Epic` / файл не начинается с `## Epic` /
+  пустой prompt или QA PASS отсутствует → reject.
+- В parent/spawned `prompt.md` есть H1 до `## Epic` / ID эпиков / шапка Role·Deps → FAIL.
+- REPLAN читает Covering как SoT / parent|соседние `plan.md` / decompose / QA
+  как вход gaps → FAIL.
+- Прежний plan/shard использован как доказательство outcome → FAIL.
+- Spawned `plan.md` содержит `Parent-prompt` / `Parent-replan` / `Parent I1 QA`
+  или path-ссылки на parent plan/QA/decompose → FAIL.
+- FINISH `load_now` включает parent prompt/plan/QA → FAIL.
+- Overwrite parent `plan.md` / reset parent decompose/events / reuse parent id → FAIL.
+- Создана папка `memory-bank/*/replan/` как SoT → FAIL.
+- Создана I4 или расширен scope исходного parent prompt → FAIL.
+- Внесены code/loop/CLI/schema изменения в рамках REPLAN → FAIL
+  (исключение: правка rules при явном user `implement this`).
+
+## Verify
+
+```text
+rg -n 'Context allowlist|Replan-of|load_now|plan_overwritten|FINAL OUTCOME REVIEW' .cursor/rules/front_developer/workflow-replan.mdc
+test -f memory-bank/front/plan/<parent_epic_id>/md/prompt.md
+# after REPLAN:
+test -f memory-bank/front/plan/<parent_epic_id>/md/replan-i2.yaml
+# complete ⇒ spawned plan exists and queue head references it
+# spawned plan header MUST NOT contain Parent-prompt|Parent-replan|Parent I1 QA
+rg -n 'Parent-prompt|Parent-replan|Parent I1 QA' memory-bank/front/plan/<spawned>/md/plan.md
+# any match → FAIL
+```

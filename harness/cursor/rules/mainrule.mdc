@@ -43,7 +43,7 @@ alwaysApply: true
 
 Пропущенный Read из **этого** списка — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
 
-Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK RECONCILE` → `<epic_id>`. `BACK REPLAN` → `<epic_id>`.
+Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK|FRONT|INTEG RECONCILE` → `<epic_id>`. `BACK|FRONT|INTEG REPLAN` → `<epic_id>`.
 
 ## Префикс → индекс → core
 

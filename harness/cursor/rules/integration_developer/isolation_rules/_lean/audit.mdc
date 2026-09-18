@@ -1,40 +1,38 @@
 ---
-description: "INTEG AUDIT gates — intent↔implement assessment, findings, append-only remediation и converge"
+description: "AUDIT gates — проверка только контрактов текущей итерации"
 alwaysApply: false
 ---
-# INTEG AUDIT — gates
-**Артефакт:**
-`memory-bank/integration/audit/<epic_id>/audit.yaml`
-Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
+# AUDIT — gates
 
-## Gates (обязательные — узкий путь)
-1. Lean load §7: `load_now` + `plan/<epic_id>/md/plan.md` (Element registry) + `plan/<epic_id>/yaml/decompose-index.yaml` (status) + заголовки `implement/implement-<epic_id>/eNN-*.yaml`. Assess D: полный текст per completed eNN implement yaml ↔ decompose yaml. FORBIDDEN: full-repo dump; FORBIDDEN `plan/<epic_id>/md/eNN-*.md` как implement
-2. **Intent Inventory gate (plan-first):** все plan FR/SC/US/AC±/NFR + constitution MUST; каждый → `element_id`/`eNN` или `missing` CRITICAL. Decompose вторичен. @.cursor/rules/shared/workflow-behavior-first.mdc §3
-3. **Assess gate (behavior):** для каждого plan intent и `element_id`:
-   - **✅** — behavior/contract evidence (не presence alone)
-   - **❌** — нет implement / evidence не подтверждает plan WHAT
-   - **⚠️** — partial / dilution / contract drift → finding с `element_id`
-4. **Findings gate:** `findings[]` с `gap_type`, `severity`, `source_ref`, `evidence`, `remaining_work`; contract drift в `deviations[]` с `element_id`
-5. **Append/source_ref gate:** actionable → `eNN-audit-<slug>.yaml` append-only с `source_ref`
-6. **Dual-write/leftover gate:** legacy arrays; brownfield scan + leftovers + `purge_step_present`
-7. **Converged gate:** `converged: true` только без actionable + **behavior evidence по каждому plan FR** + scan complete + empty leftovers + purge. Metadata-only → не converged. Тогда INTEG QA; иначе IMPLEMENT → AUDIT
-8. Append в tasks log и FINISH через finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index при добавлении `eNN`
+**Артефакт:** `memory-bank/integration/audit/<epic_id>/audit.yaml`
+
+## Gates
+
+1. Обязательны `epic_id` и iteration. Scope = current plan, decompose index,
+   completed implement-шарды (`eNN`) и bounded file list из них.
+2. `check_matrix[]` покрывает каждый явный FR/AC/§Contract/delete-contract
+   **текущей итерации**. У каждой строки есть `source_ref`, `status`, `evidence`,
+   `verify`.
+3. PASS допустим только при отсутствии `fail|blocked` в matrix. Файл на диске,
+   registry row или закрытый shard без behavior evidence не являются PASS.
+4. Finding создаётся только для `fail|blocked` matrix row и обязан содержать
+   `source_ref`, evidence и минимальный `bugfix_subject`.
+5. OUT-OF-SCOPE observation пишется только в `replan_candidates[]`; он не
+   создаёт finding, audit-shard или изменение текущего plan.
+6. FINISH: `PASS → INTEG QA`; `FAIL → INTEG BUGFIX <subject>`. AUDIT никогда не
+   выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT.
 
 ## Abort
-- AUDIT без `epic_id` → reject (нет ad-hoc режима)
-- Артефакт в корне `audit/` без `<epic_id>/` → FAIL
-- Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
-- FINISH без Intent Inventory, Assess, findings или полной gap-матрицы → FAIL
-- Intent только из remapped decompose / `satisfied` на surrogate → FAIL
-- `converged: true` без behavior evidence по plan FR → FAIL
-- Contract drift зафиксирован без `element_id` в `deviations[]` → FAIL
-- Brownfield leftover не заполнен / purge отсутствует при sunset ≠ n/a → FAIL
-- Запуск тестов, suite, git-diff или попытка rewrite completed implement → FAIL
-- Введение MODE CONVERGE или auto-delete unrequested → FAIL
 
-## Boundary
-`INTEG ANALYZE` — pre-IMPLEMENT coverage/ambiguity без implement YAML и audit shards. `INTEG AUDIT` — post-IMPLEMENT intent↔evidence assessment и append-only remediation.
+- Нет `epic_id`, iteration или bounded file list → reject.
+- Audit создаёт новый shard, новый requirement или меняет plan/decompose/code → FAIL.
+- Findings без строки current `check_matrix` → FAIL.
+- Full-repo/legacy scan, architecture parity, inventory прежних plans либо
+  исходного prompt выданы за работу AUDIT → FAIL.
+- Запуск pytest/vitest/Playwright/suite → FAIL: проверки исполняет QA.
+- Вызов `mb-finish audit` как gate simplified audit → FAIL до отдельной
+  runtime-интеграции.
 
 ## Verify
-`rg -n 'epic-audit/v2|findings|gap_type|severity|source_ref|converged' .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc`
-`rg -n 'legacy_surfaces_remaining|fallback_remaining|purge_step_present' .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc`
+
+`rg -n 'check_matrix|replan_candidates|INTEG QA|INTEG BUGFIX' .cursor/rules/integration_developer/workflow-audit.mdc`

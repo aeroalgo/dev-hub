@@ -51,6 +51,9 @@ _ROLE_SUBDIR_MAP = {
 
 _COMPOSITE_WORKFLOW_FILES = {
     ("back", "PLAN REFACTOR"): "workflow-plan-refactor.mdc",
+    ("front", "PLAN REFACTOR"): "workflow-plan-refactor.mdc",
+    ("integ", "PLAN REFACTOR"): "workflow-plan-refactor.mdc",
+    ("integration", "PLAN REFACTOR"): "workflow-plan-refactor.mdc",
 }
 
 

@@ -6,34 +6,60 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Hot path:** @.cursor/rules/back_developer/workflow-implement.mdc#Hot path — **единственный** process-файл на старте; этот файл — при FAIL.
 **Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
+
+**Policy lazy (не грузить целиком без триггера):**
+- boundary/SoT/cutover step → @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (`wire_complete`)
+- непустой `deletes` / purge slug → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §3
+
 **Скиллы (HARD):** источник — секция `skills.impl` текущего decompose-step; `impl: []` / docs-only → skip. `verification-before-completion` **не** грузить — finish-block + `@verify`.
 
 **Цель:** Один UI-элемент — live API, без mock в prod path.
+
+---
+
+## Hot path
+
+**Load (HARD):** не рекурсивный `@`. Канон: .cursor/rules/mainrule.mdc §Full linked chain.
+
+1. **ANALYZE hard gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
+2. `load_now` → work shard `eNN` + **`plan_contract`** / §Contract + `index.yaml`
+3. Read **`plan_jumps`** / plan §FR при необходимости
+4. Gates + scope-lock. Полный `files:` → SKIP @explorer/graphify query. `skills.impl` если code. Фазы A–F · `deletes:` · `wire_complete` на SoT
+5. Последний eNN → **`plan_parity_scan`**
+6. **Перед FINISH** — Read finish-block → `@verify` → PASS → `finalize-step` → epic done → AUDIT
+
+→ wire-complete: .cursor/rules/shared/workflow-behavior-first.mdc §3 · §9
+
+### Execution discipline
+
+- One eNN = one session
+- Анти-минимализм: «endpoint есть» / mock forever ≠ done
+- FRONT Vitest/Playwright — **только parent**
+
+---
 
 **Старт (до кода):** Hot path → Gates → scope-lock → `load_now` eNN+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
 
 **Процесс**:
 1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · **Scope lock** · Hot path
 1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
+1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT**.
 2. `load_now` → work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`
-   **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`. Jump `plan §N` только при нехватке.
-   Полный `files:` → SKIP @explorer / graphify query.
+   **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`.
 3. **Contract gate:** §Contract из шага — пуст → допиши до кода
-3a. **Skills gate:** `skills.impl` в текущем eNN — обязательный список Read если code; не угадывать и не заменять его широким каталогом.
+3a. **Skills gate:** `skills.impl` в текущем eNN — обязательный список Read если code.
 
 ## Фазы A–F
 
 **A** Discovery: §UI/API/Data/DB; grep mock; §Gaps
-**B** BACK (если §BACK): schema → endpoint → Hub targeted `bin/pytest` (managed: declare `capability_checks: [test.targeted]` with typed execution evidence)
+**B** BACK (если §BACK): schema → endpoint → Hub targeted `bin/pytest` (managed: `capability_checks: [test.targeted]`)
 **C** FRONT: api client → filter-utils → parent-only Vitest → убрать mock
 **D** Wire: fetch + loading/error + URL sync
-**E** §0.11 + mock удалён + все `deletes:` из eNN выполнены (включая obsolete tests на mock/legacy)
-**E2** Scenario: user-visible → parent-only Playwright **или** Hub pytest HTTP outcome (managed: declared HTTP/API capability evidence)
+**E** §0.11 + mock удалён + все `deletes:` из eNN выполнены
+**E2** Scenario: user-visible → parent-only Playwright **или** Hub pytest HTTP outcome
 **E2a** **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH
-**F** FINISH: **сейчас** Read finish-block — Write step (в т.ч. `deletes`) → `validate-step` → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`)
-Next-mode: `memory-bank/activeContext.md` + `decompose-*/index.yaml`
+**F** FINISH: Read finish-block — Write step → `validate-step` → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT
 
 ## Step format (HARD — loop after-hook)
 
@@ -47,7 +73,6 @@ Next-mode: `memory-bank/activeContext.md` + `decompose-*/index.yaml`
 
 **FORBIDDEN:** `.md` shard для eNN · BACK-секции вместо integ-обязательных · `## Handoff` в step.
 
-
 **Антипаттерны:** query-builder/references/ANTI-PATTERNS.md
 
-**Верификация**: scope lock + gates + §0.11 + deletes executed + FINISH + graphify
+**Верификация**: ANALYZE gate + scope lock + gates + §0.11 + deletes + FINISH + graphify

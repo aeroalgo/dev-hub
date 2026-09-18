@@ -6,7 +6,12 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`). Hot path роли: @.cursor/rules/back_developer/workflow-implement.mdc#Hot path.
+**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
+
+**Policy lazy (не грузить целиком без триггера):**
+- boundary/SoT/cutover step → @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (`wire_complete`)
+- непустой `deletes` / purge slug → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §3
+- always-on stub уже покрывает axiom; не читать full `workflow-spec-first-replace` без PLAN/design спора
 
 **Скиллы — только step (HARD)**
 
@@ -18,26 +23,42 @@ alwaysApply: false
 | **Design skills** из step | Read **до** UI-кода; если `—` / `visible_ui: no` → skip |
 | `verification-before-completion` / `requesting-code-review` | **не** грузить — finish-block + `@verify` |
 
-**FORBIDDEN:**
-- широкий слой A / угадывание скиллов
-- Read скиллов вне step
-- Design Read при `visible_ui: no`
-- пропуск пути из Impl/Design step когда слой активен
-- `limit` на Read SKILL.md
+**FORBIDDEN:** широкий слой A · Read скиллов вне step · Design Read при `visible_ui: no` · `limit` на SKILL.md
+
+---
+
+## Hot path
+
+**Load (HARD):** не рекурсивный `@`. Канон: .cursor/rules/mainrule.mdc §Full linked chain.
+
+1. **ANALYZE hard gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
+2. `load_now` → work shard + **`plan_contract`** + `index.yaml` (AC = shard+contract; не весь plan)
+3. Read **`plan_jumps`** / plan §FR (формула jump = (end−start)×2)
+4. Gates + scope-lock. Полный `files:` / `delta_paths_*` → SKIP @explorer и graphify query. `skills.impl` + Design если `visible_ui`. TDD red→green · parent Playwright targeted · `deletes:` · `wire_complete` на SoT
+5. Последний sNN → **`plan_parity_scan`** (FR+layout checklist)
+6. **Перед FINISH** — Read finish-block. 5 точек → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
+
+→ wire-complete: .cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
+
+### Execution discipline
+
+- One shard = one session · `EPIC_ATOMIC_COMMIT` per project.env
+- Анти-минимализм: «компонент есть» ≠ done
+- Vitest/Playwright — **только parent**
+
+---
 
 **Старт (до кода):** Hot path → Gates → scope-lock → `load_now` shard+index → skills шага. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
 
 **Процесс**:
 1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock** · Hot path
 1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
-2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`
-   **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now`. Jump `plan §N` только из Consumes при нехватке.
-   Полный `files:` → SKIP @explorer.
+1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT** (нет `ANALYZE deferred`).
+2. `load_now` → work shard (+ **`plan_contract`**) + `index.yaml`; AC = shard+contract; **FORBIDDEN** полный plan monolith.
 3. Read Impl (+ Design если есть) до prod-edit
-4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; **выполнить `deletes:`** из work shard (код **и** obsolete tests; **FORBIDDEN** restore legacy «чтобы green»)
-5. §0.11; после deletes — нет callers на удалённое и нет asserts на sunset-контракт
+4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; выполнить все `deletes:`; **FORBIDDEN** restore legacy
+5. §0.11; после deletes — нет callers на удалённое
 5a. **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH
-6. **FINISH:** **сейчас** Read finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`, **не** plan)
-   Next: Handoff в `activeContext.md` + `index.yaml`
+6. **FINISH:** Read finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT
 
-**Верификация**: scope lock + gates + deletes executed + FINISH/Handoff + graphify
+**Верификация**: ANALYZE gate + scope lock + plan_contract + gates + deletes + FINISH + `graphify update .`

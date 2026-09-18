@@ -4,23 +4,29 @@ alwaysApply: false
 ---
 # FRONT PLAN — gates
 
-**Артефакт:** `memory-bank/front/roadmap/queue.yaml` (одна row на каждый PLAN) + `memory-bank/front/plan/<task_id>/md/plan.md` + `md/prompt.md` (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc)
-**Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
-**Multi-epic:** research/audit → epic cut + N rows в `memory-bank/front/roadmap/queue.yaml` + N× plan; single-epic также обязан иметь одну row; **FORBIDDEN** slug roadmap md/yaml в `plan/`; next = DECOMPOSE
-**SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0
-**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — L3+ `Done when` + `Forbidden after`; boundary FR → enforce entrypoint
+**Артефакт:** `memory-bank/front/roadmap/queue.yaml` (одна queue row на каждый PLAN) + `memory-bank/front/plan/<task_id>/md/plan.md` + `md/prompt.md` (`workflow-plan-outcome-prompt.mdc`)
+**Phase 0:** `workflow-plan-clarify-orchestration.mdc` — auto-clarify в той же сессии PLAN при триггерах
+**Multi-epic:** research/audit → epic cut + N rows в `memory-bank/front/roadmap/queue.yaml` + N× `plan/<epic_id>/` (`workflow-plan-multi-epic.mdc`); single-epic также обязан иметь одну row; **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE
+**SUSPENSION GUARD:** `token-economy-core.mdc §0.0` — plan без telegraph / 200-line cap
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — L3+ `Done when` + `Forbidden after`; boundary FR → enforce entrypoint (не «модуль есть»)
 
 ## Gates
 
-0. Phase 0 orchestration при триггерах (см. shared orchestration)
-1. `tasks.md` + level
-2. Сначала queue row в каноническом `roadmap/queue.yaml`, затем план в path выше + `md/prompt.md` (начинается с `## Epic`; без шапки Role/Deps/ID); при research — roadmap + полный plan **и** prompt на каждый эпик (Covering одинаковый; **весь** prompt без ID)
-3. UI → design direction (palette, type, layout, signature) — per epic
-4. Playwright E2E сценарии в плане — per epic
-4a. Brownfield UI replace → `## Replacement / sunset` **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
-4b. Brownfield FAIL: replace без entrypoints (B) или fallbacks (C) → halt
-5. CREATIVE need; `tasks.md` append-only (roadmap + queue + каждый эпик)
-6. Queue FAIL: нет row/reconcile для любого PLAN → halt; multi-epic с ≥2 cut-критериями и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
+0. Phase 0 orchestration: при триггерах — clarify artifact + Completion Report до Phase 1; skip taxonomy-clear → `§Product probe` note
+1. `tasks.md` прочитан; level зафиксирован
+2. L2 substep → L2 scope, не L4 по умолчанию
+3. Сначала сохранён/апсёртнут канонический roadmap row, затем план в path выше + `md/prompt.md` (файл начинается с `## Epic` + `## Covering`; без шапки Role/Deps/ID); при research — roadmap + полный plan **и** prompt на **каждый** эпик (Covering одинаковый; **весь** prompt без ID эпиков / путей чужих plan; не один mega-plan)
+4. UI → design direction (palette, type, layout, signature) — per epic
+4a. Brownfield UI replace → секция **`## Replacement / sunset`** таблицы **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: `workflow-legacy-fallback-cleanup.mdc`. DECOMPOSE нарежет `deletes` + purge sNN
+4b. Brownfield FAIL: replace без inventory entrypoints (B) или без fallback table (C) → halt
+4c. Playwright E2E сценарии в плане — per epic
+5. CREATIVE need (да/нет) перед next mode (per epic при multi-epic)
+6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть `T-HUB-*` / ID / шапка Role·Deps / `plan/<id>/` → halt
+6a. Поверхность «в другом compose/дереве» → отдельный эпик в queue, не «уже отдельный» без ID
+7. После записи roadmap/plan: CLI `roadmap-merge --role front` обязателен и должен вернуть `ok: true`; next ≠ ROADMAP MERGE
+8. Eng review spine (gate 8): для L2+ plan должен быть заполнен Eng review spine (architecture, patterns, code surface / design stack) до FINISH PLAN
+9. QA consumes draft (gate 9): для L2+ секция §QA consumes draft должна содержать ≥3 TM строк
+10. Review readiness (gate 10): таблица Review readiness не должна содержать неразрешённых `pending` строк со статусом `Required` до FINISH PLAN
 
 ## Level delta
 
@@ -31,6 +37,9 @@ alwaysApply: false
 
 ## Abort
 
-- Блокеры scope → grill-me
-- Нет `md/prompt.md` / файл не начинается с `## Epic` / есть H1 `# Outcome prompt` / шапка Role·Deps / ID эпиков / пути чужих plan → halt
+- Нет task context → VAN
+- Phase 0 halt (ожидается Q / CRITICAL) → не начинать Phase 1; standalone `continue * CLARIFY` или дождаться ответа
+- Блокирующие неясности после spike skip → mini grill в PLAN §Product probe или `continue * CLARIFY`
+- Нет `md/prompt.md` / файл не начинается с `## Epic` / Chat decisions пустой без `n/a` → halt
+- В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps / пути чужих plan → halt
 - Агент читает соседние `plan/` из-за prompt → halt

@@ -1,0 +1,35 @@
+---
+description: "Режим FRONT RECONCILE — read-only сверка plan/spec с текущим кодом/repo после hotfix или ad-hoc drift check"
+alwaysApply: false
+---
+### Команда: FRONT RECONCILE
+
+**Контекст:** @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates:** @.cursor/rules/front_developer/isolation_rules/_lean/reconcile.mdc
+
+## Когда запускать
+
+- после внесения hotfix / изменений в код без предварительного обновления плана;
+- при необходимости выполнения ad-hoc drift check между спецификацией (plan/decompose) и репозиторием.
+
+Вход: `FRONT RECONCILE <epic_id>`, где `<epic_id>` — `T-xxx` или slug.
+
+## Load (lean)
+
+1. `memory-bank/activeContext.md` → только `load_now`;
+2. `memory-bank/front/plan/<epic>/md/plan.md` и `…/yaml/decompose-index.yaml`.
+
+## Процесс
+
+1. Подтверди `epic_id` и read-only scope.
+2. Запусти CLI инструмент `reconcile_spec.py`:
+   `python3 .claude/hooks/epic/reconcile.py --epic <epic_id> --write-yaml`
+3. Проверь созданный артефакт `reconcile-YYYYMMDD-<slug>.yaml` в `memory-bank/front/reconcile/<epic_id>/`.
+4. Сформируй Handoff в `activeContext.md`.
+
+**STRICTLY READ-ONLY:** FRONT RECONCILE не модифицирует исходные plan, decompose, implement или исходный код проекта. RECONCILE не создаёт audit-shards и не запускает правки кода.
+
+## Done When
+
+- [ ] reconcile artifact записан в `memory-bank/front/reconcile/<epic_id>/`;
+- [ ] Handoff сформирован в `activeContext.md`.

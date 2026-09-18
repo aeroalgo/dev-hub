@@ -11,10 +11,12 @@ Legacy (`main.mdc`, `Core/*` кроме pointer на shared paths, `_archive/`) 
 | VAN | `_lean/van.mdc` |
 | CLARIFY | `_lean/clarify.mdc` |
 | PLAN | `_lean/plan.mdc` |
+| PLAN REFACTOR | `_lean/plan-refactor.mdc` |
 | ROADMAP MERGE | `_lean/roadmap-merge.mdc` (recovery-only) |
 | DECOMPOSE | `_lean/decompose.mdc` |
 | ANALYZE | `_lean/analyze.mdc` |
 | RECONCILE | `_lean/reconcile.mdc` |
+| REPLAN | `_lean/replan.mdc` |
 | CREATIVE | `_lean/creative.mdc` |
 | IMPLEMENT | `_lean/implement.mdc` |
 | AUDIT | `_lean/audit.mdc` |

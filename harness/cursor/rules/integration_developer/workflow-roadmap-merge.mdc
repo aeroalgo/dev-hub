@@ -1,18 +1,23 @@
 ---
-description: "Режим INTEG ROADMAP MERGE — слияние slug queues в canon для loop"
+description: "Режим INTEG ROADMAP MERGE — recovery-only слияние slug queues в canon"
 alwaysApply: false
 ---
-### Команда: INTEG ROADMAP MERGE
+### Команда: INTEG ROADMAP MERGE (recovery)
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/shared/_lean/roadmap-merge.mdc
 **Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
 **Скиллы:** нет
 
+**Когда:** канон `roadmap/queue.yaml` устарел / битый, а PLAN уже закрыт.  
+**Не когда:** сразу после PLAN — PLAN сам делает `roadmap-merge` в той же сессии; next = DECOMPOSE.
+
 **Процесс**:
 1. `OK INTEG ROADMAP MERGE`
 1a. Gates + Алгоритм
-2. Inventory `memory-bank/integration/roadmap/queue.yaml`
-3. CLI `--role integration`
-4. Conflict → halt
-5. `tasks.md` + `activeContext.md`
-6. FINISH → `INTEG DECOMPOSE <first-id>`
+2. Inventory `roadmap/queue.yaml` (+ leftover `roadmap/batches/` / legacy `plan/roadmap-*`)
+3. CLI: `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
+4. Conflict/unknown deps/cycle → halt + JSON (не silent fix)
+5. `tasks.md` + `activeContext.md` (load_now = canon + first plan)
+6. **FINISH:** finish-block (`code_changed: no` если только memory-bank); next = `INTEG DECOMPOSE <first-id>`
+
+**Верификация**: gates + `parse_roadmap_queue` ok на canon

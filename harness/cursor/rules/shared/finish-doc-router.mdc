@@ -13,7 +13,7 @@ alwaysApply: false
 | Command | load_now update |
 |---------|-----------------|
 | `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `decompose-*/index.yaml`; epic complete → `index.yaml` + §Handoff Epic AUDIT (**не** `plan-*.md`, **не** QA напрямую) |
-| `* AUDIT` | audit-артефакт в `load_now`; Triple Assess (PLAN↔runtime · steps · architecture_parity); если `converged != true` или `not_implemented[]`/`legacy_surfaces_remaining[]`/`fallback_remaining[]` непусты → next = `* IMPLEMENT` новых sNN/eNN (петля); только `converged: true` при пустых actionable findings и leftover-массивах → next = `* QA` |
+| `* AUDIT` | audit-артефакт в `load_now`; `check_matrix` + `verdict`; `PASS → * QA`; `FAIL → * BUGFIX <subject>`; AUDIT **не** выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT; out-of-scope → `replan_candidates` (не findings) |
 | `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** full plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
 | `* QA` | align after suite |
@@ -24,9 +24,9 @@ alwaysApply: false
 | `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
 | `* ANALYZE` | `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` в `load_now`; `metrics.critical_count = 0` → next IMPLEMENT, `> 0` → next CLARIFY/DECOMPOSE. **FORBIDDEN** soft-defer в IMPLEMENT |
 | `* PLAN` | Phase 0 clarify (orchestration) в сессии при триггерах; plan artifact OK; **inline** `roadmap-merge` до FINISH для каждого PLAN; `load_now` = clarify по slug (если был) + canon md+queue + first plan + `md/prompt.md` (без prompt → FAIL) → next `* DECOMPOSE <queue[0]>`. **FORBIDDEN:** next = `* ROADMAP MERGE` |
-| `BACK RECONCILE` | Reconcile drift артефакт в `load_now`; в cadence resync tail (`phase=resync`) фиксирует `ResyncEvidence` на SoT `cadence.yaml`, инвалидирует HOW-планы при HIGH drift без изменения prompt §Epic; после завершения resync фаза сбрасывается в `idle` (`reset_cadence_idle`) для возобновления feature advance |
-| `BACK REPLAN` | Parent marker `plan/<parent>/md/replan-i2\|i3.yaml` в `load_now` (`skip`\|`complete` + `spawned_epic_ids`; parent plan/prompt/done не трогать). При `complete` — first spawned `plan.md` + spawned `prompt.md` only. **FORBIDDEN** в `load_now`: parent `prompt.md` / parent `plan.md` / parent QA / `Parent-prompt` path. Upsert spawn в голову queue. Cadence `phase=replan`: после терминала всех `pair_ids` → next `BACK PLAN REFACTOR`. Вне cadence → next `BACK DECOMPOSE <first spawned>` |
-| `BACK PLAN REFACTOR` | Тот же PLAN lifecycle, но FINISH только после purge+consolidation inventory (twins/clusters, adapter collapse, dead/duplication/test), Deletion + Concept budget, per-epic test refactor и queue reconcile → next `BACK DECOMPOSE <queue[0]>` |
+| `* RECONCILE` | Reconcile drift артефакт в `load_now`; в cadence resync tail (`phase=resync`) фиксирует `ResyncEvidence` на SoT `cadence.yaml`, инвалидирует HOW-планы при HIGH drift без изменения prompt §Epic; после завершения resync фаза сбрасывается в `idle` (`reset_cadence_idle`) для возобновления feature advance |
+| `* REPLAN` | Parent marker `plan/<parent>/md/replan-i2\|i3.yaml` в `load_now` (`skip`\|`complete` + `spawned_epic_ids`; parent plan/prompt/done не трогать). При `complete` — first spawned `plan.md` + spawned `prompt.md` only. **FORBIDDEN** в `load_now`: parent `prompt.md` / parent `plan.md` / parent QA / `Parent-prompt` path. Upsert spawn в голову queue. Cadence `phase=replan`: после терминала всех `pair_ids` → next `* PLAN REFACTOR`. Вне cadence → next `* DECOMPOSE <first spawned>` |
+| `* PLAN REFACTOR` | Тот же PLAN lifecycle, но FINISH только после purge+consolidation inventory (twins/clusters, adapter collapse, dead/duplication/test), Deletion + Concept budget, per-epic test refactor и queue reconcile → next `* DECOMPOSE <queue[0]>` |
 | `* CLARIFY` | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` → next `* PLAN` Phase 1 (или continue CLARIFY). Standalone; в сессии PLAN Phase 0 **не** отдельный FINISH CLARIFY |
 | `VAN` / `TASK` | init or shift focus |
 

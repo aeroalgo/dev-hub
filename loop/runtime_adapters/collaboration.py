@@ -55,5 +55,5 @@ def codex_collaboration_block(ctx: SessionContext) -> str:
 3. Для managed child используй модель из `codex/agents.config.toml` (после materialize — из `.codex/agents/<agent>.toml`); модель child не наследуй из root без явного override.
 4. В первой строке spawn prompt обязательно `agent_type: <canonical>` (`verify-qa`, `verify-bugfix`, `verify-implement`, `gate-repair`). Сразу после — `GATE_IDENTITY session_id=<SoT> epic_id=<SoT> step_id=<SoT>`. Без `agent_type` label станет unknown; без `GATE_IDENTITY` — DENY/BLOCKED.
 5. Вне QA: для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify. В QA — BUGFIX path по QA-контракту, не product repair-loop.
-6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK RECONCILE` и только с ALLOW READ текущего epic.
+6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK|FRONT|INTEG RECONCILE` и только с ALLOW READ текущего epic.
 """

@@ -8,9 +8,8 @@ alwaysApply: false
 **Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/integration_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
-**Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md`
-**Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
-**Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
+**Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md` (`## Epic` + `## Covering`)
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc · @.cursor/rules/shared/workflow-behavior-first.mdc
 **Скиллы:**
 - @.agents/skills/query-builder/SKILL.md
 - @.agents/skills/brainstorming/SKILL.md
@@ -31,6 +30,7 @@ alwaysApply: false
 3. **Portal inventory:** все `frontend/src/app/**/page.tsx` + UI elements
 4. **Element registry & Acceptance:** ≥400 строк (`wc -l` plan ≥400 иначе дописать; endpoint ↔ fetch)
 5. **Every PLAN:** апсерт row в `roadmap/queue.yaml` + `plan/<epic_id>/md/plan.md` + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering одинаковый и без ID; не читать соседние plan)
+5p. **Independent Test = behavior** — shared/workflow-behavior-first.mdc §5 · Eng spine / `#qa-consumes` ≥3 TM / Review readiness (L2+)
 5a. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration` (`ok: false` → halt PLAN)
 6. graphify: `.venv/bin/graphify query` (routes/components/endpoints; hub без graph.json → inventory)
 7. FINISH (`code_changed: no`) → next **INTEG DECOMPOSE** (не ROADMAP MERGE)
@@ -65,6 +65,7 @@ Gap опционален — не блокирует PLAN. Не читать as 
 5b. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`; `ok: false` → halt PLAN
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
+6b. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
 7. Next: **INTEG DECOMPOSE** `queue[0]` → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / INTEG IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.

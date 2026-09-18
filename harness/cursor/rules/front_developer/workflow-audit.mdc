@@ -1,23 +1,68 @@
 ---
-description: "Режим FRONT AUDIT — PLAN vs IMPLEMENT gap-анализ, append-only remediation и converge"
+description: "Режим FRONT AUDIT — узкая проверка контракта текущей итерации"
 alwaysApply: false
 ---
 ### Команда: FRONT AUDIT
-**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
-**Behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc
-**Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
-**FORBIDDEN:** полный текст всех shards; frontend suite в AUDIT; code-review; git-diff; MODE CONVERGE; **FR remap**.
 
-**Процесс**:
-1. `OK FRONT AUDIT` → Gates · `epic_id` · bound file list.
-2. **Intent Inventory (plan-first):** все plan FR/SC/US/AC±/NFR + layout paths **verbatim**; decompose вторичен. Missing → CRITICAL. **FORBIDDEN** remapped-only.
-   Constitution CASE A/B — без hardcoded epic ID.
-3. **Triple Assess:** PLAN↔runtime · step matrix · architecture_parity. Presence ≠ satisfied.
-4. Findings CRITICAL→LOW; `gap_type` включает `layout_dilution|dilution`.
-5. Append `sNN-audit-*` (`role: front`) + **`plan_contract`**; sync index.
-6. Dual-write + leftovers / purge.
-7. `converged: true` только при полном plan parity → `FRONT QA`; иначе IMPLEMENT → AUDIT.
-8–9. Audit yaml · tasks log · finish-block · `## Handoff FRONT AUDIT`.
+**Контекст:** @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates:** @.cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
+**Артефакт:** `memory-bank/front/audit/<epic_id>/audit.yaml`
 
-**Верификация**: plan-first + Triple Assess; no metadata-only converged; no FR remap.
+## Назначение
+
+AUDIT отвечает только на один вопрос: выполнены ли **явные** FR/AC и удаления,
+запланированные в текущей итерации эпика. Это не re-plan, не UI review всего
+репозитория и не проверка достижения исходного user outcome.
+
+Источник scope — текущие `plan.md`, `decompose-index` и связанные с ними
+completed implement-шарды. Исходный prompt, предыдущие iterations и весь
+репозиторий не являются scope AUDIT.
+
+## Процесс
+
+1. Подтверди `epic_id`, номер iteration и bounded file list: файлы из current
+   shards, реально изменённые ими файлы и прямо названные тесты/команды.
+2. Составь `check_matrix[]`: одна строка на явный FR, AC или delete-contract
+   текущей итерации. Строка содержит `source_ref`, `status: pass|fail|blocked`,
+   `evidence` и воспроизводимую `verify` команду.
+3. Проверь каждую строку matrix по реализации и имеющемуся evidence. Presence
+   файла сам по себе не является PASS, если contract требует поведение
+   (UI visible / route / component state).
+4. Для каждого `fail|blocked` запиши finding с точной ссылкой на `source_ref`,
+   фактическим evidence и минимальной требуемой правкой.
+5. Запиши audit artifact. Допустимо использовать существующий `epic-audit/v2`
+   template, но обязательным результатом этого workflow является только
+   `check_matrix`, `findings` и `verdict`.
+
+## Вердикт и переход
+
+- Нет `fail|blocked` → `verdict: PASS` → `FRONT QA`.
+- Есть `fail|blocked` → `verdict: FAIL` → конкретный `FRONT BUGFIX <subject>`.
+- AUDIT не создаёт audit-shards, не запускает DECOMPOSE/IMPLEMENT и не объявляет
+  `EPIC DONE`.
+- После зелёного QA переход к следующей итерации или final review выбирает
+  `FRONT REPLAN`, а не AUDIT.
+
+## Строго вне scope
+
+- повторное чтение или оценка исходного prompt;
+- поиск ранее неописанного legacy, fallback, duplicate implementation или
+  архитектурных улучшений;
+- полный inventory FR/SC/US всех прошлых планов, architecture parity и
+  full-repo scan;
+- создание новых product requirements, re-numbering FR или расширение plan;
+- запуск тестов/suite (Vitest/Playwright): это обязанность `FRONT QA`.
+
+Наблюдение вне scope допускается только как `replan_candidate` в handoff без
+FAIL и без remediation shard.
+
+## Переходный статус
+
+Этот workflow намеренно меняет только agent-инструкции. До отдельной задачи по
+runtime/loop `mb-finish audit` и его validator всё ещё ожидают старый полный
+`epic-audit/v2`; не использовать их как gate упрощённого AUDIT.
+
+## FINISH
+
+Сформируй один Handoff в `memory-bank/activeContext.md`: iteration, verdict,
+точные BUGFIX либо `FRONT QA`, а также `replan_candidates` отдельно от findings.

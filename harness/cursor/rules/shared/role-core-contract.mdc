@@ -39,6 +39,6 @@ alwaysApply: false
 ## Role-only boundary markers (Границы ответственности ролей)
 
 Общий контракт владеет исключительно общими правилами loading, format и runner policy. Ролевые ядра сохраняют изолированные role-only обязанности:
-- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT, ANALYZE artifact critical_count=0, L1..L4 scope matrix, BACK REPLAN, переходы VAN → PLAN(I1) → DECOMPOSE.
-- **FRONT:** visible_ui contract, DESIGN STACK, front-tests-parent-only (Vitest/RTL/Playwright — только parent), E2E/Playwright targeted сценарии.
-- **INTEG:** ELEMENT-FIRST портальная связка, §Contract в eNN-*.yaml, QueryBuilder, scenario test, GAP fanout / GAP CLOSE.
+- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT, ANALYZE artifact critical_count=0, L1..L4 scope matrix, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR, переходы VAN → PLAN(I1) → DECOMPOSE.
+- **FRONT:** visible_ui contract, DESIGN STACK, front-tests-parent-only (Vitest/RTL/Playwright — только parent), E2E/Playwright targeted сценарии, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR (parity с BACK).
+- **INTEG:** ELEMENT-FIRST портальная связка, §Contract в eNN-*.yaml, QueryBuilder, scenario test, GAP fanout / GAP CLOSE, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR (parity с BACK).
