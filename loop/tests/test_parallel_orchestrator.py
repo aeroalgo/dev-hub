@@ -8,9 +8,9 @@ from loop.parallel.orchestrator import run_parallel_wave, ParallelResult
 
 
 def create_epic_fixture(tmp_path: Path):
-    decompose_dir = tmp_path / "decompose"
-    decompose_dir.mkdir()
-    index_file = decompose_dir / "index.yaml"
+    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
+    (decompose_dir / "steps").mkdir(parents=True)
+    index_file = decompose_dir / "decompose-index.yaml"
     index_file.write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-TEST-001
@@ -36,13 +36,13 @@ steps:
         encoding="utf-8",
     )
 
-    s02_shard = decompose_dir / "s02.yaml"
+    s02_shard = decompose_dir / "steps" / "s02.yaml"
     s02_shard.write_text(
         yaml.safe_dump({"context": {"files": ["file_a.py"]}}),
         encoding="utf-8",
     )
 
-    s03_shard = decompose_dir / "s03.yaml"
+    s03_shard = decompose_dir / "steps" / "s03.yaml"
     s03_shard.write_text(
         yaml.safe_dump({"context": {"files": ["file_b.py"]}}),
         encoding="utf-8",
@@ -90,7 +90,7 @@ def test_wave_spawn_count(mock_subproc, mock_destroy, mock_create, tmp_path: Pat
 def test_overlap_sequential_fallback(mock_subproc, mock_destroy, mock_create, tmp_path: Path):
     index_file, decompose_dir = create_epic_fixture(tmp_path)
     # Make s03 overlap with s02
-    s03_shard = decompose_dir / "s03.yaml"
+    s03_shard = decompose_dir / "steps" / "s03.yaml"
     s03_shard.write_text(
         yaml.safe_dump({"context": {"files": ["file_a.py"]}}),
         encoding="utf-8",

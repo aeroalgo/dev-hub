@@ -4,10 +4,10 @@
 
 | Роль | Путь shard |
 |------|------------|
-| BACK / FRONT | `memory-bank/{back\|front}/implement/implement-<plan_id>/sNN-<slug>.yaml` |
-| INTEG | `memory-bank/integration/implement/implement-<plan_id>/eNN-<slug>.yaml` |
+| BACK / FRONT | `memory-bank/{back\|front}/implement/<plan_id>/sNN-<slug>.yaml` |
+| INTEG | `memory-bank/integration/implement/<plan_id>/eNN-<slug>.yaml` |
 
-Hub `implement-<plan_id>/index.md` **не создавать**. Навигация — колонка implement в decompose index + сами yaml.
+Implement index **не создавать**. Навигация — колонка `implement` в decompose index + сами YAML-шарды.
 
 **Validate:** `python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>`
 

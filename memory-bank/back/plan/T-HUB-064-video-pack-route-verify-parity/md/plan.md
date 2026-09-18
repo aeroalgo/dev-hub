@@ -10,7 +10,7 @@
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns  
 **Источник:** audit `01-subagents-prompts.md` P0 · `02-workflow-pack-and-rules.md` video routes · `08` matrix video rows
 
-→ decompose: [md/decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) (status SoT). Plan не дублирует чеклист шагов.
+→ decompose: [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) (status SoT). Plan не дублирует чеклист шагов.
 
 ---
 

@@ -19,7 +19,7 @@ gaps:
 done:
 - Kind I comments and docs verified/rewritten to path-only md while yaml/json <= cap
   remains inlined.
-- Checked tests asserting plan.md/decompose-index.md are path-only and yaml remains
+- Checked tests asserting plan.yaml/decompose-index.yaml are path-only and yaml remains
   inline under cap.
 - 'FR-006 verified: truncated yaml keeps ok True.'
 files:

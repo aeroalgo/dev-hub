@@ -23,8 +23,8 @@ alwaysApply: false
 
 1. `memory-bank/activeContext.md` → только `load_now`;
 2. `memory-bank/back/plan/<epic>/md/plan.md` → headers + **полные** FR/AC/Target layout sections;
-3. `memory-bank/back/plan/<epic>/md/decompose-index.md` (+ `yaml/decompose-index.yaml`) → coverage map (**сверить verbatim FR**);
-4. `index.yaml` → steps/status;
+3. `memory-bank/back/plan/<epic>/yaml/decompose-index.yaml` + step shards → coverage map (**сверить verbatim FR**);
+4. `yaml/decompose-index.yaml` → steps/status;
 5. sample/`all` `sNN` → headers, `goal`, `delta`, `plan_refs`, **`plan_contract`**, **`skills`** (`code_surface`/`impl`/`omit_justification`).
 
 Implement YAML не загружается. Подробнее: `_lean/analyze.mdc`.

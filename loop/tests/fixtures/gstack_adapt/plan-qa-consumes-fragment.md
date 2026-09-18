@@ -1,6 +1,6 @@
 <!-- #qa-consumes -->
 ## QA consumes
-- `memory-bank/back/plan/plan-T-HUB-027.md`
+- `memory-bank/back/plan/T-HUB-027/md/plan.md`
 - `loop/context_loop.py`
 
 <!-- #review-readiness -->

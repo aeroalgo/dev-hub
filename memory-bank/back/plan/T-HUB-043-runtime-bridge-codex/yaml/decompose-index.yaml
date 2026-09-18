@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-043-runtime-bridge-codex
-source_md: index.md
-status_canon: index.yaml
 steps:
 - id: s01
   file: s01-manifest-schema.yaml

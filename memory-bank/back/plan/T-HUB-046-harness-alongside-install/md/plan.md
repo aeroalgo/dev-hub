@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [T-HUB-046-harness-alongside-install/md/decompose-index.md](T-HUB-046-harness-alongside-install/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-046-harness-alongside-install/yaml/decompose-index.yaml](T-HUB-046-harness-alongside-install/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

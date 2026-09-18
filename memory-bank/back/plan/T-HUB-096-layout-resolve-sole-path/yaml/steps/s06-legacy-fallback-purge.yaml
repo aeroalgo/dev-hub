@@ -57,7 +57,7 @@ context:
     - plan.md#SC-003
     - plan.md#AC−
   files:
-    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/decompose-index.md
+    - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml
     - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml
 
 as_built:

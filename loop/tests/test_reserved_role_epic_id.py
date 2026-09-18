@@ -55,11 +55,6 @@ def test_arm_rejects_decompose_back(tmp_path: Path) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/back/md/decompose-index.md",
-        "| step_id | title | status |\n|---|---|---|\n| *ks01** | x | pending |\n",
-    )
-    _write(
-        tmp_path,
         "memory-bank/back/plan/back/yaml/steps/s01.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )

@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [T-HUB-016-dsh-cc-hooks-bridge/md/decompose-index.md](T-HUB-016-dsh-cc-hooks-bridge/md/decompose-index.md) — **DECOMPOSE done; трекер: index.yaml**
+→ [T-HUB-016-dsh-cc-hooks-bridge/yaml/decompose-index.yaml](T-HUB-016-dsh-cc-hooks-bridge/yaml/decompose-index.yaml) — **DECOMPOSE done; трекер: index.yaml**
 
 ---
 

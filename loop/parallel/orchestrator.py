@@ -7,9 +7,7 @@ from typing import Mapping
 from harness.hooks.epic import atomic_write_text
 from harness.hooks.epic_index import (
     dump_index_yaml,
-    index_md_path,
     load_index_yaml,
-    mirror_status_to_md,
     set_step_status_in_doc,
 )
 from loop.parallel.wave import compute_ready_wave
@@ -64,7 +62,7 @@ def filter_non_overlapping(ready_wave: list[str], decompose_dir: Path) -> list[s
 
 
 def update_step_status_flock(index_path: Path, step_id: str, status: str) -> None:
-    """Updates index.yaml (and mirrors index.md if present) with file locking."""
+    """Updates validated decompose-index.yaml with file locking."""
     import fcntl
 
     lock_file = index_path.parent / ".index.lock"
@@ -75,9 +73,6 @@ def update_step_status_flock(index_path: Path, step_id: str, status: str) -> Non
             if doc:
                 set_step_status_in_doc(doc, step_id, status)
                 atomic_write_text(index_path, dump_index_yaml(doc))
-                md_path = index_md_path(index_path)
-                if md_path.is_file():
-                    mirror_status_to_md(md_path, step_id, status)
         finally:
             fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
 
@@ -120,7 +115,7 @@ async def run_parallel_wave_async(
         try:
             wt_path = create_worktree(epic_id, step_id, root)
             worktrees[step_id] = wt_path
-            update_step_status_flock(idx_path, step_id, "in_progress")
+            update_step_status_flock(idx_path, step_id, "active")
         except Exception:
             failed.append(step_id)
 

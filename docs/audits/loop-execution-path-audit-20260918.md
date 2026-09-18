@@ -10,16 +10,15 @@
 
 `bin/loop` → `loop.runner` → runtime adapter → typed SessionStart/context → arm через `epic_transition` → работа в ограниченном контексте → checkpoint/evidence → typed verify → `finalize-step`/transaction → reducer → следующий шаг.
 
-На старте аудита были найдены параллельные маршруты, выполнявшие ту же работу, что и новые версии. Основные live-дубли удалены последовательно; в репозитории намеренно оставлены только совместимость, human mirror и offline migration, если они ещё имеют consumers:
+На старте аудита были найдены параллельные маршруты, выполнявшие ту же работу, что и новые версии. В текущем проходе live-дубли старого decomposition layout удалены вместе с их тестами и CLI-поверхностями; lifecycle теперь использует только валидированный YAML-контракт:
 
-1. общий transaction helper ещё не заменил уже transaction-based `finish_implement/qa/bugfix`;
-2. migration/MD mirror и часть исторических compatibility branches всё ещё видны в коде, но не являются каноническим lifecycle source;
-3. `loop/loop.sh` сохранён как compatibility shim из-за найденных consumers;
-4. широкий исторический корпус bare imports требует отдельного безопасного прохода.
+1. общий transaction helper остаётся отдельной задачей унификации finish-поверхностей;
+2. `loop/loop.sh` сохранён как compatibility shim из-за найденных consumers;
+3. независимые event/DAG compatibility adapters не относятся к decomposition layout и не входят в эту зачистку.
 
 Главный вывод: **лучшие решения уже присутствуют; следующий этап — не придумывать новые механизмы, а убрать дублирующие маршруты и заставить все движения loop проходить через них.**
 
-Оценка текущего состояния: **жёлтый / conditional ready**. Фокусные regression-матрицы после очистки проходят (`327` и `329` тестов), но полный тестовый прогон в текущем dirty worktree не завершился в установленный 300-секундный лимит. Это нельзя считать полным PASS.
+Оценка текущего состояния decomposition lifecycle: **зелёный / canonical YAML-only**. После зачистки релевантная regression-матрица runtime, finish, recovery, board, parallel и video fixture проходит (`301 passed`); полный тестовый прогон dirty worktree отдельно не заявляется как PASS.
 
 ## Что уже доказанно лучше и должно остаться
 
@@ -46,7 +45,7 @@
 | Эпики | Старый путь | Лучший путь | Состояние |
 |---|---|---|---|
 | T-HUB-086 | shell/ручное orchestration и runtime-specific ветки | Python supervisor и registry-based adapters | Канон оставлен; остаточные imports/diagnostics перечислены отдельно. |
-| T-HUB-087, 096 | v1 layout, поиск по разным именам `index.*` | layout v2 resolver, YAML index и typed shards | Основной live resolver/finish/read path переведён на YAML v2; migration mirror оставлен. |
+| T-HUB-087, 096 | v1 layout, поиск по разным именам `index.*` | layout v2 resolver, YAML index и typed shards | Старый live layout, MD parser, mirrors, migration package и связанные tests удалены. |
 | T-HUB-088 | локальные phase arms и разрозненные переходы | `epic_transition.arm_phase` | Канон оставлен; legacy conversion не используется как основной route. |
 | T-HUB-089, 103 | разрозненные event/DAG форматы | event schema v2, DAG v2 и единый reducer | Канон оставлен; board legacy discovery удалён. |
 | T-HUB-090 | compatibility launcher как равноправный entrypoint | `bin/loop` как единственный launcher | `loop/loop.sh` оставлен только как thin shim: consumers ещё найдены. |
@@ -72,15 +71,7 @@
 
 Лучший путь: `context_loop.prepare_session` загружает state, строит projection, вызывает `epic_transition`, создаёт checkpoint и готовит runtime adapter.
 
-Проблемы:
-
-- `loop/epic_transition.py:266-297` при ошибке загрузки registry из target cwd молча пробует hub root. Для pack isolation это fail-open: можно получить валидный registry, но не тот, который принадлежит target project.
-- `_arm_pre_implement` в `loop/epic_transition.py:852-902` конвертирует MD paths и продолжает рекламировать `md/decompose-index.md` как часть обычного runtime flow.
-- `harness/hooks/epic_paths.py:243-296` сначала проверяет YAML, но может вернуть MD; при exception silently продолжает собственный legacy lookup.
-
-Решение: arm должен принимать только canonical YAML index и typed step shards. MD допускается для human mirror и offline migration, но не как вход для runtime decision.
-
-Статус после очистки: основной resolver/finish/read path использует YAML v2; MD-only вход не может продолжить lifecycle. Оставшиеся conversion/migration helpers требуют отдельного удаления после legacy-consumer sweep.
+Статус после очистки: arm принимает только `yaml/decompose-index.yaml` и `yaml/steps/*.yaml`; MD index, v1 layout, mirror/repair API, migration package и их legacy tests удалены. Невалидный путь завершается fail-closed.
 
 ### 2. SessionStart и identity
 
@@ -164,15 +155,7 @@
 
 Лучший путь: queue v2 в `memory-bank/<role>/roadmap/queue.yaml`, DAG v2 и board projection из reducer.
 
-Остатки legacy discovery:
-
-- `loop/board_sync/scan_epics.py:69-108` ищет `roadmap-{role}.queue.yaml`, `plan-*.md`, `decompose-*` и одновременно v2 YAML;
-- `loop/board_sync/scan_gates.py:174-219` ищет `plan/roadmap-epics.queue.yaml`, `roadmap-*.queue.yaml` и старые `decompose-*`;
-- `loop/paths/epic_layout.py:164` считает и `decompose-index.md`, и YAML признаком discovery.
-
-Решение: runtime board scan должен читать только canonical queue/index. Legacy paths оставить только в offline migration/fixture adapter и явно переименовать/ограничить их scope.
-
-Статус после очистки: `scan_epics`, `scan_gates` и board path helpers используют canonical queue/index discovery; legacy queue files и flat plan globs больше не являются board sources.
+Статус после очистки: `scan_epics`, `scan_gates` и board path helpers используют canonical queue/index discovery; legacy queue files, flat plan globs и старый decomposition layout больше не являются board sources.
 
 ### 10. Episode, incident и архив
 
@@ -185,15 +168,15 @@
 | ID | Приоритет | Находка | Доказательство | Что сделать |
 |---|---:|---|---|---|
 | LOOP-P0-01 | P0 | REFLECT остаётся живой веткой при registry без REFLECT | `phase_registry.yaml:8`, `context_loop.py:3506-3550`, `session_resilience.py:1343`, `WORKFLOW.md:5,10,87` | QA PASS сразу ведёт в DONE; убрать REFLECT из rearm/parser/mode table/горячих команд. Reflection artifacts оставить только архивом. |
-| LOOP-P0-02 | P0 | Runtime принимает MD/v1 index routes рядом с YAML v2 | `epic_paths.py:243-296`, `epic/core.py:2146-2263`, `finish_implement.py:44-96`, `epic_transition.py:852-902` | Runtime разрешает только `yaml/decompose-index.yaml` и `yaml/steps/*.yaml`; MD и v1 имена — только offline migration. |
+| LOOP-P0-02 | P0 | Runtime принимал MD/v1 index routes рядом с YAML v2 | Удалённые `epic_index`/layout/migration branches и legacy tests | Runtime разрешает только `yaml/decompose-index.yaml` и `yaml/steps/*.yaml`; старые routes удалены. |
 | LOOP-P1-03 | P1 | Pack isolation нарушается fallback target cwd → hub root | `epic_transition.py:282-292`, также `epic/core.py:887-892` | Удалить silent fallback; вернуть typed `pack_path_missing` с target path. Hub root использовать только explicit migration command. |
 | LOOP-P1-04 | P1 | SessionStart может выпустить агент с текстовым HALT | `epic/core.py:1745-1882` | Машинно блокировать adapter spawn при incomplete/drift; `additionalContext` использовать только для объяснения. |
 | LOOP-P1-05 | P1 | Публичный `finish_handoff` всегда запрещён token policy | `mb_finish/mcp_server.py:17-27`, `mb_finish/impl.py:56-79` | Удалить из public TOOLS; оставить private recovery API либо сделать его typed transaction endpoint с token schema. |
 | LOOP-P1-06 | P1 | Finish paths имеют две модели atomicity | `mb_finish/impl.py:988,1159,1464,1614` против `FinishTxRecord` в implement/QA/BUGFIX | Объединить все finishers через один transaction/recovery service. |
 | LOOP-P1-07 | P1 | После purge остаются dual imports и broad exception fallback | `runner/orchestrator.py:66-89`, `mb_load/resolver.py:89-95`, `episodes/*.py`, `roadmap_queue.py` | Выбрать один import owner/package; запретить live bare imports и `except Exception: pass` на resolution. |
 | LOOP-P1-08 | P1 | Identity размазана по state, activeContext, projection и checkpoint | `prompt_builder.resolve_session_identity`, `session_start_payload`, checkpoint schema | Объявить: checkpoint — recovery authority, typed artifacts — lifecycle authority, activeContext — prompt projection, state — derived telemetry. Добавить reducer consistency check. |
-| LOOP-P2-09 | P2 | Board scan продолжает legacy queue/plan discovery | `scan_epics.py:69-108`, `scan_gates.py:174-219` | Удалить live legacy glob’ы; миграцию вынести в offline command. |
-| LOOP-P2-10 | P2 | Index writers обходят общий atomic owner | `epic/core.py:2813`, `parallel/orchestrator.py:75` | Один typed atomic index writer; MD mirror строить только после успешного YAML commit. |
+| LOOP-P2-09 | P2 | Board scan продолжал legacy queue/plan discovery | Удалённые legacy globs и обновлённые board tests | Board scan читает только canonical queue/index. |
+| LOOP-P2-10 | P2 | Parallel writer использовал статус вне YAML-контракта | `loop/parallel/orchestrator.py` | Статус `in_progress` заменён на контрактный `active`; index write проходит через validated YAML API. |
 | LOOP-P2-11 | P2 | Неверный checkpoint path и stale DSH diagnostic | `runner/orchestrator.py:494,557-564` | Использовать `config.state_dir/checkpoint.json`; удалить DSH wording и swallow ошибки. |
 | LOOP-P2-12 | P2 | Episode copy/fallback может скрыть неполный forensic bundle | `episodes/bundle.py:78-121` и retention handlers | Typed partial manifest; убрать старое `checkpoint_snapshot.json` после одноразовой миграции. |
 | LOOP-P2-13 | P2 | `loop/loop.sh` остаётся вторым entrypoint | `loop/loop.sh` | После поиска consumers удалить shim или оставить только в offline migration с sunset date. |
@@ -209,13 +192,13 @@
 - `FinishTxRecord`, `finalize_step`, phase-specific finish API после унификации;
 - YAML queue/DAG/event/capability evidence;
 - atomic writes и forensic incident retention;
-- v1→v2 migration scripts, но только как offline tools, не как runtime fallback;
-- YAML → MD human mirror, только если MD никогда не читается для lifecycle decision.
+- YAML index/step contract и Pydantic validation как единственный lifecycle source;
+- MD остаётся только для `plan.md`/activeContext projection там, где это предусмотрено текущим контрактом, но не для decomposition index.
 
 ### Кандидаты на удаление после guard tests
 
 - все live REFLECT phase/command/parser/rearm references;
-- MD/v1 branches из runtime `find_decompose_index_path`, finish fallback lists и `epic_transition` conversion;
+- старые MD/v1 branches из runtime resolver, finish fallback lists и `epic_transition` conversion — выполнено;
 - legacy queue discovery в board sync;
 - public MCP `finish_handoff` и незащищённые low-level handoff exports;
 - dual import fallbacks, bare `sys.path` facades и `except Exception: pass` вокруг canonical resolution;
@@ -281,7 +264,9 @@
 Оставлено сознательно:
 
 - `loop/loop.sh` остаётся тонким compatibility shim: repository-wide scan нашёл живые вызовы в `make`, e2e/smoke tests и active instructions. Это не второй исполнительный loop; удаление сейчас нарушило бы существующие consumers.
-- YAML → MD human mirror и offline v1→v2 migration остаются, но не должны участвовать в lifecycle decision path.
+- Независимый event v1→v2 offline adapter остаётся вне decomposition lifecycle; YAML → MD decomposition mirror, MD index parser и layout migration package удалены. Исторический `memory-bank/archive` не менялся.
+
+В этом проходе удалены 103 активные MD-копии decomposition index, 8 legacy-тестовых файлов, MD-шаблон index, stale-index detector, index-mirror runbook и layout-migration package. Добавлен только канонический YAML fixture для video-plan; live replacement-ветка не добавлялась.
 
 Остаточная зона для следующего отдельного прохода: полная унификация уже transaction-based `finish_implement/qa/bugfix` с новым helper без изменения их event-ordering, а также чистка более широкого исторического bare-import корпуса в hook-модулях. Эти пути не удалялись вслепую, потому что вокруг них есть legacy fixture/adaptor consumers.
 

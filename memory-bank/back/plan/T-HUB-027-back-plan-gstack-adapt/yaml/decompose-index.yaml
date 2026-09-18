@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-027-back-plan-gstack-adapt
-source_md: index.md
-status_canon: index.yaml
 steps:
 - id: s01
   file: s01-clarify-product-probe.yaml

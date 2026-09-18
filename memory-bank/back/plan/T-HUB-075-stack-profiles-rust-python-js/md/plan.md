@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** запрос пользователя, Phase 0 clarify; `loop/runtime_registry.yaml` и `loop.runtime.registry` как typed registry precedent; `loop/workflow/registry.py`; `bin/hub-link`.
 
-→ После DECOMPOSE единственный трекер — [`md/decompose-index.md`](decompose-index.md) / [`yaml/decompose-index.yaml`](../yaml/decompose-index.yaml); sNN-checkbox здесь не дублируются.
+→ После DECOMPOSE единственный трекер — [`yaml/decompose-index.yaml`](../yaml/decompose-index.yaml) / [`yaml/decompose-index.yaml`](../yaml/decompose-index.yaml); sNN-checkbox здесь не дублируются.
 
 ## Контекст
 

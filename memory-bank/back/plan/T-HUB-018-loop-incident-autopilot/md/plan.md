@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · brainstorming (batch decisions below)
 
-→ [T-HUB-018-loop-incident-autopilot/md/decompose-index.md](T-HUB-018-loop-incident-autopilot/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-018-loop-incident-autopilot/yaml/decompose-index.yaml](T-HUB-018-loop-incident-autopilot/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

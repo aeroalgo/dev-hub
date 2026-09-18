@@ -56,19 +56,6 @@ def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any
 
     loaded = load_decompose_steps_fail_closed(cwd, decompose_rel)
     if not loaded.get("ok"):
-        cand = Path(decompose_rel)
-        if not cand.is_absolute():
-            cand = cwd / cand
-        parent = cand.parent if cand.is_file() else cand
-        for name in ("index.yaml", "index.yml", "decompose-index.yaml", "decompose-index.yml"):
-            alt = parent / name
-            if alt.is_file():
-                alt_rel = alt.relative_to(cwd).as_posix()
-                loaded = load_decompose_steps_fail_closed(cwd, alt_rel)
-                if loaded.get("ok"):
-                    break
-
-    if not loaded.get("ok"):
         return None, state
     index_ref = str(loaded.get("index") or decompose_rel).strip()
     from harness.hooks.epic_index import index_yaml_path
@@ -189,7 +176,7 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
                 idx_path = Path(loaded_steps["index"])
                 _role, role_dir = _role_dir_from_index_path(idx_path, cwd)
                 rel = ey.resolve_implement_path(
-                    cwd, role_dir, epic_id, step_id, plan_id=epic_id
+                    cwd, role_dir, epic_id, step_id
                 )
                 impl_state = ey.implement_load_state(cwd, rel)
             except Exception:

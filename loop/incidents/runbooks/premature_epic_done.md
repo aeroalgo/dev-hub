@@ -15,7 +15,7 @@ The Tier-0 repair resets epic status back to `in_progress` if uncompleted steps 
 
 ## Manual Remediation
 If Tier-0 repair fails:
-1. Open `memory-bank/back/plan/decompose-<epic_id>/index.yaml` and inspect remaining steps.
+1. Open `memory-bank/back/plan/<epic_id>/yaml/decompose-index.yaml` and inspect remaining steps.
 2. If steps remain pending, update roadmap/tasks status back to `in_progress`.
 3. If all work was actually completed, ensure all steps in `index.yaml` are set to `completed`.
 

@@ -13,7 +13,7 @@ alwaysApply: false
 
 ## Gates (обязательные — узкий путь)
 
-1. Lean load §7: ONE eNN §Contract + implement + diff; **не** полный `plan-*.md` в `load_now`; L2+ → `qa_consumes`-first
+1. Lean load §7: ONE eNN §Contract + implement + diff; **не** полный `plan/<epic_id>/md/plan.md` в `load_now`; L2+ → `qa_consumes`-first
 2. §0.11 + INTEG-CHECKLIST; contract drift = FAIL
 2a. **Brownfield:** leftover mock/legacy/fallback + Kind I + **`sot_enforce_scan`** — PASS при leftover = FAIL. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8
 2b. **Behavior smoke (HARD) при agent/hook/gate/CLI FR** — suite alone недостаточен. @.cursor/rules/shared/workflow-behavior-first.mdc §6

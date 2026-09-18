@@ -27,23 +27,16 @@ def detect_orphan_implement_yaml(cwd: Path) -> list[JanitorFinding]:
             if not epic_impl_dir.is_dir() or epic_impl_dir.name.startswith("."):
                 continue
             epic_folder_name = epic_impl_dir.name
-            if epic_folder_name.startswith("implement-"):
-                epic_id = epic_folder_name[len("implement-") :]
-            else:
-                epic_id = epic_folder_name
+            epic_id = epic_folder_name
 
             v2_plan_md = resolve(role, epic_id, EpicLayoutKind.PLAN_MD, project_root=cwd)
             v2_decomp_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
-            v2_decomp_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd)
             v2_plan_dir = plan_dir / epic_id
 
-            matching_plan_folder = plan_dir / f"decompose-{epic_id}"
             has_matching_plan = (
                 v2_plan_dir.is_dir()
                 or v2_plan_md.is_file()
                 or v2_decomp_yaml.is_file()
-                or v2_decomp_md.is_file()
-                or matching_plan_folder.is_dir()
                 or any(plan_dir.glob(f"*{epic_id}*"))
                 if plan_dir.is_dir()
                 else False

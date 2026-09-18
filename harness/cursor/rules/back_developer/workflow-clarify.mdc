@@ -36,7 +36,7 @@ BACK CLARIFY <feature-slug>
 
 1. `memory-bank/activeContext.md` → `load_now` only
 2. Существующий `memory-bank/back/clarify/clarify-*.md` по slug (если есть)
-3. **Не** грузить весь `plan-*.md` monolith без нужды; jump `plan §N` только если Consumes требует
+3. **Не** грузить весь `plan/<epic_id>/md/plan.md` monolith без нужды; jump `plan §N` только если Consumes требует
 
 См. Gates (`_lean/clarify.mdc`) — NFR-3 lean load.
 

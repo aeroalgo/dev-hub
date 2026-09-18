@@ -10,7 +10,7 @@
 **Deps:** **hard** T-HUB-057. **Unlocks hard** T-HUB-053 (materialize нового agent в Codex parity).  
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · grill-me (Phase 0 skip → mini grill §Product probe)
 
-→ [T-HUB-058-sunset-inventory-agent/md/decompose-index.md](T-HUB-058-sunset-inventory-agent/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-058-sunset-inventory-agent/yaml/decompose-index.yaml](T-HUB-058-sunset-inventory-agent/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

@@ -16,7 +16,7 @@ def test_parse_valid_step() -> None:
         "card_kind": "step",
         "project_root": "/p",
         "workspace_id": "ws-1",
-        "decompose_rel": "memory-bank/back/plan/decompose-T-HUB-015/index.yaml",
+        "decompose_rel": "memory-bank/back/plan/T-HUB-015/yaml/decompose-index.yaml",
         "step_id": "s02",
         "role": "back",
         "epic_id": "T-HUB-015",
@@ -40,7 +40,7 @@ def test_parse_valid_gate() -> None:
             "metadata": {
                 "card_kind": "gate",
                 "project_root": "/p",
-                "decompose_rel": "memory-bank/back/plan/decompose-T-HUB-015/index.yaml",
+                "decompose_rel": "memory-bank/back/plan/T-HUB-015/yaml/decompose-index.yaml",
                 "gate_phase": "QA",
             }
         }

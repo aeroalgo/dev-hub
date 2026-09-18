@@ -12,9 +12,8 @@ def missing_decompose_shards(
 ) -> list[str]:
     """Return index entries whose referenced decompose shard is absent.
 
-    Layout v2 stores shards under ``yaml/steps`` while legacy indexes store
-    them beside the index.  The index reference is authoritative in both
-    layouts; status or an analyze artifact cannot substitute for the file.
+    Canonical layout stores every decompose shard under ``yaml/steps``.
+    Status or an analyze artifact cannot substitute for the referenced file.
     """
     index = Path(index_path)
     parent = index.parent
@@ -26,14 +25,11 @@ def missing_decompose_shards(
         step_id = str(step.get("id") or step.get("step_id") or "?").strip()
         href = str(step.get("file") or "").strip()
         if not href:
-            # Legacy indexes may carry only queue/status fields.  Their
-            # compatibility path has no shard reference to resolve here;
-            # v2 indexes are checked by validate-decompose-tree at FINISH.
+            missing.append(f"{step_id}: missing file reference")
             continue
 
         filename = Path(href).name
-        candidates = [steps_dir / filename, parent / filename, parent / href]
-        if not any(candidate.is_file() for candidate in candidates):
+        if not (steps_dir / filename).is_file():
             missing.append(f"{step_id}: {href}")
     return missing
 

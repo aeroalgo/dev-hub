@@ -4,9 +4,9 @@ alwaysApply: false
 ---
 # INTEGRATION — ИНДЕКС
 
-Папка: `.cursor/rules/integration_developer/`  
-**Роутер:** @.cursor/rules/mainrule.mdc  
-**Core:** @.cursor/rules/integration_developer/mainrule-core.mdc  
+Папка: `.cursor/rules/integration_developer/`
+**Роутер:** @.cursor/rules/mainrule.mdc
+**Core:** @.cursor/rules/integration_developer/mainrule-core.mdc
 
 **Суть:** wire портала — route × UI-элемент × API × БД. PLAN = Element registry; DECOMPOSE = `eNN` на элемент; IMPLEMENT = vertical slice.
 
@@ -57,12 +57,12 @@ alwaysApply: false
 
 **Archive (не gate):** reflection artifacts хранятся только в archive; lifecycle после QA = DONE.
 
-Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / create).  
-As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc (`INTEG VAN` = все shards).  
-Контракт: **inline** §Contract в `decompose-*/eNN-*.yaml` (`integration/contracts/` опц.).  
-FINISH: @.cursor/rules/shared/finish-block.mdc  
+Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / create).
+As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc (`INTEG VAN` = все shards).
+Контракт: **inline** §Contract в `plan/<epic>/yaml/steps/eNN-*.yaml` (`integration/contracts/` опц.).
+FINISH: @.cursor/rules/shared/finish-block.mdc
 
-**QueryBuilder (канон list/filter):** @.agents/skills/query-builder/SKILL.md  
+**QueryBuilder (канон list/filter):** @.agents/skills/query-builder/SKILL.md
 
 | Слой | Отдельно | Через INTEG |
 |------|----------|-------------|

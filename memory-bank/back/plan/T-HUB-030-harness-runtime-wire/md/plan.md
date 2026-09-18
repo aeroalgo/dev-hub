@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · python-testing-patterns · diagnosing-bugs · architecture-patterns
 
-→ [T-HUB-030-harness-runtime-wire/md/decompose-index.md](T-HUB-030-harness-runtime-wire/md/decompose-index.md) · [index.yaml](T-HUB-030-harness-runtime-wire/yaml/decompose-index.yaml) — **DECOMPOSE done**
+→ [T-HUB-030-harness-runtime-wire/yaml/decompose-index.yaml](T-HUB-030-harness-runtime-wire/yaml/decompose-index.yaml) · [index.yaml](T-HUB-030-harness-runtime-wire/yaml/decompose-index.yaml) — **DECOMPOSE done**
 
 ---
 

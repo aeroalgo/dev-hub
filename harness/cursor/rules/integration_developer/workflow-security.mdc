@@ -37,7 +37,7 @@ alwaysApply: false
 1. `OK INTEG SECURITY PLAN - Security plan` + `SUSPENSION GUARD active — plan output unlimited`
 1a. Gates + workflow-security-epic
 2. Inventory wire surfaces (routes×authz×filters×contract) + priority + skills map
-3. Сохрани `memory-bank/integration/security/plan/plan-<id>.md`
+3. Сохрани `memory-bank/integration/security/plan/<id>/md/plan.md`
 4. `tasks.md` append-only
 5. **FINISH:** finish-block (`code_changed: no`)
 6. Next: **INTEG SECURITY DECOMPOSE**
@@ -46,7 +46,7 @@ alwaysApply: false
 
 1. `OK INTEG SECURITY DECOMPOSE - [plan_id]`
 1a. Gates + workflow-security-epic
-2. Нарежь `aNN` → `memory-bank/integration/security/plan/decompose-<id>/`
+2. Нарежь `aNN` → `memory-bank/integration/security/plan/<id>/yaml/steps/`
 3. Каждый `aNN`: `audit_surface` + Audit skills + scope + threats + checkpoint
 4. **FINISH:** `load_now` → `a01-*.md`
 5. Next: **INTEG SECURITY** @a01
@@ -55,7 +55,7 @@ alwaysApply: false
 
 1. `OK INTEG SECURITY - Security audit`
 1a. Gates + workflow-security-epic
-1b. Epic → `implement/implement-<id>/aNN-*.md`; S → `security-audit-YYYYMMDD-<slug>.md`
+1b. Epic → `implement/<id>/aNN-*.yaml`; S → `security-audit-YYYYMMDD-<slug>.md`
 2. Skills из step (эпик) или workflow (S); не чинить код; §0.11 wire
 3. **FINISH:** finish-block (`code_changed: no`)
 

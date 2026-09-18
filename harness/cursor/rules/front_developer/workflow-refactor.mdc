@@ -11,7 +11,7 @@ alwaysApply: false
 **Процесс**:
 1. `OK FRONT REFACTOR - Начинаю`
 1a. Gates + workflow-refactor-epic (path rule)
-1b. Epic? (`decompose-<id>/` / `@rNN`) → implement/rNN; иначе → `front/refactor/session-*.md`
+1b. Epic? (`plan/<id>/yaml/` / `@rNN`) → `refactor/implement/<id>/rNN-*.yaml`; иначе → `front/refactor/session-*.md`
 2. `tasks.md` + files
 3. Execute; tests green before/after; Playwright если UI (**только parent**)
 4. FINISH artifact по path rule (не оба)

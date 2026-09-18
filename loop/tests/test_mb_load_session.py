@@ -6,6 +6,12 @@ from loop.mb_load import load_session, MbLoadRequest, MbLoadResult
 from loop.mb_finish.schemas import LoopHandoffMeta
 
 
+def _step_dir(tmp_path: Path, epic: str) -> Path:
+    path = tmp_path / "memory-bank" / "back" / "plan" / epic / "yaml" / "steps"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def test_missing_required_path_ok_is_false_and_diagnostic(tmp_path: Path):
     """TM-001 / US-002: missing required load_now path -> ok is False + missing_file in diagnostics."""
     act_content = """---
@@ -17,7 +23,7 @@ step_id: s01
 ---
 
 ## load_now
-1. [missing.yaml](memory-bank/back/plan/missing.yaml) — missing.
+1. [missing.yaml](memory-bank/back/plan/T-HUB-072/yaml/steps/missing.yaml) — missing.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-072
@@ -50,24 +56,31 @@ epic_id: T-HUB-045-harness-workflow-session-load-api
 ---
 
 ## load_now
-1. [s01.yaml](memory-bank/back/plan/s01.yaml) — work shard.
-2. [index.yaml](memory-bank/back/plan/index.yaml) — queue.
+1. [s01.yaml](memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/steps/s01.yaml) — work shard.
+2. [decompose-index.yaml](memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/decompose-index.yaml) — queue.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-045
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-045-harness-workflow-session-load-api")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s01.yaml").write_text("step: s01", encoding="utf-8")
-    (mb_dir / "index.yaml").write_text("index: data", encoding="utf-8")
+    (mb_dir.parent / "decompose-index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-HUB-045-harness-workflow-session-load-api\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: s01.yaml\n"
+        "    status: active\n",
+        encoding="utf-8",
+    )
 
     res = load_session(cwd=tmp_path)
     assert res.ok is True
     assert res.fingerprint is not None
     loaded_paths = [f.path for f in res.files]
-    assert "memory-bank/back/plan/s01.yaml" in loaded_paths
-    assert "memory-bank/back/plan/index.yaml" in loaded_paths
+    assert "memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/steps/s01.yaml" in loaded_paths
+    assert "memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/decompose-index.yaml" in loaded_paths
     assert res.meta is not None
     assert res.meta.role == "BACK"
 
@@ -94,23 +107,22 @@ epic_id: T-HUB-045
 ---
 
 ## load_now
-1. [s01.yaml](memory-bank/back/plan/s01.yaml) — work shard.
-2. [memory-bank/back/plan/plan-T-HUB-045.md](memory-bank/back/plan/plan-T-HUB-045.md) — plan file.
+1. [s01.yaml](memory-bank/back/plan/T-HUB-045/yaml/steps/s01.yaml) — work shard.
+2. [memory-bank/back/plan/T-HUB-045/md/plan.md](memory-bank/back/plan/T-HUB-045/md/plan.md) — plan file.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-045
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-045")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s01.yaml").write_text("step: s01", encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is True
     loaded_paths = [f.path for f in res.files]
-    assert "memory-bank/back/plan/s01.yaml" in loaded_paths
-    assert "memory-bank/back/plan/plan-T-HUB-045.md" not in loaded_paths
-    assert "memory-bank/back/plan/plan-T-HUB-045.md" in res.forbidden_skipped
+    assert "memory-bank/back/plan/T-HUB-045/yaml/steps/s01.yaml" in loaded_paths
+    assert "memory-bank/back/plan/T-HUB-045/md/plan.md" not in loaded_paths
+    assert "memory-bank/back/plan/T-HUB-045/md/plan.md" in res.forbidden_skipped
 
 
 def test_load_session_missing_file(tmp_path: Path):
@@ -123,7 +135,7 @@ epic_id: T-HUB-045
 ---
 
 ## load_now
-1. [missing.yaml](memory-bank/back/plan/missing.yaml) — missing file.
+1. [missing.yaml](memory-bank/back/plan/T-HUB-045/yaml/steps/missing.yaml) — missing file.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-045
@@ -135,7 +147,7 @@ epic_id: T-HUB-045
     res = load_session(cwd=tmp_path)
     assert res.ok is False
     assert res.status == "incomplete"
-    assert "memory-bank/back/plan/missing.yaml" in res.required_missing
+    assert "memory-bank/back/plan/T-HUB-045/yaml/steps/missing.yaml" in res.required_missing
     assert any("missing_file:" in code for code in res.diagnostic_codes)
 
 
@@ -149,13 +161,12 @@ epic_id: T-HUB-045
 ---
 
 ## load_now
-1. [s01.yaml](memory-bank/back/plan/s01.yaml) — shard.
+1. [s01.yaml](memory-bank/back/plan/T-HUB-045/yaml/steps/s01.yaml) — shard.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-045
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-045")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s01.yaml").write_text("step: s01", encoding="utf-8")
 
@@ -189,20 +200,19 @@ step_id: s02
 ---
 
 ## load_now
-1. [s02.yaml](memory-bank/back/plan/s02.yaml) — work shard.
+1. [s02.yaml](memory-bank/back/plan/T-HUB-057/yaml/steps/s02.yaml) — work shard.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-057
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-057")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02", encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is True
     assert len(res.files) >= 1
-    assert any(f.path == "memory-bank/back/plan/s02.yaml" for f in res.files)
+    assert any(f.path == "memory-bank/back/plan/T-HUB-057/yaml/steps/s02.yaml" for f in res.files)
 
 
 def test_tm_002_missing_shard_diagnostic(tmp_path: Path):
@@ -215,7 +225,7 @@ step_id: s02
 ---
 
 ## load_now
-1. [missing-s02.yaml](memory-bank/back/plan/missing-s02.yaml) — work shard.
+1. [missing-s02.yaml](memory-bank/back/plan/T-HUB-057/yaml/steps/missing-s02.yaml) — work shard.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-057
@@ -227,7 +237,7 @@ step_id: s02
     res = load_session(cwd=tmp_path)
     assert res.ok is False
     assert res.status == "incomplete"
-    assert "memory-bank/back/plan/missing-s02.yaml" in res.required_missing
+    assert "memory-bank/back/plan/T-HUB-057/yaml/steps/missing-s02.yaml" in res.required_missing
     assert any("missing_file:" in code for code in res.diagnostic_codes)
 
 
@@ -242,13 +252,12 @@ step_id: s04
 ---
 
 ## load_now
-1. [s04.yaml](memory-bank/back/plan/s04.yaml) — work shard.
+1. [s04.yaml](memory-bank/back/plan/T-HUB-050/yaml/steps/s04.yaml) — work shard.
 
 ## Handoff BACK IMPLEMENT — s04
 - **Эпик:** T-HUB-050
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-050")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s04.yaml").write_text("schema: epic-decompose/v1\nstep_id: s04\n", encoding="utf-8")
 
@@ -256,7 +265,7 @@ step_id: s04
     assert res.ok is True
     assert res.meta is not None
     assert res.meta.epic_id == "T-HUB-050"
-    assert any(f.path == "memory-bank/back/plan/s04.yaml" for f in res.files)
+    assert any(f.path == "memory-bank/back/plan/T-HUB-050/yaml/steps/s04.yaml" for f in res.files)
 
 
 def test_mb_load_video_pack(tmp_path: Path):
@@ -294,12 +303,12 @@ step_id: s01
 ---
 
 ## load_now
-1. [s01.yaml](memory-bank/video/script/s01.yaml) — script shard.
+1. [s01.yaml](memory-bank/video/back/plan/V-001/yaml/steps/s01.yaml) — script shard.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** V-001
 """
-    video_mb = tmp_path / "memory-bank" / "video" / "script"
+    video_mb = tmp_path / "memory-bank" / "video" / "back" / "plan" / "V-001" / "yaml" / "steps"
     video_mb.mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank" / "video" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (video_mb / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n", encoding="utf-8")
@@ -310,7 +319,7 @@ step_id: s01
         assert res.meta is not None
         assert res.meta.role == "BACK"
         assert res.meta.epic_id == "V-001"
-        assert any(f.path == "memory-bank/video/script/s01.yaml" for f in res.files)
+        assert any(f.path == "memory-bank/video/back/plan/V-001/yaml/steps/s01.yaml" for f in res.files)
 
 
 def test_mb_load_and_policy(tmp_path: Path):
@@ -324,23 +333,24 @@ step_id: s04
 ---
 
 ## load_now
-1. [plan-T-HUB-050.md](memory-bank/back/plan/plan-T-HUB-050.md) — full plan (forbidden in IMPLEMENT).
-2. [s04.yaml](memory-bank/back/plan/s04.yaml) — work shard.
+1. [T-HUB-050/md/plan.md](memory-bank/back/plan/T-HUB-050/md/plan.md) — full plan (forbidden in IMPLEMENT).
+2. [s04.yaml](memory-bank/back/plan/T-HUB-050/yaml/steps/s04.yaml) — work shard.
 
 ## Handoff BACK IMPLEMENT — s04
 - **Эпик:** T-HUB-050
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    epic_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-050"
+    mb_dir = _step_dir(tmp_path, "T-HUB-050")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
-    (mb_dir / "plan-T-HUB-050.md").write_text("# Plan T-HUB-050\n", encoding="utf-8")
+    (epic_dir / "md").mkdir(parents=True, exist_ok=True)
+    (epic_dir / "md" / "plan.md").write_text("# Plan T-HUB-050\n", encoding="utf-8")
     (mb_dir / "s04.yaml").write_text("schema: epic-decompose/v1\nstep_id: s04\n", encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is True
-    assert "memory-bank/back/plan/plan-T-HUB-050.md" in res.forbidden_skipped
-    assert not any(f.path == "memory-bank/back/plan/plan-T-HUB-050.md" for f in res.files)
-    assert any(f.path == "memory-bank/back/plan/s04.yaml" for f in res.files)
+    assert "memory-bank/back/plan/T-HUB-050/md/plan.md" in res.forbidden_skipped
+    assert not any(f.path == "memory-bank/back/plan/T-HUB-050/md/plan.md" for f in res.files)
+    assert any(f.path == "memory-bank/back/plan/T-HUB-050/yaml/steps/s04.yaml" for f in res.files)
 
 
 def test_required_missing_ok_false(tmp_path: Path):
@@ -354,24 +364,23 @@ step_id: s02
 ---
 
 ## load_now
-1. [s02.yaml](memory-bank/back/plan/s02.yaml) — work shard.
-2. [missing_shard.yaml](memory-bank/back/plan/missing_shard.yaml) — required missing shard.
+1. [s02.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/s02.yaml) — work shard.
+2. [missing_shard.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/missing_shard.yaml) — required missing shard.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-067
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-067")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02\n", encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is False
     assert res.status == "incomplete"
-    assert "memory-bank/back/plan/missing_shard.yaml" in res.required_missing
-    assert any("missing_file:memory-bank/back/plan/missing_shard.yaml" in code for code in res.diagnostic_codes)
+    assert "memory-bank/back/plan/T-HUB-067/yaml/steps/missing_shard.yaml" in res.required_missing
+    assert any("missing_file:memory-bank/back/plan/T-HUB-067/yaml/steps/missing_shard.yaml" in code for code in res.diagnostic_codes)
     # The present required file is still loaded
-    assert any(f.path == "memory-bank/back/plan/s02.yaml" for f in res.files)
+    assert any(f.path == "memory-bank/back/plan/T-HUB-067/yaml/steps/s02.yaml" for f in res.files)
 
 
 def test_read_error_on_required_ok_false(tmp_path: Path):
@@ -386,13 +395,12 @@ step_id: s02
 ---
 
 ## load_now
-1. [s02.yaml](memory-bank/back/plan/s02.yaml) — work shard.
+1. [s02.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/s02.yaml) — work shard.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-067
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-067")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02\n", encoding="utf-8")
 
@@ -414,23 +422,22 @@ step_id: s02
 ---
 
 ## load_now
-1. [s02.yaml](memory-bank/back/plan/s02.yaml) — required shard.
-2. [notes.md](memory-bank/back/plan/notes.md) (optional) — optional notes.
+1. [s02.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/s02.yaml) — required shard.
+2. [notes.md](memory-bank/back/plan/T-HUB-067/md/notes.md) (optional) — optional notes.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-067
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-067")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02\n", encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is True
     assert res.status == "complete"
-    assert "memory-bank/back/plan/notes.md" in res.optional_missing
+    assert "memory-bank/back/plan/T-HUB-067/md/notes.md" in res.optional_missing
     assert len(res.required_missing) == 0
-    assert any("missing_file:memory-bank/back/plan/notes.md" in code for code in res.diagnostic_codes)
+    assert any("missing_file:memory-bank/back/plan/T-HUB-067/md/notes.md" in code for code in res.diagnostic_codes)
 
 
 def test_unmarked_entry_required_fail_closed(tmp_path: Path):
@@ -444,22 +451,21 @@ step_id: s02
 ---
 
 ## load_now
-1. [s02.yaml](memory-bank/back/plan/s02.yaml) — shard without optional tag.
-2. [unmarked_missing.yaml](memory-bank/back/plan/unmarked_missing.yaml) — unmarked missing.
+1. [s02.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/s02.yaml) — shard without optional tag.
+2. [unmarked_missing.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/unmarked_missing.yaml) — unmarked missing.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-067
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-067")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02\n", encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is False
     assert res.status == "incomplete"
-    assert "memory-bank/back/plan/unmarked_missing.yaml" in res.required_missing
-    assert "memory-bank/back/plan/unmarked_missing.yaml" not in res.optional_missing
+    assert "memory-bank/back/plan/T-HUB-067/yaml/steps/unmarked_missing.yaml" in res.required_missing
+    assert "memory-bank/back/plan/T-HUB-067/yaml/steps/unmarked_missing.yaml" not in res.optional_missing
 
 
 def test_result_status_incomplete_on_required_miss(tmp_path: Path):
@@ -473,7 +479,7 @@ step_id: s02
 ---
 
 ## load_now
-1. [missing.yaml](memory-bank/back/plan/missing.yaml) — missing.
+1. [missing.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/missing.yaml) — missing.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-067
@@ -505,21 +511,20 @@ step_id: s02
 ---
 
 ## load_now
-1. [s02.yaml](memory-bank/back/plan/s02.yaml) — present shard.
-2. [missing_required.yaml](memory-bank/back/plan/missing_required.yaml) — missing required.
+1. [s02.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/s02.yaml) — present shard.
+2. [missing_required.yaml](memory-bank/back/plan/T-HUB-067/yaml/steps/missing_required.yaml) — missing required.
 
 ## Handoff BACK IMPLEMENT — s02
 - **Эпик:** T-HUB-067
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-067")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s02.yaml").write_text("schema: epic-decompose/v1\nstep_id: s02\n", encoding="utf-8")
 
     mcp_res = mcp_load_session(cwd=str(tmp_path))
     assert mcp_res["ok"] is False
     assert mcp_res["status"] == "incomplete"
-    assert "memory-bank/back/plan/missing_required.yaml" in mcp_res["required_missing"]
+    assert "memory-bank/back/plan/T-HUB-067/yaml/steps/missing_required.yaml" in mcp_res["required_missing"]
     assert len(mcp_res["files"]) == 1
 
 
@@ -541,7 +546,6 @@ epic_id: T-HUB-072
 
 ## load_now
 1. [plan.md](memory-bank/back/plan/T-HUB-072/md/plan.md) — plan doc.
-2. [decompose-index.md](memory-bank/back/plan/T-HUB-072/md/decompose-index.md) — decompose index.
 
 ## Handoff BACK DECOMPOSE — s01
 - **Эпик:** T-HUB-072
@@ -549,12 +553,11 @@ epic_id: T-HUB-072
     plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-072" / "md"
     plan_dir.mkdir(parents=True, exist_ok=True)
     (plan_dir / "plan.md").write_text(plan_body, encoding="utf-8")
-    (plan_dir / "decompose-index.md").write_text("# Decompose index\n", encoding="utf-8")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
 
     res = load_session(cwd=tmp_path)
     assert res.ok is True
-    assert len(res.files) == 2
+    assert len(res.files) == 1
 
     plan_file = next(f for f in res.files if f.path == "memory-bank/back/plan/T-HUB-072/md/plan.md")
     assert plan_file.content == ""
@@ -562,12 +565,7 @@ epic_id: T-HUB-072
     assert plan_file.size_bytes == full_size
     assert plan_file.truncated is False
 
-    idx_file = next(f for f in res.files if f.path == "memory-bank/back/plan/T-HUB-072/md/decompose-index.md")
-    assert idx_file.content == ""
-    assert idx_file.truncated is False
-
     assert "path_only:memory-bank/back/plan/T-HUB-072/md/plan.md" in res.diagnostic_codes
-    assert "path_only:memory-bank/back/plan/T-HUB-072/md/decompose-index.md" in res.diagnostic_codes
 
 
 def test_yaml_truncated_keeps_ok_true(tmp_path: Path):
@@ -581,13 +579,12 @@ epic_id: T-HUB-072
 ---
 
 ## load_now
-1. [big.yaml](memory-bank/back/plan/big.yaml) — big yaml shard.
+1. [big.yaml](memory-bank/back/plan/T-HUB-072/yaml/steps/big.yaml) — big yaml shard.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-072
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
-    mb_dir.mkdir(parents=True, exist_ok=True)
+    mb_dir = _step_dir(tmp_path, "T-HUB-072")
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "big.yaml").write_text(yaml_body, encoding="utf-8")
 

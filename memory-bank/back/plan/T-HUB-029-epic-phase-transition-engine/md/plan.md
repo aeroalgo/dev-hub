@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs
 
-→ [T-HUB-029-epic-phase-transition-engine/md/decompose-index.md](T-HUB-029-epic-phase-transition-engine/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-029-epic-phase-transition-engine/yaml/decompose-index.yaml](T-HUB-029-epic-phase-transition-engine/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

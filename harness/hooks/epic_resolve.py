@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI helpers for agents: validate-step · mark-index-status · sync-index-yaml · flush-checkpoint · status · verify-decompose-creative · reconcile-spec.
+"""CLI helpers for agents: validate-step · mark-index-status · flush-checkpoint · status · verify-decompose-creative · reconcile-spec.
 
 Loop orchestration = loop/context_loop.py + ./loop/loop.sh (not this file).
 """
@@ -22,7 +22,6 @@ from context_loop import status as operational_status  # noqa: E402
 from constitution_seed import seed_constitution  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from epic_index import sync_yaml_from_md  # noqa: E402
 from epic_paths import (
     discover_epic_role,
     epic_id_from_plan_path,
@@ -78,12 +77,12 @@ def main() -> int:
 
     p_val_tree = sub.add_parser(
         "validate-decompose-tree",
-        help="lint all sNN|eNN shards listed in decompose index.yaml (DECOMPOSE FINISH gate)",
+        help="lint all sNN|eNN shards listed in decompose-index.yaml (DECOMPOSE FINISH gate)",
     )
     p_val_tree.add_argument(
         "--decompose",
         required=True,
-        help="decompose dir | index.yaml | index.md | any step shard in that dir",
+        help="epic yaml dir | decompose-index.yaml | any step shard in that dir",
     )
 
     p_verify_creative = sub.add_parser(
@@ -93,7 +92,7 @@ def main() -> int:
     p_verify_creative.add_argument(
         "--decompose",
         required=True,
-        help="decompose dir | index.yaml | index.md | any step shard in that dir",
+        help="epic yaml dir | decompose-index.yaml | any step shard in that dir",
     )
 
     p_finish = sub.add_parser(
@@ -105,12 +104,11 @@ def main() -> int:
 
     p_mark = sub.add_parser(
         "mark-index-status",
-        help="set one step status in index.yaml (canon) + mirror index.md",
+        help="set one step status in the validated decompose-index.yaml",
     )
     p_mark.add_argument("--decompose", required=True)
     p_mark.add_argument("--step", required=True)
     p_mark.add_argument("--status", required=True)
-    p_mark.add_argument("--no-checklist", action="store_true")
 
     p_finalize = sub.add_parser(
         "finalize-step",
@@ -119,28 +117,10 @@ def main() -> int:
     p_finalize.add_argument(
         "--decompose",
         required=True,
-        help="index.md | index.yaml | decompose dir | step shard yaml in that dir",
+        help="decompose-index.yaml | epic yaml dir | step shard yaml in that dir",
     )
     p_finalize.add_argument("--step", required=True)
     p_finalize.add_argument("--implement", default=None)
-    p_finalize.add_argument("--no-checklist", action="store_true")
-
-    p_repair = sub.add_parser(
-        "repair-index-mirror",
-        help="sync/rebuild index.md queue from index.yaml (SoT); never mutates yaml",
-    )
-    p_repair.add_argument("--decompose", required=True)
-
-    p_sync = sub.add_parser(
-        "sync-index-yaml",
-        help="build/refresh index.yaml from index.md (structure); status from yaml by default",
-    )
-    p_sync.add_argument("--decompose", required=True)
-    p_sync.add_argument(
-        "--from-md-status",
-        action="store_true",
-        help="take statuses from md (bootstrap); default preserves yaml status",
-    )
 
     p_flush = sub.add_parser("flush-checkpoint", help="mark checkpoint done on implement yaml")
     p_flush.add_argument("--path", required=True)
@@ -395,26 +375,6 @@ def main() -> int:
         action="store_true",
         help="apply whitelist repairs",
     )
-
-    p_mb_migrate = sub.add_parser(
-        "mb-migrate",
-        help="migrate memory-bank layout v1 to v2",
-    )
-    p_mb_migrate_mode = p_mb_migrate.add_mutually_exclusive_group()
-    p_mb_migrate_mode.add_argument(
-        "--dry-run",
-        action="store_true",
-        default=True,
-        help="report planned migrations without writing (default)",
-    )
-    p_mb_migrate_mode.add_argument(
-        "--apply",
-        action="store_true",
-        help="apply v1 to v2 migration",
-    )
-    p_mb_migrate.add_argument("--epic", default=None, help="specific epic_id to migrate")
-    p_mb_migrate.add_argument("--role", default="back", help="role for specific epic")
-    p_mb_migrate.add_argument("--force", action="store_true", help="force migration even if steps in_progress")
 
     p_val_boundary = sub.add_parser(
         "validate-boundary",
@@ -829,37 +789,12 @@ def main() -> int:
                 print(json.dumps(payload, ensure_ascii=False, indent=2))
                 return 1
 
-    if args.cmd == "mb-migrate":
-        from loop.migrate.epic_layout_v1_to_v2 import migrate_all, migrate_epic
-
-        is_apply = bool(getattr(args, "apply", False))
-        dry_run = not is_apply
-        force = bool(getattr(args, "force", False))
-        if args.epic:
-            try:
-                res = migrate_epic(
-                    epic_id=args.epic,
-                    role=args.role,
-                    cwd=cwd,
-                    dry_run=dry_run,
-                    force=force,
-                )
-                payload = {"ok": True, "dry_run": dry_run, "result": res}
-            except Exception as e:
-                payload = {"ok": False, "dry_run": dry_run, "error": str(e)}
-        else:
-            payload = migrate_all(cwd=cwd, dry_run=dry_run, force=force)
-
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
-        return 0 if payload.get("ok") else 2
-
     if args.cmd == "mark-index-status":
         r = mark_index_step_status(
             cwd,
             args.decompose,
             args.step,
             args.status,
-            sync_checklist=not args.no_checklist,
         )
         print(json.dumps(r, ensure_ascii=False, indent=2))
         return 0 if r.get("ok") else 2
@@ -870,53 +805,7 @@ def main() -> int:
             args.decompose,
             args.step,
             implement=args.implement,
-            sync_checklist=not args.no_checklist,
         )
-        print(json.dumps(r, ensure_ascii=False, indent=2))
-        return 0 if r.get("ok") else 2
-
-    if args.cmd == "repair-index-mirror":
-        r = repair_index_mirror(cwd, args.decompose)
-        print(json.dumps(r, ensure_ascii=False, indent=2))
-        return 0 if r.get("ok") else 2
-
-    if args.cmd == "sync-index-yaml":
-        idx = _decompose_index_path(cwd, args.decompose)
-        if idx is None or not idx.is_file():
-            print(
-                json.dumps(
-                    {"ok": False, "error": f"missing decompose index: {args.decompose}"},
-                    ensure_ascii=False,
-                    indent=2,
-                )
-            )
-            return 2
-        r = sync_yaml_from_md(
-            idx,
-            preserve_yaml_status=not args.from_md_status,
-        )
-        if not isinstance(r, dict):
-            r = {
-                "ok": False,
-                "error": f"invalid_result: expected dict, got {type(r).__name__}",
-            }
-        elif r.get("ok"):
-            for key in ("path", "source_md"):
-                value = r.get(key)
-                if not isinstance(value, (str, Path)):
-                    r = {
-                        "ok": False,
-                        "error": (
-                            f"invalid_arg: expected str/Path for {key}, "
-                            f"got {type(value).__name__}"
-                        ),
-                    }
-                    break
-                p = Path(value)
-                try:
-                    r[key] = str(p.relative_to(cwd))
-                except ValueError:
-                    pass
         print(json.dumps(r, ensure_ascii=False, indent=2))
         return 0 if r.get("ok") else 2
 

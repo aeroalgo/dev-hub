@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [T-HUB-059-harness-claude-agents-sot-complete/md/decompose-index.md](T-HUB-059-harness-claude-agents-sot-complete/md/decompose-index.md) — **DECOMPOSE done; next: BACK ANALYZE**
+→ [T-HUB-059-harness-claude-agents-sot-complete/yaml/decompose-index.yaml](T-HUB-059-harness-claude-agents-sot-complete/yaml/decompose-index.yaml) — **DECOMPOSE done; next: BACK ANALYZE**
 
 ---
 

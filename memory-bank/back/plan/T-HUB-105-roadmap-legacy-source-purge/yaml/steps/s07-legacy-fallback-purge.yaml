@@ -47,7 +47,7 @@ plan_contract:
 context:
   consumes:
     - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#replacement--sunset
-    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/decompose-index.yaml
   produces:
     - verified evidence of sunset inventory purge and complete regression test pass
   plan_refs:

@@ -36,17 +36,17 @@ alwaysApply: false
 4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` (hub) / raw runner fallback without capability_checks / `timeout 300s` без `-k` / system PATH без внешнего timeout
 5. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
 
-Для managed-проектов (BACK): верификация через stack profile `capability_checks` (`test.targeted`, `test.full`) и execution evidence, без unconditional raw pytest fallback.
+Для managed-проектов (BACK): верификация через stack profile `capability_checks` (`test.targeted`, `test.full`) и execution evidence; **FORBIDDEN:** unconditional raw pytest fallback.
 
-### FRONT (Vitest / Playwright — не pytest)
+### FRONT (Vitest / Playwright — parent-only; не pytest)
 
-1. Targeted / full suite: `npm --prefix frontend exec vitest …` · `tsc` · `playwright test` (см. Frontend block в `test-timeout.mdc`).
+1. Targeted / full suite (parent-only): `npm --prefix frontend exec vitest …` · `tsc` · `playwright test` (см. Frontend block в `test-timeout.mdc`).
 2. **FORBIDDEN:** `bin/pytest` · `backend/.venv/bin/pytest` · любой backend/hub pytest как FRONT IMPLEMENT/TASK/QA suite (`suite_wrong_stack`).
 3. Запуск frontend-тестов — **только parent** (`front-tests-parent-only.mdc`).
 
 ### INTEG
 
-По surface шага: backend contract → capability/pytest per BACK; UI wire → Vitest/Playwright per FRONT. Не подменять FRONT surface hub `bin/pytest -q --tb=line`.
+По surface шага: backend contract → capability/hub pytest per BACK; UI wire → Vitest/Playwright parent-only per FRONT. **FORBIDDEN:** подменять FRONT surface hub `bin/pytest -q --tb=line`.
 
 ## Role-only boundary markers (Границы ответственности ролей)
 

@@ -1,3 +1,4 @@
+schema: epic-decompose-index/v1
 plan_id: T-HUB-ORPHANREQ
 steps:
   - id: s01

@@ -47,9 +47,9 @@ def _setup_epic_env(cwd: Path) -> None:
     _ensure_gate_agents(cwd)
     mb = cwd / "memory-bank"
     mb.mkdir(parents=True, exist_ok=True)
-    decomp = mb / "back" / "plan" / "decompose-T-HUB-022-test"
-    decomp.mkdir(parents=True, exist_ok=True)
-    (decomp / "index.yaml").write_text(
+    decomp = mb / "back" / "plan" / "T-HUB-022-test" / "yaml"
+    (decomp / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\nsteps:\n  - id: s09\n    file: s09.yaml\n    status: active\n",
         encoding="utf-8",
     )
@@ -70,7 +70,7 @@ def _setup_epic_env(cwd: Path) -> None:
         "role": "BACK",
         "phase": "BACK IMPLEMENT",
         "armed_step": "s09",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-022-test/index.yaml",
+        "armed_decompose": "memory-bank/back/plan/T-HUB-022-test/yaml/decompose-index.yaml",
         "pending_fingerprint_before": "old_fp",
         "last_verify_verdict": "PASS",
         "last_finish_tool": {"tool": "mb-finish", "fingerprint": "fp123"},
@@ -138,7 +138,7 @@ def test_strict_0_legacy_ac_autoproject(tmp_path: Path) -> None:
     # Legacy AC without frontmatter
     ac_content = (
         "## load_now\n"
-        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "1. [s09.yaml](back/plan/T-HUB-022-test/yaml/steps/s09.yaml)\n\n"
         "## Handoff BACK IMPLEMENT s09\n"
         "- **Эпик:** T-HUB-022\n"
         "- **Режим/шаг:** BACK IMPLEMENT s09\n"
@@ -155,7 +155,7 @@ def test_strict_1_no_frontmatter_blocked(tmp_path: Path) -> None:
     # Legacy AC without frontmatter
     ac_content = (
         "## load_now\n"
-        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "1. [s09.yaml](back/plan/T-HUB-022-test/yaml/steps/s09.yaml)\n\n"
         "## Handoff BACK IMPLEMENT s09\n"
         "- **Эпик:** T-HUB-022\n"
         "- **Режим/шаг:** BACK IMPLEMENT s09\n"
@@ -180,7 +180,7 @@ def test_strict_1_valid_frontmatter_passes(tmp_path: Path) -> None:
         "step_id: s09\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "1. [s09.yaml](back/plan/T-HUB-022-test/yaml/steps/s09.yaml)\n\n"
         "## Handoff BACK IMPLEMENT s09\n"
         "- **Эпик:** T-HUB-022\n"
         "- **Режим/шаг:** BACK IMPLEMENT s09\n"
@@ -203,7 +203,7 @@ def test_strict_1_invalid_schema_blocked(tmp_path: Path) -> None:
         "step_id: s09\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "1. [s09.yaml](back/plan/T-HUB-022-test/yaml/steps/s09.yaml)\n\n"
         "## Handoff BACK IMPLEMENT s09\n"
         "- **Эпик:** T-HUB-022\n"
         "- **Режим/шаг:** BACK IMPLEMENT s09\n"
@@ -226,7 +226,7 @@ def test_strict_1_invalid_role_blocked(tmp_path: Path) -> None:
         "step_id: s09\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "1. [s09.yaml](back/plan/T-HUB-022-test/yaml/steps/s09.yaml)\n\n"
         "## Handoff BACK IMPLEMENT s09\n"
         "- **Эпик:** T-HUB-022\n"
         "- **Режим/шаг:** BACK IMPLEMENT s09\n"

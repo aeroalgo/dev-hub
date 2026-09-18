@@ -16,7 +16,7 @@ def _valid_manifest() -> dict:
             {
                 "id": "back",
                 "role": "BACK",
-                "decompose": "memory-bank/back/plan/decompose-demo/index.md",
+                "decompose": "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
                 "depends_on": [],
                 "completion": {"type": "decompose"},
                 "action": "implement",
@@ -24,7 +24,7 @@ def _valid_manifest() -> dict:
             {
                 "id": "front",
                 "role": "FRONT",
-                "decompose": "memory-bank/front/plan/decompose-demo-front/index.md",
+                "decompose": "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml",
                 "depends_on": [],
                 "completion": {"type": "decompose"},
                 "action": "implement",
@@ -54,7 +54,7 @@ def test_validate_manifest_reports_typed_topology_and_source_errors() -> None:
     manifest["source"] = {"kind": "unknown", "artifacts": ["/tmp/gap.yaml"]}
     manifest["nodes"][1]["role"] = "OPS"
     manifest["nodes"][2]["depends_on"] = ["missing", "close"]
-    manifest["nodes"][2]["decompose"] = "../escape/index.md"
+    manifest["nodes"][2]["decompose"] = "../escape/decompose-index.yaml"
 
     result = validate_manifest(manifest)
     codes = {item["code"] for item in result["diagnostics"]}
@@ -112,7 +112,7 @@ def test_validate_manifest_rejects_v1_schema_fail_closed() -> None:
             {
                 "id": "back",
                 "role_dir": "back",
-                "decompose": "memory-bank/back/plan/decompose-demo/index.md",
+                "decompose": "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
                 "depends_on": [],
             }
         ],

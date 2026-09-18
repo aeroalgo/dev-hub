@@ -68,4 +68,4 @@ Gap опционален — не блокирует PLAN. Не читать as 
 6b. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
 7. Next: **INTEG DECOMPOSE** `queue[0]` → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 
-**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / INTEG IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
+**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / INTEG IMPLEMENT — PLAN **не** трогает status и не перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`.

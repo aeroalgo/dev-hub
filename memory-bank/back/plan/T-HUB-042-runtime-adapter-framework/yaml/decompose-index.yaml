@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-042-runtime-adapter-framework
-source_md: index.md
-status_canon: index.yaml
 appetite:
   timebox_days: 7
   cut_list:

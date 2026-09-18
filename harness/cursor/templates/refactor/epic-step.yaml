@@ -8,7 +8,7 @@ date: YYYY-MM-DD
 behavior_freeze: |
   что не меняется (wire, API, semantics)
 
-decompose_ref: memory-bank/back/refactor/plan/decompose-<plan_id>/rNN-<slug>.yaml
+decompose_ref: memory-bank/back/refactor/plan/<plan_id>/yaml/steps/rNN-<slug>.yaml
 
 done: []
 

@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-103-event-schema-sot-unify
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 steps:
 - id: s01
   file: s01-verify-callers-and-characterization-baseline.yaml

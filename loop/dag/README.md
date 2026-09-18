@@ -21,7 +21,7 @@ Production-ready DAG pipeline manifests for autonomous loop scheduling.
 - `action: "implement" | "close"`;
 - `completion: {type: "decompose" | "artifact"}`;
 - `depends_on: string[]` — идентификаторы зависимых узлов;
-- `decompose` — путь к `decompose-*/index.yaml`, если `completion.type=decompose`;
+- `decompose` — путь к `plan/<epic>/yaml/decompose-index.yaml`, если `completion.type=decompose`;
 - `artifact` — путь к артефакту, если `completion.type=artifact`.
 
 ## `integ-demo.yaml`

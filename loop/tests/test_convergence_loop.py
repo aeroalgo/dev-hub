@@ -16,9 +16,13 @@ ROOT = Path(__file__).resolve().parents[2]
 def temp_project(tmp_path):
     d = tmp_path / "project"
     d.mkdir()
-    mb = d / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb = d / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
     mb.mkdir(parents=True)
-    (mb / "index.yaml").write_text("steps: []\n")
+    (mb / "decompose-index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-TEST-001\n"
+        "steps: []\n"
+    )
     return d
 
 def test_arm_warn_on_flag(tmp_path, caplog):
@@ -36,7 +40,7 @@ def test_arm_warn_on_flag(tmp_path, caplog):
             with patch("loop.board_sync.epic_resolver.resolve_epic_next_action") as mock_res:
                 mock_action = MagicMock()
                 mock_action.phase = "IMPLEMENT"
-                mock_action.decompose_rel = "memory-bank/back/plan/decompose-T-TEST-001/index.yaml"
+                mock_action.decompose_rel = "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml"
                 mock_res.return_value = mock_action
                 with patch("loop.epic_transition.arm_phase") as mock_arm:
                     mock_arm.return_value = {"ok": True, "phase": "IMPLEMENT"}
@@ -53,7 +57,7 @@ def test_arm_no_call_without_flag(tmp_path):
             with patch("loop.board_sync.epic_resolver.resolve_epic_next_action") as mock_res:
                 mock_action = MagicMock()
                 mock_action.phase = "IMPLEMENT"
-                mock_action.decompose_rel = "memory-bank/back/plan/decompose-T-TEST-001/index.yaml"
+                mock_action.decompose_rel = "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml"
                 mock_res.return_value = mock_action
                 with patch("loop.epic_transition.arm_phase") as mock_arm:
                     mock_arm.return_value = {"ok": True, "phase": "IMPLEMENT"}
@@ -76,7 +80,7 @@ def test_arm_warn_only_not_block(tmp_path, caplog):
             with patch("loop.board_sync.epic_resolver.resolve_epic_next_action") as mock_res:
                 mock_action = MagicMock()
                 mock_action.phase = "IMPLEMENT"
-                mock_action.decompose_rel = "memory-bank/back/plan/decompose-T-TEST-001/index.yaml"
+                mock_action.decompose_rel = "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml"
                 mock_res.return_value = mock_action
                 with patch("loop.epic_transition.arm_phase") as mock_arm:
                     mock_arm.return_value = {"ok": True, "phase": "IMPLEMENT"}

@@ -58,7 +58,7 @@ Decompose step: [sNN-*.yaml](…) (если от шага)
 ```
 
 5. Один файл `creative-[feature_name].md` (+ **Skills gate** + **Decompose link** если от шага)
-5a. **Rewire dependents (обязательно до FINISH):** все `decompose-*/sNN-*.yaml` и `decompose-*/index.md`, где `needs_creative` / blockers ссылаются на этот CR-ID. Канон форм: `.cursor/templates/decompose/epic-step.yaml` + `index.md`.
+5a. **Rewire dependents (обязательно до FINISH):** все `plan/<epic>/yaml/steps/sNN-*.yaml`, где `needs_creative` / blockers ссылаются на этот CR-ID. Канон: `.cursor/templates/decompose/epic-step.yaml` + YAML index.
    - markdown-ссылка на creative: `[CR-…/creative-….md](../../creative/<epic_id>/…)` или `(../../creative/…)` без эпика
    - **если все CR шага closed:** step `needs_creative: yes (CR-…) — **closed**`; `Next Phase: BACK IMPLEMENT`
    - **если остались open CR:** step `needs_creative: yes (<open-ids>)`; `Next Phase: BACK CREATIVE`; в `**Creative:**` явно `open:` + `closed:`

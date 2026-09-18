@@ -7,7 +7,7 @@ alwaysApply: false
 **Канон путей:** @.cursor/rules/shared/workflow-refactor-epic.mdc
 
 **Артефакты:**
-- **Эпик:** `front/refactor/implement/implement-<id>/rNN-*.md`
+- **Эпик:** `front/refactor/implement/<id>/rNN-*.yaml`
 - **Без эпика:** `front/refactor/session-YYYYMMDD-<slug>.md`
 
 ## Gates

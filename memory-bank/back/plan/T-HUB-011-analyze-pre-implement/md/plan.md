@@ -1,17 +1,17 @@
 # [T-HUB-011 | analyze-pre-implement] PLAN
 
-**Дата:** 2026-08-23  
-**Режим:** BACK PLAN  
-**Уровень:** L3  
-**Статус:** active  
-**Roadmap:** [roadmap-speckit-workflow-boost-epics.md](roadmap-speckit-workflow-boost-epics.md)  
-**Research / refs:**  
-- `spec-kit/templates/commands/analyze.md`  
-- текущие: `workflow-*-decompose.mdc`, `finish-block.mdc`, `finish-doc-router.mdc`, `decompose/index.md` coverage  
-**deps hard:** T-HUB-010 (FR/AC IDs, markers, Clarifications)  
-**Skills:** writing-plans · architecture-patterns  
+**Дата:** 2026-08-23
+**Режим:** BACK PLAN
+**Уровень:** L3
+**Статус:** active
+**Roadmap:** [roadmap-speckit-workflow-boost-epics.md](roadmap-speckit-workflow-boost-epics.md)
+**Research / refs:**
+- `spec-kit/templates/commands/analyze.md`
+- текущие: `workflow-*-decompose.mdc`, `finish-block.mdc`, `finish-doc-router.mdc`, `decompose/index.md` coverage
+**deps hard:** T-HUB-010 (FR/AC IDs, markers, Clarifications)
+**Skills:** writing-plans · architecture-patterns
 
-→ [T-HUB-011-analyze-pre-implement/md/decompose-index.md](T-HUB-011-analyze-pre-implement/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-011-analyze-pre-implement/yaml/decompose-index.yaml](T-HUB-011-analyze-pre-implement/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 
@@ -78,19 +78,19 @@
 
 ### AC+
 
-1. Команды ANALYZE в mainrule + существуют workflow/lean/template/slash  
-2. Schema yaml содержит: `findings[]`, `coverage[]`, `metrics`, `critical_count`, `recommendation`  
-3. DECOMPOSE workflow упоминает ANALYZE  
-4. Dry-run: фиктивный epic с FR без sNN → finding Coverage CRITICAL/HIGH  
-5. `rg` на `STRICTLY READ-ONLY` / запрет правок кода в workflow-analyze  
-6. refs-doc: что взяли из analyze.md / что нет (hooks, scripts)  
+1. Команды ANALYZE в mainrule + существуют workflow/lean/template/slash
+2. Schema yaml содержит: `findings[]`, `coverage[]`, `metrics`, `critical_count`, `recommendation`
+3. DECOMPOSE workflow упоминает ANALYZE
+4. Dry-run: фиктивный epic с FR без sNN → finding Coverage CRITICAL/HIGH
+5. `rg` на `STRICTLY READ-ONLY` / запрет правок кода в workflow-analyze
+6. refs-doc: что взяли из analyze.md / что нет (hooks, scripts)
 
 ### AC−
 
-1. Не создавать `sNN-audit-*` из ANALYZE (это AUDIT)  
-2. Не требовать FEATURE_DIR/specs  
-3. Не hard-block `loop.sh` без отдельного эпика  
-4. Не читать полный текст всех implement yaml (их ещё нет)  
+1. Не создавать `sNN-audit-*` из ANALYZE (это AUDIT)
+2. Не требовать FEATURE_DIR/specs
+3. Не hard-block `loop.sh` без отдельного эпика
+4. Не читать полный текст всех implement yaml (их ещё нет)
 
 ---
 
@@ -127,7 +127,7 @@ DECOMPOSE done
   → else: Next = IMPLEMENT s01
 ```
 
-От Spec Kit: severity heuristic, coverage table, constitution authority, 50-cap, remediation ask (не auto-edit).  
+От Spec Kit: severity heuristic, coverage table, constitution authority, 50-cap, remediation ask (не auto-edit).
 Не брать: `{SCRIPT}` prerequisites JSON, extension hooks, SPECKIT command macros.
 
 ---
@@ -144,7 +144,7 @@ DECOMPOSE done
 
 ## Тест-стратегия
 
-- Docs/rules QA via rg + fixture epic under `_scratch/` or documented dry-run.  
+- Docs/rules QA via rg + fixture epic under `_scratch/` or documented dry-run.
 - Optional: tiny pytest later validating yaml schema keys — **не** обязателен в AC этого эпика.
 
 ---
@@ -162,14 +162,14 @@ DECOMPOSE done
 
 ## До DECOMPOSE (черновик нарезки)
 
-1. **s01** — schema template + BACK workflow/lean + core detection text  
-2. **s02** — FRONT/INTEG + slash ×3 + mainrule  
-3. **s03** — wire DECOMPOSE/IMPLEMENT/finish-doc-router/paths  
-4. **s04** — refs + dry-run fixture/docs + role-command parity  
+1. **s01** — schema template + BACK workflow/lean + core detection text
+2. **s02** — FRONT/INTEG + slash ×3 + mainrule
+3. **s03** — wire DECOMPOSE/IMPLEMENT/finish-doc-router/paths
+4. **s04** — refs + dry-run fixture/docs + role-command parity
 
 ---
 
 ## Следующий режим
 
-→ [T-HUB-011-analyze-pre-implement/md/decompose-index.md](T-HUB-011-analyze-pre-implement/md/decompose-index.md) — **единственный трекер** (s01–s04 + coverage)  
-CREATIVE: нет  
+→ [T-HUB-011-analyze-pre-implement/yaml/decompose-index.yaml](T-HUB-011-analyze-pre-implement/yaml/decompose-index.yaml) — **единственный трекер** (s01–s04 + coverage)
+CREATIVE: нет

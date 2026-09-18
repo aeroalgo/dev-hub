@@ -14,8 +14,8 @@ def test_dry_run_hooks_epic(capsys):
     res = render_formula("hooks-epic", "T-HUB-999", "test-slug", dry_run=True)
     captured = capsys.readouterr().out
 
-    assert "index.yaml" in res
-    assert len(res) >= 6  # index.yaml + at least 5 step shards
+    assert "decompose-index.yaml" in res
+    assert len(res) >= 6  # decompose-index.yaml + at least 5 step shards
 
     assert "schema: epic-decompose-index/v1" in captured
     assert "plan_id: T-HUB-999-test-slug" in captured
@@ -27,15 +27,15 @@ def test_render_writes_files():
         tmp_path = Path(tmpdir)
         written = render_formula("hooks-epic", "T-HUB-999", "test-slug", out_dir=tmp_path)
 
-        assert (tmp_path / "index.yaml").is_file()
-        assert (tmp_path / "s01-env-contract.yaml").is_file()
+        assert (tmp_path / "decompose-index.yaml").is_file()
+        assert (tmp_path / "steps/s01-env-contract.yaml").is_file()
         assert len(written) >= 6
 
-        index_content = yaml.safe_load((tmp_path / "index.yaml").read_text())
+        index_content = yaml.safe_load((tmp_path / "decompose-index.yaml").read_text())
         assert index_content["schema"] == "epic-decompose-index/v1"
         assert index_data_has_steps(index_content)
 
-        s01_content = yaml.safe_load((tmp_path / "s01-env-contract.yaml").read_text())
+        s01_content = yaml.safe_load((tmp_path / "steps/s01-env-contract.yaml").read_text())
         assert s01_content["schema"] == "epic-decompose/v1"
         assert s01_content["step_id"] == "s01"
 

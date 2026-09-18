@@ -24,12 +24,12 @@ step_id: s01
 ---
 
 ## load_now
-1. [s01.yaml](memory-bank/back/plan/s01.yaml) — shard.
+1. [s01.yaml](memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/steps/s01.yaml) — shard.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-045
 """
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-045-harness-workflow-session-load-api" / "yaml" / "steps"
     mb_dir.mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
     (mb_dir / "s01.yaml").write_text("step: s01", encoding="utf-8")
@@ -43,7 +43,7 @@ step_id: s01
     data = json.loads(res.stdout)
     assert data["ok"] is True
     assert len(data["files"]) == 1
-    assert data["files"][0]["path"] == "memory-bank/back/plan/s01.yaml"
+    assert data["files"][0]["path"] == "memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/steps/s01.yaml"
 
 
 def test_cli_wrong_cwd(tmp_path: Path):
@@ -68,7 +68,7 @@ epic_id: T-HUB-045
 ---
 
 ## load_now
-1. [missing.yaml](memory-bank/back/plan/missing.yaml) — shard.
+1. [missing.yaml](memory-bank/back/plan/T-HUB-045/yaml/steps/missing.yaml) — shard.
 
 ## Handoff BACK IMPLEMENT — s01
 - **Эпик:** T-HUB-045

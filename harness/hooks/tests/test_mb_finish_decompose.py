@@ -15,19 +15,9 @@ from loop.mb_finish.schemas import MbFinishRequest
 def test_finish_decompose_arm(tmp_path: Path):
     """cp1: finish_decompose happy path: decompose tree valid -> promote_if_ready called with ANALYZE."""
     plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
-    (plan_root / "md").mkdir(parents=True, exist_ok=True)
     (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
     mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
-
-    index_md = mb_dir / "md" / "decompose-index.md"
-    index_md.write_text(
-        "## Requirements coverage\n- REQ-01: covered\n\n"
-        "## Stages coverage\n- s01: covered\n\n"
-        "## Outcome map\n- OUT-01: covered\n\n"
-        "## Replacement cleanup\n- CLEAN-01: covered\n",
-        encoding="utf-8"
-    )
 
     s01_yaml = mb_dir / "yaml" / "steps" / "s01-step.yaml"
     s01_yaml.write_text(
@@ -94,7 +84,6 @@ def test_finish_decompose_arm(tmp_path: Path):
 def test_finish_decompose_critical(tmp_path: Path):
     """cp2: finish_decompose: CRITICAL errors in tree -> MbFinishResult(ok=False)."""
     plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
-    (plan_root / "md").mkdir(parents=True, exist_ok=True)
     (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
     mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
@@ -127,15 +116,6 @@ def test_finish_decompose_armed_step(tmp_path: Path):
     (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
     mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
-
-    index_md = mb_dir / "md" / "decompose-index.md"
-    index_md.write_text(
-        "## Requirements coverage\n- REQ-01: covered\n\n"
-        "## Stages coverage\n- s01: covered\n\n"
-        "## Outcome map\n- OUT-01: covered\n\n"
-        "## Replacement cleanup\n- CLEAN-01: covered\n",
-        encoding="utf-8"
-    )
 
     s01_yaml = mb_dir / "yaml" / "steps" / "s01-step.yaml"
     s01_yaml.write_text(
@@ -203,19 +183,9 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
 ):
     """finish_decompose should succeed when armed_decompose is missing but activeContext load_now has decompose index."""
     plan_root = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001"
-    (plan_root / "md").mkdir(parents=True, exist_ok=True)
     (plan_root / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
     mb_dir = plan_root
     mb_dir.mkdir(parents=True, exist_ok=True)
-
-    index_md = mb_dir / "md" / "decompose-index.md"
-    index_md.write_text(
-        "## Requirements coverage\n- REQ-01: covered\n\n"
-        "## Stages coverage\n- s01: covered\n\n"
-        "## Outcome map\n- OUT-01: covered\n\n"
-        "## Replacement cleanup\n- CLEAN-01: covered\n",
-        encoding="utf-8",
-    )
 
     s01_yaml = mb_dir / "yaml" / "steps" / "s01-step.yaml"
     s01_yaml.write_text(

@@ -56,7 +56,7 @@ converged: false
 
 implemented:
   - step_id: sNN
-    implement_file: memory-bank/<role>/implement/implement-<epic_id>/sNN-<slug>.yaml
+    implement_file: memory-bank/<role>/implement/<epic_id>/sNN-<slug>.yaml
 
 not_implemented:
   - step_id: sNN
@@ -65,7 +65,7 @@ not_implemented:
 
 deviations:
   - step_id: sNN
-    implement_file: memory-bank/<role>/implement/implement-<epic_id>/sNN-<slug>.yaml
+    implement_file: memory-bank/<role>/implement/<epic_id>/sNN-<slug>.yaml
     plan_intent: <what plan said>
     actual: <what was actually done>
     impact: low | medium | high

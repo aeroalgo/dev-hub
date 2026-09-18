@@ -6,7 +6,7 @@ from typing import Protocol, Union, runtime_checkable
 
 from loop.paths.pack_layout import ArtifactLayout
 
-_PLAN_MD_RE = re.compile(r"(?:^|/)plan-[^/]+\.md$|(?:^|/)md/plan\.md$|(?:^|/)plan\.md$")
+_PLAN_MD_RE = re.compile(r"(?:^|/)md/plan\.md$|(?:^|/)plan\.md$")
 _UNRESTRICTED_MODES = frozenset({"DECOMPOSE", "PLAN", "ANALYZE", "AUDIT", "CREATIVE", "CLARIFY"})
 
 
@@ -27,7 +27,7 @@ class ForbiddenPolicy(Protocol):
 class SoftwareEpicV1Policy:
     """Forbidden policy for software-epic-v1 layout.
 
-    Forbids full plan-*.md / md/plan.md files during lean execution phases (IMPLEMENT, QA, BUGFIX, TASK, etc.),
+    Forbids full canonical plan.md files during lean execution phases (IMPLEMENT, QA, BUGFIX, TASK, etc.),
     while allowing them during whole-plan modes (PLAN, DECOMPOSE, ANALYZE, AUDIT, CREATIVE, CLARIFY).
     """
 
@@ -41,7 +41,7 @@ class SoftwareEpicV1Policy:
 class ProductionEpicV1Policy:
     """Forbidden policy for production-epic-v1 layout.
 
-    Forbids full plan-*.md / md/plan.md files during lean execution phases,
+    Forbids full canonical plan.md files during lean execution phases,
     while allowing them during whole-plan modes.
     """
 

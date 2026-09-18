@@ -256,7 +256,7 @@
 
 ## Decompose
 
-Index (layout v2): [`md/decompose-index.md`](decompose-index.md) · machine [`../yaml/decompose-index.yaml`](../yaml/decompose-index.yaml) · shards `../yaml/steps/sNN-*.yaml`. Status SoT = yaml only.
+Index (layout v2): [`yaml/decompose-index.yaml`](../yaml/decompose-index.yaml) · machine [`../yaml/decompose-index.yaml`](../yaml/decompose-index.yaml) · shards `../yaml/steps/sNN-*.yaml`. Status SoT = yaml only.
 
 **FR-001 pick:** sidecar-only `.claude/runtime/epic/finish-tx.json` (`loop-finish-transaction/v1`, extra=forbid) — **не** BOUNDARY_REGISTRY.
 

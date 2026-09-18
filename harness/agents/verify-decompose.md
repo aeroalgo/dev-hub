@@ -23,7 +23,7 @@ Parent **обязан** передать только:
 
 | Секция | Обязательна |
 |--------|-------------|
-| `ALLOW READ` | да (≤10) — **обязан** включать `…/plan/…/md/plan.md` (или plan artifact) + `…/yaml/decompose-index.yaml` (+ `md/decompose-index.md` / step shards по необходимости) |
+| `ALLOW READ` | да (≤10) — **обязан** включать `…/plan/…/md/plan.md` (или plan artifact) + `…/yaml/decompose-index.yaml` + step shards по необходимости |
 
 Нет `ALLOW READ` → `FAIL` `prompt_incomplete:ALLOW READ`.
 
@@ -32,13 +32,13 @@ Parent **обязан** передать только:
 ## Status contract
 
 - Вход: parent/CLI подготовил decompose tree (`yaml/decompose-index.yaml` + shards) и прошёл `validate-decompose-tree`.
-- Выход: обязательные таблицы покрытия присутствуют в ALLOW-артефактах (`Requirements coverage`, `Stages coverage`, `Outcome map`, `Replacement cleanup`), нет orphan-replace или пустых строк, семантика совпадает с plan → `PASS`; иначе `FAIL` с blocker списком.
+- Выход: coverage и replacement cleanup присутствуют в YAML-контракте и shards, нет orphan-replace или пустых строк, семантика совпадает с plan → `PASS`; иначе `FAIL` с blocker списком.
 
 ## System discipline (HARD)
 
 0. **Первый Read** = `yaml/decompose-index.yaml` из ALLOW. Нет → `FAIL` (`decompose_index_missing`).
-1. Read plan + `md/decompose-index.md` / step shards из ALLOW по мере нужды.
-2. Проверь наличие и полноту обязательных таблиц покрытия **в этих файлах** (не в prompt).
+1. Read plan + step shards из ALLOW по мере нужды.
+2. Проверь наличие и полноту coverage-полей **в YAML-контракте** (не в prompt).
 3. GAPS с `status: blocked` или неустранёнными блокирующими зазорами → `FAIL`.
 4. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-boundary` command ниже.
 5. **FORBIDDEN pytest / product code paths / test runners.** Только проверка plan/decompose yaml/md.

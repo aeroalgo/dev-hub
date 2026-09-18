@@ -872,15 +872,9 @@ def finish_decompose(
                 c
                 for c in candidates
                 if "/plan/" in c.replace("\\", "/")
-                and c.endswith(("index.yaml", "index.yml"))
+                and Path(c).name in {"decompose-index.yaml", "decompose-index.yml"}
+                and "/yaml/" in c.replace("\\", "/")
             ]
-            if not preferred:
-                preferred = [
-                    c
-                    for c in candidates
-                    if "/plan/" in c.replace("\\", "/")
-                    and Path(c).name in {"index.yaml", "index.yml", "decompose-index.yaml", "decompose-index.yml"}
-                ]
             if preferred:
                 decompose_rel = preferred[0]
 
@@ -1245,12 +1239,13 @@ def finish_analyze(
 
     idx_path = None
     if decompose_rel:
-        cand = cwd / decompose_rel
-        if cand.is_dir():
-            cand = cand / "index.yaml"
-        elif cand.name == "index.yml":
-            cand = cand.with_name("index.yaml")
-        if cand.is_file():
+        from harness.hooks.epic_index import index_yaml_path
+
+        try:
+            cand = index_yaml_path(cwd / decompose_rel)
+        except ValueError:
+            cand = None
+        if cand is not None and cand.is_file():
             idx_path = cand
     if idx_path is None:
         idx_path = find_decompose_index(cwd, role_dir, epic_id)
@@ -1258,7 +1253,7 @@ def finish_analyze(
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["decompose_index_missing"],
-            shape_errors=["decompose index.yaml missing — cannot finish ANALYZE"],
+            shape_errors=["decompose-index.yaml missing — cannot finish ANALYZE"],
         )
 
     loaded = load_steps_for_index(cwd, idx_path)

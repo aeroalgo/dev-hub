@@ -7,7 +7,7 @@ description: "Role command parity chain — BACK/FRONT/INTEG workflow router (gr
 
 **Язык:** все user-facing сообщения — **русский** (@.claude/rules/language.md). Subagent/task prompts: добавь «ответ и отчёт пользователю — на русском».
 
-**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. Для managed-проектов — верификация выполняется строго через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
+**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub / BACK — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. FRONT — Vitest/Playwright (`npm --prefix frontend …`), **FORBIDDEN** подмена на `bin/pytest`. Для managed-проектов — верификация через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
 
 **FRONT + любой frontend:** тесты (vitest/playwright/npm test/e2e) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
 
@@ -67,7 +67,7 @@ Fallback на Read/Grep — только после ориентации по г
 `SUSPENSION GUARD active — plan output unlimited`
 
 - Читай `.cursor/rules/token-economy-core.mdc` §0.0 + §0.0.1 до записи артефакта (stub: @.cursor/rules/token-economy-stub.mdc)
-- Lean load ≠ lean write: **не** сжимай `plan-*.md` / `gap-*.md` / `security/plan/plan-*.md` под telegraph / 200 lines / chat brief
+- Lean load ≠ lean write: **не** сжимай `plan/**/md/plan.md` / `gap-*.md` / `security/plan/<id>/md/plan.md` под telegraph / 200 lines / chat brief
 - Research / audit / multi-P вход → `.cursor/rules/shared/workflow-plan-multi-epic.mdc`: **N эпиков** + roadmap, не один mega-plan; объяви `MULTI-EPIC PLAN — N эпиков`
 - PLAN → recommend premium model; after PLAN → inline `roadmap-merge` (same session) → new chat for `* DECOMPOSE` первого эпика **canon** queue (не `* ROADMAP MERGE`)
 
@@ -149,7 +149,7 @@ Level — из decompose step / plan / task shard.
 Каталог **строго** `memory-bank/` (lowercase).  
 **ЗАПРЕЩЕНО:** `Memory-bank/`, `MEMORY-BANK/`.
 
-Default (IMPLEMENT/TASK/QA/SECURITY execute): `memory-bank/activeContext.md` → `load_now` only. ONE work shard (`sNN|eNN` / task / bugfix / qa). **FORBIDDEN** полный `plan-*.md` в load_now; AC из shard / Handoff; jump `plan §N` только если Consumes требует. См. Context-session-economy §3–4 / token-economy §0.5.1.
+Default (IMPLEMENT/TASK/QA/SECURITY execute): `memory-bank/activeContext.md` → `load_now` only. ONE work shard (`sNN|eNN` / task / bugfix / qa). **FORBIDDEN** полный `plan/<epic_id>/md/plan.md` в load_now; AC из shard / Handoff; jump `plan §N` только если Consumes требует. См. Context-session-economy §3–4 / token-economy §0.5.1.
 
 **PLAN override:** inventory по `workflow-*-plan.mdc` (для INTEG PLAN — все portal-relevant implement + routes; для SECURITY PLAN — surfaces inventory). Не режь объём чтения «ради economy», если workflow требует полный registry.
 
@@ -169,7 +169,7 @@ Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integr
 
 `OK {PREFIX} {MODE} — начинаю`
 
-Если MODE=PLAN или MODE=`SECURITY PLAN` или MODE=`REFACTOR PLAN` (или SECURITY/REFACTOR с args PLAN): сразу вторая строка `SUSPENSION GUARD active — plan output unlimited`, затем читай `.claude/rules/plan-artifact.md`. Artifact SECURITY: `memory-bank/{role}/security/plan/plan-*.md`.
+Если MODE=PLAN или MODE=`SECURITY PLAN` или MODE=`REFACTOR PLAN` (или SECURITY/REFACTOR с args PLAN): сразу вторая строка `SUSPENSION GUARD active — plan output unlimited`, затем читай `.claude/rules/plan-artifact.md`. Artifact SECURITY: `memory-bank/{role}/security/plan/<id>/md/plan.md`.
 
 Если MODE=DECOMPOSE (BACK/FRONT/INTEG): сразу `SUSPENSION GUARD active — decompose output unlimited`, затем `.claude/rules/plan-artifact.md` (секция DECOMPOSE) + `workflow-decompose.mdc` §Maximal detail + §Replacement cleanup.
 Если MODE=VAN и brownfield (есть код/compose): сразу `SUSPENSION GUARD active — architecture map output unlimited`, затем `.cursor/rules/shared/workflow-van-brownfield.mdc` + `.claude/rules/plan-artifact.md` (architecture paths).

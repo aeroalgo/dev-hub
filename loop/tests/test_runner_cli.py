@@ -36,13 +36,11 @@ class TestIsEpicSpec:
         [
             ("T-HUB-027", True),
             ("T-001", True),
-            ("plan-T-HUB-027-back-plan.md", True),
-            ("decompose-v1-portal", True),
-            ("memory-bank/back/plan/decompose-s01.yaml", True),
-            ("memory-bank/front/plan/plan-main.md", True),
-            ("memory-bank/back/plan/decompose-v1/index.md", True),
-            ("foo/decompose-bar", True),
-            ("foo/plan-bar", True),
+            ("memory-bank/back/plan/T-HUB-027-back-plan/md/plan.md", True),
+            ("memory-bank/back/plan/T-HUB-001/yaml/decompose-index.yaml", True),
+            ("memory-bank/front/plan/main/md/plan.md", True),
+            ("foo/decompose-bar", False),
+            ("foo/plan-bar", False),
             ("gpt", False),
             ("claude-3-5-sonnet", False),
             ("implement", False),
@@ -121,13 +119,13 @@ class TestCliParsing:
         assert args.mode is None
 
         # Reversed order: model first, then epic spec
-        args2 = parse_cli(["gpt", "plan-T-HUB-027.md"])
+        args2 = parse_cli(["gpt", "memory-bank/back/plan/T-HUB-027/md/plan.md"])
         assert args2.model == "gpt"
-        assert args2.epic_spec == "plan-T-HUB-027.md"
+        assert args2.epic_spec == "memory-bank/back/plan/T-HUB-027/md/plan.md"
 
     def test_positional_mode_implement(self) -> None:
-        args = parse_cli(["decompose-v1-portal", "gpt", "implement"])
-        assert args.epic_spec == "decompose-v1-portal"
+        args = parse_cli(["T-HUB-027", "gpt", "implement"])
+        assert args.epic_spec == "T-HUB-027"
         assert args.model == "gpt"
         assert args.mode == "implement"
 

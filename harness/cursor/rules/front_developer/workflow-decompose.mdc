@@ -23,7 +23,7 @@ alwaysApply: false
 
 ## Outcome preserve — не ужимать контекст плана (HARD)
 
-Как BACK: нарезать без сужения Goal/UX/NFR плана. В `index.md` — **`## Outcome map (plan → steps)`**. Каждый `sNN.goal` — user-visible / UX outcome, не только «создать компонент».
+Как BACK: нарезать без сужения Goal/UX/NFR плана. В YAML index и `plan_refs`/`plan_contract` — **Outcome map (plan → steps)**. Каждый `sNN.goal` — user-visible / UX outcome, не только «создать компонент».
 
 **Maximal detail (HARD):** как BACK `workflow-decompose.mdc` §Maximal detail — обязательны **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый AC/NFR/этап UX плана → sNN; brownfield replace → `deletes`); decompose artifacts без telegraph; **Maximal detail ≠ maximal step count** — target **5–8** sNN (≤9 L3/L4), shared/workflow-behavior-first.mdc §3a; черновик count в plan — floor, не ceiling. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон формулировок: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve (роль FRONT) + **§Replacement cleanup ниже**.
 
@@ -38,7 +38,7 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 
 ### REQUIRED
 
-1. В `index.md` — секция **`## Replacement cleanup (plan → steps)`** (Kind A|B|C|I + Fallback?). Нет секции = FAIL.
+1. В YAML index и shard-полях `deletes`/`out_of_scope` — **Replacement cleanup (plan → steps)** (Kind A|B|C|I + Fallback?). Нет покрытия = FAIL.
 2. Каждая строка плана sunset A/B/C/**I** → ≥1 `sNN` с **непустым** `deletes:` (пути `.tsx`/`.ts`/hooks/utils **и/или** export-символы / instruction rewrites), **или** out_of_scope + follow-up epic **в queue**.
 3. Greenfield / нет замен → одна строка `n/a — нет замен`.
 4. У каждого `sNN`: поле **`deletes:`** (`[]` только если шаг ничего не вытесняет). Удаления **не** прятать только в `delta`/`files`.
@@ -106,16 +106,16 @@ IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. 
 1a. Прочитай **Gates** + **skills-gate-situational** (+ shared skills-load)
 2. Прочитай план (L3–4: все shards) — выпиши AC/NFR/этапы UX + **Replacement / sunset**
 2b. UI в scope → **скопировать** Design groups (D0+) в `skills.design` при нарезке `visible_ui: yes` из clarify pack / surface map (**не** Read тел SKILL)
-3. В `index.md`: Requirements / Stages / Outcome map / **Replacement cleanup** + Skills note (gate, не полный каталог)
+3. В YAML index/shards: Requirements / Stages / Outcome map / **Replacement cleanup** + Skills note (gate, не полный каталог)
 4. Атомарные шаги: files, `deletes`, `step_id`, `needs_creative`, `visible_ui`, next (`creative`|`implement`), `tdd: true`; brownfield UI replace → явные delete/cutover sNN
 5. Каждый `sNN-<slug>.yaml` (@.cursor/templates/decompose/epic-step.yaml): skills gate + lean-интерфейсы (без полных interface/TSX), процесс, тест-кейсы, checkpoint, **`deletes`**
 5z. **FAIL** если schema ≠ `epic-decompose/v1` (+ `role: front`, list as_built/delta). **FORBIDDEN** invented schemas. FINISH: `validate-decompose-tree` → exit 0
 5a. **FAIL** без `visible_ui` / без Impl Core / `yes` без D0 (Lean Core) / `yes` с >1 D2 / `no` без причины / situational вне allowlist / situational >4
-5b. **FAIL** если нет Outcome map / Requirements / Stages / Replacement cleanup
+5b. **FAIL** если нет coverage-полей в YAML-контракте / Replacement cleanup
 5c. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` в очереди (shared/workflow-legacy-fallback-cleanup.mdc)
 5c. **FAIL** если план заменяет UI-поверхность, а нет sNN с `deletes` (и нет out_of_scope+follow-up)
 5d. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
-6. Layout v2: `md/decompose-index.md` + `yaml/decompose-index.yaml` (`epic-decompose-index/v1` по `templates/decompose/index.yaml`) + `yaml/steps/sNN-*.yaml`. **FORBIDDEN** `decompose-<id>/` · `yaml/index.md|index.yaml`. Формат roadmap `queue:` для decompose запрещён.
+6. Layout v2: `yaml/decompose-index.yaml` (`epic-decompose-index/v1` по `templates/decompose/index.yaml`) + `yaml/steps/sNN-*.yaml`. **FORBIDDEN** markdown index and non-canonical flat layouts. Формат roadmap `queue:` для decompose запрещён.
 7a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` CRITICAL=0. Next = **FRONT ANALYZE** (обязателен). **FORBIDDEN** `ANALYZE deferred:` → IMPLEMENT.
 7b. **FINISH:** finish-block (`code_changed: no`) — `load_now` → `s01-*.yaml`
 8. `tasks.md` append-only

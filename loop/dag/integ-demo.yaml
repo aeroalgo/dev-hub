@@ -17,7 +17,7 @@ nodes:
     action: "close"
     completion:
       type: "artifact"
-    artifact: "memory-bank/integ/plan/decompose-demo-gap/index.yaml"
+    artifact: "memory-bank/integration/gap/portal/gap-close.yaml"
     depends_on: []
 
   - id: "back_impl"
@@ -25,7 +25,7 @@ nodes:
     action: "implement"
     completion:
       type: "decompose"
-      decompose: "memory-bank/back/plan/decompose-demo-back/index.yaml"
+      decompose: "memory-bank/back/plan/demo-back/yaml/decompose-index.yaml"
     depends_on:
       - "gap_close"
 
@@ -34,7 +34,7 @@ nodes:
     action: "implement"
     completion:
       type: "decompose"
-      decompose: "memory-bank/front/plan/decompose-demo-front/index.yaml"
+      decompose: "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml"
     depends_on:
       - "gap_close"
 
@@ -43,7 +43,7 @@ nodes:
     action: "implement"
     completion:
       type: "decompose"
-      decompose: "memory-bank/integ/plan/decompose-demo-verify/index.yaml"
+      decompose: "memory-bank/integration/plan/demo-verify/yaml/decompose-index.yaml"
     depends_on:
       - "back_impl"
       - "front_impl"

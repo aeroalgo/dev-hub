@@ -31,10 +31,10 @@ def test_status_exposes_bounded_operational_groups(tmp_path: Path, monkeypatch) 
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s15.yaml](memory-bank/back/plan/decompose-x/s15.yaml)\n\n"
+        "## load_now\n1. [s15.yaml](memory-bank/back/plan/T-STATUS/yaml/steps/s15.yaml)\n\n"
         "## Handoff\n- next: BACK IMPLEMENT @s15\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-x/s15.yaml", "step_id: s15\n")
+    _write(tmp_path, "memory-bank/back/plan/T-STATUS/yaml/steps/s15.yaml", "step_id: s15\n")
     monkeypatch.delenv("EPIC_RUNTIME_CONFIG_JSON", raising=False)
 
     payload = ctx.status(tmp_path)
@@ -51,10 +51,14 @@ def test_status_includes_session_event_and_owner_details(tmp_path: Path, monkeyp
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [index.md](memory-bank/back/plan/decompose-x/index.md)\n\n"
+        "## load_now\n1. [decompose-index.yaml](memory-bank/back/plan/T-STATUS/yaml/decompose-index.yaml)\n\n"
         "## Handoff\n- next: BACK IMPLEMENT @s15\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-x/index.md", "# index\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/T-STATUS/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: T-STATUS\nsteps: []\n",
+    )
     runtime = tmp_path / ".claude/runtime/epic"
     runtime.mkdir(parents=True)
     (runtime / "last-session.json").write_text(

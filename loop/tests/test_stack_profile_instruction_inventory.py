@@ -702,7 +702,7 @@ def test_templates_inventory():
         "harness/cursor/templates/qa/epic-step.yaml": {
             "schema": "epic-qa/v1",
             "required_keys": ["schema", "role", "task_id", "plan_id", "epic_id", "date", "reviewer", "verdict", "scope", "checks", "issues", "blockers", "fix_plan", "limitations", "suite", "checklist_sha256", "ac_plus", "ac_minus", "section_011", "verify_scope"],
-            "required_markers": ["full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])", "bin/pytest -q --tb=line  # Hub (dev-hub self-test); managed projects: capability_checks: [test.full]"],
+            "required_markers": ["full suite green — role-scoped: BACK/hub `bin/pytest -q --tb=line`; FRONT Vitest+Playwright", "BACK/hub: bin/pytest -q --tb=line  # FRONT:"],
         },
         "harness/cursor/templates/refactor/epic-step.yaml": {
             "schema": "epic-refactor/v1",
@@ -726,7 +726,7 @@ def test_templates_inventory():
         },
         "harness/cursor/templates/decompose/index.yaml": {
             "schema": "epic-decompose-index/v1",
-            "required_keys": ["schema", "plan_id", "source_md", "status_canon", "steps"],
+            "required_keys": ["schema", "plan_id", "steps"],
             "required_markers": [],
         },
         "harness/cursor/templates/roadmap-queue.yaml": {
@@ -773,10 +773,6 @@ def test_templates_inventory():
         },
         "harness/cursor/templates/idea-pipeline.md": {
             "required_headers": ["# IDEA: <название>", "## Идея", "## Связь с продуктом"],
-            "required_markers": [],
-        },
-        "harness/cursor/templates/decompose/index.md": {
-            "required_headers": ["# Реестр шагов (Decompose index)", "## Skills в контексте", "## Requirements coverage (plan → steps)"],
             "required_markers": [],
         },
     }
@@ -1001,4 +997,3 @@ def test_sunset_a_b_c_i_scans_have_no_live_legacy_authority():
                         f"Corpus Kind I violation [{name}] in {file_path.relative_to(root)}:"
                         f"L{line_number + 1} {line.strip()}"
                     )
-

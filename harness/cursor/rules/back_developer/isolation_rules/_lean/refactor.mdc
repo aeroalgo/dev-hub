@@ -7,7 +7,7 @@ alwaysApply: false
 **Канон путей:** shared/workflow-refactor-epic.mdc
 
 **Артефакты:**
-- **Эпик:** `refactor/plan/{analysis,plan,decompose-<id>/}` + execute → `refactor/implement/implement-<id>/rNN-*.md`
+- **Эпик:** `refactor/plan/<id>/yaml/` + execute → `refactor/implement/<id>/rNN-*.yaml`
 - **Без эпика (S):** `refactor/session-YYYYMMDD-<slug>.md` (+ опц. analysis/plan в `refactor/` или `refactor/plan/`)
 
 ## Gates
@@ -24,4 +24,4 @@ alwaysApply: false
 
 - Без тестов на затронутый код → tests first
 - Behavior change без scope → stop / split to IMPLEMENT
-- Session в корне при активном `decompose-<id>/` → FAIL, перенести в implement
+- Session в корне при активном epic YAML tree → FAIL, перенести в implement

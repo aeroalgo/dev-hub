@@ -84,7 +84,7 @@ def scan_epics(workspace_refs: list[WorkspaceRef]) -> ScanEpicsResult:
             epic_ids: set[str] = set()
 
             # The layout resolver owns v2 plan/index discovery. Flat plan names
-            # and decompose-* compatibility directories are not live sources.
+            # Non-canonical plan directories are not live sources.
             epic_ids.update(
                 discovered_id
                 for discovered_role, discovered_id in discover_v2_epics(ws_ref.path)

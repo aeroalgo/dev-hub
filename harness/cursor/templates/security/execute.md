@@ -1,7 +1,7 @@
 # [SEC-<id> | aNN | <slug>] SECURITY
 
 **Plan ID:** <plan_id>  
-**Decompose:** [index](../../plan/decompose-<plan_id>/index.md) · [aNN](../../plan/decompose-<plan_id>/aNN-<slug>.md)  
+**Decompose:** `../../plan/<plan_id>/yaml/decompose-index.yaml` · `../../plan/<plan_id>/yaml/steps/aNN-<slug>.yaml`
 **Дата:** YYYY-MM-DD  
 **Статус:** completed
 

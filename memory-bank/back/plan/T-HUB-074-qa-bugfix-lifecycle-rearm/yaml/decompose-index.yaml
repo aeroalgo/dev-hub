@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 appetite:
   timebox_days: 3
   cut_list:

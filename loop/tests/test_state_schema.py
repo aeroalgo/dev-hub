@@ -25,17 +25,16 @@ def _write(cwd: Path, rel: str, body: str) -> None:
 def _seed(cwd: Path) -> None:
     _write(
         cwd,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **s01** | [s01-demo.yaml](s01-demo.yaml) | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n"
+        "- id: s01\n  file: s01-demo.yaml\n  status: pending\n",
     )
-    _write(cwd, "memory-bank/back/plan/decompose-demo/s01-demo.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(cwd, "memory-bank/back/plan/demo/yaml/steps/s01-demo.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
     _write(
         cwd,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-demo/index.md`\n\n"
+        "- `memory-bank/back/plan/demo/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT @s01`\n",
     )

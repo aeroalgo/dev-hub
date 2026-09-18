@@ -223,7 +223,7 @@
 
 ## До DECOMPOSE
 
-Tracker: [md/decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml). Plan не дублирует status.
+Tracker: [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml). Plan не дублирует status.
 
 1. s01 — PolicyRecord + red tests silent drop.
 2. s02 — mapping yaml + materialize fingerprint/sidecar.

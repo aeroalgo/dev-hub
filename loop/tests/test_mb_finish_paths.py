@@ -144,24 +144,12 @@ def test_finish_decompose_v2_resolver_path(tmp_path: Path):
     decomp_yaml.write_text(
         f"schema: epic-decompose-index/v1\n"
         f"plan_id: {epic_id}\n"
-        f"source_md: index.md\n"
-        f"status_canon: index.yaml\n"
         f"steps:\n"
         f"  - id: s01\n"
         f"    file: s01-test.yaml\n"
         f"    title: Step 1\n"
         f"    status: pending\n"
         f"    next_phase: BACK IMPLEMENT\n",
-        encoding="utf-8",
-    )
-
-    decomp_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=tmp_path)
-    decomp_md.parent.mkdir(parents=True, exist_ok=True)
-    decomp_md.write_text(
-        "## Requirements coverage\n- REQ-01: covered\n\n"
-        "## Stages coverage\n- s01: covered\n\n"
-        "## Outcome map\n- OUT-01: covered\n\n"
-        "## Replacement cleanup\n- CLEAN-01: covered\n",
         encoding="utf-8",
     )
 

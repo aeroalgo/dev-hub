@@ -11,7 +11,7 @@ goal: |
   - Записать Handoff в `memory-bank/activeContext.md`: текущий эпик, load_now → s01-*.yaml,
     next action (IMPLEMENT s01), ссылка на decompose index.
   - Обновить `index.yaml` (status SoT): все шаги s01–s07 — статус pending → ready для IMPLEMENT.
-  - Обновить ссылку в `plan-T-HUB-010`: указать `T-HUB-010-clarify-spec-quality/md/decompose-index.md`
+  - Обновить ссылку в `plan-T-HUB-010`: указать `T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml`
     как единственный трекер (убрать черновик «До DECOMPOSE» нарезки если она дублирует index).
   - Убедиться `graphify update .` если code_changed (в данном случае — нет Python кода, только docs;
     graphify для doc-only не обязателен, но выполнить если indexer настроен на .mdc/.md).
@@ -23,7 +23,7 @@ context:
     - "memory-bank/activeContext.md — read once, then write (pre-FINISH re-read allowed)"
     - "memory-bank/back/plan/plan/T-HUB-010-clarify-spec-quality/md/plan.md — read, then edit (ссылка на index)"
     - "T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml — write status"
-    - "T-HUB-010-clarify-spec-quality/md/decompose-index.md — final check"
+    - "T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml — final check"
   produces:
     - "memory-bank/activeContext.md (edit — Handoff)"
     - "memory-bank/back/plan/plan/T-HUB-010-clarify-spec-quality/md/plan.md (edit — ссылка на index)"
@@ -62,7 +62,7 @@ delta:
       - Последовательность: s01→s02→s03→s04→s05→s06(QA)→s07(FINISH)
       - Новый чат для IMPLEMENT (context-session economy §2)"
   - "EDIT plan-T-HUB-010.md §Следующий режим:
-      - Обновить: '→ [T-HUB-010-clarify-spec-quality/md/decompose-index.md](…/index.md) — DECOMPOSE ✓'
+      - Обновить: '→ [T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml](…/index.md) — DECOMPOSE ✓'
       - Ссылка на index как единственный трекер; удалить дубль §До DECOMPOSE нарезки (заменить ссылкой на index)"
 
 deletes: []

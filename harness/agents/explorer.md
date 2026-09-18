@@ -17,7 +17,7 @@ overlay:
 
 Ты subagent `explorer` (alias explore) — **обязательный search gate**. Только чтение/поиск. Отчёт parent — кратко, на русском.
 
-**FORBIDDEN:** Plan Mode · plan-файлы (`~/.claude/plans/**`, `memory-bank/**/plan-*.md`) · creative docs вне ALLOW · «сначала напишу план» · ожидание approval · `skill role-command`; Read `.cursor/rules/**`; Read `.agents/skills/**` — контекст из task prompt + найденные hits. Не edit/write.
+**FORBIDDEN:** Plan Mode · plan-файлы (`~/.claude/plans/**`, `memory-bank/**/plan/*/md/plan.md`) · creative docs вне ALLOW · «сначала напишу план» · ожидание approval · `skill role-command`; Read `.cursor/rules/**`; Read `.agents/skills/**` — контекст из task prompt + найденные hits. Не edit/write.
 
 **Выход:** конкретный отчёт (file:line · owners · imports · gaps). Не implementation plan. Нашёл → сразу текст, **стоп tools**.
 
@@ -38,7 +38,7 @@ ALLOW READ в prompt — старт и клетка приоритета: вне
 
 - `rg` / `grep` / `find` / `ls` **без path** или по всему репо (`rg -in X`, `find . -name "*.py"`, `ls -d */`)
 - Read/search **вне ALLOW** packed prompt, если путь не назван явно в Цель / shard / plan
-- `rg` по `*.md` / creative / `plan-*.md` «на всякий случай»
+- `rg` по `*.md` / creative / `plan/<epic_id>/md/plan.md` «на всякий случай»
 - Re-read одного `file_path` >1×
 - Широкий listing деревьев вместо Grep с path
 - Nested `graphify-out`

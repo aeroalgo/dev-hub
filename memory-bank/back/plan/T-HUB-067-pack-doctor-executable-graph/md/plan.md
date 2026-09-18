@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** audit `02` pack resolve false-green · `07` P1.5 doctor + P1.6 strict bundle · `03` load_session ok=true partial
 
-→ decompose: [md/decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) (status SoT). Plan не дублирует чеклист шагов.
+→ decompose: [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) (status SoT). Plan не дублирует чеклист шагов.
 
 ---
 

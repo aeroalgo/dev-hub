@@ -21,13 +21,12 @@ def _incidents_slot(tmp_path: Path) -> Path:
     return epic_dir(tmp_path)
 
 
-def test_registry_loads_seven_codes():
+def test_registry_loads_current_codes():
     reg = load_registry()
-    assert len(reg) >= 7
+    assert len(reg) >= 6
     expected_codes = {
         "mark_index_missing",
         "fingerprint_stall",
-        "index_mirror_drift",
         "premature_epic_done",
         "stale_owner",
         "checkpoint_drift",
@@ -148,19 +147,16 @@ def test_tier0_mark_index_missing_resolves_incident(tmp_path: Path, monkeypatch:
     # Setup index and implement fixture
     plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "epic1"
     (plan_dir / "yaml" / "steps").mkdir(parents=True, exist_ok=True)
-    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
     decomp_dir = plan_dir / "yaml"
     decomp_path = plan_dir / "yaml" / "steps" / "s01-shard.yaml"
-    (decomp_dir / "index.md").write_text("# Index\n")
     decomp_path.write_text("schema: epic-decompose/v1\nstep_id: s01\nplan_id: epic1\n")
 
     index_yaml = decomp_dir / "decompose-index.yaml"
-    index_yaml.write_text("""schema: epic-index/v1
-epic_id: epic1
+    index_yaml.write_text("""schema: epic-decompose-index/v1
 plan_id: epic1
-role: back
 steps:
   - id: s01
+    file: s01-shard.yaml
     status: active
 """)
 

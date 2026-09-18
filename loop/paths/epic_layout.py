@@ -53,9 +53,8 @@ def resolve(
 ) -> Path:
     """Resolve a memory-bank path according to epic-layout v2.
 
-    Layout v2 structure (yaml/md split ONLY under plan/decompose):
+    Layout v2 structure:
       memory-bank/{role}/plan/{epic_id}/md/plan.md
-      memory-bank/{role}/plan/{epic_id}/md/decompose-index.md
       memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml
       memory-bank/{role}/plan/{epic_id}/yaml/steps/{step_filename}
       memory-bank/{role}/implement/{epic_id}/{step_filename}
@@ -99,8 +98,6 @@ def resolve(
 
     if kind_enum == EpicLayoutKind.PLAN_MD:
         return base / "plan" / epic_id / "md" / "plan.md"
-    elif kind_enum == EpicLayoutKind.DECOMPOSE_INDEX_MD:
-        return base / "plan" / epic_id / "md" / "decompose-index.md"
     elif kind_enum == EpicLayoutKind.DECOMPOSE_INDEX_YAML:
         return base / "plan" / epic_id / "yaml" / "decompose-index.yaml"
     elif kind_enum == EpicLayoutKind.DECOMPOSE_STEP:
@@ -157,11 +154,11 @@ def discover_v2_epics(cwd: Optional[Union[str, Path]] = None) -> list[tuple[str,
             if not child.is_dir() or child.name.startswith("."):
                 continue
             # A v2 epic plan dir must have a canonical YAML tree or a plan.md.
-            if (child / "yaml" / "decompose-index.yaml").is_file() or (child / "yaml").is_dir() and not (child / "md" / "decompose-index.md").is_file():
+            if (child / "yaml" / "decompose-index.yaml").is_file():
                 epics_found.add((role, child.name))
             elif (child / "plan.md").is_file():
                 epics_found.add((role, child.name))
-            elif (child / "md" / "plan.md").is_file() or (child / "decompose-index.yaml").is_file():
+            elif (child / "md" / "plan.md").is_file():
                 epics_found.add((role, child.name))
 
     return sorted(list(epics_found))

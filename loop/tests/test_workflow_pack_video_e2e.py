@@ -78,8 +78,12 @@ def tmp_project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
     # Create memory-bank/video skeleton
     mb_video = tmp_path / "memory-bank" / "video"
-    (mb_video / "script" / "plan" / "decompose-T-VIDEO-001-demo").mkdir(parents=True, exist_ok=True)
-    (mb_video / "script" / "plan" / "decompose-T-VIDEO-001-demo" / ".gitkeep").touch()
+    video_plan = mb_video / "script" / "plan" / "T-VIDEO-001-demo" / "yaml"
+    video_plan.mkdir(parents=True, exist_ok=True)
+    (video_plan / "decompose-index.yaml").write_text(
+        "schema: epic-decompose-index/v1\nplan_id: T-VIDEO-001-demo\nsteps: []\n",
+        encoding="utf-8",
+    )
     (mb_video / "activeContext.md").write_text("# Active Context\n", encoding="utf-8")
 
     monkeypatch.chdir(tmp_path)
@@ -207,10 +211,18 @@ def test_template_validate() -> None:
 
 
 def test_sample_epic_fixture_exists() -> None:
-    """FR-012: Sample epic fixture memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/ exists in repo."""
-    fixture_dir = ROOT / "memory-bank" / "video" / "script" / "plan" / "decompose-T-VIDEO-001-demo"
-    assert fixture_dir.is_dir()
-    assert (fixture_dir / ".gitkeep").exists()
+    """FR-012: Sample epic fixture uses the canonical YAML plan layout."""
+    fixture_index = (
+        ROOT
+        / "memory-bank"
+        / "video"
+        / "script"
+        / "plan"
+        / "T-VIDEO-001-demo"
+        / "yaml"
+        / "decompose-index.yaml"
+    )
+    assert fixture_index.is_file()
 
 
 def test_video_intent_commands_route_paths_exist() -> None:
@@ -389,6 +401,5 @@ def test_pack_route_missing_still_fail_closed(tmp_path: Path) -> None:
     route = route_command(pack, "SCRIPT PLAN", hub_root=tmp_path)
     assert route.ok is False
     assert "pack_route_missing" in route.diagnostic_codes
-
 
 

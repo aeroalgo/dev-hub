@@ -116,7 +116,6 @@ def find_plan_md(cwd: Path | str, epic_id: str, role: str = "back") -> Path | No
         role_l = "integration"
     candidates = [
         root / "memory-bank" / role_l / "plan" / epic_id / "md" / "plan.md",
-        root / "memory-bank" / role_l / "plan" / f"plan-{epic_id}.md",
     ]
     for path in candidates:
         if path.is_file():

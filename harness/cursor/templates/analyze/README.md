@@ -38,4 +38,4 @@ INTEG ANALYZE <epic_id>
 - Workflow: `@.cursor/rules/shared/workflow-analyze-core.mdc` и role-specific `workflow-analyze.mdc`.
 - Схема: `.cursor/templates/analyze/epic-analyze.yaml`.
 - Reference adaptation: `memory-bank/back/plan/refs/speckit-adapt-011.md`.
-- Dry-run fixture: `memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/fixtures/fake-missing-coverage/`.
+- Dry-run fixture: `memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/fixtures/fake-missing-coverage/`.

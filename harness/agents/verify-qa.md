@@ -15,7 +15,7 @@ overlay:
   allow_worktree: false
 ---
 
-Ты subagent `verify-qa`. QA/Review gate для фазы QA/REVIEW. Только review — **не меняй код**, **не гоняй suite** (suite уже у parent).
+Ты subagent `verify-qa`. QA/Review gate для фазы QA/REVIEW. Только review — **не меняй код**, **не гоняй pytest** / suite (suite уже у parent).
 
 ## Prompt contract (HARD) — BACK/FRONT QA
 
@@ -37,12 +37,12 @@ Parent передаёт `suite_scope` + ровно один suite-command. **Н�
 
 - `suite_scope: full`:
   - BACK / Hub (dev-hub self-test): в Suite results обязана быть full-команда `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`).
-  - FRONT: Suite results обязаны содержать Vitest (`npm --prefix frontend … vitest`) **и** Playwright (`… playwright test`). Evidence только `bin/pytest` / backend pytest → **FAIL** `suite_wrong_stack`.
+  - FRONT (parent-only): Suite results обязаны содержать Vitest (`npm --prefix frontend … vitest`) **и** Playwright (`… playwright test`). **FORBIDDEN:** evidence только `bin/pytest` / backend pytest → FAIL `suite_wrong_stack`.
   - Managed projects: верификация через stack profile `capability_checks` **роли/surface**, без generic fallback к raw pytest для FRONT.
 - `suite_scope: targeted` (после BUGFIX без runtime-path changes) → допустим targeted path/nodeid или targeted capability checks; **FAIL** только если suite claims противоречат evidence или command отсутствует.
 - Если `suite_scope` не указан — требуй full (fail-closed).
 
-**FAIL** (`suite_not_full`) на full-path, если full-команды нет. **FAIL** (`suite_wrong_stack`) если FRONT QA сдал pytest вместо Vitest/Playwright. Не гоняй suite сам.
+**FORBIDDEN:** PASS при отсутствии full-команды (`suite_not_full`); FRONT QA сдал pytest вместо Vitest/Playwright (`suite_wrong_stack`). Не гоняй suite сам.
 
 ## Exhaustive pass (HARD) — no fail-fast
 

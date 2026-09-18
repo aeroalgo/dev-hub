@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-056-suite-green-loop-identity
-source_md: index.md
-status_canon: index.yaml
 steps:
 - id: s01
   file: s01-epic-transition-plan-stem-resolve.yaml

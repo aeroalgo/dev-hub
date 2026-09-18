@@ -39,26 +39,6 @@ def test_find_decompose_index_path_v2(tmp_path: Path):
     assert found == v2_index
 
 
-def test_find_decompose_index_path_denies_v1_only(tmp_path: Path):
-    epic_id = "T-HUB-087-legacy"
-    v1_dir = tmp_path / "memory-bank" / "back" / "plan" / f"decompose-{epic_id}"
-    v1_dir.mkdir(parents=True)
-    v1_index = v1_dir / "index.yaml"
-    v1_index.write_text(
-        yaml.safe_dump(
-            {
-                "schema": "epic-decompose-index/v1",
-                "plan_id": epic_id,
-                "steps": [{"id": "s01", "status": "pending"}],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    found = find_decompose_index_path(tmp_path, "back", epic_id)
-    assert found is None
-
-
 def test_find_plan_md_path_v2(tmp_path: Path):
     epic_id = "T-HUB-087-epic-test"
     v2_dir = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md"
@@ -68,17 +48,6 @@ def test_find_plan_md_path_v2(tmp_path: Path):
 
     found = find_plan_md_path(tmp_path, "back", epic_id)
     assert found == v2_plan
-
-
-def test_find_plan_md_path_denies_v1_only(tmp_path: Path):
-    epic_id = "T-HUB-087-legacy"
-    v1_dir = tmp_path / "memory-bank" / "back" / "plan"
-    v1_dir.mkdir(parents=True)
-    v1_plan = v1_dir / f"plan-{epic_id}.md"
-    v1_plan.write_text("# Legacy Plan\n", encoding="utf-8")
-
-    found = find_plan_md_path(tmp_path, "back", epic_id)
-    assert found is None
 
 
 def test_epic_id_from_plan_path_v2():

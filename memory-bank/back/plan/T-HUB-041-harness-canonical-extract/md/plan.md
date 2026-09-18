@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [T-HUB-041-harness-canonical-extract/md/decompose-index.md](T-HUB-041-harness-canonical-extract/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-041-harness-canonical-extract/yaml/decompose-index.yaml](T-HUB-041-harness-canonical-extract/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

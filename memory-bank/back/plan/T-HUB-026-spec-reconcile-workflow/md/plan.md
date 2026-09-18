@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · brainstorming
 
-→ [T-HUB-026-spec-reconcile-workflow/md/decompose-index.md](T-HUB-026-spec-reconcile-workflow/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-026-spec-reconcile-workflow/yaml/decompose-index.yaml](T-HUB-026-spec-reconcile-workflow/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

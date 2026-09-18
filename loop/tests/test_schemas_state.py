@@ -12,7 +12,6 @@ def test_drift_counters_defaults() -> None:
     """Test all fields in DriftCounters default to 0."""
     counters = DriftCounters()
     assert counters.handoff_projected == 0
-    assert counters.index_mirror_repair == 0
     assert counters.fingerprint_stall_repair == 0
     assert counters.gate_verdict_regex_fallback == 0
     assert counters.schema_invalid == 0

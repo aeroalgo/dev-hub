@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · brainstorming (batch decisions below)
 
-→ [T-HUB-017-loop-observability-foundation/md/decompose-index.md](T-HUB-017-loop-observability-foundation/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-017-loop-observability-foundation/yaml/decompose-index.yaml](T-HUB-017-loop-observability-foundation/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 
@@ -361,7 +361,7 @@ Greenfield extension — существующие `check_after` repairs **ост
 
 ## DECOMPOSE (канон)
 
-**Трекер:** [T-HUB-017-loop-observability-foundation/md/decompose-index.md](T-HUB-017-loop-observability-foundation/md/decompose-index.md) · [index.yaml](T-HUB-017-loop-observability-foundation/yaml/decompose-index.yaml)
+**Трекер:** [T-HUB-017-loop-observability-foundation/yaml/decompose-index.yaml](T-HUB-017-loop-observability-foundation/yaml/decompose-index.yaml) · [index.yaml](T-HUB-017-loop-observability-foundation/yaml/decompose-index.yaml)
 
 | sNN | Slug | Суть |
 |-----|------|------|

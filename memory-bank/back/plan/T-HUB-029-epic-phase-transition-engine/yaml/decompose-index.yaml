@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-029-epic-phase-transition-engine
-source_md: index.md
-status_canon: index.yaml
 appetite:
   timebox_days: 6
   max_steps: 12

@@ -108,7 +108,7 @@ def test_security_em_dash_evidence_fails(tmp_path: Path) -> None:
     rc, rep = _validate(
         "a01-sec.yaml",
         _security_doc(evidence_commands=[".venv/bin/pytest -q — passed"]),
-        tmp_path, parent="memory-bank/back/security/implement/implement-x",
+        tmp_path, parent="memory-bank/back/security/implement/x",
     )
     assert rc == 2
     assert any("em-dash" in e for e in rep["errors"])
@@ -118,7 +118,7 @@ def test_security_dup_evidence_fails(tmp_path: Path) -> None:
     rc, rep = _validate(
         "a01-sec.yaml",
         _security_doc(evidence_commands=["rg -n x src", "rg -n x src"]),
-        tmp_path, parent="memory-bank/back/security/implement/implement-x",
+        tmp_path, parent="memory-bank/back/security/implement/x",
     )
     assert rc == 2
     assert any("duplicates another evidence_command" in e for e in rep["errors"])
@@ -128,7 +128,7 @@ def test_security_clean_passes(tmp_path: Path) -> None:
     rc, rep = _validate(
         "a01-sec.yaml",
         _security_doc(),
-        tmp_path, parent="memory-bank/back/security/implement/implement-x",
+        tmp_path, parent="memory-bank/back/security/implement/x",
     )
     assert rc == 0, rep
 
@@ -139,7 +139,7 @@ def test_refactor_em_dash_tests_fails(tmp_path: Path) -> None:
     rc, rep = _validate(
         "r01-ref.yaml",
         _refactor_doc(tests=[".venv/bin/pytest -q — passed"]),
-        tmp_path, parent="memory-bank/back/refactor/implement/implement-x",
+        tmp_path, parent="memory-bank/back/refactor/implement/x",
     )
     assert rc == 2
     assert any(e for e in rep["errors"])
@@ -149,7 +149,7 @@ def test_refactor_clean_passes(tmp_path: Path) -> None:
     rc, rep = _validate(
         "r01-ref.yaml",
         _refactor_doc(),
-        tmp_path, parent="memory-bank/back/refactor/implement/implement-x",
+        tmp_path, parent="memory-bank/back/refactor/implement/x",
     )
     assert rc == 0, rep
 
@@ -160,7 +160,7 @@ def test_implement_em_dash_tests_fails(tmp_path: Path) -> None:
     rc, rep = _validate(
         "s01-impl.yaml",
         _implement_doc(tests=[".venv/bin/pytest -q — passed"]),
-        tmp_path, parent="memory-bank/back/implement/implement-x",
+        tmp_path, parent="memory-bank/back/implement/x",
     )
     assert rc == 2
     assert rep["ok"] is False

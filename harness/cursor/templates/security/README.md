@@ -1,6 +1,6 @@
 # Epic SECURITY execute shard — `epic-security/v1`
 
-Канон: `epic-step.yaml` → `memory-bank/{role}/security/implement/implement-<id>/aNN-<slug>.yaml`
+Канон: `epic-step.yaml` → `memory-bank/{role}/security/implement/<id>/aNN-<slug>.yaml`
 
 S one-shot без yaml: `security/security-audit-YYYYMMDD-<slug>.md`
 

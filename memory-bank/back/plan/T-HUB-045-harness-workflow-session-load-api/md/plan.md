@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · fastapi-templates (MCP transport only)
 
-→ [T-HUB-045-harness-workflow-session-load-api/md/decompose-index.md](T-HUB-045-harness-workflow-session-load-api/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-045-harness-workflow-session-load-api/yaml/decompose-index.yaml](T-HUB-045-harness-workflow-session-load-api/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

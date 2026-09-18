@@ -28,7 +28,7 @@ alwaysApply: false
 Разрешено **только**:
 
 1. Пути из work shard **`files:`** и явные пути в **`context.produces.files`** / **`delta`** (decompose)
-2. `memory-bank/{role}/implement/implement-<epic_id>/<current-step>.yaml` — артефакт **текущего** шага
+2. `memory-bank/{role}/implement/<epic_id>/<current-step>.yaml` — артефакт **текущего** шага
 3. Новые тесты — путь **добавлен** в implement shard `files:` **до** FINISH
 4. `memory-bank/activeContext.md` — **только** `mb-finish` / typed finish tool / `finish-block` (не free-form prose Write)
 5. Статус decompose — **только** `finalize-step` / `epic_resolve.py`, не ручной mass-update

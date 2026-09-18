@@ -14,9 +14,10 @@ def test_parallel_branch_activated(monkeypatch, tmp_path):
 
     monkeypatch.setattr("loop.parallel.orchestrator.run_parallel_wave", mock_run)
 
-    decompose_dir = tmp_path / "decompose"
+    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-037" / "yaml"
     decompose_dir.mkdir(parents=True, exist_ok=True)
-    index_file = decompose_dir / "index.yaml"
+    (decompose_dir / "steps").mkdir()
+    index_file = decompose_dir / "decompose-index.yaml"
     index_file.write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-HUB-037
@@ -31,7 +32,14 @@ steps:
     )
 
     env = {"EPIC_PARALLEL_SNN": "1"}
-    res = arm_phase(tmp_path, "T-HUB-037", "IMPLEMENT", "back", decompose_rel="decompose/index.yaml", env=env)
+    res = arm_phase(
+        tmp_path,
+        "T-HUB-037",
+        "IMPLEMENT",
+        "back",
+        decompose_rel="memory-bank/back/plan/T-HUB-037/yaml/decompose-index.yaml",
+        env=env,
+    )
     assert res.get("parallel") is True
     assert res.get("wave") == ["s02", "s03"]
     assert res.get("spawned") == ["s02", "s03"]
@@ -72,9 +80,10 @@ def test_no_parallel_for_plan_step(monkeypatch, tmp_path):
 @patch("loop.parallel.orchestrator.create_worktree")
 @patch("loop.parallel.orchestrator.asyncio.create_subprocess_exec")
 def test_sc001_two_independent_steps(mock_subproc, mock_create, tmp_path):
-    decompose_dir = tmp_path / "decompose"
+    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-037" / "yaml"
     decompose_dir.mkdir(parents=True, exist_ok=True)
-    index_file = decompose_dir / "index.yaml"
+    (decompose_dir / "steps").mkdir()
+    index_file = decompose_dir / "decompose-index.yaml"
     index_file.write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-HUB-037
@@ -96,9 +105,9 @@ steps:
     status: pending
 """
     )
-    (decompose_dir / "s01.yaml").write_text("delta:\n  - file1.py\n")
-    (decompose_dir / "s02.yaml").write_text("delta:\n  - file2.py\n")
-    (decompose_dir / "s03.yaml").write_text("delta:\n  - file3.py\n")
+    (decompose_dir / "steps" / "s01.yaml").write_text("delta:\n  - file1.py\n")
+    (decompose_dir / "steps" / "s02.yaml").write_text("delta:\n  - file2.py\n")
+    (decompose_dir / "steps" / "s03.yaml").write_text("delta:\n  - file3.py\n")
 
     mock_create.return_value = tmp_path / ".worktrees" / "s02"
 
@@ -125,9 +134,10 @@ steps:
 @patch("loop.parallel.orchestrator.create_worktree")
 @patch("loop.parallel.orchestrator.asyncio.create_subprocess_exec")
 def test_sc002_overlap_blocks_parallel(mock_subproc, mock_create, tmp_path):
-    decompose_dir = tmp_path / "decompose"
+    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-037" / "yaml"
     decompose_dir.mkdir(parents=True, exist_ok=True)
-    index_file = decompose_dir / "index.yaml"
+    (decompose_dir / "steps").mkdir()
+    index_file = decompose_dir / "decompose-index.yaml"
     index_file.write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-HUB-037
@@ -149,9 +159,9 @@ steps:
     status: pending
 """
     )
-    (decompose_dir / "s01.yaml").write_text("delta:\n  - file1.py\n")
-    (decompose_dir / "s02.yaml").write_text("delta:\n  - shared.py\n")
-    (decompose_dir / "s03.yaml").write_text("delta:\n  - shared.py\n")
+    (decompose_dir / "steps" / "s01.yaml").write_text("delta:\n  - file1.py\n")
+    (decompose_dir / "steps" / "s02.yaml").write_text("delta:\n  - shared.py\n")
+    (decompose_dir / "steps" / "s03.yaml").write_text("delta:\n  - shared.py\n")
 
     mock_create.return_value = tmp_path / ".worktrees" / "s02"
 
@@ -176,9 +186,9 @@ steps:
 
 
 def test_sc003_epic_parallel_zero_unchanged(tmp_path):
-    decompose_dir = tmp_path / "decompose"
+    decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-037" / "yaml"
     decompose_dir.mkdir(parents=True, exist_ok=True)
-    index_file = decompose_dir / "index.yaml"
+    index_file = decompose_dir / "decompose-index.yaml"
     index_file.write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-HUB-037

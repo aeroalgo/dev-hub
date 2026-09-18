@@ -6,7 +6,7 @@ task_id: T-xxx
 title: sNN — <title> IMPLEMENT
 level: L1
 status: in_progress
-decompose_ref: memory-bank/back/plan/decompose-<plan_id>/sNN-<slug>.yaml
+decompose_ref: memory-bank/back/plan/<plan_id>/yaml/steps/sNN-<slug>.yaml
 date: YYYY-MM-DD
 
 skills_used: []
@@ -47,7 +47,7 @@ checkpoints:
 resume_from: cp1
 
 # role: integ — дополнительно обязательны:
-# element_ref: memory-bank/integration/plan/decompose-<plan_id>/eNN-<slug>.yaml
+# element_ref: memory-bank/integration/plan/<plan_id>/yaml/steps/eNN-<slug>.yaml
 # gaps: { status: none }
 # grep_control: [{ back: "...", front: "..." }]
 # verification_results: ["..."]

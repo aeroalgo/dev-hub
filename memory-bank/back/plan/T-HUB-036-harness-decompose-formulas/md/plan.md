@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [T-HUB-036-harness-decompose-formulas/md/decompose-index.md](T-HUB-036-harness-decompose-formulas/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-036-harness-decompose-formulas/yaml/decompose-index.yaml](T-HUB-036-harness-decompose-formulas/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

@@ -118,7 +118,7 @@ step_id: s01
 
         # 5. policy_for_layout
         policy = policy_for_layout(pack.artifact_layout)
-        plan_file_rel = f"{pack.memory_bank}/back/plan/plan-{epic_id}.md"
+        plan_file_rel = f"{pack.memory_bank}/back/plan/{epic_id}/md/plan.md"
         assert policy.is_forbidden(plan_file_rel, mode="IMPLEMENT") is True
         assert policy.is_forbidden(step_file_rel, mode="IMPLEMENT") is False
 

@@ -59,7 +59,7 @@ delta:
 - 'Создать loop/paths/epic_layout.py: функция resolve(role, epic_id, kind, step_id=None)
   -> Path'
 - 'layout v2 paths: plan/<epic_id>/md/plan.md, plan/<epic_id>/yaml/plan.yaml, plan/<epic_id>/yaml/steps/<step_id>.yaml,
-  plan/<epic_id>/md/decompose-index.md, plan/<epic_id>/yaml/decompose-index.yaml,
+  plan/<epic_id>/yaml/decompose-index.yaml, plan/<epic_id>/yaml/decompose-index.yaml,
   plan/<epic_id>/yaml/implement/<step_id>.yaml, plan/<epic_id>/yaml/qa.yaml, plan/<epic_id>/yaml/analyze.yaml,
   plan/<epic_id>/yaml/audit.yaml'
 - ValueError на unknown kind

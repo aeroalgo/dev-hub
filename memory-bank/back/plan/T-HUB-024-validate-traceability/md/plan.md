@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · modern-python
 
-→ [T-HUB-024-validate-traceability/md/decompose-index.md](T-HUB-024-validate-traceability/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-024-validate-traceability/yaml/decompose-index.yaml](T-HUB-024-validate-traceability/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

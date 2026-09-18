@@ -9,7 +9,7 @@
 
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns · async-python-patterns (узко: subprocess/session wrapper)
 
-→ [T-HUB-006-dsh-loop-runtime-adapter/md/decompose-index.md](T-HUB-006-dsh-loop-runtime-adapter/md/decompose-index.md) — **DECOMPOSE DONE** (2026-08-22)
+→ [T-HUB-006-dsh-loop-runtime-adapter/yaml/decompose-index.yaml](T-HUB-006-dsh-loop-runtime-adapter/yaml/decompose-index.yaml) — **DECOMPOSE DONE** (2026-08-22)
 
 ---
 

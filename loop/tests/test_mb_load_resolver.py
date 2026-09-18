@@ -8,23 +8,23 @@ from loop.mb_load.resolver import resolve_bundle_paths
 
 def test_auto_resolve_implement_yaml(tmp_path: Path) -> None:
     # Setup decompose shard and implement shard on disk
-    dec_dir = tmp_path / "memory-bank/back/plan/decompose-T-HUB-999-test"
+    dec_dir = tmp_path / "memory-bank/back/plan/T-HUB-999-test/yaml/steps"
     dec_dir.mkdir(parents=True, exist_ok=True)
     dec_file = dec_dir / "s05-test-step.yaml"
     dec_file.write_text("schema: epic-decompose/v1\nrole: back\nstep_id: s05\nplan_id: T-HUB-999-test\n", encoding="utf-8")
 
-    impl_dir = tmp_path / "memory-bank/back/implement/implement-T-HUB-999-test"
+    impl_dir = tmp_path / "memory-bank/back/implement/T-HUB-999-test"
     impl_dir.mkdir(parents=True, exist_ok=True)
     impl_file = impl_dir / "s05-test-step.yaml"
     impl_file.write_text("schema: epic-implement/v1\nrole: back\nstep_id: s05\nplan_id: T-HUB-999-test\n", encoding="utf-8")
 
     load_now = [
-        "memory-bank/back/plan/decompose-T-HUB-999-test/s05-test-step.yaml",
-        "memory-bank/back/plan/decompose-T-HUB-999-test/index.yaml",
+        "memory-bank/back/plan/T-HUB-999-test/yaml/steps/s05-test-step.yaml",
+        "memory-bank/back/plan/T-HUB-999-test/yaml/decompose-index.yaml",
     ]
 
     res = resolve_bundle_paths(tmp_path, mode="IMPLEMENT", step_id="s05", load_now_paths=load_now)
-    rel_impl = "memory-bank/back/implement/implement-T-HUB-999-test/s05-test-step.yaml"
+    rel_impl = "memory-bank/back/implement/T-HUB-999-test/s05-test-step.yaml"
     assert rel_impl in res.resolved_paths
     assert rel_impl in res.auto_added
 
@@ -42,28 +42,28 @@ def test_mode_matrix(tmp_path: Path) -> None:
 
     # IMPLEMENT mode forbids plan-*.md
     load_now_impl = [
-        "memory-bank/back/plan/plan-T-HUB-999-test.md",
+        "memory-bank/back/plan/T-HUB-999-test/md/plan.md",
         "loop/mb_load/resolver.py",
     ]
     res_impl = resolve_bundle_paths(tmp_path, mode="IMPLEMENT", step_id="s05", load_now_paths=load_now_impl)
-    assert "memory-bank/back/plan/plan-T-HUB-999-test.md" in res_impl.forbidden_skipped
-    assert "memory-bank/back/plan/plan-T-HUB-999-test.md" not in res_impl.resolved_paths
+    assert "memory-bank/back/plan/T-HUB-999-test/md/plan.md" in res_impl.forbidden_skipped
+    assert "memory-bank/back/plan/T-HUB-999-test/md/plan.md" not in res_impl.resolved_paths
     assert "loop/mb_load/resolver.py" in res_impl.resolved_paths
 
 
 def test_decompose_plan_allowed(tmp_path: Path) -> None:
     load_now = [
-        "memory-bank/back/plan/plan-T-HUB-999-test.md",
-        "memory-bank/back/plan/decompose-T-HUB-999-test/index.yaml",
+        "memory-bank/back/plan/T-HUB-999-test/md/plan.md",
+        "memory-bank/back/plan/T-HUB-999-test/yaml/decompose-index.yaml",
     ]
     res = resolve_bundle_paths(tmp_path, mode="DECOMPOSE", step_id=None, load_now_paths=load_now)
-    assert "memory-bank/back/plan/plan-T-HUB-999-test.md" in res.resolved_paths
-    assert "memory-bank/back/plan/plan-T-HUB-999-test.md" not in res.forbidden_skipped
+    assert "memory-bank/back/plan/T-HUB-999-test/md/plan.md" in res.resolved_paths
+    assert "memory-bank/back/plan/T-HUB-999-test/md/plan.md" not in res.forbidden_skipped
 
 
 def test_resolver_idempotent(tmp_path: Path) -> None:
     load_now = [
-        "memory-bank/back/plan/decompose-T-HUB-999-test/index.yaml",
+        "memory-bank/back/plan/T-HUB-999-test/yaml/decompose-index.yaml",
     ]
     res1 = resolve_bundle_paths(tmp_path, mode="IMPLEMENT", step_id="s05", load_now_paths=load_now)
     res2 = resolve_bundle_paths(tmp_path, mode="IMPLEMENT", step_id="s05", load_now_paths=res1.resolved_paths)
@@ -86,11 +86,11 @@ def test_no_cross_epic_auto_added_artifacts(tmp_path, mode):
 
 def test_layout_v2_resolves_exact_step_and_epic(tmp_path):
     for epic, step in [("T-OLD", "s01"), ("T-NEW", "s010"), ("T-NEW", "s01")]:
-        p = tmp_path / f"memory-bank/back/implement/implement-{epic}/{step}-impl.yaml"
+        p = tmp_path / f"memory-bank/back/implement/{epic}/{step}-impl.yaml"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(f"epic_id: {epic}\nstep_id: {step}\n")
     result = resolve_bundle_paths(tmp_path, "IMPLEMENT", "s01", ["memory-bank/back/plan/T-NEW/yaml/decompose-index.yaml"])
-    assert result.auto_added == ["memory-bank/back/implement/implement-T-NEW/s01-impl.yaml"]
+    assert result.auto_added == ["memory-bank/back/implement/T-NEW/s01-impl.yaml"]
 
 
 def test_resolver_does_not_guess_epic_from_plan_mirror() -> None:

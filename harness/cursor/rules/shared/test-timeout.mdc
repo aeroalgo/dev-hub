@@ -28,7 +28,9 @@ timeout -k 10s 300s npm --prefix frontend exec vitest ...
 timeout -k 10s 300s npm --prefix frontend exec tsc ...
 # FRONT QA full suite (parent-only) — НЕ bin/pytest:
 timeout -k 10s 300s npm --prefix frontend exec vitest run
+# FRONT QA types (parent-only):
 timeout -k 10s 300s npm --prefix frontend exec tsc --noEmit
+# FRONT QA Playwright (parent-only):
 timeout -k 10s 300s npm --prefix frontend exec playwright test
 # Frontend scenario targeted (parent-only):
 timeout -k 10s 300s npm --prefix frontend exec playwright test -- <spec>
@@ -49,10 +51,10 @@ timeout -k 10s 300s make test
 - **targeted:** одна команда/один файл/один `-k` — максимум 300 секунд; канон для IMPLEMENT / BUGFIX / TASK / verify-implement (в managed проектах — capability `test.targeted`).
 - **full suite (QA HARD):**
   - **BACK** hub — `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k`. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
-  - **FRONT QA** — full **frontend** suite: Vitest run + types/lint + Playwright (команды Frontend block выше). **Не** `bin/pytest`. Evidence только pytest → **FAIL** (`suite_wrong_stack`).
+  - **FRONT QA** (parent-only) — full **frontend** suite: Vitest run + types/lint + Playwright (команды Frontend block выше). **FORBIDDEN:** `bin/pytest`. Evidence только pytest → FAIL (`suite_wrong_stack`).
   - Managed — capability `test.full` **своей** роли/surface (front ≠ backend).
 - **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
-- если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full** (для роли: FRONT=frontend, BACK=pytest/capability).
+- если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full** (FRONT=frontend parent-only; BACK=hub pytest / managed capability).
 
 ## DECOMPOSE / IMPLEMENT boundary (HARD)
 

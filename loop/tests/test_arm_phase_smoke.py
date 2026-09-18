@@ -88,10 +88,6 @@ def test_arm_epic_v2_finds_plan_and_yaml_steps(tmp_path: Path):
         "    status: pending\n",
         encoding="utf-8",
     )
-    md_idx = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=tmp_path)
-    md_idx.parent.mkdir(parents=True, exist_ok=True)
-    md_idx.write_text("# index\n", encoding="utf-8")
-
     step9 = resolve(
         role,
         epic_id,
@@ -138,9 +134,8 @@ def test_arm_phase_pre_implement_phases_characterization(tmp_path: Path):
     epic_id = "T-CHAR-001"
     role = "back"
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / f"plan-{epic_id}.md"
+    plan_file = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md" / "plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan\nFR-001 characterization\n", encoding="utf-8")
 
     for phase in ["PLAN", "DECOMPOSE", "ANALYZE", "CREATIVE", "CLARIFY"]:

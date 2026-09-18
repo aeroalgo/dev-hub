@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs
 
-→ [T-HUB-043-runtime-bridge-codex/md/decompose-index.md](T-HUB-043-runtime-bridge-codex/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-043-runtime-bridge-codex/yaml/decompose-index.yaml](T-HUB-043-runtime-bridge-codex/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

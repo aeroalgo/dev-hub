@@ -29,9 +29,6 @@ codes:
   fingerprint_stall:
     tier1_eligible: true
     rationale: "Session fingerprint did not change after iteration"
-  index_mirror_drift:
-    tier1_eligible: true
-    rationale: "index.yaml and index.md steps drift"
   premature_epic_done:
     tier1_eligible: true
     rationale: "Epic marked done with open steps"

@@ -9,7 +9,7 @@
 
 **Skills:** writing-plans
 
-→ [T-HUB-009-dsh-rollout-docs/md/decompose-index.md](T-HUB-009-dsh-rollout-docs/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-009-dsh-rollout-docs/yaml/decompose-index.yaml](T-HUB-009-dsh-rollout-docs/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

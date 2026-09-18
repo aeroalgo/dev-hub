@@ -8,7 +8,7 @@
 **Gap ref (опционально):** [gap-YYYYMMDD-<slug>.md](../gap/<epic_id>/gap-YYYYMMDD-<slug>.md)
 **Prompt:** [md/prompt.md](prompt.md) — outcome SoT (абстрактный; не HOW)
 
-→ [decompose-<plan_id>/index.md](decompose-<plan_id>/index.md)
+→ [yaml/decompose-index.yaml](<plan_id>/yaml/decompose-index.yaml)
 
 ## Суть
 

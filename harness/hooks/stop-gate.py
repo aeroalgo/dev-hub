@@ -602,7 +602,7 @@ def main() -> None:
                 if stop_hook_active:
                     return
                 _block(
-                    "epic-gate: DECOMPOSE FINISH blocked — index.md coverage + "
+                    "epic-gate: DECOMPOSE FINISH blocked — validated YAML index + "
                     "sNN-<slug>.yaml + schema epic-decompose/v1 (+ role, as_built/delta lists) "
                     "по .cursor/templates/decompose/. "
                     "FORBIDDEN: epic-decompose-shard/*, invented schemas, as_built dict, bare sNN.yaml. "

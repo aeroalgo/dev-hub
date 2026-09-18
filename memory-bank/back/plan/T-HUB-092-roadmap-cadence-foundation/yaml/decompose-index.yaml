@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-092-roadmap-cadence-foundation
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 steps:
 - id: s01
   file: s01-cadence-schema-and-sot-api.yaml

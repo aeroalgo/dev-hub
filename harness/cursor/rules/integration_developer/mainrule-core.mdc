@@ -22,7 +22,7 @@ User-visible flow → scenario test до FINISH; QA прогон + дыры. Par
 
 ## КОНТРАКТ
 
-§Contract в `decompose-*/eNN-*.yaml`: method+path · request · response · DB. Skill TDD: только из workflow.
+§Contract в `plan/<epic>/yaml/steps/eNN-*.yaml`: method+path · request · response · DB. Skill TDD: только из workflow.
 
 ## BACK / FRONT в одном eNN
 

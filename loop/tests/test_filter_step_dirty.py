@@ -23,12 +23,12 @@ SR = _load()
 filter_step_dirty = SR.filter_step_dirty  # type: ignore[attr-defined]
 
 DIRTY = [
-    "memory-bank/back/implement/implement-T-035-loop-state-prod-hardening/s03-session-classification-resume.yaml",
-    "memory-bank/back/implement/implement-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml",
-    "memory-bank/back/plan/decompose-T-034-loop-agent-scopes/s03-pretool-managed-deny-allow-model-pin.yaml",
-    "memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/s03-session-classification-resume.yaml",
-    "memory-bank/back/plan/decompose-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml",
-    "memory-bank/back/plan/decompose-T-036-session-checkpoint-resume/s03-dirty-resume-extend.yaml",
+    "memory-bank/back/implement/T-035-loop-state-prod-hardening/s03-session-classification-resume.yaml",
+    "memory-bank/back/implement/T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml",
+    "memory-bank/back/plan/T-034-loop-agent-scopes/yaml/steps/s03-pretool-managed-deny-allow-model-pin.yaml",
+    "memory-bank/back/plan/T-035-loop-state-prod-hardening/yaml/steps/s03-session-classification-resume.yaml",
+    "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/steps/s03-set-vs-dict-status-telemetry.yaml",
+    "memory-bank/back/plan/T-036-session-checkpoint-resume/yaml/steps/s03-dirty-resume-extend.yaml",
     "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/steps/s01-setup.yaml",
     "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/decompose-index.yaml",
     "memory-bank/back/plan/T-036-crash-cycle-fix/__pycache__/cache.pyc",
@@ -51,8 +51,8 @@ def test_epic_id_filters_cross_epic_memory_bank() -> None:
 def test_epic_id_keeps_correct_epic_files() -> None:
     result = filter_step_dirty(DIRTY, step_id="s03", epic_id="T-036-crash-cycle-fix")
     paths = set(result)
-    assert "memory-bank/back/implement/implement-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml" in paths
-    assert "memory-bank/back/plan/decompose-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml" in paths
+    assert "memory-bank/back/implement/T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml" in paths
+    assert "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/steps/s03-set-vs-dict-status-telemetry.yaml" in paths
     assert "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/steps/s01-setup.yaml" in paths
     assert "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/decompose-index.yaml" in paths
     assert "memory-bank/back/plan/T-036-crash-cycle-fix/__pycache__/cache.pyc" not in paths

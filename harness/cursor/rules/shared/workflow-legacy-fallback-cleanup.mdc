@@ -91,7 +91,7 @@ Inventory **всех** поверхностей запуска той же ро�
 
 ### 2.1. Таблица index
 
-Шаблон: @.cursor/templates/decompose/index.md
+Шаблоны: @.cursor/templates/decompose/index.yaml и @.cursor/templates/decompose/epic-step.yaml
 
 Колонки:
 

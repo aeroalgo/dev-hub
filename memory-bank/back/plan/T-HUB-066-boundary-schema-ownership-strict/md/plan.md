@@ -1,14 +1,14 @@
 # [T-HUB-066 | boundary-schema-ownership-strict] PLAN
 
-**Дата:** 2026-09-05  
-**Режим:** BACK PLAN  
-**Уровень:** L3–L4  
-**Статус:** active  
-**Clarify:** `memory-bank/back/clarify/clarify-20260905-workflow-loop-audit.md`  
-**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
-**Roadmap:** `memory-bank/back/roadmap/queue.yaml` · batch `workflow-loop-20260905`  
-**Deps:** **hard T-HUB-063** (sunset in registry — ownership applies to all managed schemas including sunset). Soft T-HUB-057 (JSON session).  
-**Skills:** writing-plans · architecture-patterns · python-testing-patterns  
+**Дата:** 2026-09-05
+**Режим:** BACK PLAN
+**Уровень:** L3–L4
+**Статус:** active
+**Clarify:** `memory-bank/back/clarify/clarify-20260905-workflow-loop-audit.md`
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`
+**Roadmap:** `memory-bank/back/roadmap/queue.yaml` · batch `workflow-loop-20260905`
+**Deps:** **hard T-HUB-063** (sunset in registry — ownership applies to all managed schemas including sunset). Soft T-HUB-057 (JSON session).
+**Skills:** writing-plans · architecture-patterns · python-testing-patterns
 **Источник:** audit `04` P1 schema optional + payload verdict bypass · `05` repair unlinked to FAIL · `08` mutation targets
 
 ---
@@ -231,7 +231,7 @@
 
 ## Decompose
 
-Index (status SoT): [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · coverage: [md/decompose-index.md](decompose-index.md).  
+Index (status SoT): [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · coverage: [yaml/decompose-index.yaml](../yaml/decompose-index.yaml).
 Queue: s01 wire schema+collab forbid → s02 fence/mutation → s03 ownership → s04 repair → s05 Kind I → s06 purge (6 sNN; plan floor 7 merged #1+#2).
 
 ## До DECOMPOSE

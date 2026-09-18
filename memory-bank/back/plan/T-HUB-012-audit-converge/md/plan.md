@@ -12,7 +12,7 @@
 **soft:** T-HUB-011 (можно цитировать analyze metrics)  
 **Skills:** writing-plans · python-testing-patterns (если schema tests)  
 
-→ [T-HUB-012-audit-converge/md/decompose-index.md](T-HUB-012-audit-converge/md/decompose-index.md) — **канон трекера** · [index.yaml](T-HUB-012-audit-converge/yaml/decompose-index.yaml)
+→ [T-HUB-012-audit-converge/yaml/decompose-index.yaml](T-HUB-012-audit-converge/yaml/decompose-index.yaml) — **канон трекера** · [index.yaml](T-HUB-012-audit-converge/yaml/decompose-index.yaml)
 
 ---
 
@@ -176,7 +176,7 @@ Schema: additive — старые audit yaml без `findings` остаются 
 3. **s03** — FRONT + INTEG audit parity  
 4. **s04** — finish-doc-router + epic-step source_ref hint + refs + dry-run fixture + doc-claim purge  
 
-Трекер: [T-HUB-012-audit-converge/yaml/steps/](T-HUB-012-audit-converge/md/decompose-index.md) — не дублировать чеклист здесь.
+Трекер: [T-HUB-012-audit-converge/yaml/steps/](T-HUB-012-audit-converge/yaml/decompose-index.yaml) — не дублировать чеклист здесь.
 
 ---
 

@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns
 
-→ [T-HUB-033-harness-execution-discipline/md/decompose-index.md](T-HUB-033-harness-execution-discipline/md/decompose-index.md) — **трекер шагов**
+→ [T-HUB-033-harness-execution-discipline/yaml/decompose-index.yaml](T-HUB-033-harness-execution-discipline/yaml/decompose-index.yaml) — **трекер шагов**
 
 ---
 

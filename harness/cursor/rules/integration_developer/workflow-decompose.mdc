@@ -14,7 +14,7 @@ alwaysApply: false
 
 Каждый YAML decompose-step обязан содержать top-level `skills:` с `code_surface` и `impl`. Значения — repo-relative пути; список — единственный источник обязательных Read для INTEG IMPLEMENT (не hardcoded-каталог). **FORBIDDEN на DECOMPOSE:** Read тел Core/situational SKILL.md (shared skills-load).
 
-**Цель:** Plan Element registry → `decompose-*/` (`index.md` + **все** `eNN-*.yaml`) за **один** проход. НЕ писать код.  
+**Цель:** Plan Element registry → `plan/<plan_id>/yaml/decompose-index.yaml` + **все** `yaml/steps/eNN-*.yaml` за **один** проход. НЕ писать код.
 DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 **Нарезка:** по UI-элементам, не по слоям. Не читать: gap/, contracts/, BACK/FRONT decompose.
@@ -23,7 +23,7 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 ## Outcome preserve (HARD)
 
-Не ужимать portal/journey intent плана до «wire endpoint». В `index.md` — **`## Outcome map`**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
+Не ужимать portal/journey intent плана до «wire endpoint». В YAML index и `plan_refs` — **Outcome map**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
 
 **Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Maximal detail ≠ layer-first micro-split** одного element; band 5–8 **не** схлопывает registry (1 element = 1 eNN). Канон: shared/workflow-behavior-first.mdc §3a. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон coverage: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
 
@@ -38,7 +38,7 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 
 ### REQUIRED
 
-1. В `index.md` — **`## Replacement cleanup (plan → steps)`** (Kind A|B|C|I + Fallback?). Нет секции = FAIL.
+1. В YAML index и shard-полях `deletes`/`out_of_scope` — **Replacement cleanup (plan → steps)** (Kind A|B|C|I + Fallback?). Нет покрытия = FAIL.
 2. Каждая поверхность sunset A/B/C/**I** / «⚠️ mock / legacy client» → ≥1 `eNN` с **непустым** `deletes:`, **или** out_of_scope + follow-up epic **в queue**.
 3. Нет замен по эпику → одна строка `n/a — нет замен`.
 4. У каждого `eNN`: поле **`deletes:`** (`[]` только если элемент ничего не вытесняет).
@@ -64,8 +64,8 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 1. `OK INTEG DECOMPOSE - Разбиваю план по UI-элементам (batch)`
 1a. Прочитай **Gates**
 2. Source: `integration/plan/<task_id>/md/plan.md` — Element registry + **Replacement / sunset** + mocks
-3. Папка `integration/plan/<plan_id>/`: `yaml/decompose-index.yaml` + `yaml/steps/eNN-*.yaml` (+ `md/decompose-index.md`) — **`<plan_id>` = stem plan со slug** (не short queue id; @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
-   Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml
+3. Папка `integration/plan/<plan_id>/`: `yaml/decompose-index.yaml` + `yaml/steps/eNN-*.yaml` — **`<plan_id>` = stem plan со slug** (не short queue id; @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)
+   Шаблоны: @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml
    **Schema HARD:** каждый `eNN` = `epic-decompose/v1` + `role: integ`; **FORBIDDEN** invented schemas; FINISH `validate-decompose-tree` fail-closed.
    `yaml/decompose-index.yaml` обязателен: `schema: epic-decompose-index/v1`, `plan_id:` = тот же stem, корень `steps:`, каждый `eNN` содержит минимум `id`, `file` (basename в `yaml/steps/`), `title`, `next_phase`, `status`. **FORBIDDEN** `yaml/index.yaml`. Формат roadmap `queue:` для decompose запрещён.  
    Шаг: §UI · §Data · §API today · **§Contract lean** · §BACK/FRONT/DB · `deletes` · §0.11 · §Verify

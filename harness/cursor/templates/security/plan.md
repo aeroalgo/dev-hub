@@ -11,7 +11,7 @@
 - refs: techContext, architecture/, prior security-audit-*
 - out of scope: …
 
-→ [decompose-…/index.md](decompose-…/index.md) — **после DECOMPOSE:** единственный трекер aNN
+→ `plan/<plan_id>/yaml/decompose-index.yaml` — **после DECOMPOSE:** единственный трекер aNN
 
 ## Inventory surfaces
 

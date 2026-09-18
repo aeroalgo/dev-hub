@@ -11,7 +11,7 @@ from loop.board_sync.card_model import CardKind
 def _card(tmp_path: Path) -> LaunchCard:
     return LaunchCard(
         project_root=str(tmp_path),
-        decompose_rel="memory-bank/back/plan/decompose-demo/index.yaml",
+        decompose_rel="memory-bank/back/plan/demo/yaml/decompose-index.yaml",
         step_id="s01",
         gate_phase=None,
         workspace_id="ws-1",

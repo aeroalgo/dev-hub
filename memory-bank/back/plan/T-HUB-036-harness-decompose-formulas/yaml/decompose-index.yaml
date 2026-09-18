@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-036-harness-decompose-formulas
-source_md: index.md
-status_canon: index.yaml
 appetite:
   timebox_days: 3
   cut_list:

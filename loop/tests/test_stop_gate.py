@@ -146,13 +146,13 @@ def _run_stop_gate(cwd: Path, payload: dict, *, epic_loop: bool = True) -> dict:
 def test_stop_gate_blocks_early_end_without_fingerprint_progress(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
     _write(
-        "memory-bank/back/plan/decompose-sg/index.md",
+        "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "| Step | Status |\n| --- | --- |\n| **s01** | pending |\n",
         tmp_path,
     )
     handoff = (
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-sg/index.md`\n\n"
+        "- `memory-bank/back/plan/sg/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK CREATIVE — done\n"
         "- **Следующий:** BACK IMPLEMENT @s01\n"
     )
@@ -222,13 +222,13 @@ def test_stop_gate_diagnostic_fingerprint_unchanged(tmp_path: Path) -> None:
 def test_stop_gate_allows_after_handoff_fingerprint_change(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
     _write(
-        "memory-bank/back/plan/decompose-sg2/index.md",
+        "memory-bank/back/plan/sg2/yaml/decompose-index.yaml",
         "| Step | Status |\n| --- | --- |\n| **s01** | pending |\n",
         tmp_path,
     )
     _write(
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/decompose-sg2/index.md`\n\n"
+        "## load_now\n- `memory-bank/back/plan/sg2/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
@@ -240,7 +240,7 @@ def test_stop_gate_allows_after_handoff_fingerprint_change(tmp_path: Path) -> No
     _write(
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-sg2/s01.md`\n\n"
+        "- `memory-bank/back/plan/sg2/yaml/steps/s01.md`\n\n"
         "## Handoff BACK IMPLEMENT s01 — done\n"
         "- **Следующий:** BACK IMPLEMENT @s02\n",
         tmp_path,
@@ -262,13 +262,13 @@ def test_stop_gate_no_longer_requires_result_yaml(tmp_path: Path) -> None:
     """FINISH + fingerprint progress allows stop."""
     epic_lib = _load_epic_lib()
     _write(
-        "memory-bank/back/plan/decompose-sg-pass/index.md",
+        "memory-bank/back/plan/sg-pass/yaml/decompose-index.yaml",
         "| Step | Status |\n| --- | --- |\n| **s01** | pending |\n",
         tmp_path,
     )
     _write(
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/decompose-sg-pass/index.md`\n\n"
+        "## load_now\n- `memory-bank/back/plan/sg-pass/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
@@ -327,7 +327,7 @@ def _run_agent_pretool(cwd: Path, payload: dict, *, epic_loop: bool = True) -> d
 
 
 _VERIFY_STEP = (
-    "memory-bank/back/implement/implement-vfy/s01-demo.yaml"
+    "memory-bank/back/implement/vfy/s01-demo.yaml"
 )
 _VERIFY_DECOMPOSE = (
     "memory-bank/back/plan/T-vfy/yaml/steps/s01-demo.yaml"
@@ -358,12 +358,12 @@ def test_agent_pretool_allows_verify_without_result_yaml(tmp_path: Path) -> None
     """@verify allowed when activeContext + implement step exist."""
     _write(
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/decompose-vfy/index.md`\n\n"
+        "## load_now\n- `memory-bank/back/plan/vfy/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
     _write(
-        "memory-bank/back/plan/decompose-vfy/index.md",
+        "memory-bank/back/plan/vfy/yaml/decompose-index.yaml",
         "| Step | Status |\n| **s01** | pending |\n",
         tmp_path,
     )
@@ -404,7 +404,7 @@ def test_verify_already_pass_no_reblock(tmp_path: Path) -> None:
         tmp_path,
     )
     _write(
-        "memory-bank/back/implement/implement-vfy/s01-demo.yaml",
+        "memory-bank/back/implement/vfy/s01-demo.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nstatus: completed\n",
         tmp_path,
     )
@@ -1075,14 +1075,14 @@ def test_stop_gate_armed_epic_ignored_without_epic_loop(tmp_path: Path) -> None:
     """IDE chat: armed state.json must not block stop / demand Handoff progress."""
     epic_lib = _load_epic_lib()
     _write(
-        "memory-bank/back/plan/decompose-ide/index.md",
+        "memory-bank/back/plan/ide/yaml/decompose-index.yaml",
         "| Step | Status |\n| --- | --- |\n| **s01** | pending |\n",
         tmp_path,
     )
     _write(
         "memory-bank/activeContext.md",
         "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\nepic_id: decompose-ide\n---\n"
-        "## load_now\n- `memory-bank/back/plan/decompose-ide/index.md`\n\n"
+        "## load_now\n- `memory-bank/back/plan/ide/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
@@ -1117,11 +1117,6 @@ def test_stop_gate_armed_epic_ignored_without_epic_loop(tmp_path: Path) -> None:
 
 def test_session_start_payload_requires_epic_loop(tmp_path: Path, monkeypatch) -> None:
     epic_lib = _load_epic_lib()
-    _write(
-        "memory-bank/back/plan/ssp/md/decompose-index.md",
-        "| Step | Status |\n| --- | --- |\n| **s01** | pending |\n",
-        tmp_path,
-    )
     _write(
         "memory-bank/back/plan/ssp/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: ssp\nsteps:\n"
@@ -1219,7 +1214,7 @@ def test_runner_cli_deny_reason_detects_after() -> None:
     ) is None
     bulk = (
         "sed -i 's/| INTEG IMPLEMENT | pending |$/| INTEG IMPLEMENT | completed |/' "
-        "memory-bank/integration/plan/decompose-v1-portal/index.md"
+        "memory-bank/integration/plan/v1-portal/yaml/decompose-index.yaml"
     )
     assert index_bulk_status_deny_reason(bulk) is not None
     assert "index_bulk_status_forbidden" in (runner_cli_deny_reason(bulk) or "")
@@ -1229,7 +1224,7 @@ def test_bash_pretool_denies_index_bulk_sed(tmp_path: Path) -> None:
     denied = _run_bash_pretool(
         tmp_path,
         "sed -i 's/| INTEG IMPLEMENT | pending |$/| INTEG IMPLEMENT | completed |/' "
-        "memory-bank/integration/plan/decompose-v1-portal/index.md",
+        "memory-bank/integration/plan/v1-portal/yaml/decompose-index.yaml",
         epic_loop=True,
     )
     assert (
@@ -1241,25 +1236,6 @@ def test_bash_pretool_denies_index_bulk_sed(tmp_path: Path) -> None:
 
 def test_mark_index_step_status_one_row(tmp_path: Path) -> None:
     epic_lib = _load_epic_lib()
-    idx = (
-        tmp_path
-        / "memory-bank/integration/plan/demo/md/decompose-index.md"
-    )
-    idx.parent.mkdir(parents=True)
-    idx.write_text(
-        "**Plan ID:** demo\n\n"
-        "| Step | … | Status |\n"
-        "|---|---|---|\n"
-        "| **e12** | [e12-a.yaml](e12-a.yaml) | INTEG IMPLEMENT | completed |\n"
-        "| **e13** | [e13-b.yaml](e13-b.yaml) | INTEG IMPLEMENT | pending |\n"
-        "| **e14** | [e14-c.yaml](e14-c.yaml) | INTEG IMPLEMENT | pending |\n"
-        "\n"
-        "## Summary-чеклист\n"
-        "- [x] e12 — a\n"
-        "- [ ] e13 — b\n"
-        "- [ ] e14 — c\n",
-        encoding="utf-8",
-    )
     ypath = tmp_path / "memory-bank/integration/plan/demo/yaml/decompose-index.yaml"
     ypath.parent.mkdir(parents=True)
     ypath.write_text(
@@ -1276,55 +1252,10 @@ def test_mark_index_step_status_one_row(tmp_path: Path) -> None:
         "completed",
     )
     assert r["ok"] is True
-    assert r.get("canon") == "index.yaml"
-    text = idx.read_text(encoding="utf-8")
-    assert "**e13**" in text and "completed" in text
-    assert "**e14**" in text and "pending" in text
-    assert "- [x] e13 — b" in text
-    assert "- [ ] e14 — c" in text
+    assert r.get("canon") == "decompose-index.yaml"
     yml = ypath.read_text(encoding="utf-8")
     assert "id: e13" in yml
     assert "status: completed" in yml
-
-
-def test_sync_index_yaml_preserves_status(tmp_path: Path) -> None:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / ".claude" / "hooks"))
-    from epic_index import sync_yaml_from_md, load_index_yaml, steps_from_doc
-
-    idx = tmp_path / "memory-bank/integration/plan/decompose-demo/index.md"
-    idx.parent.mkdir(parents=True)
-    idx.write_text(
-        "**Plan ID:** demo\n\n"
-        "| **e01** | [e01-a.yaml](e01-a.yaml) | INTEG IMPLEMENT | pending |\n"
-        "| **e02** | [e02-b.yaml](e02-b.yaml) | INTEG IMPLEMENT | pending |\n",
-        encoding="utf-8",
-    )
-    boot = sync_yaml_from_md(idx, preserve_yaml_status=False)
-    assert boot["ok"] is True
-    # mutate yaml status without md
-    ypath = idx.parent / "index.yaml"
-    ypath.write_text(
-        ypath.read_text(encoding="utf-8").replace(
-            "id: e01\n  file: e01-a.yaml\n  next_phase: INTEG IMPLEMENT\n  title: e01-a\n  status: pending",
-            "id: e01\n  file: e01-a.yaml\n  next_phase: INTEG IMPLEMENT\n  title: e01-a\n  status: completed",
-            1,
-        ),
-        encoding="utf-8",
-    )
-    # add step in md, sync preserving yaml
-    idx.write_text(
-        "**Plan ID:** demo\n\n"
-        "| **e01** | [e01-a.yaml](e01-a.yaml) | INTEG IMPLEMENT | pending |\n"
-        "| **e02** | [e02-b.yaml](e02-b.yaml) | INTEG IMPLEMENT | pending |\n"
-        "| **e03** | [e03-c.yaml](e03-c.yaml) | INTEG IMPLEMENT | pending |\n",
-        encoding="utf-8",
-    )
-    r = sync_yaml_from_md(idx, preserve_yaml_status=True)
-    assert r["ok"] is True
-    steps = {s["id"]: s["status"] for s in steps_from_doc(load_index_yaml(ypath) or {})}
-    assert steps["e01"] == "completed"
-    assert steps["e02"] == "pending"
-    assert steps["e03"] == "pending"
 
 
 def test_validate_index_vs_implement_false_completed(tmp_path: Path) -> None:
@@ -1737,12 +1668,12 @@ def test_timeout_abort_is_transient() -> None:
 
 def _stale_fixture(tmp_path: Path, load_path: str, steps: str) -> None:
     _write(
-        "memory-bank/back/plan/decompose-sg/index.md",
+        "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "# Index\n",
         tmp_path,
     )
     _write(
-        "memory-bank/back/plan/decompose-sg/index.yaml",
+        "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
         "steps:\n"
         + steps,
@@ -1764,25 +1695,25 @@ def test_stop_gate_blocks_finish_without_mark_index(tmp_path: Path) -> None:
         tmp_path,
     )
     _write(
-        "memory-bank/back/plan/decompose-sg/index.md",
+        "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "# Index\n",
         tmp_path,
     )
     _write(
-        "memory-bank/back/plan/decompose-sg/index.yaml",
+        "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nsteps:\n"
         "- id: s01\n  file: s01-a.yaml\n  status: pending\n",
         tmp_path,
     )
     _write(
-        "memory-bank/back/implement/implement-sg/s01-a.yaml",
+        "memory-bank/back/implement/sg/s01-a.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: sg\n"
         "title: a\nstatus: completed\ncheckpoints: []\n",
         tmp_path,
     )
     _write(
         "memory-bank/activeContext.md",
-        "## load_now\n- [s02](back/plan/decompose-sg/s02-b.yaml)\n\n"
+        "## load_now\n- [s02](back/plan/sg/yaml/steps/s02-b.yaml)\n\n"
         "## Handoff BACK IMPLEMENT s01\n- **Следующий:** BACK IMPLEMENT @s02\n",
         tmp_path,
     )
@@ -1798,7 +1729,7 @@ def test_stop_gate_blocks_finish_without_mark_index(tmp_path: Path) -> None:
                 "active": True,
                 "status": "running",
                 "mode": "implement",
-                "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
+                "armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
                 "armed_step": "s01",
                 "pending_fingerprint_before": "before",
                 "last_verify_verdict": "PASS",
@@ -1823,7 +1754,7 @@ def test_stop_gate_blocks_finish_without_mark_index(tmp_path: Path) -> None:
     module.load_epic_state = lambda _cwd: {
         "active": True,
         "status": "running",
-        "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
+        "armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "armed_step": "s01",
         "last_verify_verdict": "PASS",
         "last_verify_receipt": {
@@ -1867,38 +1798,38 @@ def test_stop_gate_stale_check_isolated(tmp_path: Path) -> None:
     for step_id in ("s01", "s12", "e07"):
         _stale_fixture(
             tmp_path,
-            f"memory-bank/back/plan/decompose-sg/{step_id}-foo.yaml",
+            f"memory-bank/back/plan/sg/yaml/steps/{step_id}-foo.yaml",
             f"- id: {step_id}\n  status: completed\n",
         )
         reason = module._check_stale_load_now(
             tmp_path,
-            {"armed_decompose": "memory-bank/back/plan/decompose-sg/index.md"},
+            {"armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml"},
         )
         assert reason is not None and f"completed шаг(и): {step_id}" in reason
 
     _stale_fixture(
         tmp_path,
-        "memory-bank/back/plan/decompose-sg/s06-foo.yaml",
+        "memory-bank/back/plan/sg/yaml/steps/s06-foo.yaml",
         "- id: s06\n  status: pending\n",
     )
     assert module._check_stale_load_now(
-        tmp_path, {"armed_decompose": "memory-bank/back/plan/decompose-sg/index.md"}
+        tmp_path, {"armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml"}
     ) is None
 
     _stale_fixture(
         tmp_path,
-        "memory-bank/back/plan/decompose-sg/e07-baz.yaml",
+        "memory-bank/back/plan/sg/yaml/steps/e07-baz.yaml",
         "- id: e07\n  status: done\n",
     )
     assert "completed шаг(и): e07" in module._check_stale_load_now(
-        tmp_path, {"armed_decompose": "memory-bank/back/plan/decompose-sg/index.md"}
+        tmp_path, {"armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml"}
     )
 
 
 def test_stop_gate_stale_load_now_blocks(tmp_path: Path) -> None:
     _stale_fixture(
         tmp_path,
-        "memory-bank/back/plan/decompose-sg/s06-foo.yaml",
+        "memory-bank/back/plan/sg/yaml/steps/s06-foo.yaml",
         "- id: s06\n  status: completed\n",
     )
     state = {
@@ -1906,7 +1837,7 @@ def test_stop_gate_stale_load_now_blocks(tmp_path: Path) -> None:
         "status": "running",
         "mode": "implement",
         "pending_fingerprint_before": None,
-        "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
+        "armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
     }
     _write(
         ".claude/runtime/epic/state.json",
@@ -1929,7 +1860,7 @@ def test_stop_gate_stale_load_now_blocks(tmp_path: Path) -> None:
 def test_stop_gate_stale_load_now_pass_when_correct(tmp_path: Path) -> None:
     _stale_fixture(
         tmp_path,
-        "memory-bank/back/plan/decompose-sg/s07-next.yaml",
+        "memory-bank/back/plan/sg/yaml/steps/s07-next.yaml",
         "- id: s06\n  status: completed\n- id: s07\n  status: pending\n",
     )
     _write(
@@ -1939,7 +1870,7 @@ def test_stop_gate_stale_load_now_pass_when_correct(tmp_path: Path) -> None:
             "status": "running",
             "mode": "implement",
             "pending_fingerprint_before": None,
-            "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
+            "armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         }),
         tmp_path,
     )
@@ -1956,13 +1887,13 @@ def test_stop_gate_stale_load_now_pass_when_correct(tmp_path: Path) -> None:
 
 def test_stop_gate_stale_load_now_soft_degrade_no_yaml(tmp_path: Path) -> None:
     _write(
-        "memory-bank/back/plan/decompose-sg/index.md",
+        "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         "# Index\n",
         tmp_path,
     )
     _write(
         "memory-bank/activeContext.md",
-        "## load_now\n- [current] (memory-bank/back/plan/decompose-sg/s06-foo.yaml)\n\n"
+        "## load_now\n- [current] (memory-bank/back/plan/sg/yaml/steps/s06-foo.yaml)\n\n"
         "## Handoff BACK IMPLEMENT — s03\n- done\n",
         tmp_path,
     )
@@ -1973,7 +1904,7 @@ def test_stop_gate_stale_load_now_soft_degrade_no_yaml(tmp_path: Path) -> None:
             "status": "running",
             "mode": "implement",
             "pending_fingerprint_before": None,
-            "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
+            "armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         }),
         tmp_path,
     )
@@ -1991,7 +1922,7 @@ def test_stop_gate_stale_load_now_soft_degrade_no_yaml(tmp_path: Path) -> None:
 def test_stop_gate_stale_load_now_not_checked_when_not_progressed(tmp_path: Path) -> None:
     _stale_fixture(
         tmp_path,
-        "memory-bank/back/plan/decompose-sg/s06-foo.yaml",
+        "memory-bank/back/plan/sg/yaml/steps/s06-foo.yaml",
         "- id: s06\n  status: completed\n",
     )
     context = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
@@ -2003,7 +1934,7 @@ def test_stop_gate_stale_load_now_not_checked_when_not_progressed(tmp_path: Path
             "status": "running",
             "mode": "implement",
             "pending_fingerprint_before": epic_lib.fingerprint_context(context),
-            "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
+            "armed_decompose": "memory-bank/back/plan/sg/yaml/decompose-index.yaml",
         }),
         tmp_path,
     )

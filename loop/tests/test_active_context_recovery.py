@@ -35,11 +35,11 @@ def _seed(cwd: Path) -> None:
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s01.yaml](back/plan/decompose-x/s01.yaml) — work shard.\n\n"
+        "1. [s01.yaml](back/plan/x/yaml/steps/s01.yaml) — work shard.\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Следующий:** `BACK IMPLEMENT @s01`\n",
     )
-    _write(cwd, "memory-bank/back/plan/decompose-x/s01.yaml", "step_id: s01\n")
+    _write(cwd, "memory-bank/back/plan/x/yaml/steps/s01.yaml", "step_id: s01\n")
 
 
 def test_shape_diagnostics_are_stable_codes() -> None:

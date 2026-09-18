@@ -22,7 +22,7 @@ def test_board_card_metadata_valid_step():
         sync_generation=1,
         epic_id="T-HUB-022",
         step_id="s06",
-        decompose_rel="memory-bank/back/plan/decompose-T-HUB-022",
+        decompose_rel="memory-bank/back/plan/T-HUB-022/yaml/decompose-index.yaml",
         phase="BACK IMPLEMENT",
     )
     assert meta.card_kind == "step"

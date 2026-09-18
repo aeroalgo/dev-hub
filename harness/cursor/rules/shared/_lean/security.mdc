@@ -7,9 +7,9 @@ alwaysApply: false
 **Канон путей:** @.cursor/rules/shared/workflow-security-epic.mdc
 
 **Артефакты:**
-- **PLAN:** `security/plan/plan-<id>.md` (§0.0 unlimited)
-- **DECOMPOSE:** `security/plan/decompose-<id>/` (`index.md` + `aNN-*.md`)
-- **Эпик execute:** `security/implement/implement-<id>/aNN-*.md`
+- **PLAN:** `security/plan/<id>/md/plan.md` (§0.0 unlimited)
+- **DECOMPOSE:** `security/plan/<id>/yaml/` (`decompose-index.yaml` + `steps/aNN-*.yaml`)
+- **Эпик execute:** `security/implement/<id>/aNN-*.yaml`
 - **Без эпика (S):** `security/security-audit-YYYYMMDD-<slug>.md`
 
 ## Gates (все submodes)
@@ -38,6 +38,6 @@ alwaysApply: false
 ## Abort
 
 - Полный project audit в одном SECURITY без PLAN при M/L → FAIL → SECURITY PLAN
-- Session/`security-audit-*` в корне при активном `decompose-<id>/` → FAIL
+- Session/`security-audit-*` в корне при активном epic YAML tree → FAIL
 - `aNN` без `audit_surface` / без Audit skills → incomplete
 - Правка кода в SECURITY → stop; split to BUGFIX/IMPLEMENT (или GAP для INTEG)

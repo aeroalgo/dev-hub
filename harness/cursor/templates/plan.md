@@ -13,7 +13,7 @@
 - deps: T-xxx / gap ref
 - refs: …
 
-→ [decompose-…/index.md](decompose-…/index.md)
+→ `plan/<plan_id>/yaml/decompose-index.yaml` (после DECOMPOSE)
 
 ## Delivery closure
 

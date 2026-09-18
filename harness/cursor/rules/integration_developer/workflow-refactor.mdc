@@ -11,7 +11,7 @@ alwaysApply: false
 **Процесс**:
 1. `OK INTEG REFACTOR`
 1a. Gates + workflow-refactor-epic (path rule)
-1b. Epic? → `integration/refactor/implement/implement-<id>/rNN-*.md`; иначе → `integration/refactor/session-*.md`
+1b. Epic? → `integration/refactor/implement/<id>/rNN-*.yaml`; иначе → `integration/refactor/session-*.md`
 2. Типовые цели: dedupe filters, shared buildApiUrl, typed api
 3. Tests green before/after
 4. FINISH artifact по path rule

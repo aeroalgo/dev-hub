@@ -13,7 +13,7 @@
 
 | Канон | Путь |
 |-------|------|
-| Где стоим / next | `memory-bank/activeContext.md` + decompose `index.md` |
+| Где стоим / next | `memory-bank/activeContext.md` + decompose `yaml/decompose-index.yaml` |
 | Очередь эпиков | `roadmap/queue.yaml` (yaml-only SoT) |
 | Переходы | `activeContext.md` + `context_loop.py`/`epic` gates |
 | Gate DONE | `epic.epic_complete_allowed` (QA pass) |

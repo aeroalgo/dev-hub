@@ -256,14 +256,6 @@ def detect_shard_kind(path: Path) -> str | None:
         return "refactor"
     if "/security/implement/" in norm and name.startswith("a"):
         return "security"
-    if "/decompose-" in norm and "/plan/" in norm and (
-        name.startswith("s") or name.startswith("e")
-    ):
-        return "decompose"
-    if "/implement/implement-" in norm and (
-        name.startswith("s") or name.startswith("e")
-    ):
-        return "implement"
     if path.suffix.lower() in {".yaml", ".yml"}:
         try:
             data = load_yaml_file(path)

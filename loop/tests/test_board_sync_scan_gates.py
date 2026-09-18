@@ -17,13 +17,22 @@ def _project(tmp_path: Path, epic: str = "T-DEMO") -> tuple[Path, WorkspaceRef]:
 def _index(project: Path, epic: str, statuses: list[str]) -> Path:
     path = project / f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
+    steps_dir = path.parent / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    for i in range(1, len(statuses) + 1):
+        (steps_dir / f"s{i:02d}.yaml").write_text(
+            "schema: epic-decompose/v1\n"
+            f"step_id: s{i:02d}\n"
+            "needs_creative: 'no'\n",
+            encoding="utf-8",
+        )
     path.write_text(
         yaml.safe_dump(
             {
                 "schema": "epic-decompose-index/v1",
                 "plan_id": epic,
                 "steps": [
-                    {"id": f"s{i:02d}", "title": "step", "status": status}
+                    {"id": f"s{i:02d}", "file": f"s{i:02d}.yaml", "title": "step", "status": status}
                     for i, status in enumerate(statuses, 1)
                 ],
             }
@@ -41,7 +50,7 @@ def _queue(project: Path, epic: str) -> None:
                 "version": "roadmap-queue/v2",
                 "role": "back",
                 "roadmap": "memory-bank/back/roadmap/queue.yaml",
-                "queue": [{"id": epic, "plan": f"plan-{epic}.md", "deps": []}],
+                "queue": [{"id": epic, "plan": f"{epic}/md/plan.md", "deps": []}],
             }
         ),
         encoding="utf-8",

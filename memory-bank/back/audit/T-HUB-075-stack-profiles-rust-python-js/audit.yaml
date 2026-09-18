@@ -177,7 +177,7 @@ plan_vs_runtime:
     status: satisfied
     evidence: "Typed workflow pack resolver verified present and intact."
     remaining_work: ""
-  - source_ref: "layout:md/decompose-index.md"
+  - source_ref: "layout:yaml/decompose-index.yaml"
     status: satisfied
     evidence: "Decompose index markdown documentation verified present in plan directory."
     remaining_work: ""
@@ -239,7 +239,7 @@ architecture_parity:
     status: present
     follow_up: ""
     evidence: "Typed workflow pack resolver reading dev-hub.project.yaml without legacy dual-path."
-  - layout_path: md/decompose-index.md
+  - layout_path: yaml/decompose-index.yaml
     status: present
     follow_up: ""
     evidence: "Decompose index markdown file present."

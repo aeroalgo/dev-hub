@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-061-boundary-cli-doctor-hygiene
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 role: back
 date: '2026-09-04'
 steps:

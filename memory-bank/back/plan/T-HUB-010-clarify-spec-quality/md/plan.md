@@ -1,18 +1,18 @@
 # [T-HUB-010 | clarify-spec-quality] PLAN
 
-**Дата:** 2026-08-23  
-**Режим:** BACK PLAN  
-**Уровень:** L3  
-**Статус:** active  
-**Roadmap:** [roadmap-speckit-workflow-boost-epics.md](roadmap-speckit-workflow-boost-epics.md)  
-**Research / refs:**  
-- `spec-kit/templates/commands/clarify.md`  
-- `spec-kit/templates/spec-template.md`  
-- `spec-kit/templates/checklist-template.md`  
-- текущие: `.cursor/templates/plan.md`, `.cursor/templates/integration-plan.md`, `workflow-*-plan.mdc`, `mainrule.mdc`  
-**Skills:** writing-plans · brainstorming  
+**Дата:** 2026-08-23
+**Режим:** BACK PLAN
+**Уровень:** L3
+**Статус:** active
+**Roadmap:** [roadmap-speckit-workflow-boost-epics.md](roadmap-speckit-workflow-boost-epics.md)
+**Research / refs:**
+- `spec-kit/templates/commands/clarify.md`
+- `spec-kit/templates/spec-template.md`
+- `spec-kit/templates/checklist-template.md`
+- текущие: `.cursor/templates/plan.md`, `.cursor/templates/integration-plan.md`, `workflow-*-plan.mdc`, `mainrule.mdc`
+**Skills:** writing-plans · brainstorming
 
-→ [T-HUB-010-clarify-spec-quality/md/decompose-index.md](T-HUB-010-clarify-spec-quality/md/decompose-index.md) — **DECOMPOSE ✓** (единственный трекер выполнения; 7 шагов s01–s07)  
+→ [T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml](T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml) — **DECOMPOSE ✓** (единственный трекер выполнения; 7 шагов s01–s07)
 → [T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml](T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml) — machine index (SoT status)
 
 ---
@@ -81,26 +81,26 @@
 
 ### AC+
 
-1. `rg -n 'CLARIFY' .cursor/rules/mainrule.mdc .cursor/rules/back_developer/mainrule.mdc` → есть команда в таблицах  
-2. Файлы существуют: `workflow-clarify.mdc` (BACK) + FRONT/INTEG (shared или собственные) + `_lean/clarify.mdc` × ролей  
-3. `.cursor/templates/clarify.md` + обновлённый `plan.md` содержат Independent Test + `[НУЖНО УТОЧНИТЬ` + WHAT/HOW  
-4. `.claude/commands/back-clarify.md` существует и делегирует role-command  
-5. Dry-run чеклист в plan/QA эпика: «симулированный» clarify Completion Report структура описана в workflow Done When  
-6. `memory-bank-paths.mdc` содержит clarify path  
-7. Refs-doc перечисляет FORBIDDEN specify-cli  
+1. `rg -n 'CLARIFY' .cursor/rules/mainrule.mdc .cursor/rules/back_developer/mainrule.mdc` → есть команда в таблицах
+2. Файлы существуют: `workflow-clarify.mdc` (BACK) + FRONT/INTEG (shared или собственные) + `_lean/clarify.mdc` × ролей
+3. `.cursor/templates/clarify.md` + обновлённый `plan.md` содержат Independent Test + `[НУЖНО УТОЧНИТЬ` + WHAT/HOW
+4. `.claude/commands/back-clarify.md` существует и делегирует role-command
+5. Dry-run чеклист в plan/QA эпика: «симулированный» clarify Completion Report структура описана в workflow Done When
+6. `memory-bank-paths.mdc` содержит clarify path
+7. Refs-doc перечисляет FORBIDDEN specify-cli
 
 ### AC−
 
-1. Не устанавливать `specify-cli` / не создавать `.specify/` в product  
-2. Не заменять `memory-bank/` на `specs/###-feature/`  
-3. Не добавлять `/speckit.*` slash как канон (только наши `* CLARIFY`)  
-4. Не внедрять ANALYZE/AUDIT converge в этом эпике  
-5. Не писать полный clone `clarify.md` 291 строк — **адаптация** под наши paths/Handoff/RU  
+1. Не устанавливать `specify-cli` / не создавать `.specify/` в product
+2. Не заменять `memory-bank/` на `specs/###-feature/`
+3. Не добавлять `/speckit.*` slash как канон (только наши `* CLARIFY`)
+4. Не внедрять ANALYZE/AUDIT converge в этом эпике
+5. Не писать полный clone `clarify.md` 291 строк — **адаптация** под наши paths/Handoff/RU
 
 ### AC− (brownfield / fail-closed)
 
-1. Старые plan без WHAT-секции остаются валидны (шаблон влияет на **новые** PLAN); нет fail на legacy plans  
-2. Нет soft-default «угал» auth/stack при пустом prompt  
+1. Старые plan без WHAT-секции остаются валидны (шаблон влияет на **новые** PLAN); нет fail на legacy plans
+2. Нет soft-default «угал» auth/stack при пустом prompt
 
 ---
 
@@ -147,7 +147,7 @@ PLAN templates enforce:
   FR-### / SC-### / Independent Test
 ```
 
-Паттерны из Spec Kit **сохранить:** sequential Q, Recommended option, incremental write, coverage taxonomy, checklist re-validate.  
+Паттерны из Spec Kit **сохранить:** sequential Q, Recommended option, incremental write, coverage taxonomy, checklist re-validate.
 **Отбросить:** FEATURE_DIR/specs branch auto-create, `{SCRIPT}` check-prerequisites, extension hooks YAML, `__SPECKIT_COMMAND_*` placeholders.
 
 ---
@@ -178,8 +178,8 @@ PLAN templates enforce:
 
 ## Тест-стратегия
 
-- Нет обязательного pytest (docs/rules).  
-- QA эпика: checklist AC+ через `rg` + ручной dry-run сценарий «3 ambiguity → clarify → plan без CRITICAL markers».  
+- Нет обязательного pytest (docs/rules).
+- QA эпика: checklist AC+ через `rg` + ручной dry-run сценарий «3 ambiguity → clarify → plan без CRITICAL markers».
 - При изменении role-command — убедиться slash/chat parity.
 
 ---
@@ -199,7 +199,7 @@ PLAN templates enforce:
 
 Нарезка завершена. Единственный трекер выполнения и machine status SoT:
 
-- [index.md](T-HUB-010-clarify-spec-quality/md/decompose-index.md)
+- [index.md](T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml)
 - [index.yaml](T-HUB-010-clarify-spec-quality/yaml/decompose-index.yaml)
 
 Последовательность: s01 → s02 → s03 → s04 → s05 → s06 (QA) → s07 (FINISH).
@@ -209,4 +209,4 @@ PLAN templates enforce:
 ## Следующий режим
 
 → `BACK IMPLEMENT` T-HUB-010, начиная с s01 по `index.yaml`.
-CREATIVE: нет  
+CREATIVE: нет

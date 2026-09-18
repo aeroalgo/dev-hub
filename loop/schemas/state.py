@@ -7,12 +7,11 @@ from pydantic import BaseModel, Field
 
 
 class DriftCounters(BaseModel):
-    """Drift and fallback counters tracking legacy repair executions."""
+    """Runtime drift counters exposed in the state projection."""
 
     model_config = {"extra": "allow"}
 
     handoff_projected: int = 0
-    index_mirror_repair: int = 0
     fingerprint_stall_repair: int = 0
     gate_verdict_regex_fallback: int = 0
     schema_invalid: int = 0

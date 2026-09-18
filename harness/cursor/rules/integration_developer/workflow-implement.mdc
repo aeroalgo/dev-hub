@@ -45,8 +45,8 @@ alwaysApply: false
 1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · **Scope lock** · Hot path
 1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
 1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT**.
-2. `load_now` → work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`
-   **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`.
+2. `load_now` → work shard `plan/<epic>/yaml/steps/eNN-*.yaml` + `plan/<epic>/yaml/decompose-index.yaml`
+   **AC = eNN (§Contract).** **FORBIDDEN** полный `plan/<epic_id>/md/plan.md` / back|front plan в `load_now`.
 3. **Contract gate:** §Contract из шага — пуст → допиши до кода
 3a. **Skills gate:** `skills.impl` в текущем eNN — обязательный список Read если code.
 

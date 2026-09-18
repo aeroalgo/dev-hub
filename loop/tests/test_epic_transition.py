@@ -191,16 +191,16 @@ def test_arm_phase_unknown_falls_back_to_arm_epic(tmp_path):
 # promote_if_ready
 # ---------------------------------------------------------------------------
 def _seed_decompose_index(tmp_path: Path, epic: str, *, analyze_yaml: str | None = None) -> str:
-    decomp = f"memory-bank/back/plan/decompose-{epic}"
-    (tmp_path / decomp).mkdir(parents=True, exist_ok=True)
-    (tmp_path / f"{decomp}/index.yaml").write_text(
+    decomp = f"memory-bank/back/plan/{epic}/yaml"
+    (tmp_path / f"{decomp}/steps").mkdir(parents=True, exist_ok=True)
+    (tmp_path / f"{decomp}/decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         f"plan_id: {epic}\n"
         "steps:\n"
         "- id: s01\n  file: s01-step.yaml\n  status: pending\n  next_phase: BACK IMPLEMENT\n",
         encoding="utf-8",
     )
-    (tmp_path / f"{decomp}/s01-step.yaml").write_text(
+    (tmp_path / f"{decomp}/steps/s01-step.yaml").write_text(
         "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
         encoding="utf-8",
     )
@@ -219,7 +219,7 @@ def test_promote_if_ready_analyze_gate_required(tmp_path, monkeypatch):
     decomp = _seed_decompose_index(tmp_path, epic)
     st = {
         "armed_epic": epic,
-        "armed_decompose": f"{decomp}/index.yaml",
+        "armed_decompose": f"{decomp}/decompose-index.yaml",
         "armed_step": "DECOMPOSE",
         "role": "BACK",
         "last_verify_verdict": "PASS",
@@ -256,7 +256,7 @@ def test_promote_if_ready_decompose_without_verify_stays(tmp_path):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "DECOMPOSE",
             "role": "BACK",
             "last_verify_verdict": "FAIL",
@@ -280,7 +280,7 @@ def test_arm_phase_analyze_rejects_missing_decompose_verify(tmp_path):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "DECOMPOSE",
             "phase": "DECOMPOSE",
             "role": "BACK",
@@ -293,7 +293,7 @@ def test_arm_phase_analyze_rejects_missing_decompose_verify(tmp_path):
         epic,
         "ANALYZE",
         "back",
-        decompose_rel=f"{decomp}/index.yaml",
+        decompose_rel=f"{decomp}/decompose-index.yaml",
     )
 
     assert res["ok"] is False
@@ -422,7 +422,7 @@ def test_implement_runtime_diagnostic_does_not_block_next_shard(
             "active": True,
             "status": "running",
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "s05",
             "last_finished_step": "s05",
             "last_finished_epic": epic,
@@ -437,7 +437,7 @@ def test_implement_runtime_diagnostic_does_not_block_next_shard(
         epic,
         "IMPLEMENT",
         "back",
-        decompose_rel=f"{decomp}/index.yaml",
+        decompose_rel=f"{decomp}/decompose-index.yaml",
     )
 
     assert result["ok"] is True, result
@@ -456,7 +456,7 @@ def test_rebuild_demotes_analyze_without_decompose_verify(tmp_path):
             "active": True,
             "status": "running",
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "phase": "ANALYZE",
             "role": "BACK",
@@ -488,7 +488,7 @@ def test_promote_analyze_with_decompose_runtime_failure_does_not_reach_implement
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "last_finished_step": "DECOMPOSE",
             "gate_diagnostic": "verify_runtime_collaboration_wait_timeout",
@@ -514,7 +514,7 @@ def test_arm_implement_with_decompose_runtime_failure_is_fail_closed(tmp_path):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "last_finished_step": "DECOMPOSE",
             "gate_diagnostic": "verify_runtime_error",
@@ -528,7 +528,7 @@ def test_arm_implement_with_decompose_runtime_failure_is_fail_closed(tmp_path):
         epic,
         "IMPLEMENT",
         "back",
-        decompose_rel=f"{decomp}/index.yaml",
+        decompose_rel=f"{decomp}/decompose-index.yaml",
     )
     assert result["ok"] is False
     assert result["diagnostic_code"] == "verify-decompose_pass_missing"
@@ -548,7 +548,7 @@ def test_promote_if_ready_no_gate_goes_implement(tmp_path, monkeypatch):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "DECOMPOSE",
             "role": "BACK",
             "last_verify_verdict": "PASS",
@@ -581,7 +581,7 @@ def test_promote_if_ready_implement_done_goes_audit(tmp_path):
         epic,
         analyze_yaml="schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
     )
-    idx = tmp_path / decomp / "index.yaml"
+    idx = tmp_path / decomp / "decompose-index.yaml"
     idx.write_text(
         idx.read_text(encoding="utf-8").replace("status: pending", "status: completed"),
         encoding="utf-8",
@@ -590,7 +590,7 @@ def test_promote_if_ready_implement_done_goes_audit(tmp_path):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "s01",
             "role": "BACK",
         },
@@ -637,7 +637,7 @@ def test_promote_if_ready_analyze_finish_goes_implement(tmp_path):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "role": "BACK",
             "last_finished_step": "ANALYZE",
@@ -782,9 +782,22 @@ def test_promote_if_ready_front_analyze_gate(tmp_path, monkeypatch):
     from loop.epic_transition import promote_if_ready  # noqa: PLC0415
 
     monkeypatch.setattr("epic.core.load_epic_state", lambda cwd: {"armed_step": "DECOMPOSE", "armed_epic": "T-FRONT-002", "role": "front"})
-    monkeypatch.setattr("roadmap_queue.find_decompose_index", lambda cwd, role, eid: tmp_path / "index.yaml")
-    (tmp_path / "index.yaml").write_text("schema: epic-decompose-index/v1\nsteps: []\n", encoding="utf-8")
-    monkeypatch.setattr("roadmap_queue.load_steps_for_index", lambda cwd, idx_p: {"ok": True, "steps": [{"step_id": "s01", "status": "pending"}]})
+    index_path = tmp_path / "memory-bank/front/plan/T-FRONT-002/yaml/decompose-index.yaml"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr("roadmap_queue.find_decompose_index", lambda cwd, role, eid: index_path)
+    index_path.write_text("schema: epic-decompose-index/v1\nplan_id: T-FRONT-002\nsteps: []\n", encoding="utf-8")
+    (index_path.parent / "steps").mkdir(parents=True, exist_ok=True)
+    (index_path.parent / "steps" / "s01.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "roadmap_queue.load_steps_for_index",
+        lambda cwd, idx_p: {
+            "ok": True,
+            "steps": [{"step_id": "s01", "file": "s01.yaml", "status": "pending"}],
+        },
+    )
     monkeypatch.setattr("analyze_gate.analyze_required_before_implement", lambda cwd, role, eid, steps, index_path=None: {"required": True})
     monkeypatch.setattr(
         "loop.decompose_gate.decompose_verify_pass_ready",
@@ -844,7 +857,6 @@ def test_arm_phase_decompose_sets_armed_decompose(tmp_path: Path) -> None:
     assert "workflow-decompose.mdc" in ac
     assert "sNN-<slug>.yaml" in ac
     assert "T-030-demo/yaml/decompose-index.yaml" in ac
-    assert "decompose-T-030-demo/index.yaml" not in ac
 
 
 def test_arm_phase_decompose_short_queue_id_uses_plan_stem(tmp_path: Path) -> None:
@@ -873,7 +885,6 @@ def test_arm_phase_decompose_short_queue_id_uses_plan_stem(tmp_path: Path) -> No
     assert st.get("armed_epic") == "T-HUB-023-hooks-llm-fallbacks"
     ac = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
     assert "T-HUB-023-hooks-llm-fallbacks/yaml/decompose-index.yaml" in ac
-    assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" not in ac
     assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
     assert "NOT short queue id" in ac
 
@@ -1090,7 +1101,8 @@ def test_arm_phase_allows_same_phase_on_different_epic(tmp_path: Path) -> None:
 
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_rel = "memory-bank/back/plan/plan-T-HUB-059-next.md"
+    plan_rel = "memory-bank/back/plan/T-HUB-059-next/md/plan.md"
+    (tmp_path / plan_rel).parent.mkdir(parents=True, exist_ok=True)
     (tmp_path / plan_rel).write_text("# plan\n", encoding="utf-8")
 
     res = arm_phase(
@@ -1130,7 +1142,7 @@ def test_arm_phase_allows_same_phase_on_different_epic_legacy_without_finished_e
             "last_finished_step": "DECOMPOSE",
         },
     )
-    plan_rel = "memory-bank/back/plan/plan-T-HUB-059-next.md"
+    plan_rel = "memory-bank/back/plan/T-HUB-059-next/md/plan.md"
     (tmp_path / plan_rel).parent.mkdir(parents=True, exist_ok=True)
     (tmp_path / plan_rel).write_text("# plan\n", encoding="utf-8")
 

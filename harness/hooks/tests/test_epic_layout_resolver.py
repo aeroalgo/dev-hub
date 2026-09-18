@@ -14,9 +14,7 @@ def test_resolve_plan_yaml_kind_removed():
 
 
 def test_resolve_decompose_index():
-    md_p = resolve("back", "T-HUB-047-test", "decompose_index_md")
     yaml_p = resolve("back", "T-HUB-047-test", "decompose_index_yaml")
-    assert str(md_p).endswith("memory-bank/back/plan/T-HUB-047-test/md/decompose-index.md")
     assert str(yaml_p).endswith("memory-bank/back/plan/T-HUB-047-test/yaml/decompose-index.yaml")
 
 

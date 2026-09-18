@@ -21,7 +21,7 @@ def _task(project_root: Path) -> BoardTask:
         "role": "back",
         "epic_id": "T-DEMO",
         "step_id": "s01",
-        "decompose_rel": "memory-bank/back/plan/decompose-demo/index.yaml",
+        "decompose_rel": "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
         "phase": "IMPLEMENT",
         "sync_generation": 1,
     }
@@ -259,5 +259,4 @@ def test_arm_loop_subcommand_invalid_runtime_rejected(tmp_path: Path, monkeypatc
     monkeypatch.setattr("sys.stderr", open("/dev/null", "w"))
     res = main(["arm-loop", "--task-id", "mb-demo", "--runtime", "unknown_xyz"], client=_client(tmp_path))
     assert res != 0
-
 

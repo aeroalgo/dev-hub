@@ -283,13 +283,8 @@ def _relative(path: Path | None, root: Path) -> str | None:
 
 
 def _load_decompose(path: Path) -> dict:
-    if path.suffix == ".md":
-        from epic_index import parse_steps_from_md
-        try:
-            steps = parse_steps_from_md(path.read_text(encoding="utf-8"))
-            return {"steps": steps}
-        except (OSError, UnicodeError):
-            return {}
+    if path.suffix.lower() in {".md", ".markdown"}:
+        raise ValueError(f"markdown decomposition indexes are unsupported: {path}")
     try:
         payload = yaml.safe_load(path.read_text(encoding="utf-8"))
         return payload if isinstance(payload, dict) else {}

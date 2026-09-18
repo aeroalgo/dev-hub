@@ -39,19 +39,8 @@ def test_render_then_tree_valid(tmp_path: Path):
     target_idx = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-002-render-tree" / "yaml" / "decompose-index.yaml"
     assert target_idx.exists()
 
-    index_md = """# Decompose Index
-## Requirements Coverage
-| Requirement | Step |
-## Stages Coverage
-| Stage | Step |
-## Outcome Map
-| Step | Outcome |
-## Replacement Cleanup
-n/a
-"""
     md_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-002-render-tree" / "md"
     md_dir.mkdir(parents=True, exist_ok=True)
-    (md_dir / "decompose-index.md").write_text(index_md, encoding="utf-8")
     (md_dir / "plan.md").write_text("# plan\n", encoding="utf-8")
 
     cmd = [
@@ -70,7 +59,7 @@ n/a
 
 def test_render_no_overwrite_guard_cli(tmp_path: Path):
     """CLI formula-render respects overwrite guard unless --force flag is set."""
-    target_dir = tmp_path / "decompose-T-TEST-003-guard"
+    target_dir = tmp_path / "formula-T-TEST-003-guard"
     target_dir.mkdir(parents=True, exist_ok=True)
     base_cmd = [
         sys.executable,

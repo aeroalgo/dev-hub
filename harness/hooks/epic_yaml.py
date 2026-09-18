@@ -25,18 +25,6 @@ SCHEMA_EPIC_DECOMPOSE = "epic-decompose/v1"
 
 STEP_S_RE = re.compile(r"(?i)^((?:s)\d{2}-[a-z0-9][a-z0-9-]*)$")
 STEP_E_RE = re.compile(r"(?i)^((?:e)\d{2}-[a-z0-9][a-z0-9-]*)$")
-_EPIC_MD_ARTIFACT = re.compile(
-    r"(?i)(memory-bank/(?:back|front|integration)/(?:"
-    r"implement/implement-[^/]+/(?:[sera]\d{2}-[a-z0-9-]+)|"
-    r"implement/[^/]+/(?:[sera]\d{2}-[a-z0-9-]+)|"
-    r"qa/[^/]+/qa-\d{8}-[a-z0-9-]+|"
-    r"(?:refactor|security)/implement/implement-[^/]+/(?:[ra]\d{2}-[a-z0-9-]+)|"
-    r"plan/decompose-[^/]+/(?:[se]\d{2}-[a-z0-9-]+)|"
-    r"plan/[^/]+/yaml/steps/(?:[se]\d{2}-[a-z0-9-]+)"
-    r"))\.md$"
-)
-
-
 def format_verification_result(item: Any) -> str:
     if isinstance(item, str):
         return item.strip()
@@ -156,7 +144,6 @@ class EpicImplementDoc(BaseModel):
     plan_id: str
     title: str
     status: Literal["in_progress", "completed"]
-    implement_index: str = ""
     date: str
     decompose_ref: str | None = None
     element_ref: str | None = None
@@ -290,22 +277,6 @@ def role_dir(role: str) -> str:
     return r
 
 
-def coerce_epic_artifact_path(
-    cwd: str | Path,
-    artifact: str | None,
-) -> tuple[str | None, str | None]:
-    if not artifact:
-        return artifact, None
-    norm = artifact.replace("\\", "/")
-    for pat in (_EPIC_MD_ARTIFACT,):
-        m = pat.search(norm)
-        if m:
-            yaml_rel = f"{m.group(1)}.yaml"
-            if (Path(cwd) / yaml_rel).is_file():
-                return yaml_rel, f"artifact {artifact!r}→{yaml_rel!r} (epic yaml canonical)"
-    return artifact, None
-
-
 def load_yaml_file(path: Path) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -413,8 +384,8 @@ def seed_implement_from_decompose(
     """Create implement YAML (in_progress, cp=pending) from a decompose shard.
 
     Idempotent: existing file → skipped unless force (and not completed).
-    Filename mirrors decompose basename under implement-<folder-epic-id>/
-    (plan_id is an alias hub if it already has the shard).
+    Filename mirrors the decompose basename under the canonical
+    ``implement/<epic-id>/`` directory.
     """
     from datetime import date as date_cls
 
@@ -438,15 +409,8 @@ def seed_implement_from_decompose(
     )
     if anti_mix is not None:
         return anti_mix
-    found = None
-    impl_dir_rel = ""
-    hub_ids = implement_hub_ids(folder_epic, dec.plan_id)
-    for hub_id in hub_ids:
-        cand_dir = f"memory-bank/{role_dir(dec.role)}/implement/{hub_id}"
-        found = _find_shard_file(cwd, cand_dir, dec.step_id)
-        if found is not None:
-            impl_dir_rel = cand_dir
-            break
+    impl_dir_rel = f"memory-bank/{role_dir(dec.role)}/implement/{folder_epic}"
+    found = _find_shard_file(cwd, impl_dir_rel, dec.step_id)
     if found is None:
         impl_dir_rel = f"memory-bank/{role_dir(dec.role)}/implement/{folder_epic}"
         impl_dir = root / impl_dir_rel
@@ -530,8 +494,6 @@ def seed_implement_from_decompose(
     )
     impl_dir.mkdir(parents=True, exist_ok=True)
     payload = doc.model_dump(mode="python", by_alias=True, exclude_none=True)
-    if not payload.get("implement_index"):
-        payload.pop("implement_index", None)
     out_path.write_text(
         yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
@@ -569,45 +531,21 @@ def _find_shard_file(cwd: str | Path, directory: str, step_id: str) -> Path | No
     return None
 
 
-def implement_hub_ids(epic_id: str, plan_id: str | None = None) -> list[str]:
-    """Decompose-folder epic id first; shard/index plan_id as alias hub."""
-    ids: list[str] = []
-    for value in (epic_id, plan_id):
-        text = str(value or "").strip()
-        if text and text not in ids:
-            ids.append(text)
-    return ids
-
-
 def resolve_implement_path(
     cwd: str | Path,
     role: str,
     epic_id: str,
     step_id: str,
-    *,
-    plan_id: str | None = None,
 ) -> str:
     """Resolve implement yaml in canonical v2 layout."""
     root = Path(cwd)
     role_norm = role_dir(role)
-    hub_ids = implement_hub_ids(epic_id, plan_id)
-    if not plan_id:
-        try:
-            from epic_paths import epic_id_from_plan_path, find_plan_md_path
-
-            plan_path = find_plan_md_path(root, role_norm, epic_id)
-            full_id = epic_id_from_plan_path(plan_path)
-            if full_id and full_id not in hub_ids:
-                hub_ids.append(full_id)
-        except Exception:
-            pass
-    for hub_id in hub_ids:
-        v2_flat = f"memory-bank/{role_norm}/implement/{hub_id}"
-        found = _find_shard_file(cwd, v2_flat, step_id)
-        if found:
-            return str(found.relative_to(root)).replace("\\", "/")
+    v2_flat = f"memory-bank/{role_norm}/implement/{epic_id}"
+    found = _find_shard_file(cwd, v2_flat, step_id)
+    if found:
+        return str(found.relative_to(root)).replace("\\", "/")
     stem = step_id.strip().lower()
-    p = root / f"memory-bank/{role_norm}/implement/{epic_id}" / f"{stem}.yaml"
+    p = root / v2_flat / f"{stem}.yaml"
     return str(p.relative_to(root)).replace("\\", "/")
 
 
@@ -1412,26 +1350,13 @@ def _resolve_decompose_dir(cwd: str | Path, decompose: str | Path | None) -> Pat
     cand = root / raw
     if cand.is_file() and cand.name in ("decompose-index.yaml", "decompose-index.yml"):
         cand = cand.parent.parent if cand.parent.name == "yaml" else cand.parent
-    elif cand.is_file() and cand.name.endswith((".yaml", ".yml")):
-        cand = cand.parent
-    elif cand.is_file() and cand.name == "decompose-index.md":
-        cand = cand.parent.parent if cand.parent.name == "md" else cand.parent
+    elif cand.is_file() and cand.suffix.lower() in {".md", ".markdown"}:
+        return None
     elif cand.is_dir() and cand.name == "yaml" and (cand / "decompose-index.yaml").is_file():
         cand = cand.parent
-    elif not cand.is_dir():
-        for base in (
-            root / "memory-bank" / "back" / "plan",
-            root / "memory-bank" / "front" / "plan",
-            root / "memory-bank" / "integration" / "plan",
-        ):
-            alt = base / raw
-            if alt.is_dir():
-                cand = alt
-                break
     if cand.is_dir():
         return cand
-    fallback = root / raw
-    return fallback if fallback.is_dir() else None
+    return None
 
 
 def _plan_path_for_decompose(root: Path, decompose_dir: Path, plan_id: str | None) -> Path | None:
@@ -1458,23 +1383,13 @@ def _creative_artifact_paths(root: Path, epic_slug: str, role: str) -> list[str]
     return found
 
 
-def _index_has_needs_creative_column(index_md: Path) -> bool:
-    if not index_md.is_file():
-        return False
-    try:
-        text = index_md.read_text(encoding="utf-8")
-    except OSError:
-        return False
-    return "needs_creative" in text
-
-
 def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> dict[str, Any]:
     """Advisory CREATIVE gate: plan ↔ decompose alignment (never fail-closed).
 
     Returns structured verdict + gaps/fixes for the agent to complete before FINISH.
     CLI exit code should stay 0; use payload['ready'] / payload['verdict'].
     """
-    from epic_index import index_md_path, index_yaml_path, load_index_yaml, steps_from_doc
+    from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
 
     root = Path(cwd)
     dec_dir = _resolve_decompose_dir(root, decompose)
@@ -1507,8 +1422,8 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
                 {
                     "id": "CREATIVE-E2",
                     "severity": "high",
-                    "message": f"missing index.yaml: {ypath}",
-                    "fix": "create decompose index.yaml before verify",
+                    "message": f"missing decompose-index.yaml: {ypath}",
+                    "fix": "create validated decompose-index.yaml before verify",
                 }
             ],
             "missing": [],
@@ -1527,8 +1442,8 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
                 {
                     "id": "CREATIVE-E3",
                     "severity": "high",
-                    "message": f"invalid index.yaml: {exc}",
-                    "fix": "repair decompose index.yaml schema",
+                    "message": f"invalid decompose-index.yaml: {exc}",
+                    "fix": "repair decompose-index.yaml schema",
                 }
             ],
             "missing": [],
@@ -1536,7 +1451,7 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
         }
 
     plan_id = str((index_doc or {}).get("plan_id") or "").strip() or None
-    epic_slug = dec_dir.name.removeprefix("decompose-") if dec_dir.name.startswith("decompose-") else dec_dir.name
+    epic_slug = dec_dir.name
     plan_path = _plan_path_for_decompose(root, dec_dir, plan_id)
     plan_info = {"need": "unknown", "cr_ids": [], "section_excerpt": ""}
     if plan_path and plan_path.is_file():
@@ -1585,9 +1500,6 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
     all_no = bool(shard_rows) and all(
         str(r.get("needs_creative") or "no").strip().lower() == "no" for r in shard_rows
     )
-    index_md = index_md_path(ypath)
-    index_has_nc_col = _index_has_needs_creative_column(index_md)
-
     gaps: list[dict[str, str]] = []
     missing: list[str] = []
     need = plan_info["need"]
@@ -1674,15 +1586,6 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
             )
             ready = False
             verdict = "gaps"
-        if not index_has_nc_col and shard_rows:
-            gaps.append(
-                {
-                    "id": "CREATIVE-G4",
-                    "severity": "low",
-                    "message": "index.md queue table missing needs_creative column",
-                    "fix": "add needs_creative column to ## Очередь шагов in index.md",
-                }
-            )
     else:
         verdict = "unknown"
         ready = False
@@ -1700,55 +1603,9 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
             "creative_artifacts": creative_files,
             "closed_shards": closed_shards,
             "open_shards": open_shards,
-            "index_needs_creative_column": index_has_nc_col,
         },
         "plan_excerpt": plan_info.get("section_excerpt") or "",
     }
-
-
-_DECOMPOSE_INDEX_SECTIONS = (
-    "requirements coverage",
-    "stages coverage",
-    "outcome map",
-    "replacement cleanup",
-)
-
-
-def _validate_decompose_index_md(md_path: Path) -> list[str]:
-    """Fail-closed coverage sections required for DECOMPOSE FINISH."""
-    if not md_path.is_file():
-        return [f"missing decompose index.md: {md_path}"]
-    try:
-        text = md_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return [f"cannot read index.md: {exc}"]
-    lower = text.lower()
-    missing = [label for label in _DECOMPOSE_INDEX_SECTIONS if label not in lower]
-    errors: list[str] = []
-    if missing:
-        errors.append(
-            "index.md missing required sections: "
-            + ", ".join(f"## {s.title()}" for s in missing)
-        )
-    # Notes / coverage rows: deferred|partial without follow_up epic ID
-    defer_row = re.compile(
-        r"^\|[^|\n]*\|[^|\n]*\|[^|\n]*\|[^|\n]*"
-        r"(deferred|partial|leave for later|follow[\s-]?up)[^|\n]*\|",
-        re.IGNORECASE | re.MULTILINE,
-    )
-    follow_id = re.compile(
-        r"follow_up:\s*T-[\w-]+|(?<![\w-])T-(?:HUB|FRONT|INTEG)-[\w-]+",
-        re.IGNORECASE,
-    )
-    for m in defer_row.finditer(text):
-        row = m.group(0)
-        if not follow_id.search(row):
-            errors.append(
-                "index.md Requirements Notes: deferred/partial/follow-up without "
-                f"`follow_up: T-…` epic ID: {row.strip()[:160]}"
-            )
-            break
-    return errors
 
 
 def _validate_shard_plan_contract(sid: str, shard_path: Path) -> list[str]:
@@ -1802,12 +1659,7 @@ def _validate_decompose_shard_filename(step_id: str, rel: str) -> str | None:
 
 
 def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> list[str]:
-    """Schema gate for every sNN|eNN in decompose index.yaml (DECOMPOSE FINISH).
-
-    Fail-closed on invented schemas / missing role / as_built not list —
-    missing index.md coverage sections / bare sNN.yaml filenames.
-    Full lint (verify runnable, …) remains validate-step / validate_decompose_full.
-    """
+    """Schema gate for every sNN|eNN in decompose-index.yaml."""
     from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
 
     root = Path(cwd)
@@ -1820,14 +1672,14 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
 
     ypath = index_yaml_path(cand)
     if not ypath.is_file():
-        return [f"missing decompose index.yaml: {ypath}"]
+        return [f"missing decompose-index.yaml: {ypath}"]
 
     try:
         doc = load_index_yaml(ypath)
     except Exception as exc:
-        return [f"invalid index.yaml: {exc}"]
+        return [f"invalid decompose-index.yaml: {exc}"]
     if not isinstance(doc, dict):
-        return ["invalid index.yaml: not a mapping"]
+        return ["invalid decompose-index.yaml: not a mapping"]
 
     from epic_paths import epic_id_from_decompose_path
 
@@ -1835,60 +1687,27 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
     folder_epic = epic_id_from_decompose_path(cand)
     if plan_id and folder_epic and folder_epic != plan_id:
         return [
-            f"decompose folder decompose-{folder_epic} must match plan_id "
-            f"{plan_id!r} (rename to decompose-{plan_id})"
+        f"decompose folder {folder_epic} must match plan_id "
+            f"{plan_id!r} (rename the epic folder to {plan_id})"
         ]
-
-    if folder_epic:
-        plan_dir = ypath.parent.parent.parent if ypath.parent.name == "yaml" else ypath.parent.parent
-        slug_matches = sorted(
-            (
-                p.stem[len("plan-") :]
-                for p in plan_dir.glob(f"plan-{folder_epic}*.md")
-                if p.stem.startswith("plan-")
-            ),
-            key=len,
-            reverse=True,
-        )
-        if (
-            slug_matches
-            and slug_matches[0] != folder_epic
-            and slug_matches[0].startswith(folder_epic + "-")
-        ):
-            return [
-                f"decompose folder uses short queue id {folder_epic!r}; "
-                f"expected decompose-{slug_matches[0]} "
-                f"(plan stem {slug_matches[0]!r})"
-            ]
 
     steps = steps_from_doc(doc)
     if not steps:
-        return ["index.yaml has no steps"]
+        return ["decompose-index.yaml has no steps"]
 
-    from epic_index import index_md_path
-    md_path = index_md_path(ypath)
-    if not md_path.is_file():
-        source_md = str(doc.get("source_md") or "index.md").strip() or "index.md"
-        cand_md = ypath.parent / source_md
-        if cand_md.is_file():
-            md_path = cand_md
-    errors: list[str] = list(_validate_decompose_index_md(md_path))
+    errors: list[str] = []
 
     steps_dir = ypath.parent / "steps"
     for step in steps:
         rel = (step.get("file") or "").strip()
         sid = (step.get("id") or "").strip()
         if not rel:
-            errors.append(f"{sid or '?'}: missing file in index.yaml")
+            errors.append(f"{sid or '?'}: missing file in decompose-index.yaml")
             continue
         slug_err = _validate_decompose_shard_filename(sid, rel)
         if slug_err:
             errors.append(slug_err)
-        shard = steps_dir / Path(rel).name if steps_dir.is_dir() else ypath.parent / Path(rel).name
-        if not shard.is_file():
-            shard = ypath.parent / Path(rel).name
-        if not shard.is_file():
-            shard = ypath.parent / rel
+        shard = steps_dir / Path(rel).name
         if not shard.is_file():
             errors.append(f"{sid}: missing shard file {rel}")
             continue
@@ -1922,10 +1741,6 @@ def validate_shard_yaml_full(
     if kind:
         return validate_epic_shard(path, finish=finish, expected_verdict=expected_verdict), []
     norm = str(path).replace("\\", "/")
-    if "/implement/implement-" in norm:
-        return validate_implement_yaml(path, finish=finish), []
-    if "/decompose-" in norm and "/plan/" in norm:
-        return validate_decompose_full(path)
     name = path.name.lower()
     if name.startswith("e") or name.startswith("s"):
         if path.suffix.lower() in {".yaml", ".yml"}:
@@ -2084,8 +1899,6 @@ def format_spec_lines(*, role: str) -> list[str]:
 
 def write_implement_doc(path: Path, doc: EpicImplementDoc) -> None:
     payload = doc.model_dump(mode="python", by_alias=True, exclude_none=True)
-    if not payload.get("implement_index"):
-        payload.pop("implement_index", None)
     path.write_text(
         yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
         encoding="utf-8",

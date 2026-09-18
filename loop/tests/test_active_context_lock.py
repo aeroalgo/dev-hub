@@ -105,7 +105,7 @@ def test_finish_plan_leaves_cursor_when_loop_owns_other_epic(
     from loop.mb_finish.impl import finish_plan
     from loop.mb_finish.schemas import MbFinishRequest
 
-    plan = tmp_path / "memory-bank" / "back" / "plan" / "plan-T-HUB-061.md"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-061/md/plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# Plan T-HUB-061\n", encoding="utf-8")
     original = (
@@ -129,7 +129,7 @@ def test_finish_plan_leaves_cursor_when_loop_owns_other_epic(
         {
             "armed_epic": "T-HUB-061",
             "armed_role": "BACK",
-            "armed_plan": "memory-bank/back/plan/plan-T-HUB-061.md",
+            "armed_plan": "memory-bank/back/plan/T-HUB-061/md/plan.md",
         },
     )
 
@@ -164,7 +164,7 @@ def test_prepare_halts_on_ac_armed_epic_split(tmp_path: Path) -> None:
         "step_id: PLAN\n"
         "---\n\n"
         "## load_now\n"
-        "1. [back/plan/T-HUB-061.md](back/plan/T-HUB-061.md) — plan.\n\n"
+            "1. [plan.md](back/plan/T-HUB-061/md/plan.md) — plan.\n\n"
         "## Handoff BACK PLAN — T-HUB-061\n"
         "- **Дальше:** PLAN\n",
         encoding="utf-8",
@@ -180,6 +180,9 @@ def test_prepare_halts_on_ac_armed_epic_split(tmp_path: Path) -> None:
             "status": "armed",
         },
     )
+    plan = tmp_path / "memory-bank/back/plan/T-HUB-061/md/plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# T-HUB-061\n", encoding="utf-8")
     out = prepare_session(tmp_path, model="test-model")
     assert out["ok"] is False
     assert out.get("halt") is True
@@ -192,13 +195,13 @@ def test_filter_step_dirty_drops_foreign_memory_bank() -> None:
     kept = filter_step_dirty(
         [
             "memory-bank/back/plan/T-HUB-061/md/plan.md",
-            "memory-bank/back/implement/implement-T-HUB-049/s07-pytest.yaml",
+            "memory-bank/back/implement/T-HUB-049/s07-pytest.yaml",
             "loop/context_loop.py",
         ],
         step_id="s07",
         epic_id="T-HUB-049",
     )
-    assert kept == ["memory-bank/back/implement/implement-T-HUB-049/s07-pytest.yaml"]
+    assert kept == ["memory-bank/back/implement/T-HUB-049/s07-pytest.yaml"]
 
 
 def test_checkpoint_trace_skipped_for_qa_phase(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -284,7 +287,9 @@ def test_arm_pre_implement_blocked_when_loop_owns_cursor(
     from loop.epic_transition import arm_phase
 
     (tmp_path / "memory-bank" / "back" / "plan").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "memory-bank" / "back" / "plan" / "plan-T-HUB-061.md").write_text(
+    plan_path = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-061/md/plan.md"
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_text(
         "# plan\n", encoding="utf-8"
     )
     res = arm_phase(
@@ -292,7 +297,7 @@ def test_arm_pre_implement_blocked_when_loop_owns_cursor(
         "T-HUB-061",
         "PLAN",
         "back",
-        target_rel="memory-bank/back/plan/plan-T-HUB-061.md",
+        target_rel="memory-bank/back/plan/T-HUB-061/md/plan.md",
     )
     assert res.get("ok") is False
     assert res.get("diagnostic_code") == "runner_owns_active_context"
@@ -311,7 +316,7 @@ def test_finish_plan_same_epic_does_not_enqueue(
     from loop.mb_finish.impl import finish_plan
     from loop.mb_finish.schemas import MbFinishRequest
 
-    plan = tmp_path / "memory-bank" / "back" / "plan" / "plan-T-HUB-061.md"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-061/md/plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# Plan T-HUB-061\n", encoding="utf-8")
     original = (
@@ -335,7 +340,7 @@ def test_finish_plan_same_epic_does_not_enqueue(
         {
             "armed_epic": "T-HUB-061",
             "armed_role": "BACK",
-            "armed_plan": "memory-bank/back/plan/plan-T-HUB-061.md",
+            "armed_plan": "memory-bank/back/plan/T-HUB-061/md/plan.md",
         },
     )
     res = finish_plan(

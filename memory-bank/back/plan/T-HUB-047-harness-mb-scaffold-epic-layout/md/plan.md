@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · modern-python
 
-→ [T-HUB-047-harness-mb-scaffold-epic-layout/md/decompose-index.md](T-HUB-047-harness-mb-scaffold-epic-layout/md/decompose-index.md) — **после DECOMPOSE** (новый layout: `plan/<epic_id>/…`)
+→ [T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml](T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml) — **после DECOMPOSE** (новый layout: `plan/<epic_id>/…`)
 
 ---
 
@@ -75,7 +75,7 @@ DECOMPOSE → purge-step: удалить прямые строки `plan/plan-*.
 
 - **Given:** `plan/<epic_id>/yaml/plan.yaml` с 5 `outline_steps`, PLAN FINISH done
 - **When:** `epic_resolve.py mb-scaffold decompose --epic-id <id> --cwd $PROJECT_ROOT`
-- **Then:** `plan/<epic_id>/yaml/steps/s01..s05.yaml` exist, `delta: []`, `md/decompose-index.md` coverage rows with empty sNN column; JSON `ok:true`
+- **Then:** `plan/<epic_id>/yaml/steps/s01..s05.yaml` exist, `delta: []`, `yaml/decompose-index.yaml` coverage rows with empty sNN column; JSON `ok:true`
 
 #### Acceptance Scenarios — US-008
 
@@ -166,7 +166,7 @@ DECOMPOSE → purge-step: удалить прямые строки `plan/plan-*.
 memory-bank/{role}/plan/{epic_id}/
   md/
     plan.md                    # WHAT/HOW prose (plan-artifact bar)
-    decompose-index.md         # coverage tables (prose)
+    yaml/decompose-index.yaml         # coverage tables (prose)
   yaml/
     plan.yaml                  # epic-plan/v1
     decompose-index.yaml       # epic-decompose-index/v1

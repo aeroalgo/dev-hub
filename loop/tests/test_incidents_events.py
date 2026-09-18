@@ -21,14 +21,15 @@ from loop.incidents.events import (
 @pytest.fixture
 def setup_epic_dir(tmp_path: Path):
     mb = tmp_path / "memory-bank"
-    decomp_dir = mb / "back" / "plan" / "decompose-T-TEST-001"
+    decomp_dir = mb / "back" / "plan" / "T-TEST-001" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    index_yaml = decomp_dir / "index.yaml"
+    index_yaml = decomp_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose/v1\nplan_id: T-TEST-001\nsteps:\n  - id: s01\n    title: step 1\n    status: in_progress\n",
         encoding="utf-8"
     )
-    decomp_shard = decomp_dir / "s01.yaml"
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    decomp_shard = decomp_dir / "steps" / "s01.yaml"
     decomp_shard.write_text(
         "schema: epic-decompose/v1\nplan_id: T-TEST-001\nstep_id: s01\n",
         encoding="utf-8"
@@ -36,7 +37,7 @@ def setup_epic_dir(tmp_path: Path):
     ac = mb / "activeContext.md"
     ac.write_text(
         "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\nepic_id: T-TEST-001\nstep_id: s01\n---\n\n"
-        "## load_now\n1. [s01.yaml](back/plan/decompose-T-TEST-001/s01.yaml)\n\n## Handoff BACK IMPLEMENT — s01\n- step: s01\n",
+        "## load_now\n1. [s01.yaml](back/plan/T-TEST-001/yaml/steps/s01.yaml)\n\n## Handoff BACK IMPLEMENT — s01\n- step: s01\n",
         encoding="utf-8"
     )
     return tmp_path

@@ -63,6 +63,10 @@ def test_stop_gate_no_fingerprint(tmp_path: Path, monkeypatch):
         "## Handoff BACK IMPLEMENT — in progress\n- status: in_progress\n"
     )
     _write_file(tmp_path / "memory-bank" / "activeContext.md", ac_content)
+    _write_file(
+        tmp_path / "loop" / "schemas" / "phase_registry.yaml",
+        (ROOT / "loop" / "schemas" / "phase_registry.yaml").read_text(encoding="utf-8"),
+    )
 
     state = default_state()
     state.update(
@@ -107,14 +111,14 @@ def test_stop_gate_no_fingerprint(tmp_path: Path, monkeypatch):
 def test_finish_writes_fingerprint(tmp_path: Path):
     """cp3: finish_implement_step happy path after s02: fingerprint is written to epic state."""
     ac_content = (
-        "## load_now\n- [s02](memory-bank/back/plan/decompose-test/yaml/steps/s02.yaml) — s02\n\n"
+        "## load_now\n- [s02](memory-bank/back/plan/T-TEST-001/yaml/steps/s02.yaml) — s02\n\n"
         "## Handoff BACK IMPLEMENT — in progress\n- status: in_progress\n"
     )
     _write_file(tmp_path / "memory-bank" / "activeContext.md", ac_content)
 
     idx_content = (
         "schema: epic-decompose-index/v1\n"
-        "plan_id: decompose-test\n"
+        "plan_id: T-TEST-001\n"
         "role: back\n"
         "next_phase: BACK IMPLEMENT\n"
         "steps:\n"
@@ -125,16 +129,16 @@ def test_finish_writes_fingerprint(tmp_path: Path):
         "  status: active\n"
     )
     _write_file(
-        tmp_path / "memory-bank" / "back" / "plan" / "decompose-test" / "yaml" / "decompose-index.yaml",
+        tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml" / "decompose-index.yaml",
         idx_content,
     )
     _write_file(
-        tmp_path / "memory-bank" / "back" / "plan" / "decompose-test" / "yaml" / "steps" / "s02.yaml",
+        tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml" / "steps" / "s02.yaml",
         "schema: epic-decompose/v1\nstep_id: s02\n",
     )
     _write_file(
-        tmp_path / "memory-bank" / "back" / "implement" / "decompose-test" / "s02.yaml",
-        "schema: epic-implement/v1\nstep_id: s02\nplan_id: decompose-test\ntitle: s02\ndate: '2026-09-01'\nstatus: in_progress\ndone:\n- s02 done\nfiles:\n- file.py\nintegration_check:\n- ok\ntests:\n- '`timeout 300s .venv/bin/pytest test.py`'\ncheckpoints:\n- id: cp1\n  criterion: cp1 done\n  status: done\n",
+        tmp_path / "memory-bank" / "back" / "implement" / "T-TEST-001" / "s02.yaml",
+        "schema: epic-implement/v1\nstep_id: s02\nplan_id: T-TEST-001\ntitle: s02\ndate: '2026-09-01'\nstatus: in_progress\ndone:\n- s02 done\nfiles:\n- file.py\nintegration_check:\n- ok\ntests:\n- '`timeout 300s .venv/bin/pytest test.py`'\ncheckpoints:\n- id: cp1\n  criterion: cp1 done\n  status: done\n",
     )
 
     state = default_state()
@@ -148,7 +152,7 @@ def test_finish_writes_fingerprint(tmp_path: Path):
             "verify_done": True,
             "verify_verdict": "PASS",
             "armed_step": "s02",
-            "armed_decompose": "memory-bank/back/plan/decompose-test/yaml/decompose-index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml",
         }
     )
     save_epic_state(tmp_path, state)

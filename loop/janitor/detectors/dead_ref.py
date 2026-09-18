@@ -22,15 +22,9 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
     if not mb.is_dir():
         return findings
 
-    # Check both v2 (yaml/steps/*.yaml) and legacy v1 (decompose-*/*sNN*.yaml)
-    shard_files = list(mb.glob("**/yaml/steps/*s[0-9][0-9]*.yaml")) + list(
-        mb.glob("**/decompose-*/*s[0-9][0-9]*.yaml")
-    )
+    shard_files = list(mb.glob("**/yaml/steps/*s[0-9][0-9]*.yaml"))
 
     for shard_file in shard_files:
-        if shard_file.name in ("index.yaml", "decompose-index.yaml"):
-            continue
-
         try:
             data = yaml.safe_load(shard_file.read_text(encoding="utf-8"))
         except Exception:
@@ -46,13 +40,12 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
         plan_id = data.get("plan_id")
         role = data.get("role") or "back"
 
-        # Check plan file in v2 or v1 layout
+        # Check the canonical plan file.
         plan_file_v2_md = None
         if plan_id:
             from epic_paths import find_plan_md_path
 
             plan_file_v2_md = find_plan_md_path(cwd, str(role), str(plan_id))
-        plan_file_v1 = mb / role / "plan" / f"plan-{plan_id}.md" if plan_id else None
 
         # Check if plan_refs contain explicit file references or check plan file
         for ref in plan_refs:
@@ -81,12 +74,13 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
                         )
 
         has_plan = (
-            (plan_file_v2_md and plan_file_v2_md.is_file())
-            or (plan_file_v1 and plan_file_v1.is_file())
+            plan_file_v2_md and plan_file_v2_md.is_file()
         )
         if plan_id and not has_plan:
             rel_shard = shard_file.relative_to(cwd)
-            missing_target = plan_file_v2_md or plan_file_v1
+            missing_target = plan_file_v2_md or resolve(
+                str(role), str(plan_id), EpicLayoutKind.PLAN_MD, project_root=cwd
+            )
             findings.append(
                 JanitorFinding(
                     category="dead_plan_ref",

@@ -40,9 +40,8 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path, Path, Path]:
+def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path, Path]:
     index = resolve("back", epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
-    index_md = resolve("back", epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=tmp_path)
     shard = resolve(
         "back",
         epic_id,
@@ -57,8 +56,6 @@ def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path,
             {
                 "schema": "epic-decompose-index/v1",
                 "plan_id": epic_id,
-                "source_md": "decompose-index.md",
-                "status_canon": "decompose-index.yaml",
                 "steps": [
                     {
                         "id": "s01",
@@ -71,13 +68,6 @@ def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path,
             },
             sort_keys=False,
         ),
-    )
-    _write(
-        index_md,
-        "## Requirements coverage\n- REQ-01: covered\n\n"
-        "## Stages coverage\n- s01: covered\n\n"
-        "## Outcome map\n- OUT-01: covered\n\n"
-        "## Replacement cleanup\n- CLEAN-01: covered\n",
     )
     _write(
         shard,
@@ -110,7 +100,7 @@ def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path,
             sort_keys=False,
         ),
     )
-    return index, index_md, shard
+    return index, shard
 
 
 def test_v2_all_epic_layout_kinds_resolve_canonical_paths(tmp_path: Path) -> None:
@@ -118,7 +108,6 @@ def test_v2_all_epic_layout_kinds_resolve_canonical_paths(tmp_path: Path) -> Non
     epic_id = "T-HUB-087-v2-all-kinds"
     expected = {
         EpicLayoutKind.PLAN_MD: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/md/plan.md",
-        EpicLayoutKind.DECOMPOSE_INDEX_MD: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/md/decompose-index.md",
         EpicLayoutKind.DECOMPOSE_INDEX_YAML: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/yaml/decompose-index.yaml",
         EpicLayoutKind.DECOMPOSE_STEP: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/yaml/steps/s01-contracts.yaml",
         EpicLayoutKind.IMPLEMENT_STEP: "memory-bank/back/implement/T-HUB-087-v2-all-kinds/s01-contracts.yaml",
@@ -168,7 +157,7 @@ def test_v2_role_normalization_and_discovery(tmp_path: Path) -> None:
 
 
 def test_finish_decompose_discovers_v2_index_from_armed_epic(tmp_path: Path) -> None:
-    index, _, _ = _v2_tree(tmp_path)
+    index, _ = _v2_tree(tmp_path)
     state = default_state()
     state.update(
         {
@@ -208,7 +197,7 @@ def test_finish_decompose_discovers_v2_index_from_armed_epic(tmp_path: Path) -> 
 
 
 def test_identity_resolves_v2_index_from_active_context(tmp_path: Path) -> None:
-    index, _, _ = _v2_tree(tmp_path, "T-HUB-063-v2-identity")
+    index, _ = _v2_tree(tmp_path, "T-HUB-063-v2-identity")
     _write(
         tmp_path / "memory-bank/activeContext.md",
         "## load_now\n"
@@ -223,7 +212,7 @@ def test_identity_resolves_v2_index_from_active_context(tmp_path: Path) -> None:
 
 
 def test_declared_artifacts_discovers_v2_decompose_and_implement(tmp_path: Path) -> None:
-    index, _, shard = _v2_tree(tmp_path, "T-HUB-064-v2-events")
+    index, shard = _v2_tree(tmp_path, "T-HUB-064-v2-events")
     implement = resolve(
         "back",
         "T-HUB-064-v2-events",
@@ -245,7 +234,7 @@ def test_declared_artifacts_discovers_v2_decompose_and_implement(tmp_path: Path)
 
 
 def test_board_scan_reports_v2_shard_path(tmp_path: Path) -> None:
-    index, _, _ = _v2_tree(tmp_path, "T-HUB-065-v2-board")
+    index, _ = _v2_tree(tmp_path, "T-HUB-065-v2-board")
     result = scan_steps([WorkspaceRef(tmp_path, "v2")])
 
     assert len(result) == 1
@@ -280,7 +269,7 @@ def test_parallel_wave_uses_v2_steps_directory(tmp_path: Path) -> None:
 def test_spec_reconcile_resolves_v2_bundle_from_short_queue_id(tmp_path: Path) -> None:
     epic_id = "T-HUB-068-v2-reconcile"
     plan = resolve("back", epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
-    index, _, _ = _v2_tree(tmp_path, epic_id)
+    index, _ = _v2_tree(tmp_path, epic_id)
     _write(plan, "# Plan\n")
 
     bundle = resolve_epic_bundle(tmp_path, "T-HUB-068")
@@ -292,7 +281,7 @@ def test_spec_reconcile_resolves_v2_bundle_from_short_queue_id(tmp_path: Path) -
 
 def test_creative_verifier_reads_v2_plan_index_and_shard_paths(tmp_path: Path) -> None:
     epic_id = "T-HUB-069-v2-creative"
-    index, _, _ = _v2_tree(tmp_path, epic_id)
+    index, _ = _v2_tree(tmp_path, epic_id)
     plan = resolve("back", epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
     _write(plan, "### CREATIVE need\n**нет**\n")
 
@@ -304,7 +293,7 @@ def test_creative_verifier_reads_v2_plan_index_and_shard_paths(tmp_path: Path) -
 
 def test_epic_launch_default_and_seed_implement_use_v2_layout(tmp_path: Path) -> None:
     epic_id = "T-070-v2-launch"
-    index, _, shard = _v2_tree(tmp_path, epic_id)
+    index, shard = _v2_tree(tmp_path, epic_id)
 
     card = parse_launch_metadata(
         {
@@ -325,7 +314,7 @@ def test_epic_launch_default_and_seed_implement_use_v2_layout(tmp_path: Path) ->
 
 def test_legacy_finish_implement_resolves_v2_state_and_shard_paths(tmp_path: Path) -> None:
     epic_id = "T-071-v2-finish-implement"
-    index, _, shard = _v2_tree(tmp_path, epic_id)
+    index, shard = _v2_tree(tmp_path, epic_id)
     state = default_state()
     state.update({"armed_epic": epic_id, "armed_role": "BACK", "armed_decompose": None})
     save_epic_state(tmp_path, state)
@@ -336,8 +325,8 @@ def test_legacy_finish_implement_resolves_v2_state_and_shard_paths(tmp_path: Pat
     assert _resolve_work_shard_rel(tmp_path, index_ref, "s01") == shard.relative_to(tmp_path).as_posix()
 
 
-def test_analyze_arm_normalizes_v2_md_mirror_to_yaml_sot(tmp_path: Path) -> None:
-    index, index_md, _ = _v2_tree(tmp_path, "T-072-v2-analyze-arm")
+def test_analyze_arm_keeps_yaml_sot(tmp_path: Path) -> None:
+    index, _ = _v2_tree(tmp_path, "T-072-v2-analyze-arm")
     plan = resolve("back", "T-072-v2-analyze-arm", EpicLayoutKind.PLAN_MD, project_root=tmp_path)
     _write(plan, "# Plan\n")
 
@@ -347,7 +336,7 @@ def test_analyze_arm_normalizes_v2_md_mirror_to_yaml_sot(tmp_path: Path) -> None
         "ANALYZE",
         "back",
         target_rel=plan.relative_to(tmp_path).as_posix(),
-        decompose_rel=index_md.relative_to(tmp_path).as_posix(),
+        decompose_rel=index.relative_to(tmp_path).as_posix(),
     )
 
     assert result["ok"] is True

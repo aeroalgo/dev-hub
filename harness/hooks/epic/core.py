@@ -69,13 +69,9 @@ from epic_paths import (  # noqa: E402
 )
 from epic_index import (  # noqa: E402
     dump_index_yaml,
-    extract_implement_hub_href,
     find_next_step,
     index_yaml_path,
     load_index_yaml,
-    md_queue_drift_from_yaml,
-    mirror_status_to_md,
-    rebuild_md_queue_from_yaml,
     set_step_status_in_doc,
     steps_from_doc,
 )
@@ -1508,15 +1504,8 @@ def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[st
             if v2_steps_dir.is_dir():
                 for path in sorted(v2_steps_dir.glob("s*.yaml"), key=lambda item: str(item)):
                     records.append(("decompose_step_done", path))
-            decomp_dir = root / "plan" / f"decompose-{artifact_epic_id}"
-            if decomp_dir.is_dir():
-                for path in sorted(decomp_dir.glob("s*.yaml"), key=lambda item: str(item)):
-                    records.append(("decompose_step_done", path))
         for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="implement"):
-            impl_dirs = (
-                root / "implement" / artifact_epic_id,
-                root / "implement" / f"implement-{artifact_epic_id}",
-            )
+            impl_dirs = (root / "implement" / artifact_epic_id,)
             for impl_dir in impl_dirs:
                 if not impl_dir.is_dir():
                     continue
@@ -2177,10 +2166,8 @@ def gate_evidence_matches(cwd: str | Path, evidence: object) -> tuple[bool, str]
 
 
 
-_INDEX_YAML_NAMES = {"index.yaml", "index.yml"}
-
 def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path | None:
-    """Resolve the YAML lifecycle index; Markdown is never returned or read."""
+    """Resolve the canonical YAML lifecycle index."""
     if decompose is None or not isinstance(decompose, (str, Path)):
         return None
     if not decompose:
@@ -2189,26 +2176,16 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
     raw = str(decompose).replace("\\", "/")
     idx = root / raw
 
-    if raw.endswith("/md/decompose-index.md"):
-        return root / raw[: -len("/md/decompose-index.md")] / "yaml" / "decompose-index.yaml"
-    if raw.endswith("/decompose-index.md"):
-        return root / raw[: -len("/decompose-index.md")] / "decompose-index.yaml"
-    if raw.endswith("/index.md"):
-        yaml_sibling = idx.with_name("index.yaml")
-        return yaml_sibling if yaml_sibling.is_file() else None
-    if raw.endswith("/index.yaml") or raw.endswith("/index.yml") or raw.endswith("/decompose-index.yaml") or raw.endswith("/decompose-index.yml"):
-        return idx
+    if raw.endswith(("/decompose-index.yaml", "/decompose-index.yml")):
+        return idx if idx.parent.name == "yaml" else None
 
     if idx.is_dir():
-        if (idx / "yaml" / "decompose-index.yaml").is_file():
-            return idx / "yaml" / "decompose-index.yaml"
-        if (idx / "decompose-index.yaml").is_file():
-            return idx / "decompose-index.yaml"
-        if (idx / "index.yaml").is_file():
-            return idx / "index.yaml"
+        candidate = idx / "decompose-index.yaml" if idx.name == "yaml" else idx / "yaml" / "decompose-index.yaml"
+        if candidate.is_file():
+            return candidate
         return None
     if idx.is_file():
-        if idx.name in _INDEX_YAML_NAMES or idx.name in {"decompose-index.yaml", "decompose-index.yml"}:
+        if idx.name in {"decompose-index.yaml", "decompose-index.yml"} and idx.parent.name == "yaml":
             return idx
         # A step shard is not an index, but its v2 parent may contain one.
         if idx.parent.name == "steps" and idx.parent.parent.name == "yaml":
@@ -2217,43 +2194,6 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
                 return v2_yaml
         return None
 
-    # If decompose is an epic path in v1 or v2 that is missing or relocated,
-    # discover only YAML indexes.
-    for base in (
-        root / "memory-bank" / "back" / "plan",
-        root / "memory-bank" / "front" / "plan",
-        root / "memory-bank" / "integration" / "plan",
-    ):
-        cand_v2_y = base / raw / "yaml" / "decompose-index.yaml"
-        if cand_v2_y.is_file():
-            return cand_v2_y
-        cand_legacy_y = base / raw / "index.yaml"
-        if cand_legacy_y.is_file():
-            return cand_legacy_y
-        parts = Path(raw).parts
-        for p in parts:
-            if p.startswith("decompose-"):
-                epic_slug = p[len("decompose-"):]
-                migrated_y = base / epic_slug / "yaml" / "decompose-index.yaml"
-                if migrated_y.is_file():
-                    return migrated_y
-
-    if raw.endswith((".md", ".yaml", ".yml")):
-        return None
-    for base in (
-        root / "memory-bank" / "back" / "plan",
-        root / "memory-bank" / "front" / "plan",
-        root / "memory-bank" / "integration" / "plan",
-        root / "memory-bank" / "back" / "refactor" / "plan",
-        root / "memory-bank" / "front" / "refactor" / "plan",
-        root / "memory-bank" / "integration" / "refactor" / "plan",
-        root / "memory-bank" / "back" / "security" / "plan",
-        root / "memory-bank" / "front" / "security" / "plan",
-        root / "memory-bank" / "integration" / "security" / "plan",
-    ):
-        cand = base / raw / "index.yaml"
-        if cand.is_file():
-            return cand
     return None
 
 
@@ -2335,7 +2275,7 @@ def complete_archived_armed_epic(cwd: str | Path) -> dict[str, Any] | None:
 def _load_decompose_steps(
     cwd: str | Path, decompose: str | None
 ) -> tuple[Path | None, list[dict[str, str]], str]:
-    """Return (md_path, steps, source) where source is 'yaml'|'missing'."""
+    """Return (index_path, steps, source) where source is 'yaml'|'missing'."""
     idx = _decompose_index_path(cwd, decompose)
     if idx is None:
         return None, [], "missing"
@@ -2372,7 +2312,7 @@ def _index_result(
 def load_decompose_steps_fail_closed(
     cwd: str | Path, decompose: str | Path | None
 ) -> dict[str, Any]:
-    """Load status-canon index.yaml; fail-closed on absence or invalidity (no md fallback)."""
+    """Load validated decompose-index.yaml; fail-closed on absence or invalidity."""
     if decompose is None or not isinstance(decompose, (str, Path)):
         error = f"invalid_arg: expected str/Path, got {type(decompose).__name__}"
         result = _index_result("invalid", "invalid_arg", message=error)
@@ -2421,14 +2361,12 @@ def _implement_yaml_completed(
     role: str,
     epic_id: str,
     step_id: str,
-    *,
-    plan_id: str | None = None,
 ) -> bool:
     try:
         import epic_yaml as ey
 
         rel = ey.resolve_implement_path(
-            cwd, role, epic_id, step_id.strip().lower(), plan_id=plan_id
+            cwd, role, epic_id, step_id.strip().lower()
         )
         return ey.implement_completed(cwd, rel)
     except Exception:
@@ -2458,7 +2396,6 @@ def _resolve_implement_shard(
                 role_dir,
                 epic_id,
                 step_id.strip().lower(),
-                plan_id=_index_plan_id(idx) or None,
             )
         path = cwd_p / rel
         if not path.is_file():
@@ -2711,13 +2648,8 @@ def mark_index_step_status(
     decompose: str | None,
     step_id: str,
     status: str,
-    *,
-    sync_checklist: bool = True,
 ) -> dict[str, Any]:
-    """One write path: update index.yaml (canon) + mirror status into index.md.
-
-    Agents must not edit status in md/yaml by hand — only this helper.
-    """
+    """Update the validated YAML index and advance activeContext."""
     status_l = (status or "").strip().lower()
     if status_l not in set(_STEP_STATUS_WORDS):
         return {
@@ -2740,14 +2672,6 @@ def mark_index_step_status(
     ypath = index_yaml_path(idx)
     if not ypath.is_file():
         return {"ok": False, "error": f"missing decompose index yaml: {ypath}"}
-    elif not idx.is_file():
-        boot_md = rebuild_md_queue_from_yaml(idx)
-        if not boot_md.get("ok"):
-            return {
-                "ok": False,
-                "error": boot_md.get("error") or "failed to create index.md from yaml",
-            }
-
     doc = load_index_yaml(ypath)
     if doc is None:
         return {"ok": False, "error": f"failed to load {ypath}"}
@@ -2759,7 +2683,7 @@ def mark_index_step_status(
             import epic_yaml as ey
 
             impl_rel = ey.resolve_implement_path(
-                cwd_p, role_dir or role, epic_id, sid, plan_id=plan_id or None
+                cwd_p, role_dir or role, epic_id, sid
             )
             impl_path = cwd_p / impl_rel
         except Exception:
@@ -2807,122 +2731,24 @@ def mark_index_step_status(
         atomic_write_text(ypath, dump_index_yaml(doc))
         yaml_written = True
 
-    # yaml is SoT — md mirror is best-effort (rebuild queue if row missing).
-    md_rebuilt = False
-    mirror = mirror_status_to_md(
-        idx, sid, status_l, sync_checklist=sync_checklist
-    )
-    if not mirror.get("ok"):
-        rebuilt = rebuild_md_queue_from_yaml(idx)
-        md_rebuilt = bool(rebuilt.get("ok"))
-        if md_rebuilt:
-            mirror = mirror_status_to_md(
-                idx, sid, status_l, sync_checklist=sync_checklist
-            )
-            if not mirror.get("ok"):
-                # Table already has statuses from yaml rebuild — treat as mirrored.
-                mirror = {
-                    "ok": True,
-                    "mirrored": True,
-                    "unchanged": False,
-                    "checklist_updated": False,
-                    "via": "rebuild_md_queue_from_yaml",
-                }
-
     rel_y = (
         str(ypath.relative_to(cwd_p))
         if ypath.is_relative_to(cwd_p)
         else str(ypath)
     )
-    rel_md = (
-        str(idx.relative_to(cwd_p)) if idx.is_relative_to(cwd_p) else str(idx)
-    )
-    if not mirror.get("ok"):
-        # Keep yaml; do not roll back. Runner continues on canon.
-        advance = _try_advance_active_context(cwd_p, idx, doc, status_l)
-        return {
-            "ok": True,
-            "path": rel_y,
-            "md_path": rel_md,
-            "step_id": sid,
-            "status": status_l,
-            "previous": old_st,
-            "unchanged": unchanged,
-            "checklist_updated": False,
-            "canon": "index.yaml",
-            "mirrored_md": False,
-            "md_mirror_degraded": True,
-            "md_error": mirror.get("error"),
-            "md_rebuilt": md_rebuilt,
-            "yaml_rolled_back": False,
-            "next_step": advance.get("next_step"),
-            "activeContext_rewritten": bool(advance.get("activeContext_rewritten")),
-            "armed_step_updated": bool(advance.get("armed_step_updated")),
-            "advance_diagnostic": advance,
-        }
-
     advance = _try_advance_active_context(cwd_p, idx, doc, status_l)
     return {
         "ok": True,
         "path": rel_y,
-        "md_path": rel_md,
         "step_id": sid,
         "status": status_l,
         "previous": old_st,
-        "unchanged": unchanged and mirror.get("unchanged", False),
-        "checklist_updated": bool(mirror.get("checklist_updated")),
-        "canon": "index.yaml",
-        "mirrored_md": True,
-        "md_rebuilt": md_rebuilt,
+        "unchanged": unchanged,
+        "canon": "decompose-index.yaml",
         "next_step": advance.get("next_step"),
         "activeContext_rewritten": bool(advance.get("activeContext_rewritten")),
         "armed_step_updated": bool(advance.get("armed_step_updated")),
         "advance_diagnostic": advance,
-    }
-
-
-def repair_index_mirror(
-    cwd: str | Path,
-    decompose: str | Path | None,
-) -> dict[str, Any]:
-    """Diagnostic logger and counter for index mirror drift. Does not write md.
-
-    Sunset: auto md-write purged in s16.
-    """
-    increment_drift_counter(cwd, "index_mirror_repair")
-    logger.warning("repair_index_mirror called: diagnostic log only (auto-rewrite purged)")
-    if decompose is None or not isinstance(decompose, (str, Path)):
-        return {
-            "ok": False,
-            "error": f"invalid_arg: expected str/Path, got {type(decompose).__name__}",
-        }
-    idx = _decompose_index_path(cwd, decompose)
-    if idx is None:
-        archived = remap_decompose_to_archive(cwd, decompose)
-        if archived:
-            decompose = archived
-            idx = _decompose_index_path(cwd, decompose)
-    if idx is None:
-        return {"ok": False, "error": f"missing decompose index: {decompose}"}
-    ypath = index_yaml_path(idx)
-    if not ypath.is_file():
-        return {"ok": False, "error": f"missing {ypath}"}
-    drift = md_queue_drift_from_yaml(idx)
-    loaded = load_decompose_steps_fail_closed(cwd, str(ypath))
-    cwd_p = Path(cwd)
-    rel_md = str(idx.relative_to(cwd_p)) if idx.is_relative_to(cwd_p) else str(idx)
-    rel_y = str(ypath.relative_to(cwd_p)) if ypath.is_relative_to(cwd_p) else str(ypath)
-    return {
-        "ok": bool(loaded.get("ok")),
-        "canon": "index.yaml",
-        "md_path": rel_md,
-        "yaml_path": rel_y,
-        "mirrored_steps": [],
-        "md_rebuilt": False,
-        "mode": "log_only",
-        "drift": drift,
-        "diagnostic_code": loaded.get("diagnostic_code"),
-        "warning": "auto-rewrite purged (diagnostic log only)",
     }
 
 
@@ -2961,9 +2787,9 @@ def _arm_from_decompose_via_transition(cwd: Path, decompose: str) -> dict[str, A
 
 
 def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
-    """Make activeContext + armed_step match index.yaml next pending (SoT).
+    """Make activeContext + armed_step match decompose-index.yaml next pending (SoT).
 
-    armed_step / AC are caches — never win over index.yaml for IMPLEMENT queue.
+    armed_step / AC are caches — never win over decompose-index.yaml for IMPLEMENT queue.
     Skips non-implement phases (DECOMPOSE/AUDIT/QA/DONE/…).
     """
     cwd_p = Path(cwd)
@@ -3025,8 +2851,6 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
             from loop.epic_transition import arm_phase
 
             arm_decomp = decompose
-            if arm_decomp.endswith(("/index.yaml", "/index.yml")):
-                arm_decomp = str(Path(arm_decomp).parent).replace("\\", "/")
             arm_res = arm_phase(
                 cwd_p,
                 epic_id,
@@ -3129,7 +2953,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
 def repair_fingerprint_stall(cwd: str | Path) -> dict[str, Any]:
     """Deterministic recovery when agent did the step but forgot Handoff/load_now.
 
-    Uses index.yaml + implement shard + filesystem files. No LLM.
+    Uses decompose-index.yaml + implement shard + filesystem files. No LLM.
     Modes:
     - rearm: index already completed for the AC step → rewrite activeContext
     - mark_index: implement already completed → mark index + advance
@@ -3226,7 +3050,7 @@ def repair_fingerprint_stall(cwd: str | Path) -> dict[str, Any]:
         e.startswith("checkpoints not done") for e in ready_errors
     ):
         marked = mark_index_step_status(
-            cwd_p, str(idx), step_id, "completed", sync_checklist=True
+            cwd_p, str(idx), step_id, "completed"
         )
         ok = bool(marked.get("ok"))
         if ok:
@@ -3258,7 +3082,6 @@ def repair_fingerprint_stall(cwd: str | Path) -> dict[str, Any]:
         str(idx),
         step_id,
         require_verify=False,
-        sync_checklist=True,
     )
     ok = bool(fin.get("ok"))
     if ok:
@@ -3281,7 +3104,6 @@ def finalize_step(
     step_id: str,
     *,
     implement: str | Path | None = None,
-    sync_checklist: bool = True,
     require_verify: bool = True,
 ) -> dict[str, Any]:
     """Atomically set implement status=completed + mark index completed.
@@ -3371,7 +3193,6 @@ def finalize_step(
         str(idx),
         sid,
         "completed",
-        sync_checklist=sync_checklist,
     )
     if not marked.get("ok"):
         try:
@@ -3510,14 +3331,11 @@ def repair_finish_desync(
         status = str(step.get("status") or "").lower()
         if not sid or status in {"completed", "done"}:
             continue
-        plan_id = _index_plan_id(idx)
-        if not _implement_yaml_completed(
-            cwd_p, role_dir, epic_id, sid, plan_id=plan_id or None
-        ):
+        if not _implement_yaml_completed(cwd_p, role_dir, epic_id, sid):
             continue
         try:
             rel = ey.resolve_implement_path(
-                cwd_p, role_dir, epic_id, sid, plan_id=plan_id or None
+                cwd_p, role_dir, epic_id, sid
             )
             found = cwd_p / rel
         except Exception as exc:
@@ -3559,7 +3377,6 @@ def repair_false_index_completed(
     cwd_p = Path(cwd)
     epic_id = epic_id_from_decompose_path(str(idx)) or ""
     _role, role_dir = _role_dir_from_index_path(idx, cwd_p)
-    plan_id = _index_plan_id(idx)
     import epic_yaml as ey
 
     repaired: list[str] = []
@@ -3572,7 +3389,7 @@ def repair_false_index_completed(
         impl_rel = ""
         try:
             impl_rel = ey.resolve_implement_path(
-                cwd_p, role_dir, epic_id, sid, plan_id=plan_id or None
+                cwd_p, role_dir, epic_id, sid
             )
             state = ey.implement_load_state(cwd_p, impl_rel)
         except Exception as exc:
@@ -3582,9 +3399,7 @@ def repair_false_index_completed(
                 {"step_id": sid, "ok": True, "skipped": True, "reason": "implement completed"}
             )
             continue
-        marked = mark_index_step_status(
-            cwd_p, str(idx), sid, "pending", sync_checklist=False
-        )
+        marked = mark_index_step_status(cwd_p, str(idx), sid, "pending")
         entry: dict[str, Any] = {
             "step_id": sid,
             "implement_path": impl_rel or None,
@@ -3662,15 +3477,11 @@ def repair_premature_completed_after_failed_finish(
             continue
         status = str(step.get("status") or "").lower()
         if status in {"completed", "done"}:
-            marked = mark_index_step_status(
-                cwd_p, str(idx), sid, "pending", sync_checklist=False
-            )
+            marked = mark_index_step_status(cwd_p, str(idx), sid, "pending")
             index_rolled = bool(marked.get("ok"))
         break
     try:
-        impl_rel = ey.resolve_implement_path(
-            cwd_p, role_dir, epic_id, sid, plan_id=plan_id or None
-        )
+        impl_rel = ey.resolve_implement_path(cwd_p, role_dir, epic_id, sid)
         impl_path = cwd_p / impl_rel
         if impl_path.is_file():
             doc = ey.load_implement(impl_path)
@@ -3796,7 +3607,7 @@ def validate_index_vs_implement(cwd: str | Path, decompose: str | None) -> list[
         sid = str(s["id"]).strip().lower()
         try:
             impl_rel = ey.resolve_implement_path(
-                cwd, role, epic_id, sid, plan_id=plan_id or None
+                cwd, role, epic_id, sid
             )
             state = ey.implement_load_state(cwd, impl_rel)
         except Exception as exc:
@@ -3892,7 +3703,6 @@ def validate_finish_integrity(
             role_dir,
             epic_id,
             str(step.get("id") or ""),
-            plan_id=_index_plan_id(idx) or None,
         ):
             missing.append(str(step["id"]))
     if missing:
@@ -4208,11 +4018,9 @@ def project_handoff_from_reducer(
     if not epic_id:
         m_epic = re.search(
             r"(?:memory-bank/)?(?:back|front|integration)/plan/([^/]+)/"
-            r"(?:yaml|md)/decompose-index\.(?:yaml|yml|md)",
+            r"yaml/decompose-index\.(?:yaml|yml)",
             text,
         )
-        if not m_epic:
-            m_epic = re.search(r"decompose-([^/]+)/index\.yaml", text)
         if not m_epic:
             m_epic = re.search(r"Handoff\s+BACK\s+\w+\s*—\s*([^\n\s]+)", text)
         epic_id = m_epic.group(1) if m_epic else ""
@@ -4473,7 +4281,6 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
         pass
 
     # Trust armed_decompose from runtime state when present.
-    # IMPLEMENT load_now lists index.yaml (canon), not index.md.
     state_decompose = (st.get("armed_decompose") or "").strip()
     idx_state = _decompose_index_path(cwd_p, state_decompose) if state_decompose else None
     if state_decompose and idx_state is not None and idx_state.is_file():
@@ -4481,20 +4288,9 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
     else:
         candidates = set(re.findall(
             r"(?:memory-bank/)?([A-Za-z0-9._-]+/plan/[^/]+/"
-            r"(?:yaml|md)/decompose-index\.(?:yaml|yml|md))",
+            r"yaml/decompose-index\.(?:yaml|yml))",
             text,
         ))
-        candidates.update(re.findall(
-            r"(?:memory-bank/)?([A-Za-z0-9._-]+/plan/decompose-[A-Za-z0-9._-]+/index\.(?:yaml|md))",
-            text,
-        ))
-        for m in re.finditer(
-            r"(?:memory-bank/)?((?:back|front|integration)/plan/decompose-[A-Za-z0-9._-]+)/",
-            text,
-        ):
-            rel_dir = m.group(1)
-            y = rel_dir + "/index.yaml"
-            candidates.add(y)
         if not candidates:
             m_epic = re.search(r"(?:qa|plan)/([A-Za-z0-9._-]+)/", text)
             if not m_epic:
@@ -4517,9 +4313,6 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                         found = find_decompose_index_path(cwd_p, role_dir, epic_id)
                         if found is not None and found.is_file():
                             candidates.add(str(found.relative_to(cwd_p)).removeprefix("memory-bank/"))
-                    if not candidates:
-                        for p in mb_root.glob(f"*/plan/decompose-{epic_id}/index.yaml"):
-                            candidates.add(str(p.relative_to(mb_root)))
                 except Exception:
                     pass
         if not candidates:
@@ -4541,35 +4334,16 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                         rel = "memory-bank/" + rel
                     candidates.add(rel.removeprefix("memory-bank/"))
     if len(candidates) > 1:
-        # Collapse index.md + index.yaml of the same decompose folder into one canon.
-        by_dir: dict[str, set[str]] = {}
-        for cand in candidates:
-            rel = cand.removeprefix("memory-bank/")
-            parent = str(Path(rel).parent).replace("\\", "/")
-            by_dir.setdefault(parent, set()).add(rel)
-        collapsed: set[str] = set()
-        for parent, rels in by_dir.items():
-            yaml_rel = f"{parent}/index.yaml"
-            if yaml_rel in rels or any(r.endswith("/index.yaml") for r in rels):
-                collapsed.add(yaml_rel if yaml_rel in rels else next(
-                    r for r in rels if r.endswith("/index.yaml")
-                ))
-            elif len(rels) == 1:
-                collapsed.add(next(iter(rels)))
-            else:
-                collapsed.update(rels)
-        candidates = collapsed
-    if len(candidates) > 1:
         return _index_result("ambiguous", "identity_ambiguous", message=sorted(candidates).__repr__())
     if not candidates:
         return _index_result("not_found", "identity_not_found")
 
     decompose = "memory-bank/" + next(iter(candidates)).removeprefix("memory-bank/")
     idx = _decompose_index_path(cwd_p, decompose)
-    if idx is None or (not idx.is_file() and not idx.with_name("index.yaml").is_file()):
+    if idx is None or not idx.is_file():
         archived = None
         parts = decompose.split("/")
-        # memory-bank/<role>/plan/decompose-… → memory-bank/archive/<role>/plan/decompose-…
+        # memory-bank/<role>/plan/<epic>/yaml → memory-bank/archive/<role>/plan/<epic>/yaml
         if (
             len(parts) >= 4
             and parts[0] == "memory-bank"
@@ -4579,9 +4353,9 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                 ["memory-bank", "archive", parts[1], *parts[2:]]
             )
             idx = _decompose_index_path(cwd_p, archived)
-            if idx is not None and (idx.is_file() or idx.with_name("index.yaml").is_file()):
+            if idx is not None and idx.is_file():
                 decompose = archived
-        if idx is None or (not idx.is_file() and not idx.with_name("index.yaml").is_file()):
+        if idx is None or not idx.is_file():
             return _index_result("invalid", "identity_invalid", message=decompose)
     role, role_dir = _role_dir_from_index_path(idx, cwd_p)
     if role not in {"BACK", "FRONT", "INTEG"}:
@@ -4763,14 +4537,11 @@ def build_post_implement_active_context(
     epic_id: str,
     tracker_rel: str,
     tracker_link: str,
-    index_rel: str,
-    hub_rel: str | None,
     phase: str,
     qa_path: Path | None,
     cwd: Path,
 ) -> str:
     """Full Handoff for post-implement pipeline — not a one-line EPIC_DONE stub."""
-    del index_rel, hub_rel
     phase_u = str(phase or "").upper()
     role_u = str(role or "BACK").upper()
     if role_u == "INTEGRATION":
@@ -4817,7 +4588,7 @@ def build_post_implement_active_context(
         load_now.append(
             (
                 tracker_link,
-                f"decompose index.yaml (status only; secondary to plan; эпик {epic_id})",
+                f"decompose-index.yaml (status only; secondary to plan; эпик {epic_id})",
             )
         )
         load_now.append(
@@ -4830,7 +4601,7 @@ def build_post_implement_active_context(
         load_now.append(
             (
                 tracker_link,
-                f"decompose index.yaml (implement queue исчерпана; эпик {epic_id})",
+                f"decompose-index.yaml (implement queue исчерпана; эпик {epic_id})",
             )
         )
         if phase_u == "BUGFIX":
@@ -4870,7 +4641,7 @@ def build_post_implement_active_context(
             f"записать epic-audit/v2 (plan_intent, findings, converged); "
             f"mb-finish audit отклонит v1/shallow, phantom implement_file, presence-only evidence. "
             f"FORBIDDEN: pytest как единственная проверка; PASS по пустому not_implemented[]; "
-            f"implement_file = plan/.../md/sNN.md. "
+            f"implement_file = implement/<epic_id>/sNN-*.yaml. "
             f"НЕ ставить EPIC_DONE до QA pass"
         )
         custom_lines = [
@@ -4939,16 +4710,12 @@ def build_post_implement_active_context(
 
 
 def _decompose_step_shards_dir(idx: Path) -> Path:
-    """Directory with sNN-*.yaml shards (v2: ``yaml/steps/``, v1: beside index)."""
+    """Directory with canonical ``yaml/steps`` decompose shards."""
     ypath = index_yaml_path(idx)
     if ypath.name in {"decompose-index.yaml", "decompose-index.yml"} and ypath.parent.name == "yaml":
         steps = ypath.parent / "steps"
-        if steps.is_dir():
-            return steps
-        return ypath.parent
-    if ypath.is_file():
-        return ypath.parent
-    return idx.parent if idx.suffix else idx
+        return steps
+    return ypath.parent / "steps"
 
 
 def _resolve_href(base_dir: Path, href: str, cwd: Path) -> str | None:
@@ -5089,9 +4856,7 @@ def arm_epic(
                     EpicLayoutKind.DECOMPOSE_INDEX_YAML,
                     project_root=cwd_p,
                 ).relative_to(cwd_p).as_posix()
-        rel_md = rel_idx.removesuffix(".yaml") + ".md" if rel_idx.endswith(".yaml") else rel_idx
         link = rel_idx.removeprefix(f"{mb_root_name}/").removeprefix("memory-bank/")
-        hub_rel = f"{mb_root_name}/hub/plan/plan-{epic_id}.md"
         role_u = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(
             str(role or "back").lower(), str(role or "BACK").upper()
         )
@@ -5101,8 +4866,6 @@ def arm_epic(
             epic_id=epic_id,
             tracker_rel=rel_idx,
             tracker_link=link,
-            index_rel=rel_md,
-            hub_rel=hub_rel if (cwd_p / hub_rel).is_file() else None,
             phase=phase,
             qa_path=qa_p if qa_p and qa_p.is_file() else None,
             cwd=cwd_p,

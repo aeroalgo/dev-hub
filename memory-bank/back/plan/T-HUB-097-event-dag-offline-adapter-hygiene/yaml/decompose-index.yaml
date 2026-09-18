@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-097-event-dag-offline-adapter-hygiene
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 appetite:
   timebox_days: 1–2
   cut_list:

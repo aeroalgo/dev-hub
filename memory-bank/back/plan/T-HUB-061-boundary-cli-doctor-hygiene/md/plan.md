@@ -11,7 +11,7 @@
 **Skills:** writing-plans · python-testing-patterns · grill-me (Phase 0 skip → mini grill §Product probe)  
 **Источник:** chat audit 2026-09-04 + canvas `plan-runtime-parity-audit.canvas.tsx`
 
-→ [T-HUB-061-boundary-cli-doctor-hygiene/md/decompose-index.md](T-HUB-061-boundary-cli-doctor-hygiene/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-061-boundary-cli-doctor-hygiene/yaml/decompose-index.yaml](T-HUB-061-boundary-cli-doctor-hygiene/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

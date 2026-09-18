@@ -26,7 +26,7 @@ If `$ARGUMENTS` / attachments are research/audit with ≥2 wire axes → `.curso
 
 ## Write target
 
-`memory-bank/integration/plan/plan-<task_id>.md` (default slug `INTEG-JOURNEY-YYYYMMDD` if unspecified)
+`memory-bank/integration/plan/<task_id>/md/plan.md` (default slug `INTEG-JOURNEY-YYYYMMDD` if unspecified)
 
 Multi-epic research: also `roadmap-<slug>-epics.md` + one plan file per epic (template roadmap: `.cursor/templates/roadmap-epics.md`).
 
@@ -52,7 +52,7 @@ Template structure: `.cursor/templates/integration-plan.md` — **expand far bey
 ## Acceptance — BEFORE FINISH (run in shell)
 
 ```bash
-wc -l memory-bank/integration/plan/plan-*.md | sort -n | tail -5
+wc -l memory-bank/integration/plan/*/md/plan.md | sort -n | tail -5
 ```
 
 **FAIL and expand** if:

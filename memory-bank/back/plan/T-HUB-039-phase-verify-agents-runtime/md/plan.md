@@ -11,7 +11,7 @@
 
 **Supersedes leftover:** runtime surfaces из [T-HUB-028](plan-T-HUB-028-phase-verify-agents.md) и FR-020–025 [T-HUB-029](plan-T-HUB-029-epic-phase-transition-engine.md), которые остались metadata-only (registry strings без agent files / enforce).
 
-→ [T-HUB-039-phase-verify-agents-runtime/md/decompose-index.md](T-HUB-039-phase-verify-agents-runtime/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-039-phase-verify-agents-runtime/yaml/decompose-index.yaml](T-HUB-039-phase-verify-agents-runtime/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

@@ -18,12 +18,12 @@ alwaysApply: false
 **Процесс**:
 1. `OK BACK REFACTOR - Начинаю`
 1a. Прочитай **Gates** + **workflow-refactor-epic** (path rule)
-1b. Detect epic: `decompose-<id>/` / `@rNN` / plan id в Handoff → **эпик**; иначе **S**
+1b. Detect epic: `plan/<id>/yaml/` / `@rNN` / plan id в Handoff → **эпик**; иначе **S**
 2. `tasks.md` + load_now; skills из Impl skills шага (эпик) или analysis (S)
-3. **Эпик (M/L):** один `rNN` из decompose → code → FINISH artifact = `refactor/implement/implement-<id>/rNN-<slug>.md`
+3. **Эпик (M/L):** один `rNN` из decompose → code → FINISH artifact = `refactor/implement/<id>/rNN-<slug>.yaml`
    **FORBIDDEN:** `session-*.md` в корне `refactor/`
 4. **Без эпика (S):** analysis(+plan) → code → FINISH artifact = `refactor/session-YYYYMMDD-<slug>.md`
-   **FORBIDDEN:** `implement/implement-*/rNN-*.md`
+   **FORBIDDEN:** flat or prefixed implement directories
 5. Behavior freeze; tests green before → refactor → green after
 6. §0.11 если refs
 7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed` по факту)

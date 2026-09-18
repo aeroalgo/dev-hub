@@ -9,13 +9,13 @@ from harness.hooks.epic.core import read_active_context
 from loop.paths.pack_layout import resolve_mb_root
 from loop.schemas.active_context import parse_handoff_meta
 
-_PLAN_MD_SUBPATTERN = r"plan-[^/\\]+\.md|md[/\\]plan\.md"
+_PLAN_MD_SUBPATTERN = r"md[/\\]plan\.md"
 _PLAN_PATTERN = re.compile(
     rf"(?:^|[/\\])(?:{_PLAN_MD_SUBPATTERN}|plan\.md)$",
     re.IGNORECASE,
 )
 _MARKDOWN_PLAN_PATTERN = re.compile(
-    rf"(?:^|[/\\])(?:{_PLAN_MD_SUBPATTERN}|gap-[^/\\]*\.md|analyze-[^/\\]*\.md|decompose-index\.md)$",
+    rf"(?:^|[/\\])(?:{_PLAN_MD_SUBPATTERN}|gap-[^/\\]*\.md|analyze-[^/\\]*\.md)$",
 )
 _UNRESTRICTED_MODES = frozenset({"PLAN", "DECOMPOSE", "ANALYZE", "AUDIT", "CREATIVE", "CLARIFY"})
 
@@ -237,7 +237,7 @@ def evaluate_plan_read(
 
 
 def load_plan_section(cwd: str | Path = ".", section: int | str = 1) -> tuple[str | None, str | None]:
-    """Reads activeContext -> epic_id -> finds plan-<epic_id>*.md -> extracts section N by ## headers.
+    """Reads the canonical ``plan/<epic_id>/md/plan.md`` and extracts section N.
 
     Returns:
         (content, error_code)

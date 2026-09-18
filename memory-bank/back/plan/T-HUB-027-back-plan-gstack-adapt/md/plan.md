@@ -7,7 +7,7 @@
 **Research / refs:** сравнение gstack (Gary Tan) vs dev-hub workflow; T-HUB-010 CLARIFY/WHAT; gstack `docs/skills.md` (office-hours, plan-eng-review, autoplan, plan→QA)  
 **Skills:** writing-plans · brainstorming · architecture-patterns · python-testing-patterns · grill-me (blockers only)
 
-→ [T-HUB-027-back-plan-gstack-adapt/md/decompose-index.md](T-HUB-027-back-plan-gstack-adapt/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-027-back-plan-gstack-adapt/yaml/decompose-index.yaml](T-HUB-027-back-plan-gstack-adapt/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

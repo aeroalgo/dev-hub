@@ -65,7 +65,7 @@ def test_promote_stale_receipt_after_decompose(tmp_path):
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "last_finished_step": "DECOMPOSE",
             "armed_after_finish": "ANALYZE",
@@ -127,7 +127,7 @@ def test_check_after_continues_on_analyze_after_decompose(tmp_path, monkeypatch)
         "step_id: ANALYZE\n"
         "---\n\n"
         "## load_now\n"
-        f"1. [{decomp}/index.yaml]({decomp}/index.yaml)\n\n"
+        f"1. [{decomp}/decompose-index.yaml]({decomp}/decompose-index.yaml)\n\n"
         "## Handoff ANALYZE\n"
         f"- epic: {epic}\n",
         encoding="utf-8",
@@ -136,7 +136,7 @@ def test_check_after_continues_on_analyze_after_decompose(tmp_path, monkeypatch)
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "last_finished_step": "DECOMPOSE",
             "armed_after_finish": "ANALYZE",

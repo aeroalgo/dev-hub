@@ -50,7 +50,7 @@ plan_contract:
 context:
   consumes:
     - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/plan.md §Sunset A / B / C / I"
-    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/md/decompose-index.md §Replacement cleanup"
+    - "memory-bank/back/plan/T-HUB-099-execution-evidence-write-deny/yaml/decompose-index.yaml §Replacement cleanup"
   produces:
     - "clean codebase without execution evidence write allow bypasses"
     - "verified absence of unprovenanced capability evidence acceptance"

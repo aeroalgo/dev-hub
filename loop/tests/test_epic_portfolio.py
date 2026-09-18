@@ -68,7 +68,7 @@ def test_append_log_and_phase_change(tmp_path: Path) -> None:
         epic_id="T-006",
         role="BACK",
         step_id="s01",
-        artifact="memory-bank/back/implement/implement-T-006/s01-a.yaml",
+        artifact="memory-bank/back/implement/T-006/s01-a.yaml",
         all_completed=False,
         day=day,
     )
@@ -84,7 +84,7 @@ def test_append_log_and_phase_change(tmp_path: Path) -> None:
         epic_id="T-006",
         role="BACK",
         step_id="s02",
-        artifact="memory-bank/back/implement/implement-T-006/s02-b.yaml",
+        artifact="memory-bank/back/implement/T-006/s02-b.yaml",
         all_completed=False,
         day=day,
     )
@@ -100,7 +100,7 @@ def test_append_log_and_phase_change(tmp_path: Path) -> None:
         epic_id="T-006",
         role="BACK",
         step_id="s09",
-        artifact="memory-bank/back/implement/implement-T-006/s09-z.yaml",
+        artifact="memory-bank/back/implement/T-006/s09-z.yaml",
         all_completed=True,
         day=day,
     )

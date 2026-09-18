@@ -46,7 +46,7 @@ context:
     - "full A/B/C/I sunset evidence shows no active duplicate edge, dead fallback or stale instruction"
   plan_refs:
     - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#replacement--sunset"
-    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/decompose-index.md#replacement-cleanup"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/decompose-index.yaml#replacement-cleanup"
     - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-004"
   files:
     - harness/cursor/rules/shared/cheatsheets/back-audit.mdc

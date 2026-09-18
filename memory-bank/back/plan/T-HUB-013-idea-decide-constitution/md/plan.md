@@ -13,7 +13,7 @@
 **soft recommend:** после T-HUB-010 (markers) и рядом с 011/012 (constitution refs)  
 **Skills:** writing-plans · brainstorming · product-discovery (lazy на IMPLEMENT)  
 
-→ [T-HUB-013-idea-decide-constitution/md/decompose-index.md](T-HUB-013-idea-decide-constitution/md/decompose-index.md)
+→ [T-HUB-013-idea-decide-constitution/yaml/decompose-index.yaml](T-HUB-013-idea-decide-constitution/yaml/decompose-index.yaml)
 
 ---
 

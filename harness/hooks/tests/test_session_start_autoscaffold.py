@@ -46,8 +46,6 @@ def test_session_start_no_autoscaffold_with_plan_md(tmp_path: Path):
 
     decomp_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
     assert not decomp_yaml.exists()
-    decomp_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=tmp_path)
-    assert not decomp_md.exists()
 
 
 def test_session_start_no_scaffold_from_leftover_plan_yaml(tmp_path: Path):

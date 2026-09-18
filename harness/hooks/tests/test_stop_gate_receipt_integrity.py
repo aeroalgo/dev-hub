@@ -90,7 +90,7 @@ def test_stop_gate_taskstop_or_stale_in_flight_retains_forensics_and_no_retry(tm
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-T-HUB-077/s01.yaml`\n\n"
+        "- `memory-bank/back/plan/T-HUB-077/yaml/steps/s01.yaml`\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Дальше:** @verify\n",
         encoding="utf-8",
@@ -146,7 +146,7 @@ def test_stop_gate_absent_receipt_with_finish_attempt_blocked(tmp_path: Path):
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-T-HUB-077/s01.yaml`\n\n"
+        "- `memory-bank/back/plan/T-HUB-077/yaml/steps/s01.yaml`\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Дальше:** finalize\n",
         encoding="utf-8",

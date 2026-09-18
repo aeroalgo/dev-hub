@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** architecture §1.2 B P0.4; session audit §3 SessionStart inline plan.md; `loop/mb_load/session.py`
 
-→ [decompose-index.md](decompose-index.md) · [decompose-index.yaml](../yaml/decompose-index.yaml)
+→ [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · [decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ---
 
@@ -93,7 +93,7 @@
 - **FR-006:** Cap: yaml overflow still truncated flag; required yaml truncated → ok false **or** documented ok true with truncated (choose: **ok false if truncated required yaml** to fail-closed — may be strict; Appetite: truncated yaml ok=true with truncated=true as today, **missing** not ok). Decision: **missing/read_error → ok false**; truncate → keep truncated flag, ok true (avoid blocking huge yaml). Plan md never truncated because not inlined.
 - **FR-007:** Kind I: docs saying load_now bodies always inlined — rewrite.
 - **FR-008:** Tests in `loop/tests/` for load_session.
-- **FR-009:** Do not inline `decompose-index.md` (md coverage) — path-only same as plan. yaml index **may** inline (small).
+- **FR-009:** Do not inline `yaml/decompose-index.yaml` (md coverage) — path-only same as plan. yaml index **may** inline (small).
 - **FR-010:** forbidden_skipped from resolver still ok if policy skip; missing **required resolved** path not skipped → not ok.
 - **FR-011:** SessionStart catch Exception: set inject warning **and** treat as incomplete (do not look like full success). Exact hook code as-built — find `load_session exception` and fail-closed.
 - **FR-012:** Graphify N/A hub — n/a.

@@ -18,7 +18,7 @@ from loop.incidents.metrics import load_metrics, increment_counter
 
 @pytest.fixture
 def mock_epic_env(tmp_path: Path):
-    epic_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-018"
+    epic_dir = tmp_path / "memory-bank" / "back" / "events" / "T-HUB-018"
     epic_dir.mkdir(parents=True, exist_ok=True)
 
     cfg = tmp_path / "eligibility.yaml"

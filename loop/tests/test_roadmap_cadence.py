@@ -239,7 +239,6 @@ def test_replan_arm_loads_only_review_prompts(tmp_path: Path) -> None:
         base.mkdir(parents=True, exist_ok=True)
         (base / "plan.md").write_text("# source plan\n", encoding="utf-8")
         (base / "prompt.md").write_text("## Epic\nOutcome\n", encoding="utf-8")
-        (base / "decompose-index.md").write_text("forbidden\n", encoding="utf-8")
 
     armed = _arm_pre_implement(
         tmp_path,
@@ -254,7 +253,6 @@ def test_replan_arm_loads_only_review_prompts(tmp_path: Path) -> None:
     assert active.count("memory-bank/back/plan/T-FEAT-1/md/prompt.md") >= 1
     assert active.count("memory-bank/back/plan/T-FEAT-2/md/prompt.md") >= 1
     assert "plan.md" not in active
-    assert "decompose-index.md" not in active
 
 
 def test_on_non_feature_done_does_not_change_cadence(tmp_path: Path) -> None:
@@ -610,7 +608,7 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done: []
@@ -904,7 +902,7 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done: []
@@ -1156,17 +1154,17 @@ def test_advance_blocked_resync(tmp_path: Path) -> None:
         "queue:",
         "  - id: T-FEAT-3",
         "    epic_id: T-FEAT-3",
-        "    plan: plan-T-FEAT-3.md",
+        "    plan: T-FEAT-3/md/plan.md",
         "    deps: []",
         "    kind: feature",
         "done:",
         "  - id: T-FEAT-1",
         "    epic_id: T-FEAT-1",
-        "    plan: plan-T-FEAT-1.md",
+        "    plan: T-FEAT-1/md/plan.md",
         "    kind: feature",
         "  - id: T-FEAT-2",
         "    epic_id: T-FEAT-2",
-        "    plan: plan-T-FEAT-2.md",
+        "    plan: T-FEAT-2/md/plan.md",
         "    kind: feature",
         "",
     ])
@@ -1219,13 +1217,13 @@ def test_advance_blocked_resync(tmp_path: Path) -> None:
         "queue:",
         "  - id: T-REF-1",
         "    epic_id: T-REF-1",
-        "    plan: plan-T-REF-1.md",
+        "    plan: T-REF-1/md/plan.md",
         "    deps: []",
         "    kind: refactor",
         "done:",
         "  - id: T-FEAT-1",
         "    epic_id: T-FEAT-1",
-        "    plan: plan-T-FEAT-1.md",
+        "    plan: T-FEAT-1/md/plan.md",
         "    kind: feature",
         "",
     ])
@@ -1250,17 +1248,17 @@ def test_advance_succeeds_when_no_high_or_resynced(tmp_path: Path) -> None:
         "queue:",
         "  - id: T-FEAT-3",
         "    epic_id: T-FEAT-3",
-        "    plan: plan-T-FEAT-3.md",
+        "    plan: T-FEAT-3/md/plan.md",
         "    deps: []",
         "    kind: feature",
         "done:",
         "  - id: T-FEAT-1",
         "    epic_id: T-FEAT-1",
-        "    plan: plan-T-FEAT-1.md",
+        "    plan: T-FEAT-1/md/plan.md",
         "    kind: feature",
         "  - id: T-FEAT-2",
         "    epic_id: T-FEAT-2",
-        "    plan: plan-T-FEAT-2.md",
+        "    plan: T-FEAT-2/md/plan.md",
         "    kind: feature",
         "",
     ])
@@ -1409,17 +1407,17 @@ def test_reset_cadence_idle_unblocks_feature_advance(tmp_path: Path) -> None:
         "queue:",
         "  - id: T-FEAT-3",
         "    epic_id: T-FEAT-3",
-        "    plan: plan-T-FEAT-3.md",
+        "    plan: T-FEAT-3/md/plan.md",
         "    deps: []",
         "    kind: feature",
         "done:",
         "  - id: T-FEAT-1",
         "    epic_id: T-FEAT-1",
-        "    plan: plan-T-FEAT-1.md",
+        "    plan: T-FEAT-1/md/plan.md",
         "    kind: feature",
         "  - id: T-FEAT-2",
         "    epic_id: T-FEAT-2",
-        "    plan: plan-T-FEAT-2.md",
+        "    plan: T-FEAT-2/md/plan.md",
         "    kind: feature",
         "",
     ])
@@ -1476,7 +1474,7 @@ def test_reset_cadence_idle_unblocks_feature_advance(tmp_path: Path) -> None:
         "queue:",
         "  - id: T-RESYNC-1",
         "    epic_id: T-RESYNC-1",
-        "    plan: plan-T-RESYNC-1.md",
+        "    plan: T-RESYNC-1/md/plan.md",
         "    deps: []",
         "    kind: resync",
         "done: []",
@@ -1505,17 +1503,17 @@ def test_full_cadence_lifecycle_e2e(tmp_path: Path) -> None:
         "queue:",
         "  - id: T-FEAT-1",
         "    epic_id: T-FEAT-1",
-        "    plan: plan-T-FEAT-1.md",
+        "    plan: T-FEAT-1/md/plan.md",
         "    deps: []",
         "    kind: feature",
         "  - id: T-FEAT-2",
         "    epic_id: T-FEAT-2",
-        "    plan: plan-T-FEAT-2.md",
+        "    plan: T-FEAT-2/md/plan.md",
         "    deps: []",
         "    kind: feature",
         "  - id: T-FEAT-3",
         "    epic_id: T-FEAT-3",
-        "    plan: plan-T-FEAT-3.md",
+        "    plan: T-FEAT-3/md/plan.md",
         "    deps: []",
         "    kind: feature",
         "done: []",

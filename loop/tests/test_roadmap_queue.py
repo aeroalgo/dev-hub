@@ -75,7 +75,7 @@ def _minimal_queue(*ids: str) -> str:
         deps = f"[{ids[i - 1]}]" if i else "[]"
         lines.append(f"  - id: {epic_id}")
         lines.append(f"    epic_id: {epic_id}")
-        lines.append(f"    plan: plan-{epic_id}.md")
+        lines.append(f"    plan: {epic_id}/md/plan.md")
         lines.append(f"    deps: {deps}")
     lines.append("done: []")
     return "\n".join(lines)
@@ -90,7 +90,6 @@ def _mark_epic_done(cwd: Path, epic_id: str) -> None:
         "steps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
-    _write(cwd, f"memory-bank/back/plan/{epic_id}/md/decompose-index.md", f"# {epic_id}\n")
     _write(cwd, f"memory-bank/back/plan/{epic_id}/yaml/steps/s01.yaml", "step_id: s01\n")
     _write(
         cwd,
@@ -152,7 +151,7 @@ def test_smart_entry_decompose_when_no_index(tmp_path: Path) -> None:
     rq = _load_rq()
     _write(tmp_path, "memory-bank/back/plan/T-X/md/plan.md", "# plan\n")
     entry = rq.resolve_entry(
-        tmp_path, role="back", epic_id="T-X", plan_name="plan-T-X.md"
+        tmp_path, role="back", epic_id="T-X", plan_name="T-X/md/plan.md"
     )
     assert entry["ok"] is True
     assert entry["phase"] == "DECOMPOSE"
@@ -167,7 +166,6 @@ def test_smart_entry_implement_when_pending(tmp_path: Path) -> None:
         "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
         "- id: s01\n  file: s01-one.yaml\n  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/T-Y/md/decompose-index.md", "# Y\n")
     _write(
         tmp_path,
         "memory-bank/back/analyze/T-Y/analyze-20260831-pass.yaml",
@@ -179,7 +177,7 @@ def test_smart_entry_implement_when_pending(tmp_path: Path) -> None:
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
     entry = rq.resolve_entry(
-        tmp_path, role="back", epic_id="T-Y", plan_name="plan-T-Y.md"
+        tmp_path, role="back", epic_id="T-Y", plan_name="T-Y/md/plan.md"
     )
     assert entry["phase"] == "IMPLEMENT"
     assert entry["step_id"] == "s01"
@@ -194,10 +192,9 @@ def test_smart_entry_qa_when_all_completed(tmp_path: Path) -> None:
         "schema: epic-decompose-index/v1\nplan_id: T-Z\nsteps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/T-Z/md/decompose-index.md", "# Z\n")
     _write(tmp_path, "memory-bank/back/plan/T-Z/yaml/steps/s01.yaml", "step_id: s01\n")
     entry = rq.resolve_entry(
-        tmp_path, role="back", epic_id="T-Z", plan_name="plan-T-Z.md"
+        tmp_path, role="back", epic_id="T-Z", plan_name="T-Z/md/plan.md"
     )
     assert entry["phase"] in {"AUDIT", "QA"}
 
@@ -213,7 +210,6 @@ def test_roadmap_advance_arms_implement_via_arm_epic(tmp_path: Path) -> None:
         "- id: s01\n  file: s01-one.yaml\n  status: completed\n"
         "- id: s02\n  file: s02-two.yaml\n  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/T-IMP/md/decompose-index.md", "# imp\n")
     _write(
         tmp_path,
         "memory-bank/back/plan/T-IMP/yaml/steps/s01-one.yaml",
@@ -252,11 +248,6 @@ def test_roadmap_advance_arms_next_after_done(tmp_path: Path) -> None:
         "memory-bank/back/plan/T-005-docker-linux-runtime/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-005-docker-linux-runtime\nsteps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
-    )
-    _write(
-        tmp_path,
-        "memory-bank/back/plan/T-005-docker-linux-runtime/md/decompose-index.md",
-        "# T-005\n",
     )
     _write(
         tmp_path,
@@ -342,19 +333,12 @@ def test_degraded_prompt_phase_done_no_find_decompose(tmp_path: Path) -> None:
         "memory-bank/activeContext.md",
         "## load_now\n\n## Handoff BACK QA — demo\n- **Статус:** COMPLETED\n",
     )
-    _write(
-        tmp_path,
-        "memory-bank/back/plan/decompose-other/index.yaml",
-        "schema: epic-decompose-index/v1\nplan_id: other\nsteps:\n"
-        "- id: s01\n  file: s01.yaml\n  status: pending\n",
-    )
     prompt = ctx.build_prompt(
         tmp_path,
         load_now=[],
         shape_errors=[],
         projection={"phase": "DONE", "epic": "demo", "next_step": None},
     )
-    assert "Найди `memory-bank/**/plan/decompose-*/index.yaml`" not in prompt
     assert "epic finished" in prompt
 
 
@@ -366,7 +350,6 @@ def test_degraded_prompt_truly_done_with_artifacts(tmp_path: Path) -> None:
         "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n"
         "- id: s01\n  file: s01.yaml\n  status: completed\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/demo/md/decompose-index.md", "# demo\n")
     _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01.yaml", "step_id: s01\n")
     _write(
         tmp_path,
@@ -383,7 +366,7 @@ def test_degraded_prompt_truly_done_with_artifacts(tmp_path: Path) -> None:
         tmp_path,
         ".claude/runtime/epic/state.json",
         '{"armed_epic":"demo","armed_decompose":'
-        '"memory-bank/back/plan/demo/md/decompose-index.md","status":"complete"}\n',
+        '"memory-bank/back/plan/demo/yaml/decompose-index.yaml","status":"complete"}\n',
     )
     prompt = ctx.build_prompt(
         tmp_path,
@@ -391,7 +374,6 @@ def test_degraded_prompt_truly_done_with_artifacts(tmp_path: Path) -> None:
         shape_errors=[],
         projection={"phase": "DONE", "epic": "demo", "next_step": None},
     )
-    assert "Найди `memory-bank/**/plan/decompose-*/index.yaml`" not in prompt
     assert "epic finished" in prompt
 
 
@@ -437,7 +419,7 @@ def test_arm_roadmap_entry_promotes_analyze(tmp_path: Path, monkeypatch) -> None
 
     selection = {
         "role": "back",
-        "entry": {"epic": "T-TEST", "queue_id": "T-TEST", "plan": "plan-T-TEST.md", "phase": "ANALYZE"},
+        "entry": {"epic": "T-TEST", "queue_id": "T-TEST", "plan": "T-TEST/md/plan.md", "phase": "ANALYZE"},
     }
     _write(tmp_path, "memory-bank/back/plan/T-TEST/md/plan.md", "# test plan\n")
     _write(
@@ -445,7 +427,6 @@ def test_arm_roadmap_entry_promotes_analyze(tmp_path: Path, monkeypatch) -> None
         "memory-bank/back/plan/T-TEST/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-TEST\nsteps:\n- id: s01\n  file: s01.yaml\n  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/T-TEST/md/decompose-index.md", "# test\n")
     _write(tmp_path, "memory-bank/back/plan/T-TEST/yaml/steps/s01.yaml", "step_id: s01\n")
 
     out = rq.arm_roadmap_entry(tmp_path, selection)
@@ -528,18 +509,17 @@ def test_roadmap_merge_sources_into_canon(tmp_path: Path) -> None:
         "queue:\n"
         "  - id: T-C\n"
         "    epic_id: T-C\n"
-        "    plan: plan-T-C.md\n"
+        "    plan: T-C/md/plan.md\n"
         "    deps: [T-B]\n"
         "done: []\n",
     )
-    for plan in ("plan-T-A.md", "plan-T-B.md", "plan-T-C.md"):
+    for plan in ("T-A/md/plan.md", "T-B/md/plan.md", "T-C/md/plan.md"):
         _write(tmp_path, f"memory-bank/back/plan/{plan}", f"# {plan}\n")
 
-    out = rq.roadmap_merge(tmp_path, role="back", write_md=False)
+    out = rq.roadmap_merge(tmp_path, role="back")
     assert out["ok"] is True
     assert out["ids"] == ["T-A", "T-B", "T-C"]
     assert out["written"] is True
-    assert out["md_written"] is False
     parsed = rq.parse_roadmap_queue(tmp_path)
     assert parsed["ok"] is True
     assert [x["id"] for x in parsed["queue"]] == ["T-A", "T-B", "T-C"]
@@ -560,15 +540,15 @@ def test_roadmap_merge_skips_done_and_preserves_canon_order(tmp_path: Path) -> N
         "queue:\n"
         "  - id: T-NEW\n"
         "    epic_id: T-NEW\n"
-        "    plan: plan-T-NEW.md\n"
+        "    plan: T-NEW/md/plan.md\n"
         "    deps: []\n"
         "  - id: T-X\n"
         "    epic_id: T-X\n"
-        "    plan: plan-T-X.md\n"
+        "    plan: T-X/md/plan.md\n"
         "    deps: []\n"
         "done: []\n",
     )
-    for plan in ("plan-T-OLD.md", "plan-T-NEW.md", "plan-T-X.md"):
+    for plan in ("T-OLD/md/plan.md", "T-NEW/md/plan.md", "T-X/md/plan.md"):
         _write(tmp_path, f"memory-bank/back/plan/{plan}", f"# {plan}\n")
 
     out = rq.roadmap_merge(tmp_path, role="back")
@@ -587,7 +567,7 @@ def test_roadmap_merge_plan_conflict_fail_closed(tmp_path: Path) -> None:
         "queue:\n"
         "  - id: T-1\n"
         "    epic_id: T-1-a\n"
-        "    plan: plan-T-1-a.md\n"
+        "    plan: T-1-a/md/plan.md\n"
         "    deps: []\n"
         "done: []\n",
     )
@@ -599,7 +579,7 @@ def test_roadmap_merge_plan_conflict_fail_closed(tmp_path: Path) -> None:
         "queue:\n"
         "  - id: T-1\n"
         "    epic_id: T-1-b\n"
-        "    plan: plan-T-1-b.md\n"
+        "    plan: T-1-b/md/plan.md\n"
         "    deps: []\n"
         "done: []\n",
     )
@@ -623,11 +603,11 @@ def test_roadmap_upsert_batch(tmp_path: Path) -> None:
         batch="pack",
         title="Pack",
         items=[
-            {"id": "T-A", "epic_id": "T-A-one", "plan": "plan-T-A-one.md", "deps": []},
+            {"id": "T-A", "epic_id": "T-A-one", "plan": "T-A-one/md/plan.md", "deps": []},
             {
                 "id": "T-B",
                 "epic_id": "T-B-two",
-                "plan": "plan-T-B-two.md",
+                "plan": "T-B-two/md/plan.md",
                 "deps": ["T-A"],
             },
         ],
@@ -711,10 +691,10 @@ def test_latest_qa_artifact_uses_lifecycle_time_not_filename_order(tmp_path: Pat
 
 def test_plan_stem_from_name() -> None:
     rq = _load_rq()
-    assert rq.plan_stem_from_name("plan-T-HUB-023-hooks-llm-fallbacks.md") == (
+    assert rq.plan_stem_from_name("T-HUB-023-hooks-llm-fallbacks/md/plan.md") == (
         "T-HUB-023-hooks-llm-fallbacks"
     )
-    assert rq.plan_stem_from_name("memory-bank/back/plan/plan-T-1.md") == "T-1"
+    assert rq.plan_stem_from_name("memory-bank/back/plan/T-1/md/plan.md") == "T-1"
 
 
 def test_resolve_epic_slug_prefers_plan_name_and_disk_slug(tmp_path: Path) -> None:
@@ -724,7 +704,7 @@ def test_resolve_epic_slug_prefers_plan_name_and_disk_slug(tmp_path: Path) -> No
             tmp_path,
             "back",
             "T-HUB-023",
-            plan_name="plan-T-HUB-023-hooks-llm-fallbacks.md",
+            plan_name="T-HUB-023-hooks-llm-fallbacks/md/plan.md",
         )
         == "T-HUB-023-hooks-llm-fallbacks"
     )
@@ -755,7 +735,7 @@ def test_resolve_entry_decompose_uses_plan_stem(tmp_path: Path) -> None:
         tmp_path,
         role="back",
         epic_id="T-HUB-023",
-        plan_name="plan-T-HUB-023-hooks-llm-fallbacks.md",
+        plan_name="T-HUB-023-hooks-llm-fallbacks/md/plan.md",
     )
     assert entry["ok"] is True
     assert entry["phase"] == "DECOMPOSE"
@@ -772,7 +752,7 @@ def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
         "queue:\n"
         "  - id: T-HUB-023\n"
         "    epic_id: T-HUB-023-hooks-llm-fallbacks\n"
-        "    plan: plan-T-HUB-023-hooks-llm-fallbacks.md\n"
+        "    plan: T-HUB-023-hooks-llm-fallbacks/md/plan.md\n"
         "    deps: []\n"
         "done: []\n",
     )
@@ -791,7 +771,6 @@ def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
     ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
     assert "T-HUB-023-hooks-llm-fallbacks/yaml/decompose-index.yaml" in ac
     assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
-    assert "decompose-T-HUB-023/" not in ac
 
 
 def test_plan_path_resolves_layout_v2(tmp_path: Path) -> None:
@@ -803,7 +782,7 @@ def test_plan_path_resolves_layout_v2(tmp_path: Path) -> None:
     v2.parent.mkdir(parents=True)
     v2.write_text("# plan v2\n", encoding="utf-8")
     found = rq.plan_path(
-        tmp_path, "back", "plan-T-HUB-048-workflow-pack-registry.md"
+        tmp_path, "back", "T-HUB-048-workflow-pack-registry/md/plan.md"
     )
     assert found == v2
     assert found.is_file()
@@ -820,7 +799,7 @@ def test_resolve_entry_accepts_layout_v2_plan(tmp_path: Path) -> None:
         tmp_path,
         role="back",
         epic_id="T-HUB-048",
-        plan_name="plan-T-HUB-048-workflow-pack-registry.md",
+        plan_name="T-HUB-048-workflow-pack-registry/md/plan.md",
     )
     assert entry["ok"] is True, entry
     assert entry.get("stop") != "NEED_HUMAN: no_plan for T-HUB-048"
@@ -837,12 +816,12 @@ def test_mark_queue_epic_done_moves_row(tmp_path: Path) -> None:
         "queue:\n"
         "- id: T-HUB-048\n"
         "  epic_id: T-HUB-048-workflow-pack-registry\n"
-        "  plan: plan-T-HUB-048-workflow-pack-registry.md\n"
+        "  plan: T-HUB-048-workflow-pack-registry/md/plan.md\n"
         "  deps: []\n"
         "  batch: workflow-pack-framework\n"
         "- id: T-HUB-049\n"
         "  epic_id: T-HUB-049-workflow-pack-phase-router\n"
-        "  plan: plan-T-HUB-049-workflow-pack-phase-router.md\n"
+        "  plan: T-HUB-049-workflow-pack-phase-router/md/plan.md\n"
         "  deps: [T-HUB-048]\n"
         "  batch: workflow-pack-framework\n"
         "done: []\n",
@@ -894,25 +873,25 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
   - id: T-REF-1
     epic_id: T-REF-1
-    plan: plan-T-REF-1.md
+    plan: T-REF-1/md/plan.md
     deps: [T-FEAT-1]
     kind: refactor
   - id: T-REC-1
     epic_id: T-REC-1
-    plan: plan-T-REC-1.md
+    plan: T-REC-1/md/plan.md
     deps: [T-REF-1]
     kind: reconcile
 done:
   - id: T-DONE-FEAT
     epic_id: T-DONE-FEAT
-    plan: plan-T-DONE-FEAT.md
+    plan: T-DONE-FEAT/md/plan.md
   - id: T-DONE-REF
     epic_id: T-DONE-REF
-    plan: plan-T-DONE-REF.md
+    plan: T-DONE-REF/md/plan.md
     kind: refactor
 """
     _write_queue(tmp_path, queue_yaml)
@@ -940,12 +919,12 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     deps: [T-FEAT-1]
     kind: feature
 done: []
@@ -991,7 +970,7 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
     kind: feature
 done: []
@@ -1043,13 +1022,13 @@ role: back
 queue:
   - id: T-REF-1
     epic_id: T-REF-1
-    plan: plan-T-REF-1.md
+    plan: T-REF-1/md/plan.md
     deps: []
     kind: refactor
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1082,17 +1061,17 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1119,18 +1098,18 @@ role: back
 queue:
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     deps: []
     kind: feature
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml_chain)
@@ -1165,12 +1144,12 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     deps: [T-FEAT-1]
     kind: feature
 done: []
@@ -1203,17 +1182,17 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1239,7 +1218,7 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
     kind: feature
 done: []
@@ -1267,12 +1246,12 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     deps: [T-FEAT-1]
     kind: feature
 done: []
@@ -1311,7 +1290,7 @@ def test_upsert_refactor_epic(tmp_path: Path) -> None:
         rq.upsert_refactor_epic(tmp_path, "T-REF-1")
 
     with pytest.raises(ValueError, match="cannot start refactor phase.*'replan'"):
-        rq.start_refactor_phase(tmp_path, {"id": "T-REF-1", "plan": "plan-T-REF-1.md"})
+        rq.start_refactor_phase(tmp_path, {"id": "T-REF-1", "plan": "T-REF-1/md/plan.md"})
 
     # 2. In refactor phase, insert at head with kind: refactor
     save_cadence(
@@ -1330,23 +1309,23 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
   - id: T-FEAT-4
     epic_id: T-FEAT-4
-    plan: plan-T-FEAT-4.md
+    plan: T-FEAT-4/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
 
-    out = rq.start_refactor_phase(tmp_path, {"id": "T-REF-1", "plan": "plan-T-REF-1.md"})
+    out = rq.start_refactor_phase(tmp_path, {"id": "T-REF-1", "plan": "T-REF-1/md/plan.md"})
     assert out["ok"] is True
     assert out["written"] is True
     assert out["id"] == "T-REF-1"
@@ -1395,17 +1374,17 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1466,12 +1445,12 @@ role: back
 queue:
   - id: T-REPLAN-001
     epic_id: T-REPLAN-001
-    plan: plan-T-REPLAN-001.md
+    plan: T-REPLAN-001/md/plan.md
     deps: []
     kind: replan
   - id: T-FEAT-NEXT
     epic_id: T-FEAT-NEXT
-    plan: plan-T-FEAT-NEXT.md
+    plan: T-FEAT-NEXT/md/plan.md
     deps: []
     kind: feature
 done: []
@@ -1515,22 +1494,22 @@ role: back
 queue:
   - id: T-REF-1
     epic_id: T-REF-1
-    plan: plan-T-REF-1.md
+    plan: T-REF-1/md/plan.md
     deps: []
     kind: refactor
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1571,22 +1550,22 @@ role: back
 queue:
   - id: T-REF-1
     epic_id: T-REF-1
-    plan: plan-T-REF-1.md
+    plan: T-REF-1/md/plan.md
     deps: []
     kind: refactor
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1618,17 +1597,17 @@ role: back
 queue:
   - id: T-CHORE-1
     epic_id: T-CHORE-1
-    plan: plan-T-CHORE-1.md
+    plan: T-CHORE-1/md/plan.md
     deps: []
     kind: chore
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue(tmp_path, queue_yaml)
@@ -1664,7 +1643,7 @@ role: back
 queue:
   - id: T-REF-1
     epic_id: T-REF-1
-    plan: plan-T-REF-1.md
+    plan: T-REF-1/md/plan.md
     deps: []
     kind: refactor
 done: []

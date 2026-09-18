@@ -13,7 +13,6 @@ HOOKS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
 if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
-from epic.core import repair_index_mirror  # noqa: E402
 from loop.janitor.schema import JanitorFinding  # noqa: E402
 
 
@@ -36,8 +35,6 @@ class GcResult(BaseModel):
 
 
 DEFAULT_WHITELIST_PATTERNS = [
-    "memory-bank/*/plan/decompose-*/index.md",
-    "memory-bank/*/plan/*/md/decompose-index.md",
     "runtime/episodes/*",
     "runtime/episodes",
     "episodes/*",
@@ -104,28 +101,7 @@ class GcEngine:
 
         cat = finding.category
 
-        if cat == "stale_index_status":
-            # Action: index_mirror_patch
-            if dry_run:
-                return GcResult(
-                    success=True,
-                    dry_run=True,
-                    action="index_mirror_patch",
-                    target_path=target_path_str,
-                    details={"status": "dry_run_skipped_write"},
-                )
-
-            # Repair call using epic repair_index_mirror
-            res = repair_index_mirror(self.cwd, target_path_str)
-            return GcResult(
-                success=True,
-                dry_run=False,
-                action="index_mirror_patch",
-                target_path=target_path_str,
-                details={"repair_result": res},
-            )
-
-        elif cat in ("episode_retention_exceeded", "orphan_events_dir"):
+        if cat in ("episode_retention_exceeded", "orphan_events_dir"):
             # Action: episode_prune / dir_prune
             if dry_run:
                 return GcResult(

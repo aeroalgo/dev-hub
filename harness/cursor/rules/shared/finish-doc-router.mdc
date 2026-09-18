@@ -12,7 +12,7 @@ alwaysApply: false
 
 | Command | load_now update |
 |---------|-----------------|
-| `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `decompose-*/index.yaml`; epic complete → `index.yaml` + §Handoff Epic AUDIT (**не** `plan-*.md`, **не** QA напрямую) |
+| `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `plan/<epic>/yaml/decompose-index.yaml`; epic complete → validated YAML index + §Handoff Epic AUDIT (**не** полный plan, **не** QA напрямую) |
 | `* AUDIT` | audit-артефакт в `load_now`; `check_matrix` + `verdict`; actionable `FAIL` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `* QA`; AUDIT **не** выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT; out-of-scope → `replan_candidates` (не findings) |
 | `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** full plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
@@ -41,11 +41,11 @@ alwaysApply: false
 ## Forbidden at FINISH
 
 - Completed work в `load_now`
-- **Полный `plan-*.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK (и после DECOMPOSE FINISH — tip = `s01|e01` + decompose index, не plan)
-- `tasks.md` / `systemPatterns.md` / `decompose-*/index.md` / `implement-*/index.md` в IMPLEMENT `load_now` (разрешён только `decompose-*/index.yaml`)
+- **Полный `plan/<epic_id>/md/plan.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK (и после DECOMPOSE FINISH — tip = `s01|e01` + decompose index, не plan)
+- `tasks.md` / `systemPatterns.md` / markdown indexes в IMPLEMENT `load_now` (разрешён только `plan/<epic>/yaml/decompose-index.yaml`)
 - `decompose=completed` / next `load_now` **до** step-файл + `## Handoff`
 - IMPLEMENT done без step-файл
-- IMPLEMENT epic без `decompose-*/index.yaml` в `load_now` (пока есть pending steps)
+- IMPLEMENT epic без `plan/<epic>/yaml/decompose-index.yaml` в `load_now` (пока есть pending steps)
 - **≥2** блока `## Handoff` в `activeContext.md` (append/история) — хронология только в `tasks/log/` и role-артефактах
 - **≥2** блока `## done` / sandwich (старый Handoff или done в хвосте после нового)
 - Оставлять предыдущий Handoff «на всякий случай» рядом с новым

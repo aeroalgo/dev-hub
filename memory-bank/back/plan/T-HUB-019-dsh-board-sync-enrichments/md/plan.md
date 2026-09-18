@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · brainstorming (batch decisions below)
 
-→ [T-HUB-019-dsh-board-sync-enrichments/md/decompose-index.md](T-HUB-019-dsh-board-sync-enrichments/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-019-dsh-board-sync-enrichments/yaml/decompose-index.yaml](T-HUB-019-dsh-board-sync-enrichments/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

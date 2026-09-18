@@ -78,7 +78,7 @@ def _normalize_queue_item(item: dict[str, Any], *, index: int, path: str) -> dic
     if not epic_fs and plan:
         epic_fs = plan_stem_from_name(plan)
     if not plan and epic_fs:
-        plan = f"plan-{epic_fs}.md"
+        plan = f"{epic_fs}/md/plan.md"
     deps_raw = item.get("deps") if "deps" in item else []
     if not qid or (not plan and not epic_fs):
         return {
@@ -101,7 +101,7 @@ def _normalize_queue_item(item: dict[str, Any], *, index: int, path: str) -> dic
     out: dict[str, Any] = {
         "ok": True,
         "id": qid,
-        "plan": plan or f"plan-{epic_fs}.md",
+        "plan": plan or f"{epic_fs}/md/plan.md",
         "epic_id": epic_fs or plan_stem_from_name(plan),
         "deps": deps,
         "kind": kind,
@@ -265,18 +265,18 @@ def find_decompose_index(cwd: str | Path, role: str, epic_id: str) -> Path | Non
 
 
 def load_steps_for_index(cwd: str | Path, idx: Path) -> dict[str, Any]:
-    """Load decompose steps; support yaml-only indexes (no index.md yet)."""
+    """Load and validate decompose steps from the canonical YAML index."""
     root = Path(cwd)
     from harness.hooks.epic_index import load_index_yaml, steps_from_doc
 
-    if (idx.name in ("index.yaml", "decompose-index.yaml") or idx.suffix in {".yaml", ".yml"}) and idx.is_file():
+    if idx.name in {"decompose-index.yaml", "decompose-index.yml"} and idx.is_file():
         doc = load_index_yaml(idx) or {}
         return {"ok": True, "steps": steps_from_doc(doc), "source": "yaml"}
     try:
         rel = idx.relative_to(root).as_posix()
     except ValueError:
         rel = str(idx)
-    return load_decompose_steps_fail_closed(cwd, rel)
+    return {"ok": False, "steps": [], "source": "yaml", "error": "canonical_decompose_index_required", "path": rel}
 
 
 def plan_path(cwd: str | Path, role: str, plan_name: str) -> Path:
@@ -286,16 +286,13 @@ def plan_path(cwd: str | Path, role: str, plan_name: str) -> Path:
 
 
 def plan_stem_from_name(plan_name: str) -> str:
-    """Stem of plan-*.md without plan- prefix (FS epic_id with descriptive slug)."""
+    """Extract epic directory slug from canonical ``<epic_id>/md/plan.md``."""
     raw = Path(str(plan_name or "").strip().replace(chr(92), "/"))
     if raw.name == "plan.md" and raw.parent.name == "md":
         return raw.parent.parent.name.strip()
-    name = raw.name
-    if name.startswith("plan-"):
-        name = name[len("plan-") :]
-    if name.endswith(".md"):
-        name = name[: -len(".md")]
-    return name.strip()
+    if len(raw.parts) == 1 and raw.suffix == "":
+        return raw.name.strip()
+    return ""
 
 
 def resolve_epic_slug(
@@ -480,7 +477,7 @@ def mark_queue_epic_done(
     done_row: dict[str, Any] = {
         "id": row["id"],
         "epic_id": row.get("epic_id") or plan_stem_from_name(row.get("plan") or ""),
-        "plan": row.get("plan") or f"plan-{row['id']}.md",
+        "plan": row.get("plan") or f"{row['id']}/md/plan.md",
         "deps": [],
         "kind": row.get("kind") or "feature",
     }
@@ -1296,7 +1293,7 @@ def _dump_queue_yaml(
             "id": item["id"],
             "epic_id": item.get("epic_id") or plan_stem_from_name(item.get("plan") or ""),
             "plan": item.get("plan")
-            or f"plan-{item.get('epic_id') or item['id']}.md",
+            or f"{item.get('epic_id') or item['id']}/md/plan.md",
             "deps": list(item.get("deps") or []),
             "kind": item.get("kind") or "feature",
         }
@@ -1372,14 +1369,12 @@ def roadmap_merge(
     *,
     role: str = "back",
     dry_run: bool = False,
-    write_md: bool = False,
     archive_sources: bool = True,
 ) -> dict[str, Any]:
     """Reconcile roadmap SoT: memory-bank/<role>/roadmap/queue.yaml.
 
     Merges optional batch sources into one v2 file (queue + done + batches).
-    Does **not** write md by default. Sources are archived under
-    roadmap/archive/ after successful write.
+    Sources are archived under roadmap/archive/ after successful write.
     """
     root = Path(cwd)
     role_key = str(role or "back").strip().lower()
@@ -1529,7 +1524,6 @@ def roadmap_merge(
                 "skipped_done": skipped_done,
                 "sources": source_rels,
                 "path": queue_rel,
-                "md_path": md_rel,
                 "reason": "all epics done; would write empty-fail",
                 "would_fail": "roadmap_merge_no_active",
             }
@@ -1601,7 +1595,6 @@ def roadmap_merge(
         "ids": [x["id"] for x in ordered],
         "dry_run": bool(dry_run),
         "written": False,
-        "md_written": False,
     }
     if dry_run:
         out["queue_yaml"] = body
@@ -1620,20 +1613,11 @@ def roadmap_merge(
             src = root / rel
             if not src.is_file():
                 continue
-            # also move sibling .md if present
             dest = arch / src.name
             if dest.exists():
                 dest.unlink()
             src.rename(dest)
             archived.append(dest.relative_to(root).as_posix())
-            if rel.endswith(".queue.yaml"):
-                md_sib = Path(str(root / rel[: -len(".queue.yaml")]) + ".md")
-                if md_sib.is_file():
-                    md_dest = arch / md_sib.name
-                    if md_dest.exists():
-                        md_dest.unlink()
-                    md_sib.rename(md_dest)
-                    archived.append(md_dest.relative_to(root).as_posix())
         out["archived"] = archived
 
     return out
@@ -1749,7 +1733,7 @@ def upsert_refactor_epic(
         item_dict = {
             "id": epic_spec,
             "epic_id": epic_spec,
-            "plan": f"plan-{epic_spec}.md",
+            "plan": f"{epic_spec}/md/plan.md",
             "deps": [],
             "kind": "refactor",
         }

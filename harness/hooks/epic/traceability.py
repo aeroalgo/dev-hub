@@ -86,16 +86,13 @@ def parse_decompose_refs(decompose_dir: Path) -> dict[str, ShardTrace]:
     if not decompose_dir.exists() or not decompose_dir.is_dir():
         return result
 
-    # Check if steps subdirectory exists (layout v2)
-    search_dirs = [decompose_dir]
     steps_sub = decompose_dir / "steps"
-    if steps_sub.is_dir():
-        search_dirs.append(steps_sub)
+    if not steps_sub.is_dir():
+        return result
+    search_dirs = [steps_sub]
 
     for s_dir in search_dirs:
         for shard_path in sorted(s_dir.glob("s*.yaml")):
-            if shard_path.name in ("index.yaml", "decompose-index.yaml"):
-                continue
             try:
                 with open(shard_path, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
@@ -150,8 +147,6 @@ def parse_implement_evidence(implement_dir: Path) -> dict[str, Evidence]:
         return result
 
     for shard_path in sorted(implement_dir.glob("s*.yaml")):
-        if shard_path.name == "index.yaml":
-            continue
         try:
             with open(shard_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
@@ -492,4 +487,3 @@ def format_report(report: TraceReport, json_mode: bool = False) -> str:
         lines.append("\nNo traceability issues found.")
 
     return "\n".join(lines)
-

@@ -8,7 +8,8 @@ from loop.board_sync.plan_next import (
 )
 
 def test_parse_plan_next_returns_override_from_footer(tmp_path: Path):
-    plan_file = tmp_path / "plan-T-TEST-001.md"
+    plan_file = tmp_path / "T-TEST-001/md/plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text(
         "# Plan Title\n"
         "Some plan description.\n"
@@ -26,13 +27,15 @@ def test_parse_plan_next_returns_override_from_footer(tmp_path: Path):
     assert override.next_command == "BACK DECOMPOSE T-TEST-001"
 
 def test_parse_plan_next_none_if_no_footer(tmp_path: Path):
-    plan_file = tmp_path / "plan-T-TEST-001.md"
+    plan_file = tmp_path / "T-TEST-001/md/plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan Title\nNo footer here.")
 
     assert parse_plan_next(plan_file) is None
 
 def test_parse_plan_next_none_if_no_plan_next_key(tmp_path: Path):
-    plan_file = tmp_path / "plan-T-TEST-001.md"
+    plan_file = tmp_path / "T-TEST-001/md/plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text(
         "# Plan Title\n"
         "---\n"
@@ -42,7 +45,8 @@ def test_parse_plan_next_none_if_no_plan_next_key(tmp_path: Path):
     assert parse_plan_next(plan_file) is None
 
 def test_write_plan_next_appends_yaml_block(tmp_path: Path):
-    plan_file = tmp_path / "plan-T-TEST-001.md"
+    plan_file = tmp_path / "T-TEST-001/md/plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan Title\nSome content.")
 
     override = EpicNextOverride(
@@ -58,7 +62,8 @@ def test_write_plan_next_appends_yaml_block(tmp_path: Path):
     assert "---\nplan-next/v1:" in content
 
 def test_write_plan_next_idempotent_on_second_write(tmp_path: Path):
-    plan_file = tmp_path / "plan-T-TEST-001.md"
+    plan_file = tmp_path / "T-TEST-001/md/plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan Title\nSome content.")
 
     override = EpicNextOverride(
@@ -107,7 +112,8 @@ def test_validate_plan_next_conflict_decompose_missing_plan():
 def test_plan_finish_hook_writes_plan_next(tmp_path: Path):
     from loop.board_sync.plan_next import parse_plan_next, write_plan_next, EpicNextOverride
 
-    plan_file = tmp_path / "plan-T-TEST-001.md"
+    plan_file = tmp_path / "T-TEST-001/md/plan.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan\nContent\n")
 
     override = EpicNextOverride(

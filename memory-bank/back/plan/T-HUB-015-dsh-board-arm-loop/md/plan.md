@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · brainstorming (batch decisions below)
 
-→ [T-HUB-015-dsh-board-arm-loop/md/decompose-index.md](T-HUB-015-dsh-board-arm-loop/md/decompose-index.md) — **единственный трекер статуса шагов**
+→ [T-HUB-015-dsh-board-arm-loop/yaml/decompose-index.yaml](T-HUB-015-dsh-board-arm-loop/yaml/decompose-index.yaml) — **единственный трекер статуса шагов**
 
 ---
 

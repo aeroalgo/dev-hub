@@ -42,7 +42,7 @@ def test_corrupt_index_skip(tmp_path: Path) -> None:
             {
                 "schema": "epic-decompose-index/v1",
                 "plan_id": "T-VALID",
-                "steps": [{"id": "s01", "title": "Valid", "status": "pending"}],
+                "steps": [{"id": "s01", "file": "s01.yaml", "title": "Valid", "status": "pending"}],
             }
         ),
         encoding="utf-8",
@@ -81,7 +81,7 @@ def test_multi_role(tmp_path: Path) -> None:
                 {
                     "schema": "epic-decompose-index/v1",
                     "plan_id": f"T-{role.upper()}",
-                    "steps": [{"id": "s01", "title": role, "status": "pending"}],
+                    "steps": [{"id": "s01", "file": "s01.yaml", "title": role, "status": "pending"}],
                 }
             ),
             encoding="utf-8",

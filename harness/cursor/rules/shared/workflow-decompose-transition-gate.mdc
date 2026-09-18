@@ -10,8 +10,8 @@ adapter переводит нативные события провайдера 
 
 ## Hard rules
 
-- `DECOMPOSE` считается завершённым только когда индекс, `md/decompose-index.md`
-  и каждый `sNN/eNN` из `yaml/decompose-index.yaml` физически существуют и
+- `DECOMPOSE` считается завершённым только когда `yaml/decompose-index.yaml`
+  и каждый `sNN/eNN` из него физически существуют и
   проходят `validate-decompose-tree`.
 - Перед следующим шагом обязательны `validate-traceability` с
   `CRITICAL=0` и свежий `verify-decompose` PASS.

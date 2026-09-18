@@ -574,7 +574,7 @@ def discover_decompose_indexes(cwd: str | Path, *, limit: int = 5) -> list[str]:
 
 
 _WORK_SHARD_RE = re.compile(
-    r"memory-bank/[^/]+/(?:plan|implement)/[^/]+/(?:yaml/steps/)?"
+    r"memory-bank/[^/]+/(?:plan/[^/]+/yaml/steps|implement/[^/]+)/"
     r"(?:e|s)\d{2}-[^/\s`]+\.ya?ml$"
 )
 _SCOPED_PATH_PREFIXES = (
@@ -732,7 +732,6 @@ def _step_progress_paths(
                 decompose.role,
                 epic_id,
                 decompose.step_id,
-                plan_id=decompose.plan_id,
             )
         )
     except Exception:
@@ -1245,8 +1244,8 @@ FORBIDDEN: ARCHIVE NOW / skill archive в этой сессии.
 activeContext не разобран ({'; '.join(reasons)}). Не halt.
 1. Прочитай activeContext.md.
 2. **SoT:** Decompose index (YAML) — первый step со status `pending`/`active`.
-3. **FORBIDDEN:** доверять Handoff step_id или `## done`, если они расходятся с index.yaml (нет implement-шарда / finalize-step).
-4. Один следующий шаг = режим + step_id **из index.yaml**, не из Handoff.
+3. **FORBIDDEN:** доверять Handoff step_id или `## done`, если они расходятся с decompose-index.yaml (нет implement-шарда / finalize-step).
+4. Один следующий шаг = режим + step_id **из decompose-index.yaml**, не из Handoff.
 5. На FINISH перепиши activeContext:
    `## load_now` (пути в backticks) → 1× `## Handoff` → ≤1× `## done`.
 """
@@ -1514,7 +1513,7 @@ def _step_context_extra_blocks(cwd: Path, load_now: list[str]) -> list[str]:
     impl = None
     folder_epic = epic_id_from_decompose_path(rel) or dec.plan_id
     impl_rel = resolve_implement_path(
-        cwd, dec.role, folder_epic, dec.step_id, plan_id=dec.plan_id
+        cwd, dec.role, folder_epic, dec.step_id
     )
     impl_path = cwd / impl_rel
     if impl_path.is_file():
@@ -2102,14 +2101,14 @@ def prepare_session(
                     "finish_command_failed step=%s",
                     failed_step,
                 )
-        # index.yaml is cursor SoT — rewrite AC + armed_step before integrity/checkpoint.
+        # decompose-index.yaml is cursor SoT — rewrite AC + armed_step before integrity/checkpoint.
         cursor_sync = sync_cursor_from_index(cwd_p)
         if cursor_sync.get("synced"):
             text = read_active_context(cwd_p)
             state = load_epic_state(cwd_p)
             projection = rebuild_epic_projection(cwd_p)
             logger.warning(
-                "prepare: cursor synced from index.yaml %s → %s",
+                "prepare: cursor synced from decompose-index.yaml %s → %s",
                 cursor_sync.get("previous_armed"),
                 cursor_sync.get("step_id"),
             )
@@ -2157,7 +2156,6 @@ def prepare_session(
                 "diagnostic_codes": finish_integrity["diagnostic_codes"],
                 "reason": "; ".join(finish_integrity["errors"]),
                 "repair": finish_integrity.get("repair"),
-                "md_repair": md_repair,
                 "cursor_sync": cursor_sync,
             }
     else:
@@ -2293,7 +2291,7 @@ def prepare_session(
     stall_n = int(st.get("fingerprint_stall_count") or 0)
     progress_paths = _step_progress_paths(cwd_p, existing, st)
 
-    # Cursor already synced from index.yaml earlier in prepare (SoT).
+    # Cursor already synced from decompose-index.yaml earlier in prepare (SoT).
     _auto_advanced = bool(cursor_sync.get("synced"))
     if _auto_advanced:
         _last = load_last_session(cwd_p, track="epic")
@@ -3142,7 +3140,6 @@ def check_after(
                 "diagnostic_codes": finish_integrity["diagnostic_codes"],
                 "reason": "; ".join(finish_integrity["errors"]),
                 "repair": finish_integrity.get("repair"),
-                "md_repair": md_repair,
             }
             return _run_tier0_check_after(cwd_p, res)
 
@@ -4147,7 +4144,7 @@ def _node_status(cwd: Path, node: dict[str, Any]) -> str:
     decompose = _node_decompose_path(node)
     idx = Path(cwd) / decompose
     if idx.is_dir():
-        idx = idx / "index.yaml"
+        idx = idx / "yaml" / "decompose-index.yaml"
     try:
         from epic import find_next_decompose_step_from_queue
         from epic import load_decompose_steps_fail_closed
@@ -4765,36 +4762,17 @@ def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
     mb_root = resolve_mb_root(cwd=root)
     mb_root_rel = mb_root.relative_to(root).as_posix()
     gap_dir = mb_root / "integration" / "gap"
-    gaps = (
-        sorted(gap_dir.glob("**/gap-*.yaml"))
-        + sorted(gap_dir.glob("**/gap-*.yml"))
-        + sorted(gap_dir.glob("**/gap-*.md"))
-    )
+    gaps = sorted(gap_dir.glob("**/gap-*.yaml")) + sorted(gap_dir.glob("**/gap-*.yml"))
     nodes: list[dict[str, Any]] = []
     source_artifacts: list[str] = []
-    legacy = False
     for gap in gaps:
         try:
             data = {} if gap.suffix == ".md" else (yaml.safe_load(gap.read_text(encoding="utf-8")) or {})
         except (OSError, yaml.YAMLError):
             continue
-        if gap.suffix == ".md" or not isinstance(data, dict):
-            legacy = True
-            source_artifacts.append(gap.relative_to(root).as_posix())
-            text = gap.read_text(encoding="utf-8", errors="replace")
-            links = list(dict.fromkeys(re.findall(r"decompose-[A-Za-z0-9._-]+", text)))
-            data = {
-                "back": {"decompose": f"{mb_root_rel}/back/plan/{links[0]}/index.yaml"}
-                if links else {},
-                "front": {"decompose": f"{mb_root_rel}/front/plan/{links[1]}/index.yaml"}
-                if len(links) > 1 else {},
-            }
-        elif not isinstance(data, dict):
-            continue
         if not isinstance(data, dict):
             continue
-        if gap.suffix != ".md":
-            source_artifacts.append(gap.relative_to(root).as_posix())
+        source_artifacts.append(gap.relative_to(root).as_posix())
         gap_id = gap.stem
         close_id = f"{gap_id}-close"
         nodes.append({
@@ -4845,14 +4823,12 @@ def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
         "schema": "loop-dag/v2",
         "pipeline": {"id": pipeline_id},
         "source": {"kind": "integration_gap", "artifacts": source_artifacts or [f"{mb_root_rel}/integration/gap/{pipeline_id}"]},
-        "execution": {"autonomous": not legacy},
+        "execution": {"autonomous": True},
         "nodes": nodes,
     }
     result = validate_manifest(manifest)
     if not result["ok"]:
         return {"ok": False, "path": None, "nodes": nodes, "diagnostics": result["diagnostics"]}
-    if legacy:
-        result["diagnostics"].append({"code": "legacy_gap_inference", "message": "legacy gap links are compatibility-only"})
     path = _dag_path(root, pipeline_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -4882,12 +4858,12 @@ def main(argv: list[str] | None = None) -> int:
 
     p_arm = sub.add_parser(
         "arm",
-        help="Arm epic via resolver (epic id, plan path, or legacy decompose path)",
+        help="Arm epic via resolver (epic id, plan path, or canonical decompose YAML path)",
     )
     p_arm.add_argument(
         "--epic",
         required=True,
-        help="Epic id (T-HUB-029), plan-*.md, or decompose-<id>[/index.yaml]",
+        help="Epic id, canonical plan.md path, or .../yaml/decompose-index.yaml",
     )
 
     p_after = sub.add_parser("check-after", help="Inspect activeContext after session")
@@ -4930,7 +4906,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_merge = sub.add_parser(
         "roadmap-merge",
-        help="Reconcile roadmap/queue.yaml (optional legacy batches → archive)",
+        help="Reconcile roadmap/queue.yaml from YAML batch sources",
     )
     p_merge.add_argument(
         "--role",
@@ -4944,14 +4920,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Compute merge without writing files",
     )
     p_merge.add_argument(
-        "--write-md",
-        action="store_true",
-        help="Also write deprecated md mirror (default: yaml-only)",
-    )
-    p_merge.add_argument(
         "--no-archive",
         action="store_true",
-        help="Do not move legacy slug sources into roadmap/archive/",
+        help="Do not move YAML batch sources into roadmap/archive/",
     )
 
     p_cadence = sub.add_parser(
@@ -5120,7 +5091,6 @@ def main(argv: list[str] | None = None) -> int:
             cwd,
             role=args.role,
             dry_run=bool(args.dry_run),
-            write_md=bool(args.write_md),
             archive_sources=not bool(args.no_archive),
         )
         print(json.dumps(out, ensure_ascii=False))

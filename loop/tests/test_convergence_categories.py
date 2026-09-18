@@ -73,11 +73,18 @@ def test_strict_exit(tmp_path: Path):
 
 def test_no_findings_exit_0(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
-    decomp_dir = plan_dir / "decompose-T-HUB-CLEAN"
+    decomp_dir = plan_dir / "T-HUB-CLEAN" / "yaml"
     decomp_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-HUB-CLEAN.md").write_text("Requirement FR-001\n", encoding="utf-8")
-    (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-CLEAN\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: [FR-001]\n", encoding="utf-8")
+    (plan_dir / "T-HUB-CLEAN" / "md").mkdir(parents=True)
+    (plan_dir / "T-HUB-CLEAN" / "md" / "plan.md").write_text("Requirement FR-001\n", encoding="utf-8")
+    (decomp_dir / "decompose-index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-HUB-CLEAN\n"
+        "steps:\n  - id: s01\n    file: steps/s01.yaml\n",
+        encoding="utf-8",
+    )
+    (decomp_dir / "steps").mkdir()
+    (decomp_dir / "steps" / "s01.yaml").write_text("step_id: s01\nplan_refs: [FR-001]\n", encoding="utf-8")
 
     cmd = [
         sys.executable,

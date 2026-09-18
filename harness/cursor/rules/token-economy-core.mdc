@@ -14,20 +14,20 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 - Role command: `BACK PLAN`, `FRONT PLAN`, `INTEG PLAN`, `PM PLAN`, `BACK PLAN REFACTOR`, `* SECURITY PLAN`, `* REFACTOR PLAN`, or any `* PLAN`
 - Role command: `BACK DECOMPOSE`, `FRONT DECOMPOSE`, `INTEG DECOMPOSE` (and SECURITY/REFACTOR DECOMPOSE when writing step shards)
 - Role command brownfield: `BACK VAN`, `FRONT VAN`, `INTEG VAN` when writing `memory-bank/architecture/**`
-- Writing/updating: `memory-bank/**/plan-*.md`, `memory-bank/**/plan/decompose-*/**`, `memory-bank/integration/gap/**/gap-*.md`, gap closing plans `plan-BACK-GAP-*` / `plan-FRONT-GAP-*`, `memory-bank/**/security/plan/plan-*.md`, `memory-bank/**/refactor/plan/plan-*.md`, или `memory-bank/architecture/**`
+- Writing/updating: `memory-bank/**/plan/**/md/plan.md`, `memory-bank/**/plan/<epic>/yaml/**`, `memory-bank/integration/gap/**/gap-*.md`, gap closing plans, `memory-bank/**/security/plan/**/md/plan.md`, `memory-bank/**/refactor/plan/**/md/plan.md`, или `memory-bank/architecture/**`
 
 ### FORBIDDEN while guard is active (plan/gap/architecture/**decompose** OUTPUT)
 
-- Apply §0.2 telegraph brevity to the plan/gap/**architecture**/`decompose-*/` file
+- Apply §0.2 telegraph brevity to the plan/gap/**architecture**/`plan/<epic>/yaml/` file
 - Cap size (~200 lines, «keep short», «оглавление достаточно», «мало шагов»)
 - Compress Element/API registry / omit routes or UI elements / omit mermaid diagrams for length
 - Compress DECOMPOSE: skip AC/FR/NFR/stages coverage, merge stages into infra-only sNN, refuse extra sNN «ради токенов»
-- Treat chat «brief» as a reason to shorten `plan-*.md` / architecture / `decompose-*/**`
+- Treat chat «brief» as a reason to shorten `plan/<epic>/md/plan.md` / architecture / `plan/<epic>/yaml/**`
 - Confuse lean **LOAD** (§0.3, §0.5.1) with lean **WRITE** of the plan/map/decompose
 
 ### REQUIRED
 
-- Plan/gap/**architecture**/`decompose-*/index.md`+`sNN|eNN-*.yaml`: **maximally detailed, exhaustive, comprehensive** — no line/size/brevity limits on intent/coverage (DECOMPOSE still lean = no full code bodies in shards)
+- Plan/gap/**architecture**/`<epic>/yaml/decompose-index.yaml`+`yaml/steps/sNN|eNN-*.yaml`: **maximally detailed, exhaustive, comprehensive** — no line/size/brevity limits on intent/coverage (DECOMPOSE still lean = no full code bodies in shards)
 - Chat with user MAY stay brief (1–3 sentences summary); **artifact must not**
 - Research/audit PLAN input with ≥2 cut criteria → **N epics** + roadmap (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); one mega-plan that truncates = FAIL
 
@@ -47,7 +47,7 @@ This section **supersedes** every conflicting brevity rule. Workflow PLAN / DECO
 |--|------------------|-------|
 | **Which files you READ** | YES lean | `load_now`, ONE shard for IMPLEMENT; PLAN may inventory all required portal implement + routes |
 | **How much of an allowed file you READ** | **NO line-cap** | Skills / `.cursor/rules` / code / step shard — **full file**. FORBIDDEN: `read … limit:200` «из-за §0.5» |
-| **What you WRITE** to `plan-*.md` / `gap-*.md` / `architecture/**` / `decompose-*/**` | **NO lean** | §0.0 — full detail (DECOMPOSE: coverage+steps; still no code bodies in sNN) |
+| **What you WRITE** to `plan/<epic>/md/plan.md` / `gap-*.md` / `architecture/**` / `plan/<epic>/yaml/**` | **NO lean** | §0.0 — full detail (DECOMPOSE: coverage+steps; still no code bodies in sNN) |
 | **What you WRITE** to other `memory-bank/**` non-plan docs | YES §0.5 | max ~200 lines **on write/split** — not a read tool limit |
 | **Chat reply to user** | YES brief OK | Do not mirror chat brevity into the plan/map/decompose file |
 
@@ -59,7 +59,7 @@ This section **supersedes** every conflicting brevity rule. Workflow PLAN / DECO
 | Layer | Lang | Notes |
 |-------|------|-------|
 | `.cursor/rules/`, skills refs | EN | compact |
-| `memory-bank/**/plan-*.md`, `**/gap/gap-*.md`, `plan-*-GAP-*.md`, `architecture/**`, `**/plan/decompose-*/**` | RU | **NOT telegraph** — full, exhaustive (§0.0) |
+| `memory-bank/**/plan/*/md/plan.md`, `**/gap/gap-*.md`, `**/gap/<epic>/**/*.md`, `architecture/**`, `**/plan/<epic>/yaml/**` | RU | **NOT telegraph** — full, exhaustive (§0.0) |
 | Other `memory-bank/` artifacts | RU | telegraph style (§0.2) |
 | Chat with user | **RU** (default) | brief; does **not** limit plan/map artifact size |
 
@@ -72,16 +72,16 @@ Applies to implement/task/qa shards and other live workflow steps.
 - Max 3 sentences/section unless technical detail requires more
 - No filler, no intros
 
-**Does NOT apply** to `plan-*.md` / `gap-*.md` / `architecture/**` / `decompose-*/**` (§0.0). Using telegraph on those files = violation.
+**Does NOT apply** to `plan/<epic>/md/plan.md` / `gap-*.md` / `architecture/**` / `plan/<epic>/yaml/**` (§0.0). Using telegraph on those files = violation.
 
 ## 0.3 Context window — load only role input
 
 | Role | Reads | Does NOT read |
 |------|-------|---------------|
 | PM | user chat, `pm/*` | full ARCHITECTURE, all code |
-| BACK/FRONT/INTEG dev | `activeContext.md` **`load_now`**: work shard + `decompose-*/index.yaml`; AC = work shard | **full `plan-*.md`**, `index.md` coverage, `tasks.md`/`systemPatterns` as load, all shards, `done` section |
+| BACK/FRONT/INTEG dev | `activeContext.md` **`load_now`**: work shard + `plan/<epic>/yaml/decompose-index.yaml`; AC = work shard | **full `plan/<epic>/md/plan.md`**, markdown coverage, `tasks.md`/`systemPatterns` as load, all shards, `done` section |
 | TL | `tl/*`, `activeContext.md`, delivery refs | full design docs |
-| Reviewer (BACK QA) | qa/bugfix shard + changed files; plan **§N** only if AC unclear | full `plan-*.md`, full memory-bank |
+| Reviewer (BACK QA) | qa/bugfix shard + changed files; plan **§N** only if AC unclear | full `plan/<epic_id>/md/plan.md`, full memory-bank |
 | Architect (BACK PLAN) | `DECISION_LOG` / plan refs + stage summary | unrelated task shards |
 | **INTEG PLAN** | as required by `workflow-plan.mdc` (portal inventory, all relevant implement) | infra-only implement; gap/contracts not required |
 
@@ -99,7 +99,7 @@ Workflow router (`mainrule.mdc`) + isolation rules enforce this per command. Lea
 Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT** limit `read` / `skill` tool output.
 
 - Max **200 lines** per **written** non-plan doc. Split → subfiles; root = index + links.
-- **`plan-*.md` / `gap-*.md` / PLAN GAP plans / `architecture/**` / `decompose-*/**`: NO max lines** — must be maximally detailed (§0.0). DECOMPOSE shards: no code bodies, but full coverage/delta/checkpoints.
+- **`plan/<epic>/md/plan.md` / `gap-*.md` / PLAN GAP plans / `architecture/**` / `plan/<epic>/yaml/**`: NO max lines** — must be maximally detailed (§0.0). DECOMPOSE shards: no code bodies, but full coverage/delta/checkpoints.
 - `memory-bank/tasks.md` = **index** (активные + progress); хронология → `tasks/log/` (**пишет `finalize-step` на sNN**; руками — только смена фазы эпика)
 - Task detail → `memory-bank/<category>/<id>.md` (e.g. `back/implement/T-020-slug.md`)
 - Large **non-plan** docs split into shard dirs (see `memory-bank-paths.mdc`):
@@ -114,18 +114,18 @@ Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT*
 **REQUIRED session load order (default IMPLEMENT/TASK/BUGFIX/QA):**
 
 1. `memory-bank/activeContext.md` → **`load_now`** list (ONLY those files)
-2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` (**+ `plan_contract`**) + `decompose-*/index.yaml`
+2. **IMPLEMENT (эпик):** work shard `plan/<epic>/yaml/steps/sNN|eNN-*.yaml` (**+ `plan_contract`**) + `plan/<epic>/yaml/decompose-index.yaml`
 3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`
-4. AC source = **work shard + `plan_contract`**. **Не** подставлять полный `plan-*.md` как monolith AC
+4. AC source = **work shard + `plan_contract`**. **Не** подставлять полный `plan/<epic_id>/md/plan.md` как monolith AC
 5. **Plan jumps (IMPLEMENT):** Read `plan_contract.plan_jumps` / `Consumes: plan §FR-00N` — объём jumps = (end-start)*2 = 100% к изначальному scope (line 120-160 = 160-120 = 40 * 2 => jump 120-200); не весь plan
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 
-**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan/**/md/plan.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · markdown indexes
 
 **`load_now` OK partial plan:** line-range jumps / §FR / Consumes §N
 
-**`load_now` OK index:** `plan/decompose-*/index.yaml` (status). `index.md` — DECOMPOSE/ANALYZE/AUDIT coverage, не IMPLEMENT hot path.
+**`load_now` OK index:** `plan/<epic>/yaml/decompose-index.yaml` (status и coverage), не IMPLEMENT hot path.
 
 **`load_now` OK для полного plan:** когда режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
 
@@ -138,10 +138,9 @@ Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT*
 | `systemPatterns.md` | `domain/SP-*.md` |
 | `back/creative/creative-booking-erd.md` | `back/creative/shards/ERD-*.md` |
 | `back/creative/creative-telegram-*.md` | `back/creative/shards/TG-*.md` |
-| `plan/decompose-*/index.yaml` | status queue (`load_now` IMPLEMENT) |
-| `plan/decompose-*/index.md` | coverage tables (DECOMPOSE/AUDIT only) |
+| `plan/<epic>/yaml/decompose-index.yaml` | validated status queue (`load_now` IMPLEMENT) |
 
-Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `decompose-*/index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
+Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `plan/<epic>/yaml/decompose-index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
 
 ## 0.6 Chunked execution
 
@@ -225,7 +224,7 @@ Mandatory in **BACK IMPLEMENT** (before finish) and **BACK QA**.
 - Read file once per session; plan edits from that read
 - **Subagents:** **обязательные gate’ы** — широкий codebase search → `explorer` (полный `files:` / `delta_paths_*` → SKIP) · pre-FINISH `verify` (`code_changed`) · BACK QA `reviewer` — общая политика `harness/instructions/spawn-hard.md`, transport через runtime adapter. Прочие Agent — свободно. Frontend-тесты only parent: `.cursor/rules/front-tests-parent-only.mdc` / `~/.claude/rules/02-front-tests-parent-only.md`.
 - `tasks.md` updates: только смена фазы эпика (или `finalize-step`); checkbox-only на shards
-- **PLAN:** prefer one comprehensive Write of `plan-*.md`; size is not a reason to truncate
+- **PLAN:** prefer one comprehensive Write of `plan/<epic_id>/md/plan.md`; size is not a reason to truncate
 
 ## 0.13 Role mapping
 
@@ -252,5 +251,5 @@ Detail: .cursor/rules/shared/context-session-economy.mdc
 - **FINISH:** **перезаписать** единственный `## Handoff` в `activeContext.md` (не append) → doc-router → recommend new chat (@.cursor/templates/finish-doc-router.md + .cursor/rules/shared/finish-doc-router.mdc)
 - **Session start:** `load_now` + handoff file; never depend on prior chat transcript
 - **Skills:** lazy — only skills for current subtask
-- **QA:** qa/bugfix shard + diff + §0.11 grep; skip `plan-*.md`; if AC unclear → only `plan §N`, never full plan in `load_now`
-- **PLAN / DECOMPOSE / architecture exception:** §0.0 — do not shorten plan, `decompose-*/**`, or `architecture/**` artifacts to satisfy this section
+- **QA:** qa/bugfix shard + diff + §0.11 grep; skip `plan/<epic_id>/md/plan.md`; if AC unclear → only `plan §N`, never full plan in `load_now`
+- **PLAN / DECOMPOSE / architecture exception:** §0.0 — do not shorten plan, `plan/<epic>/yaml/**`, or `architecture/**` artifacts to satisfy this section

@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · modern-python
 
-→ [T-HUB-050-workflow-pack-memory-bank-paths/md/decompose-index.md](T-HUB-050-workflow-pack-memory-bank-paths/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-050-workflow-pack-memory-bank-paths/yaml/decompose-index.yaml](T-HUB-050-workflow-pack-memory-bank-paths/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

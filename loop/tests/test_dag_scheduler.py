@@ -59,18 +59,23 @@ def test_scheduler_arms_one_ready_node_in_stable_order(tmp_path: Path) -> None:
         "loop/dag/portal.yaml",
         _manifest(
             [
-                _work_node("z-back", "memory-bank/back/plan/decompose-z/index.md"),
-                _work_node("a-back", "memory-bank/back/plan/decompose-a/index.md"),
+                _work_node("z-back", "memory-bank/back/plan/z/yaml/decompose-index.yaml"),
+                _work_node("a-back", "memory-bank/back/plan/a/yaml/decompose-index.yaml"),
             ]
         ),
     )
     for name in ("z", "a"):
         _write(
             tmp_path,
-            f"memory-bank/back/plan/decompose-{name}/index.md",
-            "| step_id | title | status |\n|---|---|---|\n| **s01** | [s01-step.yaml](s01-step.yaml) | pending |\n",
+            f"memory-bank/back/plan/{name}/yaml/decompose-index.yaml",
+            f"schema: epic-decompose-index/v1\n"
+            f"plan_id: {name}\n"
+            "steps:\n"
+            "  - id: s01\n"
+            "    file: s01-step.yaml\n"
+            "    status: pending\n",
         )
-        _write(tmp_path, f"memory-bank/back/plan/decompose-{name}/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+        _write(tmp_path, f"memory-bank/back/plan/{name}/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
 
     out = ctx._arm_dag_next(tmp_path, "portal")
 
@@ -89,23 +94,25 @@ def test_scheduler_reports_dependency_reasons_when_blocked(tmp_path: Path) -> No
         "loop/dag/portal.yaml",
         _manifest(
             [
-                _work_node("back", "memory-bank/back/plan/decompose-demo/index.md"),
-                _work_node("front", "memory-bank/front/plan/decompose-demo-front/index.md", ["back"]),
+                _work_node("back", "memory-bank/back/plan/demo/yaml/decompose-index.yaml"),
+                _work_node("front", "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml", ["back"]),
             ]
         ),
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| **s01** | [s01-step.yaml](s01-step.yaml) | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n"
+        "  - id: s01\n    file: s01-step.yaml\n    status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
     _write(
         tmp_path,
-        "memory-bank/front/plan/decompose-demo-front/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| **s01** | [s01-step.yaml](s01-step.yaml) | pending |\n",
+        "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: demo-front\nsteps:\n"
+        "  - id: s01\n    file: s01-step.yaml\n    status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
+    _write(tmp_path, "memory-bank/front/plan/demo-front/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
 
     out = ctx._arm_dag_next(tmp_path, "portal")
 

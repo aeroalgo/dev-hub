@@ -29,24 +29,16 @@ def index_content_fingerprint(index_path: Path) -> str | None:
 
 
 def canon_index_yaml_path(index_path: Path | None) -> Path | None:
-    """Fingerprint/mtime SoT is index.yaml when present (md is mirror only)."""
+    """Return the YAML index used for fingerprint/mtime decisions."""
     if index_path is None:
         return None
     path = Path(index_path)
     if path.is_dir():
-        yaml_v2 = path / "yaml" / "decompose-index.yaml"
-        if yaml_v2.is_file():
-            return yaml_v2
-        yaml = path / "index.yaml"
-        return yaml if yaml.is_file() else path
-    if path.name == "decompose-index.md" and path.parent.name == "md":
-        yaml_v2 = path.parent.parent / "yaml" / "decompose-index.yaml"
-        if yaml_v2.is_file():
-            return yaml_v2
-    if path.name in {"index.md", "index.yml"}:
-        yaml = path.with_name("index.yaml")
-        if yaml.is_file():
-            return yaml
+        return path / "yaml" / "decompose-index.yaml"
+    if path.suffix.lower() in {".md", ".markdown"}:
+        return None
+    if path.name not in {"decompose-index.yaml", "decompose-index.yml"}:
+        return None
     return path
 
 

@@ -187,6 +187,8 @@ def epic_id_from_decompose_path(decompose: str | Path) -> str:
     if not raw:
         return ""
     path = Path(raw.replace("\\", "/"))
+    if path.suffix.lower() in {".md", ".markdown"}:
+        return ""
     parts = list(path.parts)
     for idx, part in enumerate(parts):
         # Layout v2: memory-bank/<role>/plan/<epic_id>/...
@@ -199,12 +201,10 @@ def epic_id_from_decompose_path(decompose: str | Path) -> str:
 
 
 def plan_id_from_decompose_index(index_path: Path) -> str | None:
-    """Read plan_id from decompose index.yaml when present."""
+    """Read plan_id from the validated canonical YAML index."""
     path = index_path
-    if path.name in {"index.md", "decompose-index.md"}:  # layout_v1_deprecated index filename
-        yaml_sibling = path.with_name(path.name.replace(".md", ".yaml"))
-        if yaml_sibling.is_file():
-            path = yaml_sibling
+    if path.suffix.lower() in {".md", ".markdown"}:
+        return None
     if not path.is_file():
         return None
     try:
@@ -218,22 +218,14 @@ def plan_id_from_decompose_index(index_path: Path) -> str | None:
 
 
 def canonical_epic_id_for_decompose(decompose: str | Path, *, index_path: Path | None = None) -> str:
-    """Epic id: plan_id from index.yaml when set, else folder slug."""
+    """Epic id: plan_id from the canonical YAML index when set, else folder slug."""
     idx = index_path
     if idx is None:
         raw = str(decompose).strip().replace("\\", "/")
-        if raw.endswith(".md") or raw.endswith(".yaml") or raw.endswith(".yml"):
+        if raw.endswith(".yaml") or raw.endswith(".yml"):
             idx = Path(raw)
         else:
-            idx = Path(raw) / "index.yaml"
-    if idx.name in {"index.md", "decompose-index.md"}:  # layout_v1_deprecated index filename
-        yaml_sibling = idx.with_name(idx.name.replace(".md", ".yaml"))
-        if yaml_sibling.is_file():
-            idx = yaml_sibling
-        elif idx.parent.name == "md":
-            yaml_v2 = idx.parent.parent / "yaml" / "decompose-index.yaml"
-            if yaml_v2.is_file():
-                idx = yaml_v2
+            idx = Path(raw) / "yaml" / "decompose-index.yaml"
     plan_id = plan_id_from_decompose_index(idx)
     if plan_id:
         return plan_id
@@ -264,13 +256,7 @@ def find_decompose_index_path(
     if not plan_dir.is_dir():
         return None
 
-    lookup_values = list(epic_lookup_ids(epic_id))
-    for lookup_id in tuple(lookup_values):
-        for plan_path in sorted(plan_dir.glob(f"{lookup_id}-*/md/plan.md")):
-            full_epic_id = plan_path.parent.parent.name
-            if full_epic_id and full_epic_id not in lookup_values:
-                lookup_values.append(full_epic_id)
-    lookup = tuple(lookup_values)
+    lookup = epic_lookup_ids(epic_id)
     for lookup_id in lookup:
         # Check v2 lookup candidate
         try:

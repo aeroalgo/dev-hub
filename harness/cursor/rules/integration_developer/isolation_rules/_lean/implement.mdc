@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## Gates
 
-1. `load_now`: work shard `plan/<epic>/yaml/steps/eNN-*.yaml` + `yaml/decompose-index.yaml`; **не** gap/contracts/полный `plan.md` / `md/decompose-index.md`; AC = eNN
+1. `load_now`: work shard `plan/<epic>/yaml/steps/eNN-*.yaml` + `yaml/decompose-index.yaml`; **не** gap/contracts/полный `plan.md`; AC = eNN
 1b. **Search scope:** полный shard `files:` / `delta_paths_*` → SKIP @explorer и graphify query
 2. §Contract из шага; пуст → допиши до кода
 3. Phases A→F = один UI-элемент; QueryBuilder для list/filter
@@ -31,7 +31,7 @@ alwaysApply: false
 
 - Шире eNN · gap вместо step · Phase E skipped · mock in prod → no FINISH
 - **Scope violation** (scope lock): path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA/AUDIT → REVERT **только ledger-paths** + halt. Чужой git dirty → ignore, не `git checkout --`/`git restore`/`rm`
-- Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL
+- Полный `plan/<epic_id>/md/plan.md` в `load_now` / Read всего plan «как AC» → FAIL
 - Flat implement для нового эпика · user-visible без scenario · «manual smoke only» → reject
 - Непустой eNN `deletes` не выполнен → no FINISH
 - Purge без evidence `rg`/inventory → no FINISH

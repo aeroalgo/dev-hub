@@ -22,9 +22,9 @@ def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
                 "schema": "epic-decompose-index/v1",
                 "plan_id": "T-DEMO",
                 "steps": [
-                    {"id": "s01", "title": "First pending", "status": "pending"},
-                    {"id": "s02", "title": "Running", "status": "in_progress"},
-                    {"id": "s03", "title": "Done", "status": "completed"},
+                    {"id": "s01", "file": "s01.yaml", "title": "First pending", "status": "pending"},
+                    {"id": "s02", "file": "s02.yaml", "title": "Running", "status": "active"},
+                    {"id": "s03", "file": "s03.yaml", "title": "Done", "status": "completed"},
                 ],
             }
         ),
@@ -41,7 +41,7 @@ def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
                 "version": "roadmap-queue/v2",
                 "role": "back",
                 "queue": [
-                    {"id": "T-DEMO", "plan": "plan-T-DEMO.md", "deps": []}
+                    {"id": "T-DEMO", "plan": "T-DEMO/md/plan.md", "deps": []}
                 ],
             }
         ),

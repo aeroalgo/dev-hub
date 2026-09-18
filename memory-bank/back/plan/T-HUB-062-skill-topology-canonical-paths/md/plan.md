@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns · grill-me (Phase 0 done)  
 **Источник:** `memory-bank/audit/workflow-loop-20260905/index.md` P0 + `02-workflow-pack-and-rules.md` §skill topology
 
-→ [decompose-index.md](decompose-index.md) · [decompose-index.yaml](../yaml/decompose-index.yaml) — **DECOMPOSE 2026-09-05** (5 sNN, next BACK ANALYZE)
+→ [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · [decompose-index.yaml](../yaml/decompose-index.yaml) — **DECOMPOSE 2026-09-05** (5 sNN, next BACK ANALYZE)
 
 ---
 

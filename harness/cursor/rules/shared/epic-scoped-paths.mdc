@@ -15,7 +15,7 @@ alwaysApply: false
 | Артефакт | Канон имени (v2) |
 |----------|-------------|
 | Plan dir | `plan/<epic_id>/` (`md/plan.md`) |
-| Decompose dir | `plan/<epic_id>/yaml/` (`decompose-index.yaml` + `steps/sNN-*.yaml`) + `md/decompose-index.md` |
+| Decompose dir | `plan/<epic_id>/yaml/` (`decompose-index.yaml` + `steps/sNN-*.yaml`) |
 | Implement dir | `implement/<epic_id>/` (`sNN-*.yaml` **прямо здесь**; **FORBIDDEN** `yaml/`/`md/` split) |
 | Analyze / audit / qa | `<phase>/<epic_id>/<phase>-*.yaml` или `<phase>.yaml` **прямо в папке** (**FORBIDDEN** `yaml/`/`md/` split) |
 

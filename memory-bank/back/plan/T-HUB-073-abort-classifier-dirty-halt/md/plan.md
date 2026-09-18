@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** architecture §P1 abort + dirty_files; session audit §11 401×8 empty DECOMPOSE; as-built `harness/hooks/session_resilience.py`
 
-→ [decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml)
+→ [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ---
 

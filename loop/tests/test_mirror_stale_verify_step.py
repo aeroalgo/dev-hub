@@ -26,7 +26,7 @@ def test_mirror_stale_verify_step_does_not_demote_after_promote(tmp_path: Path) 
             "armed_epic": "T-HUB-STALE",
             "armed_step": "s02",
             "armed_role": "BACK",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-STALE/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-HUB-STALE/yaml/decompose-index.yaml",
             "session_id": "sess-stale",
             "last_verify_verdict": "PASS",
             "last_verify_evidence": {
@@ -48,9 +48,9 @@ def test_mirror_stale_verify_step_does_not_demote_after_promote(tmp_path: Path) 
     )
     save_epic_state(tmp_path, st)
 
-    plan = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-STALE"
+    plan = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-STALE" / "yaml"
     plan.mkdir(parents=True)
-    (plan / "index.yaml").write_text(
+    (plan / "decompose-index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         "epic_id: T-HUB-STALE\n"
         "steps:\n"

@@ -22,11 +22,11 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 
-**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan/**/md/plan.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `md/decompose-index.md` · `implement-*/index.md`
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan/**/md/plan.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · markdown indexes
 
 **`load_now` OK partial plan:** `plan_jumps` line ranges / `plan §FR-00N` / Consumes §N (не весь файл)
 
-**`load_now` OK index:** `plan/<epic>/yaml/decompose-index.yaml` (status). `md/decompose-index.md` — DECOMPOSE/AUDIT/ANALYZE coverage, не IMPLEMENT hot path.
+**`load_now` OK index:** `plan/<epic>/yaml/decompose-index.yaml` (status и coverage), не IMPLEMENT hot path.
 
 **`load_now` OK для полного plan:** когда следующий режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
 

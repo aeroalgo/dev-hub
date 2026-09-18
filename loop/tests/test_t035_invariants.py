@@ -66,13 +66,13 @@ def _seed(cwd: Path) -> None:
     _write(
         cwd,
         "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
-        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - step_id: s01\n    title: step\n    status: pending\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-step.yaml\n    title: step\n    status: pending\n",
     )
     _write(cwd, "memory-bank/back/plan/demo/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
     _write(
         cwd,
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/decompose-demo/index.md`\n\n"
+        "## load_now\n- `memory-bank/back/plan/demo/yaml/decompose-index.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n- **Следующий:** `BACK IMPLEMENT @s01`\n",
     )
 
@@ -117,14 +117,14 @@ def test_checkpoint_conflict_halts_dag_without_promoting_cursor(tmp_path: Path) 
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-demo/index.md`\n"
-        "- `memory-bank/front/plan/decompose-demo-front/index.md`\n",
+        "- `memory-bank/back/plan/demo/yaml/decompose-index.yaml`\n"
+        "- `memory-bank/front/plan/demo-front/yaml/decompose-index.yaml`\n",
     )
     _write(tmp_path, "loop/dag/portal.yaml", yaml.safe_dump(_manifest([_work_node("back")]), sort_keys=False))
     _write(
         tmp_path,
         "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
-        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - step_id: s01\n    title: step\n    status: pending\n",
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n  - id: s01\n    file: s01-step.yaml\n    title: step\n    status: pending\n",
     )
     _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01-step.yaml", "schema: epic-decompose/v1\nstep_id: s01\n")
 

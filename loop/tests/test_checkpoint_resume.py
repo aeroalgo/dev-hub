@@ -46,7 +46,7 @@ def make_mock_shard(
     path = (
         tmp_path
         / "memory-bank/back/implement"
-        / f"implement-{plan_id}"
+        / plan_id
         / f"{step_id}-checkpoint-resume.yaml"
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,10 +60,6 @@ def make_mock_shard(
                 "task_id": "T-036",
                 "title": "checkpoint resume tests",
                 "status": "in_progress",
-                "implement_index": (
-                    "memory-bank/back/implement/"
-                    f"implement-{plan_id}/index.md"
-                ),
                 "date": "2026-08-07",
                 "checkpoints": checkpoints,
             },
@@ -171,7 +167,7 @@ def test_checkpoint_trace_ignores_foreign_epic_same_step(tmp_path: Path, capsys:
         / "memory-bank"
         / "back"
         / "implement"
-        / "implement-T-HUB-048-workflow-pack-registry"
+        / "T-HUB-048-workflow-pack-registry"
     )
     foreign.mkdir(parents=True)
     (foreign / "s05-cli-workflow-resolve.yaml").write_text(
@@ -189,7 +185,7 @@ def test_checkpoint_trace_ignores_foreign_epic_same_step(tmp_path: Path, capsys:
             / "memory-bank"
             / "back"
             / "implement"
-            / f"implement-T-HUB-04{i}-other"
+            / f"T-HUB-04{i}-other"
         )
         hub.mkdir(parents=True)
         (hub / f"s05-noise-{i}.yaml").write_text(
@@ -307,7 +303,7 @@ def test_flush_checkpoint_idempotent_error(tmp_path: Path, monkeypatch: pytest.M
 
 def test_resume_dirty_block_unchanged(tmp_path: Path) -> None:
     sr = _load_resilience()
-    sr.git_dirty_paths = lambda _cwd: ["memory-bank/back/implement/implement-T-036-session-checkpoint-resume/s06-checkpoint-resume.yaml"]
+    sr.git_dirty_paths = lambda _cwd: ["memory-bank/back/implement/T-036-session-checkpoint-resume/s06-checkpoint-resume.yaml"]
 
     lines = sr.dirty_resume_prompt_lines(
         tmp_path,
@@ -328,7 +324,7 @@ def test_flush_checkpoint_skips_decompose_shard(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    shard = tmp_path / "memory-bank/back/plan/decompose-example/s05-checkpoint.yaml"
+    shard = tmp_path / "memory-bank/back/plan/example/yaml/steps/s05-checkpoint.yaml"
     shard.parent.mkdir(parents=True, exist_ok=True)
     shard.write_text("schema: epic-decompose/v1\n", encoding="utf-8")
     resolver = _load_epic_resolve()
@@ -359,7 +355,7 @@ def test_cp_trace_extends_after_resume_dirty(tmp_path: Path) -> None:
     sr = _load_resilience()
     make_mock_shard(tmp_path)
     sr.git_dirty_paths = lambda _cwd: [
-        "memory-bank/back/implement/implement-T-036-session-checkpoint-resume/s06-checkpoint-resume.yaml"
+        "memory-bank/back/implement/T-036-session-checkpoint-resume/s06-checkpoint-resume.yaml"
     ]
 
     lines = sr.dirty_resume_prompt_lines(

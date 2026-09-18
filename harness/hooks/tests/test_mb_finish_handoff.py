@@ -39,7 +39,7 @@ def test_finish_handoff_valid(tmp_path: Path):
     )
     load_now = [
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-040/s04.yaml",
+            path="memory-bank/back/plan/T-HUB-040/yaml/steps/s04.yaml",
             description="work shard",
         )
     ]
@@ -105,7 +105,7 @@ def test_finish_handoff_qa_fail_blocks_handoff_gate(tmp_path: Path, target_mode:
         epic_id=epic,
     )
     load_now = [
-        LoadNowItem(path="memory-bank/back/plan/decompose-T-HUB-040/s04.yaml", description="work shard")
+        LoadNowItem(path="memory-bank/back/plan/T-HUB-040/yaml/steps/s04.yaml", description="work shard")
     ]
     body = HandoffBody(
         mode=target_mode,

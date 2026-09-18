@@ -35,7 +35,7 @@ plan_contract:
 context:
   consumes:
     - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/plan.md#refactor-inventory
-    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/md/decompose-index.md
+    - memory-bank/back/plan/T-HUB-105-roadmap-legacy-source-purge/yaml/decompose-index.yaml
   produces:
     - updated loop/roadmap_queue.py with fail-closed .md path rejection
     - updated loop/tests/test_roadmap_queue.py expecting ValueError on .md paths

@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs
 
-→ [T-HUB-037-harness-parallel-snn/md/decompose-index.md](T-HUB-037-harness-parallel-snn/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-037-harness-parallel-snn/yaml/decompose-index.yaml](T-HUB-037-harness-parallel-snn/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

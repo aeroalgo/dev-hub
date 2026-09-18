@@ -9,7 +9,7 @@
 
 **Skills:** writing-plans · brainstorming · python-testing-patterns
 
-→ [T-HUB-004-hooks-hygiene/md/decompose-index.md](T-HUB-004-hooks-hygiene/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-004-hooks-hygiene/yaml/decompose-index.yaml](T-HUB-004-hooks-hygiene/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

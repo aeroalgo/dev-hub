@@ -5,7 +5,7 @@ description: EPIC RUN — alias → /loop-run (./bin/loop / ./loop/loop.sh, бе
 Не запускай runner из этой сессии. Пользователю — отдельный терминал:
 ```bash
 ./bin/loop gpt
-./bin/loop decompose-<epic_id> gpt
+./bin/loop memory-bank/<role>/plan/<epic_id>/yaml/decompose-index.yaml gpt
 ./bin/loop --status
 ```
 FORBIDDEN: `--track`, `--id`, `--gap`, `--resume-implement`, `./loop/epic-loop.sh`.

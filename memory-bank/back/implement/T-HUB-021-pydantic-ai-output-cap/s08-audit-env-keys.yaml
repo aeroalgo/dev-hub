@@ -15,7 +15,7 @@ done:
 - Documented final PASS status for AC+1..7, AC-1..5, and SC-001..004 in index.md
 - 'Ran final hub test suite: 954 passed, 1 skipped'
 files:
-- memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/md/decompose-index.md
+- memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/yaml/decompose-index.yaml
 deletes: []
 tests:
 - '`timeout 300s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/ -q --tb=line`'

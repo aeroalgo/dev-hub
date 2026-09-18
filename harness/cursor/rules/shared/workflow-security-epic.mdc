@@ -4,17 +4,17 @@ alwaysApply: false
 ---
 # SECURITY epic — shared
 
-**Paths (канон):** @.cursor/rules/shared/memory-bank-paths.mdc  
-**Epic detect:** @.cursor/rules/shared/epic-scoped-paths.mdc  
-**FINISH:** @.cursor/rules/shared/finish-block.mdc  
+**Paths (канон):** @.cursor/rules/shared/memory-bank-paths.mdc
+**Epic detect:** @.cursor/rules/shared/epic-scoped-paths.mdc
+**FINISH:** @.cursor/rules/shared/finish-block.mdc
 **Шаблоны:** `.cursor/templates/security/`
 
 ## Execute path rule (HARD)
 
 | Связь с эпиком | Куда писать итог audit | FORBIDDEN |
 |----------------|------------------------|-----------|
-| **Есть эпик** (`decompose-<id>/`, `implement-<id>/`, `plan-<id>`, `* SECURITY @aNN`) | `{role}/security/implement/implement-<id>/aNN-<slug>.yaml` | `security-audit-*.md` в корне `security/` |
-| **Нет эпика** (ad-hoc S one-shot) | `{role}/security/security-audit-YYYYMMDD-<slug>.md` | `implement/implement-*/aNN-*.yaml` |
+| **Есть эпик** (`plan/<id>/yaml/`, `implement/<id>/`, `* SECURITY @aNN`) | `{role}/security/implement/<id>/aNN-<slug>.yaml` | `security-audit-*.md` в корне `security/` |
+| **Нет эпика** (ad-hoc S one-shot) | `{role}/security/security-audit-YYYYMMDD-<slug>.md` | epic audit directory |
 
 Писать **оба** (root audit + implement aNN) = FAIL. Один шаг = один audit-артефакт.
 
@@ -23,37 +23,36 @@ alwaysApply: false
 ```
 memory-bank/{back|front|integration}/security/
   plan/
-    plan-<id>.md                  # SECURITY PLAN (M/L: §0.0 unlimited)
-    decompose-<id>/               # SECURITY DECOMPOSE (эпик)
-      index.md
-      aNN-<slug>.md
+    <id>/md/plan.md               # SECURITY PLAN (M/L: §0.0 unlimited)
+    <id>/yaml/                    # SECURITY DECOMPOSE (эпик)
+      decompose-index.yaml
+      steps/aNN-<slug>.yaml
   implement/
-    implement-<id>/               # M/L execute (эпик) — ТОЛЬКО сюда aNN findings
-      index.md
+    <id>/                         # M/L execute (эпик) — ТОЛЬКО сюда aNN findings
       aNN-<slug>.yaml
   security-audit-YYYYMMDD-<slug>.md  # ТОЛЬКО S без эпика (корень security/)
 ```
 
-**Не** класть security-decompose в `back/plan/decompose-*`. **Не** смешивать `sNN` feature / `rNN` refactor / `aNN` security.
+**Не** класть security-decompose в feature `plan/<epic>/yaml/`. **Не** смешивать `sNN` feature / `rNN` refactor / `aNN` security.
 
 ## Scope detect (S vs M/L)
 
 | Signal | Scope | Цепочка | Execute path |
 |--------|-------|---------|--------------|
 | 1 модуль / ≤3 файла / один threat class / один чат ок | **S** (без эпика) | `* SECURITY` one-shot | `security/security-audit-*.md` |
-| весь проект / несколько surfaces / OWASP multi-area / >1 чата | **M/L** (эпик) | `* SECURITY PLAN` → `SECURITY DECOMPOSE` → `* SECURITY` @aNN | `security/implement/implement-<id>/aNN-*.yaml` |
+| весь проект / несколько surfaces / OWASP multi-area / >1 чата | **M/L** (эпик) | `* SECURITY PLAN` → `SECURITY DECOMPOSE` → `* SECURITY` @aNN | `security/implement/<id>/aNN-*.yaml` |
 
-Сомнение → **M/L**.  
-S: **FORBIDDEN** создавать `decompose-*` «на всякий случай».  
+Сомнение → **M/L**.
+S: **FORBIDDEN** создавать epic decomposition «на всякий случай».
 M/L: **FORBIDDEN** полный аудит в PLAN/DECOMPOSE; execute только через `aNN` → **implement/**.
 
 ## Commands
 
 | Command | Writes |
 |---------|--------|
-| `BACK\|FRONT\|INTEG SECURITY PLAN` | `security/plan/plan-<id>.md` |
-| `BACK\|FRONT\|INTEG SECURITY DECOMPOSE` | `security/plan/decompose-<id>/` |
-| `BACK\|FRONT\|INTEG SECURITY` @aNN (эпик) | **только** `implement/implement-<id>/aNN-*.yaml` (+ findings; код не чинить) |
+| `BACK\|FRONT\|INTEG SECURITY PLAN` | `security/plan/<id>/md/plan.md` |
+| `BACK\|FRONT\|INTEG SECURITY DECOMPOSE` | `security/plan/<id>/yaml/` |
+| `BACK\|FRONT\|INTEG SECURITY` @aNN (эпик) | **только** `implement/<id>/aNN-*.yaml` (+ findings; код не чинить) |
 | `BACK\|FRONT\|INTEG SECURITY` (без эпика) | **только** `security/security-audit-YYYYMMDD-<slug>.md` |
 
 ## Behavior freeze (HARD — все scopes)
@@ -68,16 +67,16 @@ M/L: **FORBIDDEN** полный аудит в PLAN/DECOMPOSE; execute тольк
 | | Feature | Refactor | Security |
 |--|---------|----------|----------|
 | Step id | `sNN` / `eNN` | `rNN` | `aNN` |
-| Decompose dir | `{role}/plan/decompose-<plan>/` | `{role}/refactor/plan/decompose-<id>/` | `{role}/security/plan/decompose-<id>/` |
-| Execute dir | `{role}/implement/implement-<plan>/` | `{role}/refactor/implement/implement-<id>/` | `{role}/security/implement/implement-<id>/` |
+| Decompose dir | `{role}/plan/<plan>/yaml/` | `{role}/refactor/plan/<id>/yaml/` | `{role}/security/plan/<id>/yaml/` |
+| Execute dir | `{role}/implement/<plan>/` | `{role}/refactor/implement/<id>/` | `{role}/security/implement/<id>/` |
 | Execute cmd | `* IMPLEMENT` | `* REFACTOR` | `* SECURITY` |
 
-**Epic loop:** arm на `memory-bank/{back\|front\|integration}/security/plan/decompose-<id>/`; pending считает `aNN`. FINISH artifact = `security/implement/implement-<id>/aNN-*.yaml`.  
+**Epic loop:** arm на `memory-bank/{back\|front\|integration}/security/plan/<id>/yaml/decompose-index.yaml`; pending считает `aNN`. FINISH artifact = `security/implement/<id>/aNN-*.yaml`.
 В промпт SECURITY epic: FINISH-артефакт = `implement/.../aNN-*.yaml`, не `security-audit-*`.
 
 ## PLAN output
 
-`security/plan/plan-*.md` = **§0.0 SUSPENSION GUARD** (как feature/refactor plan): maximally detailed; chat brief OK.
+`security/plan/<id>/md/plan.md` = **§0.0 SUSPENSION GUARD** (как feature/refactor plan): maximally detailed; chat brief OK.
 
 ### PLAN must include
 

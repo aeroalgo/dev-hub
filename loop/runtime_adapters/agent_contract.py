@@ -139,7 +139,7 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
     ),
     "reconcile-verify": (
         "CONTRACT reconcile-verify: read-only reconciliation gate. Проверь только ALLOW READ: "
-        "activeContext.md, текущий decompose plan/index.yaml, текущий implement/qa artifact "
+        "activeContext.md, текущий plan.md, yaml/decompose-index.yaml, текущий implement/qa artifact "
         "и runtime diagnostics. Укажи каждый drift как file:line → observed → canonical → next action. "
         "Не редактируй исходные plan/decompose/implement/code; единственная допустимая запись — "
         "reconcile artifact через canonical CLI. Не запускай Agent, не создавай gate verdict "

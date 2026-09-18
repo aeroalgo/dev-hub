@@ -14,7 +14,7 @@ Workflow `* IMPLEMENT` только ссылается сюда.
 Handoff fill-in: .cursor/templates/finish-doc-router.md  
 By-command routing / graphify: .cursor/rules/shared/finish-doc-router.mdc
 
-**Канон курсора:** `$PROJECT_ROOT/memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
+**Канон курсора:** `$PROJECT_ROOT/memory-bank/activeContext.md` + `plan/<epic>/yaml/decompose-index.yaml` + implement step.
 **Anti-mix (HARD):** product-артефакты только в `$PROJECT_ROOT/memory-bank`; hub `T-HUB-*` только в `dev-hub/memory-bank`. Claude cwd=hub → всегда `--cwd "$PROJECT_ROOT"`.  
 Runner: `./loop/loop.sh` (context-first; cursor = `$PROJECT_ROOT/memory-bank/activeContext.md`).
 
@@ -66,7 +66,7 @@ seed → flush cp → suite → evidence (in_progress) → validate-step → Han
 2. Ровно один `## Handoff` этого шага
 3. Index текущий = `completed` (**после** `finalize-step`)
 4. Следующий = `pending` (или `* AUDIT` / `EPIC_DONE`)
-5. `load_now` → следующий work shard + `decompose-*/index.yaml`; **FORBIDDEN** полный `plan-*.md` и `decompose-*/index.md` в IMPLEMENT `load_now`
+5. `load_now` → следующий work shard + `plan/<epic>/yaml/decompose-index.yaml`; **FORBIDDEN** полный `plan/<epic>/md/plan.md` в IMPLEMENT `load_now`
 
 ## FAIL
 

@@ -15,9 +15,9 @@ def test_generate_valid_gap_emits_back_front_and_close_nodes(tmp_path: Path) -> 
     _write_gap(
         tmp_path,
         "back:\n"
-        "  decompose: memory-bank/back/plan/decompose-demo/index.md\n"
+        "  decompose: memory-bank/back/plan/demo/yaml/decompose-index.yaml\n"
         "front:\n"
-        "  decompose: memory-bank/front/plan/decompose-demo-front/index.md\n",
+        "  decompose: memory-bank/front/plan/demo-front/yaml/decompose-index.yaml\n",
     )
 
     result = _cmd_dag_generate(tmp_path, "portal")
@@ -35,9 +35,9 @@ def test_generate_rejects_unsafe_structured_gap_source(tmp_path: Path) -> None:
     _write_gap(
         tmp_path,
         "back:\n"
-        "  decompose: ../escape/index.md\n"
+        "  decompose: ../escape/decompose-index.yaml\n"
         "front:\n"
-        "  decompose: memory-bank/front/plan/decompose-demo-front/index.md\n",
+        "  decompose: memory-bank/front/plan/demo-front/yaml/decompose-index.yaml\n",
     )
 
     result = _cmd_dag_generate(tmp_path, "portal")

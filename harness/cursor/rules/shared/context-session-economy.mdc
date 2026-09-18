@@ -22,10 +22,10 @@ AC met · next substep differs · role switch · long debug trace · user confus
 
 ## 3. Session start
 
-1. **Загрузка контекста:** вызови: `python3 harness/hooks/epic_resolve.py mb-load session --cwd $PROJECT_ROOT` (PLAN/DECOMPOSE: plan as work object; иначе — **без** полного `plan-*.md`)
+1. **Загрузка контекста:** вызови: `python3 harness/hooks/epic_resolve.py mb-load session --cwd $PROJECT_ROOT` (PLAN/DECOMPOSE: plan as work object; иначе — **без** полного `plan/<epic_id>/md/plan.md`)
 2. **§Handoff** — единственный канон навигации: в `activeContext.md` **ровно один** блок `## Handoff` (на FINISH — **Write весь файл**; стопка / ≥2 done = FAIL/halt)
 3. Не опираться на transcript
-4. **IMPLEMENT (эпик):** work shard `sNN|eNN` + `decompose-*/index.yaml`. Иначе ONE work shard (task/bugfix/qa). **AC = work shard**, не index; **не** полный `plan-*.md` и **не** `index.md`
+4. **IMPLEMENT (эпик):** work shard `sNN|eNN` + `plan/<epic>/yaml/decompose-index.yaml`. Иначе ONE work shard (task/bugfix/qa). **AC = work shard**, не index; **не** полный `plan/<epic>/md/plan.md` и **не** markdown index
 5. Skills: только для subtask
 6. Недостающий AC → дописать в step **или** jump `plan §N` из Consumes; **FORBIDDEN** тащить весь plan в `load_now`
 
@@ -45,7 +45,7 @@ New chat: текст из `finish-doc-router.md` §«Сообщение поль
 
 ## 7. QA lean load
 
-`load_now` + qa/bugfix shard + diff + §0.11 grep. **Skip** полный `plan-*.md`. AC из Handoff Epic QA / Fix plan / implement yaml заголовки. Если AC неясен — только `plan §N`. Skip explore/recall. Parent гоняет suite из handoff.
+`load_now` + qa/bugfix shard + diff + §0.11 grep. **Skip** полный `plan/<epic_id>/md/plan.md`. AC из Handoff Epic QA / Fix plan / implement yaml заголовки. Если AC неясен — только `plan §N`. Skip explore/recall. Parent гоняет suite из handoff.
 
 ## 8. TASK / BUGFIX
 
@@ -53,4 +53,4 @@ New chat: текст из `finish-doc-router.md` §«Сообщение поль
 
 ## 9. Forbidden
 
-`done — do NOT load` · plan prose в shard/chat · completed substep в `load_now` · **полный `plan-*.md` в `load_now`** вне PLAN/DECOMPOSE · over-refusal spawn
+`done — do NOT load` · plan prose в shard/chat · completed substep в `load_now` · **полный `plan/<epic_id>/md/plan.md` в `load_now`** вне PLAN/DECOMPOSE · over-refusal spawn

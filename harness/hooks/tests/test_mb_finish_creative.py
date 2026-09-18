@@ -32,7 +32,7 @@ def test_finish_creative_happy(tmp_path: Path):
         {
             "armed_epic": "T-HUB-040-harness-workflow-finish-api",
             "armed_role": "BACK",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/decompose-index.yaml",
         },
     )
 

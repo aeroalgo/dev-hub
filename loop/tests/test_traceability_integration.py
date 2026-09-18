@@ -32,8 +32,6 @@ SC-001 Test SC
     (yaml_dir / "decompose-index.yaml").write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-TEST-001
-source_md: index.md
-status_canon: index.yaml
 steps:
 - id: s01
   file: s01-test.yaml
@@ -122,8 +120,6 @@ US-002 Uncovered Story
     (yaml_dir / "decompose-index.yaml").write_text(
         """schema: epic-decompose-index/v1
 plan_id: T-TEST-002
-source_md: index.md
-status_canon: index.yaml
 steps:
 - id: s01
   file: s01-test.yaml

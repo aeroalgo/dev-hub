@@ -11,7 +11,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs
 
-→ [T-HUB-053-codex-claude-hooks-parity/md/decompose-index.md](T-HUB-053-codex-claude-hooks-parity/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-053-codex-claude-hooks-parity/yaml/decompose-index.yaml](T-HUB-053-codex-claude-hooks-parity/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

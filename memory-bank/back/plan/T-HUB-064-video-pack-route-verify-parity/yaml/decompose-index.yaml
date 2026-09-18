@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-064-video-pack-route-verify-parity
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 appetite:
   timebox_days: 4
   cut_list:

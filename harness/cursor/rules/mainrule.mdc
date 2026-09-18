@@ -8,7 +8,7 @@ alwaysApply: true
 
 **Test runner (role-scoped):** BACK/hub → `bin/pytest …`; FRONT → Vitest/Playwright (`npm --prefix frontend …`); managed → `capability_checks` · @.cursor/rules/shared/test-timeout.mdc · @.cursor/rules/shared/workflow-decompose-transition-gate.mdc · **FORBIDDEN:** FRONT QA → `bin/pytest`
 
-`memory-bank/` — канон. **Router:** `activeContext.md` → `load_now`. Index-only: `tasks.md`, `systemPatterns.md`, `plan-*`, `architecture/index.md`. Plan/gap/architecture не резать. Скиллы — `@.agents/skills/` по цепочке workflow, не весь каталог.
+`memory-bank/` — канон. **Router:** `activeContext.md` → `load_now`. Index-only: `tasks.md`, `systemPatterns.md`, `plan/<epic_id>/md/plan.md`, `architecture/index.md`. Plan/gap/architecture не резать. Скиллы — `@.agents/skills/` по цепочке workflow, не весь каталог.
 
 ## Когда что грузить
 

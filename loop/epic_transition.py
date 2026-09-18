@@ -387,9 +387,7 @@ def _arm_post_implement(
             EpicLayoutKind.DECOMPOSE_INDEX_YAML,
             project_root=cwd_p,
         ).relative_to(cwd_p).as_posix()
-    rel_md = rel_idx.removesuffix(".yaml") + ".md" if rel_idx.endswith(".yaml") else rel_idx
     link = rel_idx.removeprefix(f"{mb_root_name}/").removeprefix("memory-bank/")
-    hub_rel = f"{mb_root_name}/hub/plan/plan-{epic_id}.md"
     role_u = {"back": "BACK", "front": "FRONT", "integration": "INTEG", "integ": "INTEG"}.get(
         str(role or "back").lower(), str(role or "BACK").upper()
     )
@@ -399,8 +397,6 @@ def _arm_post_implement(
         epic_id=epic_id,
         tracker_rel=rel_idx,
         tracker_link=link,
-        index_rel=rel_md,
-        hub_rel=hub_rel if (cwd_p / hub_rel).is_file() else None,
         phase=phase,
         qa_path=qa_p if qa_p and qa_p.is_file() else None,
         cwd=cwd_p,
@@ -561,18 +557,17 @@ def _arm_from_decompose(
             "epic_id": epic_id,
         }
     role, role_dir = _role_dir_from_index_path(idx, cwd_p)
-    index_rel = (
-        str(idx.relative_to(cwd_p)).replace("\\", "/")
-        if idx.is_relative_to(cwd_p)
-        else str(idx)
-    )
     ypath = index_yaml_path(idx)
     yaml_rel = (
         str(ypath.relative_to(cwd_p)).replace("\\", "/")
         if ypath.is_file() and ypath.is_relative_to(cwd_p)
         else (str(ypath) if ypath.is_file() else "")
     )
-    tracker_rel = yaml_rel or index_rel
+    tracker_rel = yaml_rel or (
+        str(idx.relative_to(cwd_p)).replace("\\", "/")
+        if idx.is_relative_to(cwd_p)
+        else str(idx)
+    )
     tracker_link = tracker_rel.removeprefix("memory-bank/")
 
     step = find_next_decompose_step_from_queue(steps)
@@ -584,8 +579,6 @@ def _arm_from_decompose(
             epic_id=epic_id or "unknown",
             tracker_rel=tracker_rel,
             tracker_link=tracker_link,
-            index_rel=index_rel,
-            hub_rel=None,
             phase=phase,
             qa_path=qa_p,
             cwd=cwd_p,
@@ -711,7 +704,7 @@ def _arm_from_decompose(
             f"- **Эпик:** {epic_id} ({role}); armed из `{tracker_link}` "
             f"(прошлый activeContext игнорирован).",
             f"- **Текущий шаг:** {step['step_id']} — {title} "
-            f"(status={step['status']} в index.yaml).",
+            f"(status={step['status']} в decompose-index.yaml).",
             f"- **Команда:** `{phase} @{step['step_id']}`",
         ],
         next_hint=(
@@ -761,9 +754,7 @@ def _arm_from_decompose(
         "phase": phase,
         "work_shard": shard_rel,
         "index": tracker_rel,
-        "index_md": index_rel,
         "queue_source": queue_src,
-        "implement_hub": None,
         "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
         "checkpoint_cleared": True,
     }
@@ -860,22 +851,21 @@ def _arm_pre_implement(
     if phase_u == "ANALYZE" and decompose_rel:
         decomp_yaml = decompose_rel
         decomp_path = Path(decomp_yaml)
-        if decomp_path.name == "decompose-index.md" and decomp_path.parent.name == "md":
-            yaml_path = decomp_path.parent.parent / "yaml" / "decompose-index.yaml"
-            if (cwd_p / yaml_path).is_file():
-                decomp_yaml = yaml_path.as_posix()
-        elif decomp_path.name == "index.md":
-            yaml_path = decomp_path.with_name("index.yaml")
-            if (cwd_p / yaml_path).is_file():
-                decomp_yaml = yaml_path.as_posix()
+        if decomp_path.suffix.lower() in {".md", ".markdown"}:
+            return {
+                "ok": False,
+                "halt": True,
+                "reason": "markdown_decompose_index_unsupported",
+                "diagnostic_codes": ["markdown_decompose_index_unsupported"],
+            }
         decomp_link = decomp_yaml.removeprefix("memory-bank/")
         decomp_path = Path(decompose_rel)
-        if decomp_path.name in {"decompose-index.yaml", "decompose-index.yml", "index.yaml", "index.yml"}:
+        if decomp_path.name in {"decompose-index.yaml", "decompose-index.yml"}:
             decomp_label = decomp_path.name
-        elif decomp_path.suffix.lower() in {".yaml", ".yml", ".md"}:
+        elif decomp_path.suffix.lower() in {".yaml", ".yml"}:
             decomp_label = f"{decomp_path.parent.name}/{decomp_path.name}"
         else:
-            decomp_label = f"{decomp_path.name}/index.yaml"
+            decomp_label = "decompose-index.yaml"
         load_now += (
             f"2. [`{decomp_label}`]({decomp_link}) — decompose index for ANALYZE gate.\n"
         )
@@ -1123,7 +1113,7 @@ def arm_phase(
 
         index_path = cwd_p / str(decompose_rel)
         if index_path.is_dir():
-            index_path = index_path / "index.yaml"
+            index_path = index_path / "yaml" / "decompose-index.yaml"
         loaded = load_steps_for_index(cwd_p, index_path)
         if not loaded.get("ok"):
             return {
@@ -1475,14 +1465,13 @@ def promote_if_ready(
         if idx_path.is_relative_to(cwd_p)
         else str(idx_path)
     )
-    arm_decompose_dir = decompose_rel
-    if arm_decompose_dir.endswith(("/index.yaml", "/index.yml")):
-        arm_decompose_dir = str(Path(arm_decompose_dir).parent).replace("\\", "/")
     arm_decompose_index = decompose_rel
-    if not arm_decompose_index.endswith(("/index.yaml", "/index.yml", "/decompose-index.yaml", "/decompose-index.yml")):
-        yaml_cand = cwd_p / arm_decompose_index / "index.yaml"
+    arm_decompose_dir = decompose_rel
+    if (cwd_p / arm_decompose_index).is_dir():
+        yaml_cand = cwd_p / arm_decompose_index / "yaml" / "decompose-index.yaml"
         if yaml_cand.is_file():
             arm_decompose_index = str(yaml_cand.relative_to(cwd_p)).replace("\\", "/")
+            arm_decompose_dir = arm_decompose_index
 
     pending = [
         s

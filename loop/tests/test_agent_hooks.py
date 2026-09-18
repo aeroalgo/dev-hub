@@ -415,7 +415,7 @@ def test_pretool_worktree_strip(tmp_path: Path, monkeypatch) -> None:
 
 def _seed_verify_files(tmp_path: Path) -> tuple[str, str]:
     step = (
-        "memory-bank/back/implement/implement-T-test/s01-demo.yaml"
+        "memory-bank/back/implement/T-test/s01-demo.yaml"
     )
     decompose = (
         "memory-bank/back/plan/T-test/yaml/steps/s01-demo.yaml"

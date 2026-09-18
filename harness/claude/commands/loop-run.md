@@ -8,7 +8,7 @@ description: LOOP RUN — запуск ./bin/loop снаружи сессии (�
 1. **Не** вызывай `./bin/loop` из Bash/Agent внутри текущей Claude-сессии.
 2. Скажи пользователю **выйти** из сессии (или открыть отдельный терминал) и запустить команду там.
 3. **FORBIDDEN** флаги (их нет в runner): `--track`, `--id`, `--gap`, `--resume-implement`.
-4. Один EPIC-спек за запуск. Два `decompose-*` → `multiple epic specs`.
+4. Один EPIC-спек за запуск. Два YAML epic index → `multiple epic specs`.
 
 ## Канон (терминал)
 ```bash
@@ -16,8 +16,8 @@ description: LOOP RUN — запуск ./bin/loop снаружи сессии (�
 ./bin/loop gpt
 
 # switch эпика (overwrite activeContext из index)
-./bin/loop decompose-T-034-loop-agent-scopes gpt
-./bin/loop decompose-T-034-loop-agent-scopes gpt implement
+./bin/loop memory-bank/back/plan/T-034-loop-agent-scopes/yaml/decompose-index.yaml gpt
+./bin/loop memory-bank/back/plan/T-034-loop-agent-scopes/yaml/decompose-index.yaml gpt implement
 
 # options
 ./bin/loop -m gpt

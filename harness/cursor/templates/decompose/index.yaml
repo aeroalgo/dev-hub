@@ -1,10 +1,8 @@
 schema: epic-decompose-index/v1
-# plan_id = stem of plan-*.md WITHOUT "plan-" prefix, WITH descriptive slug
-# (plan-T-HUB-033-harness-execution-discipline.md → T-HUB-033-harness-execution-discipline)
+# plan_id = epic directory slug from plan/<plan_id>/md/plan.md
+# (plan/T-HUB-033-harness-execution-discipline/md/plan.md → T-HUB-033-harness-execution-discipline)
 # FORBIDDEN: short queue id alone (T-HUB-033) when plan has a slug suffix
 plan_id: <plan_id>
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 # Optional appetite mirror from plan.md (timebox + cut_list only; never a step-count cap)
 # appetite:
 #   timebox_days: 3

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from harness.hooks.epic_index import load_index_yaml, steps_from_doc
 import yaml
 
 from .workspaces import WorkspaceRef
@@ -88,42 +89,26 @@ def _index_paths(memory_bank: Path) -> list[Path]:
 
 
 def _parse_index(path: Path, workspace_ref: WorkspaceRef) -> list[WorkItem]:
-    """Parse one decomposition index and return its active step rows."""
+    """Load one validated decomposition index and return its active rows."""
 
-    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict) or payload.get("schema") != "epic-decompose-index/v1":
-        raise ValueError("invalid decompose index schema")
-
-    epic_id = payload.get("plan_id")
-    steps = payload.get("steps")
-    if not isinstance(epic_id, str) or not epic_id:
-        raise ValueError("decompose index is missing plan_id")
-    if not isinstance(steps, list):
-        raise TypeError("decompose index is missing steps")
+    payload = load_index_yaml(path)
+    if payload is None:
+        raise ValueError("decompose index is missing")
+    epic_id = str(payload["plan_id"])
+    steps = steps_from_doc(payload)
 
     role = _role_for_index(path)
     decompose_rel = path.relative_to(workspace_ref.path).as_posix()
     result: list[WorkItem] = []
     for step in steps:
-        if not isinstance(step, dict):
-            raise TypeError("decompose index contains an invalid step")
         step_id = step.get("id")
         status = step.get("status")
-        if not isinstance(step_id, str) or not step_id:
-            raise ValueError("decompose index step is missing id")
-        if not isinstance(status, str) or not status:
-            raise ValueError("decompose index step is missing status")
         if status not in _ACTIVE_STATUSES:
             continue
         title = step.get("title", "")
-        if not isinstance(title, str):
-            raise TypeError("decompose index step title must be a string")
-        file_name = step.get("file")
-        if isinstance(file_name, str) and file_name:
-            shard_dir = path.parent / "steps" if path.parent.name == "yaml" else path.parent
-            shard_rel = f"{shard_dir.relative_to(workspace_ref.path)}/{file_name}"
-        else:
-            shard_rel = None
+        file_name = step["file"]
+        shard_dir = path.parent / "steps"
+        shard_rel = f"{shard_dir.relative_to(workspace_ref.path)}/{file_name}"
         result.append(
             WorkItem(
                 role=role,

@@ -48,7 +48,6 @@ def test_epic_facade_exports_runtime_contract() -> None:
         load_index_yaml,
         mark_index_step_status,
         mirror_verify_verdict,
-        parse_steps_from_md,
         read_active_context,
         session_start_payload,
         validate_active_context_shape,
@@ -73,7 +72,6 @@ def test_epic_facade_exports_runtime_contract() -> None:
             load_index_yaml,
             mark_index_step_status,
             mirror_verify_verdict,
-            parse_steps_from_md,
             read_active_context,
             session_start_payload,
             validate_active_context_shape,
@@ -268,7 +266,7 @@ def test_validate_finish_integrity_missing_index_uses_decompose_missing(
 ) -> None:
     result = _load_lib().validate_finish_integrity(
         tmp_path,
-        decompose="memory-bank/back/plan/decompose-missing/index.yaml",
+        decompose="memory-bank/back/plan/missing/yaml/decompose-index.yaml",
         step_id="s01",
         require_verify_pass=True,
     )

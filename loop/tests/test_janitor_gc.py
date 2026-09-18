@@ -66,22 +66,3 @@ def test_gc_apply_episode_prune(tmp_path: Path) -> None:
     assert result.success is True
     assert result.dry_run is False
     assert not ep_dir.exists()
-
-
-def test_gc_apply_index_mirror_patch(tmp_path: Path) -> None:
-    engine = GcEngine(cwd=tmp_path)
-
-    index_md = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST" / "index.md"
-    index_md.parent.mkdir(parents=True)
-    index_md.write_text("# Plan Index\n", encoding="utf-8")
-
-    finding = JanitorFinding(
-        category="stale_index_status",
-        description="Index mirror drift",
-        target_path="memory-bank/back/plan/decompose-T-TEST/index.md",
-        actionable=True,
-    )
-
-    result = engine.apply_repair(finding, dry_run=False)
-    assert result.success is True
-    assert result.action == "index_mirror_patch"

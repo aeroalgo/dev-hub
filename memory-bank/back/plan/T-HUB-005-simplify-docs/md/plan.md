@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · brainstorming
 
-→ **[T-HUB-005-simplify-docs/md/decompose-index.md](T-HUB-005-simplify-docs/md/decompose-index.md)** — трекер шагов (DECOMPOSE выполнен 2026-08-22)
+→ **[T-HUB-005-simplify-docs/yaml/decompose-index.yaml](T-HUB-005-simplify-docs/yaml/decompose-index.yaml)** — трекер шагов (DECOMPOSE выполнен 2026-08-22)
 
 ---
 

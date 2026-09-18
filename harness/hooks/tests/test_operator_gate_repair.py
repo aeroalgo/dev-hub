@@ -28,17 +28,18 @@ from harness.hooks.gate_receipt import issue_verifier_receipt
 
 @pytest.fixture
 def repair_env(tmp_path: Path):
-    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-077"
-    mb_dir.mkdir(parents=True, exist_ok=True)
-    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-077"
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-077" / "yaml"
+    steps_dir = mb_dir / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    impl_dir = tmp_path / "memory-bank" / "back" / "implement" / "T-HUB-077"
     impl_dir.mkdir(parents=True, exist_ok=True)
     events_dir = tmp_path / "memory-bank" / "back" / "events" / "T-HUB-077"
     events_dir.mkdir(parents=True, exist_ok=True)
 
-    index_yaml = mb_dir / "index.yaml"
+    index_yaml = mb_dir / "decompose-index.yaml"
     index_yaml.write_text(
         "schema: epic-decompose-index/v1\n"
-        "epic_id: T-HUB-077\n"
+        "plan_id: T-HUB-077\n"
         "steps:\n"
         "  - id: s01\n"
         "    file: s01-test.yaml\n"
@@ -46,7 +47,7 @@ def repair_env(tmp_path: Path):
         encoding="utf-8",
     )
 
-    s01_decomp = mb_dir / "s01-test.yaml"
+    s01_decomp = steps_dir / "s01-test.yaml"
     s01_decomp.write_text(
         "schema: epic-decompose/v1\n"
         "role: back\n"
@@ -66,7 +67,7 @@ def repair_env(tmp_path: Path):
     st["armed_epic"] = "T-HUB-077"
     st["armed_step"] = "s01"
     st["armed_role"] = "back"
-    st["armed_decompose"] = "memory-bank/back/plan/decompose-T-HUB-077/index.yaml"
+    st["armed_decompose"] = "memory-bank/back/plan/T-HUB-077/yaml/decompose-index.yaml"
     st["phase"] = "BACK IMPLEMENT"
     st["phase_epoch"] = "epoch-1"
     st["projection_hash"] = "proj-hash-1"

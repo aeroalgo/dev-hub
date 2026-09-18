@@ -91,7 +91,7 @@ def test_acceptance_matrix_rejects_invalid_dag_without_ready_path() -> None:
         "execution": {"autonomous": True},
         "nodes": [
             _work_node("back", "memory-bank/back/plan/demo/yaml/decompose-index.yaml"),
-            _work_node("front", "../escape/index.md", ["missing"]),
+            _work_node("front", "../escape/decompose-index.yaml", ["missing"]),
         ],
     }
 

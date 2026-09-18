@@ -35,7 +35,7 @@ def _set_status(ref: WorkspaceRef, epic: str, statuses: list[str]) -> None:
                 "schema": "epic-decompose-index/v1",
                 "plan_id": epic,
                 "steps": [
-                    {"id": f"s{i:02d}", "title": "step", "status": status}
+                    {"id": f"s{i:02d}", "file": f"s{i:02d}.yaml", "title": "step", "status": status}
                     for i, status in enumerate(statuses, 1)
                 ],
             }
@@ -62,7 +62,7 @@ def _project(tmp_path: Path, *, statuses: list[str], epic: str = "T-DEMO") -> Wo
                 "schema": "epic-decompose-index/v1",
                 "plan_id": epic,
                 "steps": [
-                    {"id": f"s{i:02d}", "title": "step", "status": status}
+                    {"id": f"s{i:02d}", "file": f"s{i:02d}.yaml", "title": "step", "status": status}
                     for i, status in enumerate(statuses, 1)
                 ],
             }
@@ -79,7 +79,7 @@ def _project(tmp_path: Path, *, statuses: list[str], epic: str = "T-DEMO") -> Wo
                 "version": "roadmap-queue/v2",
                 "role": "back",
                 "queue": [
-                    {"id": epic, "plan": f"plan-{epic}.md", "deps": []}
+                    {"id": epic, "plan": f"{epic}/md/plan.md", "deps": []}
                 ],
             }
         ),

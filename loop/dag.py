@@ -8,7 +8,7 @@ _ALLOWED_ROLES = {"BACK", "FRONT", "INTEG"}
 _ALLOWED_SOURCE_KINDS = {"integration_gap", "manifest"}
 _ALLOWED_ACTIONS = {"implement", "close"}
 _ALLOWED_COMPLETION_TYPES = {"decompose", "artifact"}
-# Role directory slugs must never appear as decompose-<slug> epic ids.
+# Role directory slugs must never appear as epic ids.
 _RESERVED_ROLE_EPIC_IDS = frozenset({"back", "front", "integration", "integ"})
 _DIAGNOSTIC_CODES = {
     "dag_manifest_missing",
@@ -54,14 +54,8 @@ def _epic_id_from_decompose_field(value: str) -> str:
     for index, part in enumerate(parts):
         if part == "plan" and index + 1 < len(parts):
             candidate = parts[index + 1]
-            if candidate not in {"md", "yaml", "steps"} and not candidate.startswith("decompose-"):
+            if candidate not in {"md", "yaml", "steps"}:
                 return candidate
-    for part in reversed(parts):
-        if part.startswith("decompose-"):
-            return part[len("decompose-") :]
-    name = path.name
-    if name.startswith("decompose-"):
-        return name[len("decompose-") :]
     return ""
 
 

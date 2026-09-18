@@ -17,8 +17,6 @@ NODE_IDS = {"gap_close", "back_impl", "front_impl", "integ_verify"}
 def _write_decompose_index(cwd: Path, rel: str, role: str) -> None:
     index = """schema: epic-decompose-index/v1
 plan_id: demo
-source_md: index.md
-status_canon: index.yaml
 steps:
 - id: s01
   file: s01-demo.yaml
@@ -59,17 +57,17 @@ def test_dag_integ_journey_full(tmp_path: Path, monkeypatch: Any) -> None:
     _write(tmp_path, "loop/dag/integ-demo.yaml", MANIFEST.read_text(encoding="utf-8"))
     _write_decompose_index(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo-back/index.yaml",
+        "memory-bank/back/plan/demo-back/yaml/decompose-index.yaml",
         "BACK",
     )
     _write_decompose_index(
         tmp_path,
-        "memory-bank/front/plan/decompose-demo-front/index.yaml",
+        "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml",
         "FRONT",
     )
     _write_decompose_index(
         tmp_path,
-        "memory-bank/integ/plan/decompose-demo-verify/index.yaml",
+        "memory-bank/integration/plan/demo-verify/yaml/decompose-index.yaml",
         "INTEG",
     )
 
@@ -111,7 +109,7 @@ def test_dag_integ_journey_full(tmp_path: Path, monkeypatch: Any) -> None:
 
     _write(
         tmp_path,
-        "memory-bank/integ/plan/decompose-demo-gap/index.yaml",
+        "memory-bank/integration/gap/portal/gap-close.yaml",
         "status: closed\nintegration_gate: pass\n",
     )
     out = ctx.dag_fanout(tmp_path)

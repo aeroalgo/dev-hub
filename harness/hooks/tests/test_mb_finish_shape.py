@@ -23,11 +23,11 @@ def test_render_valid_implement():
     )
     load_now = [
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s01-schemas-render.yaml",
+            path="memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/steps/s01-schemas-render.yaml",
             description="текущий work shard",
         ),
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/index.yaml",
+            path="memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/decompose-index.yaml",
             description="очередь/status",
         ),
     ]
@@ -54,7 +54,7 @@ def test_render_valid_qa():
     )
     load_now = [
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/index.yaml",
+            path="memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/decompose-index.yaml",
             description="очередь/status",
         ),
     ]
@@ -77,7 +77,7 @@ def test_render_invalid_bad_load_now_raises():
     )
     load_now = [
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-040/s01.yaml",
+            path="memory-bank/back/plan/T-HUB-040/yaml/steps/s01.yaml",
             description="status: completed",
         ),
     ]
@@ -143,21 +143,21 @@ def test_render_invalid_missing_load_now_raises():
     [
         (
             "completed_status_in_load_now",
-            [LoadNowItem(path="memory-bank/back/plan/s01.yaml", description="status: completed step")],
+            [LoadNowItem(path="memory-bank/back/plan/T-HUB-040/yaml/steps/s01.yaml", description="status: completed step")],
             [],
             HandoffBody(mode="IMPLEMENT"),
             "completed_in_load_now",
         ),
         (
             "completed_word_in_load_now",
-            [LoadNowItem(path="memory-bank/back/plan/s01.yaml", description="completed item")],
+            [LoadNowItem(path="memory-bank/back/plan/T-HUB-040/yaml/steps/s01.yaml", description="completed item")],
             [],
             HandoffBody(mode="IMPLEMENT"),
             "completed_in_load_now",
         ),
         (
             "done_word_in_load_now",
-            [LoadNowItem(path="memory-bank/back/plan/s01.yaml", description="done step")],
+            [LoadNowItem(path="memory-bank/back/plan/T-HUB-040/yaml/steps/s01.yaml", description="done step")],
             [],
             HandoffBody(mode="IMPLEMENT"),
             "completed_in_load_now",
@@ -165,8 +165,8 @@ def test_render_invalid_missing_load_now_raises():
         (
             "plan_loaded_after_implement",
             [
-                LoadNowItem(path="memory-bank/back/implement/s01.yaml", description="impl"),
-                LoadNowItem(path="memory-bank/back/plan/s02.yaml", description="plan"),
+                LoadNowItem(path="memory-bank/back/implement/T-HUB-040/s01.yaml", description="impl"),
+                LoadNowItem(path="memory-bank/back/plan/T-HUB-040/yaml/steps/s02.yaml", description="plan"),
             ],
             [],
             HandoffBody(mode="IMPLEMENT"),
@@ -232,7 +232,7 @@ def test_shape_rules_scenarios_count():
         ("completed_in_load_1", fm + "## load_now\n1. [a](a) - status: completed\n## Handoff A\n", ["completed_in_load_now"]),
         ("completed_in_load_2", fm + "## load_now\n1. [a](a) - status: done\n## Handoff A\n", ["completed_in_load_now"]),
         ("completed_in_load_3", fm + "## load_now\n1. [a](a) completed step\n## Handoff A\n", ["completed_in_load_now"]),
-        ("plan_after_impl", fm + "## load_now\n1. [impl](memory-bank/back/implement/s01.yaml)\n2. [plan](memory-bank/back/plan/s02.yaml)\n## Handoff A\n", ["plan_loaded_after_implement"]),
+        ("plan_after_impl", fm + "## load_now\n1. [impl](memory-bank/back/implement/T-HUB-040/s01.yaml)\n2. [plan](memory-bank/back/plan/T-HUB-040/yaml/steps/s02.yaml)\n## Handoff A\n", ["plan_loaded_after_implement"]),
         ("malformed_blocked", fm + "## load_now\n1. [a](a)\n## Handoff A\nBLOCKED test bad\n", ["malformed_marker"]),
         ("malformed_epic_done", fm + "## load_now\n1. [a](a)\n## Handoff A\nEPIC_DONE extra text\n", ["malformed_marker"]),
         ("malformed_need_human", fm + "## load_now\n1. [a](a)\n## Handoff A\nNEED_HUMAN bad text\n", ["malformed_marker"]),

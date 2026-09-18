@@ -1,7 +1,7 @@
 # Epic loop — fresh session per step
 
 Автоцикл: **`./bin/loop`** (Python supervisor: `python3 -m loop.runner`; compatibility shim: `./loop/loop.sh`)  
-Канон переходов: `memory-bank/activeContext.md` + `decompose/index.yaml`; курсор = `memory-bank/activeContext.md`
+Канон переходов: `memory-bank/activeContext.md` + `memory-bank/<role>/plan/<epic>/yaml/decompose-index.yaml`; курсор = `memory-bank/activeContext.md`
 
 Один чат = один atomic шаг. Агент читает context и пишет следующий Handoff.
 
@@ -14,14 +14,14 @@
 
 ```bash
 ./bin/loop gpt
-./bin/loop decompose-v1-portal gpt
+./bin/loop memory-bank/back/plan/v1-portal/yaml/decompose-index.yaml gpt
 ./bin/loop --status
 ```
 
 FORBIDDEN argv (удалены / не поддерживаются): `--track`, `--id`, `--gap`, `--resume-implement`.
 Нет отдельных `epic-loop.sh` / `program-loop.sh` — канонический запуск через `./bin/loop` (или `./loop/loop.sh` shim).
 
-`decompose-<id>` — ручной switch эпика: **overwrite** `activeContext` из index (первый pending/active/blocked). Без аргумента — текущий activeContext.
+`<epic-id>` — ручной switch эпика: **overwrite** `activeContext` из canonical YAML index (первый pending/active/blocked). Без аргумента — текущий activeContext.
 
 ## Env
 

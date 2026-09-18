@@ -11,7 +11,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · grill-me (Phase 0 skip → mini grill в §Product probe)
 
-→ [T-HUB-057-loop-session-json-contract/md/decompose-index.md](T-HUB-057-loop-session-json-contract/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-057-loop-session-json-contract/yaml/decompose-index.yaml](T-HUB-057-loop-session-json-contract/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

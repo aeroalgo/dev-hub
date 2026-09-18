@@ -22,7 +22,7 @@
 
 | step_id | title & scope | implement | audit_surface | next_phase | status |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| **a01** | [a01-<slug>.md](a01-<slug>.md)<br>• кратко: paths/threat | [a01…](../../implement/implement-<plan_id>/a01-<slug>.md) | auth\|api\|… | BACK/FRONT/INTEG SECURITY | pending |
+| **a01** | [a01-<slug>.yaml](../../implement/<plan_id>/a01-<slug>.yaml) | auth\|api\|… | BACK/FRONT/INTEG SECURITY | pending |
 
 **status:** `pending` | `active` | `completed` | `blocked`  
 **next_phase:** `* SECURITY` (не IMPLEMENT / не REFACTOR)

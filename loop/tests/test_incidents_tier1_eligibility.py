@@ -44,7 +44,7 @@ def test_orchestration_eligible_code_returns_true():
     inc = _make_incident(["active_context_shape_invalid"])
     assert is_tier1_eligible(inc) is True
 
-    inc2 = _make_incident(["mark_index_missing", "index_mirror_drift"])
+    inc2 = _make_incident(["mark_index_missing"])
     assert is_tier1_eligible(inc2) is True
 
 

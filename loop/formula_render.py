@@ -77,7 +77,7 @@ def render_step(
         "nouns": [formula_step.title],
         "layout_paths": [f.format(epic_name=plan_id, epic_id=epic_id, slug=slug) if "{" in f else f for f in formula_step.typical_files_pattern],
         "ac_quotes": [f"Verify {formula_step.title}"],
-        "plan_jumps": [f"plan-{plan_id}.md:1-50"],
+        "plan_jumps": [f"plan/{plan_id}/md/plan.md:1-50"],
     }
 
     if "context" not in res or not isinstance(res["context"], dict):
@@ -156,7 +156,7 @@ def render_formula(
     role: str = "back",
     project_root: Path | None = None,
 ) -> list[str]:
-    """Render full formula into index.yaml + step shards.
+    """Render full formula into decompose-index.yaml + step shards.
 
     Returns list of paths formatted or written.
     Raises ValueError if formula not found, file overwrite attempted without force, etc.
@@ -169,8 +169,6 @@ def render_formula(
     index_data = {
         "schema": "epic-decompose-index/v1",
         "plan_id": plan_id,
-        "source_md": "index.md",
-        "status_canon": "index.yaml",
         "steps": [],
     }
 
@@ -195,17 +193,17 @@ def render_formula(
     written_paths: list[str] = []
 
     if dry_run:
-        out_str = f"# --- index.yaml ---\n{yaml.safe_dump(index_data, sort_keys=False)}\n"
+        out_str = f"# --- decompose-index.yaml ---\n{yaml.safe_dump(index_data, sort_keys=False)}\n"
         for _, _, filename, step_dict in step_files_content:
             out_str += f"# --- {filename} ---\n{yaml.safe_dump(step_dict, sort_keys=False)}\n"
         print(out_str, end="")
-        return ["index.yaml"] + [fn for _, _, fn, _ in step_files_content]
+        return ["decompose-index.yaml"] + [fn for _, _, fn, _ in step_files_content]
 
     if out_dir:
         target_dir = Path(out_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
-        index_path = target_dir / "index.yaml"
-        target_step_paths = [(target_dir / filename, step_dict) for _, _, filename, step_dict in step_files_content]
+        index_path = target_dir / "decompose-index.yaml"
+        target_step_paths = [(target_dir / "steps" / filename, step_dict) for _, _, filename, step_dict in step_files_content]
     else:
         from loop.paths.epic_layout import resolve, EpicLayoutKind
 
@@ -261,4 +259,3 @@ def list_formulas(formulas_dir: Path | None = None) -> list[DecomposeFormula]:
         formula = load_formula(f)
         res.append(formula)
     return sorted(res, key=lambda f: f.id)
-

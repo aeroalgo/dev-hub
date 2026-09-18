@@ -127,9 +127,6 @@ def scaffold_decompose(
 
     outline_steps: List[OutlineStep] = outline.outline_steps or []
 
-    index_md_path = resolve(
-        role=role, epic_id=epic_id, kind=EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=project_root
-    )
     index_yaml_path = resolve(
         role=role, epic_id=epic_id, kind=EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=project_root
     )
@@ -209,38 +206,15 @@ def scaffold_decompose(
     index_yaml_data = {
         "schema": "epic-decompose-index/v1",
         "plan_id": epic_id,
-        "source_md": "decompose-index.md",
-        "status_canon": "decompose-index.yaml",
         "steps": index_steps,
     }
     index_yaml_content = yaml.dump(index_yaml_data, sort_keys=False)
 
-    req_rows = ""
-    for req in outline.requirements:
-        req_rows += f"| {req.id} | {req.text} | | pending |\n"
-
-    index_md_content = f"""# Decompose: {outline.title or epic_id}
-
-## Steps
-
-## Requirements coverage
-| Requirement | Description | Step | Status |
-|---|---|---|---|
-{req_rows}
-## Stages coverage
-
-## Outcome map
-
-## Replacement cleanup
-"""
-
-    if (index_md_path.exists() or index_yaml_path.exists()) and not force:
-        if index_md_path.exists():
-            _check_step_overwrite(index_md_path, force)
+    if index_yaml_path.exists() and not force:
         if index_yaml_path.exists():
             _check_step_overwrite(index_yaml_path, force)
 
-    all_to_write = [(index_md_path, index_md_content), (index_yaml_path, index_yaml_content)] + step_files_to_write
+    all_to_write = [(index_yaml_path, index_yaml_content)] + step_files_to_write
 
     for path, content in all_to_write:
         rel = str(path)

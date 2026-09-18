@@ -320,7 +320,6 @@ def shard_allowlist_paths(cwd: str | Path) -> list[str]:
             role,
             epic_id,
             step_id,
-            plan_id=epic_id,
         )
         path = Path(cwd) / rel if not Path(rel).is_absolute() else Path(rel)
         if not path.is_file():
@@ -517,4 +516,3 @@ def should_promote_foreign_dirty_fail(
     return True, [
         "foreign_dirty_ignored: git dirty outside touch-ledger is not a scope blocker",
     ]
-

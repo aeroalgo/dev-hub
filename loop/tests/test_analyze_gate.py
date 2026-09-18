@@ -30,7 +30,7 @@ def test_analyze_mtime_drift_passes_when_complete_and_aligned(tmp_path: Path) ->
     gate = _load_gate()
     idx = _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/index.yaml",
+        "memory-bank/back/plan/T-Y/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
         "- id: s01\n  status: pending\n",
     )
@@ -58,7 +58,7 @@ def test_analyze_stale_when_index_fingerprint_mismatch(tmp_path: Path) -> None:
     gate = _load_gate()
     idx = _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/index.yaml",
+        "memory-bank/back/plan/T-Y/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
         "- id: s01\n  status: pending\n",
     )
@@ -83,7 +83,7 @@ def test_analyze_stale_when_step_refs_missing_from_index(tmp_path: Path) -> None
     gate = _load_gate()
     idx = _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/index.yaml",
+        "memory-bank/back/plan/T-Y/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
         "- id: s01\n  status: pending\n",
     )
@@ -104,8 +104,8 @@ def test_analyze_stale_when_step_refs_missing_from_index(tmp_path: Path) -> None
     assert out["reason"] == "analyze_stale"
 
 
-def test_analyze_pass_when_fingerprint_checked_via_index_md(tmp_path: Path) -> None:
-    """index.md path must fingerprint index.yaml SoT — not md bytes."""
+def test_analyze_pass_when_fingerprint_checked_via_index_yaml(tmp_path: Path) -> None:
+    """Analyze fingerprints the validated YAML index."""
     gate = _load_gate()
     yaml_body = (
         "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
@@ -113,13 +113,8 @@ def test_analyze_pass_when_fingerprint_checked_via_index_md(tmp_path: Path) -> N
     )
     idx_yaml = _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/index.yaml",
+        "memory-bank/back/plan/T-Y/yaml/decompose-index.yaml",
         yaml_body,
-    )
-    idx_md = _write(
-        tmp_path,
-        "memory-bank/back/plan/decompose-T-Y/index.md",
-        "| step_id | status |\n| s01 | pending |\n",
     )
     fp = gate.index_content_fingerprint(idx_yaml)
     _write(
@@ -134,7 +129,7 @@ def test_analyze_pass_when_fingerprint_checked_via_index_md(tmp_path: Path) -> N
         "back",
         "T-Y",
         [{"id": "s01", "status": "pending"}],
-        index_path=idx_md,
+        index_path=idx_yaml,
     )
     assert out["required"] is False, out
     assert out["reason"] == "analyze_pass"

@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · domain-driven-design · brainstorming (batch decisions below)
 
-→ [T-HUB-020-dsh-board-epic-loop/md/decompose-index.md](T-HUB-020-dsh-board-epic-loop/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-020-dsh-board-epic-loop/yaml/decompose-index.yaml](T-HUB-020-dsh-board-epic-loop/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

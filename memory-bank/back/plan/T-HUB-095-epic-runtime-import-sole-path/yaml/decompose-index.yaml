@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-095-epic-runtime-import-sole-path
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 appetite:
   timebox_days: 2–3
   cut_list:

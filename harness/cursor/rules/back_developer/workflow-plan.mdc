@@ -58,7 +58,7 @@ alwaysApply: false
     - **Auto-resolve defer:** в `## Plan review batch log` (не AskUserQuestion one-by-one). L1 — review опционален.
 3. writing-plans; skills list в каждом `plan/<task_id>/md/plan.md`; L3–4 → situational brainstorming / architecture-patterns
 3a. **Roadmap path (always):** каждый PLAN сначала апсертит канонический `roadmap/queue.yaml` (`batches.<slug>` и одну строку `queue[]` на эпик), затем сохраняет полный `plan/<epic_id>/` + `md/prompt.md`. Для multi-epic сначала выполняется epic cut и добавляется строка на **каждый** эпик (`## Epic` разный, `## Covering` один, Axes **без** ID эпиков). Для single-epic split не нужен, но queue row и batch обязательны. Шаблон: @.cursor/templates/roadmap-queue.yaml
-4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
+4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `yaml/decompose-index.yaml` и shards. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): обязательны апсерт `memory-bank/back/roadmap/queue.yaml` + `memory-bank/back/plan/<epic_id>/md/plan.md` и `md/prompt.md` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`). Для multi-epic — N queue rows, N plan dirs и N `prompt.md` (Covering одинаковый).
 7. `tasks.md` append-only (ссылка на план / roadmap queue + эпики; без sNN-чеклиста)
@@ -70,6 +70,6 @@ alwaysApply: false
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
 8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из `roadmap/queue.yaml`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
-**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `md/decompose-index.md`, **не** меняет status/чеклист, **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
+**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / BACK IMPLEMENT — этот PLAN **не** меняет status и **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
 
 **Верификация**: gates + AC + CREATIVE need + queue row/reconcile + multi-epic FAIL-checks + brownfield sunset (если replace) + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; без чтения соседних plan; без prompt → FAIL)

@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns
 
-→ [T-HUB-034-harness-janitor-gc/md/decompose-index.md](T-HUB-034-harness-janitor-gc/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-034-harness-janitor-gc/yaml/decompose-index.yaml](T-HUB-034-harness-janitor-gc/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

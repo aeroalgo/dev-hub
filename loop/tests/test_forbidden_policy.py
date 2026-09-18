@@ -21,12 +21,12 @@ def test_policy_for_layout_software_epic_v1():
     policy_str = policy_for_layout("software-epic-v1")
     assert isinstance(policy_str, SoftwareEpicV1Policy)
 
-    # Behavior: rejects plan-*.md unless mode is DECOMPOSE
-    assert policy.is_forbidden("memory-bank/back/plan/plan-T-HUB-001.md", mode="IMPLEMENT") is True
-    assert policy.is_forbidden("memory-bank/back/plan/plan-T-HUB-001.md", mode="QA") is True
-    assert policy.is_forbidden("memory-bank/back/plan/plan-T-HUB-001.md", mode="BUGFIX") is True
-    assert policy.is_forbidden("memory-bank/back/plan/plan-T-HUB-001.md", mode="DECOMPOSE") is False
-    assert policy.is_forbidden("memory-bank/back/plan/plan-T-HUB-001.md", mode="decompose") is False
+    # Behavior: rejects the canonical plan.md unless mode is DECOMPOSE
+    assert policy.is_forbidden("memory-bank/back/plan/T-HUB-001/md/plan.md", mode="IMPLEMENT") is True
+    assert policy.is_forbidden("memory-bank/back/plan/T-HUB-001/md/plan.md", mode="QA") is True
+    assert policy.is_forbidden("memory-bank/back/plan/T-HUB-001/md/plan.md", mode="BUGFIX") is True
+    assert policy.is_forbidden("memory-bank/back/plan/T-HUB-001/md/plan.md", mode="DECOMPOSE") is False
+    assert policy.is_forbidden("memory-bank/back/plan/T-HUB-001/md/plan.md", mode="decompose") is False
 
     # Non-plan files are not forbidden
     assert policy.is_forbidden("memory-bank/back/plan/T-HUB-001/yaml/steps/s01.yaml", mode="IMPLEMENT") is False
@@ -45,9 +45,9 @@ def test_policy_for_layout_production_epic_v1():
 
     # Behavior for production-epic-v1:
     # Rejects raw plan files in execution modes (IMPLEMENT / QA / BUGFIX)
-    assert policy.is_forbidden("memory-bank/video/script/plan/plan-V-001.md", mode="IMPLEMENT") is True
-    assert policy.is_forbidden("memory-bank/video/script/plan/plan-V-001.md", mode="QA") is True
-    assert policy.is_forbidden("memory-bank/video/script/plan/plan-V-001.md", mode="DECOMPOSE") is False
+    assert policy.is_forbidden("memory-bank/video/script/plan/V-001/md/plan.md", mode="IMPLEMENT") is True
+    assert policy.is_forbidden("memory-bank/video/script/plan/V-001/md/plan.md", mode="QA") is True
+    assert policy.is_forbidden("memory-bank/video/script/plan/V-001/md/plan.md", mode="DECOMPOSE") is False
     assert policy.is_forbidden("memory-bank/video/script/plan/steps/s01.yaml", mode="IMPLEMENT") is False
 
 

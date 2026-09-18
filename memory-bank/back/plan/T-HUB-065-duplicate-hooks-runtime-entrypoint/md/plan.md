@@ -242,7 +242,7 @@
 
 → BACK ANALYZE T-HUB-065 (decompose index = sole tracker).
 
-**Decompose:** [md/decompose-index.md](decompose-index.md) · [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · 5 sNN.
+**Decompose:** [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · 5 sNN.
 
 ### CREATIVE need
 

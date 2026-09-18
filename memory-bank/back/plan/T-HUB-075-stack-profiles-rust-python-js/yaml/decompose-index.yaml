@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-075-stack-profiles-rust-python-js
-source_md: decompose-index.md
-status_canon: decompose-index.yaml
 appetite:
   timebox_days: 4
   cut_list:

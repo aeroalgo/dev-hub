@@ -14,7 +14,7 @@ def test_extract_qa_consumes_section_by_anchor():
     match = re.search(r"<!-- #qa-consumes -->\s*## QA consumes\n(.*?)(?=\n<!-- |\Z)", content, re.DOTALL)
     assert match is not None
     extracted = match.group(1).strip()
-    assert "- `memory-bank/back/plan/plan-T-HUB-027.md`" in extracted
+    assert "- `memory-bank/back/plan/T-HUB-027/md/plan.md`" in extracted
 
 
 def test_review_readiness_exemplar_no_pending_required():

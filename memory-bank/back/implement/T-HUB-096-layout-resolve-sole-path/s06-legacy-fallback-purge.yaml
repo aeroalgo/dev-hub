@@ -24,7 +24,7 @@ done:
 - Проверена чистота grep_control критериев cp1-cp4
 - Выполнен запуск регрессионного сьюта тестов (cp5)
 files:
-- memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/md/decompose-index.md
+- memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml
 - memory-bank/back/plan/T-HUB-096-layout-resolve-sole-path/yaml/decompose-index.yaml
 - loop/tests/test_epic_layout_v2_denial.py
 - harness/hooks/tests/test_epic_yaml.py

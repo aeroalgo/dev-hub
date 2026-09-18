@@ -54,7 +54,7 @@ plan_contract:
 context:
   consumes:
     - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md#replacement--sunset
-    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/md/decompose-index.md
+    - memory-bank/back/plan/T-HUB-106-dsh-runtime-full-purge/yaml/decompose-index.yaml
   produces:
     - evidence of complete DSH purge across code, manifests, entrypoints, docs and tests
   plan_refs:

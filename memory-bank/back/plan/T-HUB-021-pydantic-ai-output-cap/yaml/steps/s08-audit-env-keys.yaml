@@ -20,7 +20,7 @@ context:
     - ".claude/project.env — env комментарии (после s07)"
     - "loop/tests/ — suite (после s05)"
   produces:
-    - "memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/md/decompose-index.md — §Audit заполнен"
+    - "memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/yaml/decompose-index.yaml — §Audit заполнен"
   plan_refs:
     - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md SC-001"
     - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md SC-002"
@@ -28,7 +28,7 @@ context:
     - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md SC-004"
     - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md FR-010"
   files:
-    - "memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/md/decompose-index.md"
+    - "memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/yaml/decompose-index.yaml"
 
 as_built:
   - "index.md §Audit — заглушка 'заполнить при s08'"
@@ -59,7 +59,7 @@ checkpoints:
     verify: "rg -l 'PROJECT_OUTPUT_SUMMARY_FALLBACK_MODEL' /home/aero/PyProject/dev-hub/.claude/hooks/"
   - id: cp3
     criterion: "index.md §Audit заполнен — grep 'AC parity\\|Audit'"
-    verify: "grep -i 'ac parity\\|Audit' /home/aero/PyProject/dev-hub/memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/md/decompose-index.md | head -3"
+    verify: "grep -i 'ac parity\\|Audit' /home/aero/PyProject/dev-hub/memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/yaml/decompose-index.yaml | head -3"
   - id: cp4
     criterion: "Финальный hub suite green (SC-004)"
     verify: "timeout 120s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/ -q --tb=line 2>&1 | tail -10"

@@ -16,11 +16,10 @@ from epic import (
     validate_checkpoint,
     mark_index_step_status,
     finalize_step,
-    repair_index_mirror,
     project_handoff_from_reducer,
     _state_diagnostics,
 )
-from loop.schemas.state import EpicState, DriftCounters
+from loop.schemas.state import EpicState
 from loop.schemas.board import BoardCardMetadata
 from _lib import extract_verdict
 
@@ -71,7 +70,7 @@ def test_us004_save_epic_state_version(tmp_path: Path):
 
 def test_us005_stale_handoff_reflect(tmp_path: Path):
     epic = "T-HUB-022"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     decompose_file = tmp_path / decompose
     decompose_file.parent.mkdir(parents=True, exist_ok=True)
     decompose_file.write_text(
@@ -95,7 +94,7 @@ def test_us005_stale_handoff_reflect(tmp_path: Path):
     active_ctx.parent.mkdir(parents=True, exist_ok=True)
     active_ctx.write_text(
         "## load_now\n"
-        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"1. [decompose-index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         f"## Handoff BACK BUGFIX — {epic}\n"
         "- **Режим/шаг:** `BACK BUGFIX`.\n",
         encoding="utf-8"
@@ -124,30 +123,35 @@ def test_us006_sidecar_pass_transcript_fail(tmp_path: Path):
     assert verdict == "PASS"
 
 
-def test_us007_strict_legacy_ac_blocked(tmp_path: Path):
+def test_us007_invalid_step_id_blocked(tmp_path: Path):
     # Invalid step_id format triggers error/blocked response
-    res = finalize_step(cwd=tmp_path, decompose="memory-bank/back/plan/decompose-T-HUB-022/index.yaml", step_id="invalid_step")
+    res = finalize_step(
+        cwd=tmp_path,
+        decompose="memory-bank/back/plan/T-HUB-022/yaml/decompose-index.yaml",
+        step_id="invalid_step",
+    )
     assert res.get("ok") is False or "bad step_id" in str(res)
 
 
-def test_us008_repair_index_mirror_drift(tmp_path: Path):
-    state = EpicState(epic_id="T-HUB-022", drift_counters=DriftCounters(index_mirror_repair=0)).model_dump()
-    save_epic_state(tmp_path, state)
-
-    repair_index_mirror(tmp_path, decompose="memory-bank/back/plan/decompose-T-HUB-022/index.yaml")
-
-    loaded_state = load_epic_state(tmp_path)
-    assert loaded_state.get("drift_counters", {}).get("index_mirror_repair", 0) >= 1
-
-
 def test_us009_mark_index_step_status(tmp_path: Path):
-    index_path = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-022" / "index.yaml"
+    index_path = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-022" / "yaml" / "decompose-index.yaml"
     index_path.parent.mkdir(parents=True, exist_ok=True)
-    index_path.write_text("steps:\n  - id: s01\n    status: pending\n", encoding="utf-8")
-    index_md = index_path.with_name("index.md")
-    index_md.write_text("# Index\n- [ ] s01\n", encoding="utf-8")
+    index_path.write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-HUB-022\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: s01.yaml\n"
+        "    next_phase: BACK IMPLEMENT\n"
+        "    status: pending\n",
+        encoding="utf-8",
+    )
 
-    mark_index_step_status(tmp_path, "memory-bank/back/plan/decompose-T-HUB-022/index.yaml", "s01", "completed")
+    mark_index_step_status(
+        tmp_path,
+        "memory-bank/back/plan/T-HUB-022/yaml/decompose-index.yaml",
+        "s01",
+        "completed",
+    )
 
     assert "completed" in index_path.read_text(encoding="utf-8")
-    assert "completed" in index_md.read_text(encoding="utf-8")

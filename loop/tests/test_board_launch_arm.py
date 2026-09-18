@@ -40,18 +40,12 @@ def _seed_project(tmp_path: Path) -> None:
     index.write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: demo\n"
-        "source_md: index.md\n"
-        "status_canon: index.yaml\n"
         "steps:\n"
         "- id: s02\n"
         "  file: s02-demo.yaml\n"
         "  title: Demo step\n"
         "  next_phase: BACK IMPLEMENT\n"
         "  status: pending\n",
-        encoding="utf-8",
-    )
-    (index.parent / "index.md").write_text(
-        "# Demo\n\n| s02 | s02-demo.yaml | Demo step | BACK IMPLEMENT | pending |\n",
         encoding="utf-8",
     )
     (index.parent / "steps").mkdir(parents=True, exist_ok=True)

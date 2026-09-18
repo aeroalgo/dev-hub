@@ -36,7 +36,7 @@ alwaysApply: false
 1a. Gates + workflow-security-epic
 2. Scope detect: сомнение → M/L
 3. Inventory surfaces (api/auth/db/jobs/secrets/deps/ci) + priority + skills map
-4. Сохрани `memory-bank/back/security/plan/plan-<id>.md` (@.cursor/templates/security/plan.md)
+4. Сохрани `memory-bank/back/security/plan/<id>/md/plan.md` (@.cursor/templates/security/plan.md)
 5. `tasks.md` append-only
 6. **FINISH:** finish-block (`code_changed: no`)
 7. Next: **BACK SECURITY DECOMPOSE**
@@ -47,7 +47,7 @@ alwaysApply: false
 1a. Gates + workflow-security-epic
 2. Прочитай plan (весь)
 3. Нарежь `aNN` — один surface / threat class / чат
-4. Папка `memory-bank/back/security/plan/decompose-<id>/` из `@.cursor/templates/security/`
+4. Папка `memory-bank/back/security/plan/<id>/yaml/` из `@.cursor/templates/security/`
 5. Каждый `aNN`: `audit_surface` + Audit skills (concrete) + scope + threats + checkpoint
 6. Plan → ссылка на index как трекер; без дубль-чеклистов aNN
 7. **FINISH:** finish-block (`code_changed: no`) — `load_now` → `a01-*.md`
@@ -57,14 +57,14 @@ alwaysApply: false
 
 1. `OK BACK SECURITY - Security audit`
 1a. Gates + workflow-security-epic (path rule)
-1b. Epic detect: `decompose-<id>/` / `@aNN` / plan id → **эпик**; иначе **S**
+1b. Epic detect: `security/plan/<id>/yaml/` / `@aNN` / plan id → **эпик**; иначе **S**
 2. `tasks.md` + load_now; skills = Audit skills шага (эпик) или workflow list (S)
-3. **Эпик:** один `aNN` → findings → `security/implement/implement-<id>/aNN-<slug>.md`  
+3. **Эпик:** один `aNN` → findings → `security/implement/<id>/aNN-<slug>.yaml`
    **FORBIDDEN:** `security-audit-*.md` в корне при эпике
-4. **S:** audit → `security/security-audit-YYYYMMDD-<slug>.md`  
-   **FORBIDDEN:** `implement/…/aNN-*.md`
+4. **S:** audit → `security/security-audit-YYYYMMDD-<slug>.md`
+   **FORBIDDEN:** legacy markdown audit artifacts in implement directories
 5. Не чинить код; §0.11 на findings
-6. **FINISH:** finish-block (`code_changed: no`)  
+6. **FINISH:** finish-block (`code_changed: no`)
    Next: Handoff · workflow-loop-state
 
 **Next (фиксы):** BUGFIX / IMPLEMENT. Drift → не SECURITY.

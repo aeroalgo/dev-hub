@@ -191,7 +191,7 @@ FINISH после decompose/index.*; promote DECOMPOSE→IMPLEMENT на prepare.
 На диске есть:
 
 - `md/plan.md`
-- `md/decompose-index.md` (coverage-таблицы на месте)
+- `yaml/decompose-index.yaml` (coverage-таблицы на месте)
 - `yaml/decompose-index.yaml` — 5 steps, все **`pending`**
 - `yaml/steps/s01…s05-*.yaml` (s01 прочитан: полный `plan_contract` / goal / skills)
 

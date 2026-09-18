@@ -27,7 +27,7 @@ def test_mb_finish_software_pack_writes_active_context(tmp_path: Path):
     )
     load_now = [
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-050/s05.yaml",
+            path="memory-bank/back/plan/T-HUB-050/yaml/steps/s05.yaml",
             description="work shard",
         )
     ]
@@ -130,7 +130,7 @@ def test_mb_finish_wrong_cwd_fails_closed(tmp_path: Path):
     )
     load_now = [
         LoadNowItem(
-            path="memory-bank/back/plan/decompose-T-HUB-050/s05.yaml",
+            path="memory-bank/back/plan/T-HUB-050/yaml/steps/s05.yaml",
             description="work shard",
         )
     ]

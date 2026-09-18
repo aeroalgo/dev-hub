@@ -9,7 +9,7 @@
 
 **Skills:** writing-plans · brainstorming · python-testing-patterns · architecture-patterns (узко: single runtime root)
 
-→ [T-HUB-003-loop-halt/md/decompose-index.md](T-HUB-003-loop-halt/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-003-loop-halt/yaml/decompose-index.yaml](T-HUB-003-loop-halt/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

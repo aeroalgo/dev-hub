@@ -178,7 +178,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 ## 5. AUDIT — inventory из **plan**, presence ≠ satisfied
 
-1. Intent Inventory = **все** FR/US/SC/AC±/NFR из `plan-*.md` (полный список). Decompose coverage / remapped `plan_refs` — **вторичный** индекс.
+1. Intent Inventory = **все** FR/US/SC/AC±/NFR из `plan/<epic_id>/md/plan.md` (полный список). Decompose coverage / remapped `plan_refs` — **вторичный** индекс.
 2. Plan FR без step → finding `missing` **CRITICAL** (не «не в inventory потому что не в decompose»).
 3. Supersede/merge (эпик A → B): каждый FR superseded plan → coverage в B **или** `out_of_scope` + follow-up в queue.
 4. **`assessment: satisfied` FORBIDDEN** если evidence = только registry row / alias dict / unit lookup, а FR требует files/enforce/CLI.

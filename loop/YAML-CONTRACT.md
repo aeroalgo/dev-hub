@@ -8,8 +8,8 @@ Read-time alias только `integ-decompose/v1` → нормализуется
 
 ```bash
 python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>
-python3 .claude/hooks/epic_resolve.py validate-decompose-tree --decompose <decompose-dir|index.yaml>
-python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <decompose-dir|index.yaml>
+python3 .claude/hooks/epic_resolve.py validate-decompose-tree --decompose <epic-dir|yaml/decompose-index.yaml>
+python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <epic-dir|yaml/decompose-index.yaml>
 ```
 
 `validate-decompose-tree` — **DECOMPOSE FINISH fail-closed** (stop-gate): schema load всех sNN|eNN (`epic-decompose/v1`). Полный lint verify — `validate-step`.
@@ -18,12 +18,11 @@ python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <dec
 
 Шаг YAML = ТЗ агенту (цель, файлы, tests).
 
-## Layout v2 & Decompose index — yaml канон, md зеркало
+## Layout v2 & Decompose index — YAML-only
 
 | Файл (Layout v2) | Роль |
 |------|------|
 | `plan/<epic_id>/yaml/decompose-index.yaml` | **единственный SoT** очереди + `status`; prepare / identity / IMPLEMENT |
-| `plan/<epic_id>/md/decompose-index.md` | human coverage (DECOMPOSE/AUDIT); status = best-effort зеркало |
 | `plan/<epic_id>/yaml/steps/sNN-*.yaml` | decompose step shards |
 | `implement/<epic_id>/sNN-*.yaml` | implement step shards (**без** `yaml/` — split только у plan/decompose) |
 | `qa|audit|analyze/<epic_id>/*.yaml` | phase artifacts (**без** `yaml/` subdir) |
@@ -32,33 +31,24 @@ python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <dec
 - Scaffolding шагов выполняется исключительно через `mb-scaffold` (`mb-scaffold plan`, `mb-scaffold decompose`, `mb-scaffold implement`).
 - **FORBIDDEN:** Write scaffolded step files from scratch (только Edit).
 
-Курсор = `activeContext.md` + `index.yaml` + step yaml.  
-Md **не** fail-closed gate. Рассинхрон → deterministic `repair-index-mirror` (prepare/check_after вызывают автоматически; CLI вручную).
+Курсор = `activeContext.md` + `yaml/decompose-index.yaml` + step yaml.
+YAML-индекс валидируется Pydantic-контрактом и является единственным fail-closed источником очереди.
 
 **Fingerprint stall** (агент вышел без смены Handoff): `check-after` → `repair_fingerprint_stall`. Если implement ready (checkpoints + files на диске) → finalize/re-arm без LLM. Иначе проверяется fingerprint scoped-файлов текущего шага: реальное изменение файлов сбрасывает stall-счётчик и запускает outer retry с dirty-контекстом; только отсутствие и Handoff, и scoped-прогресса считается повторным stall и идёт до `EPIC_DEGRADED_MAX`, после лимита → `NEED_HUMAN` HALT.
 
-**Cursor SoT = `index.yaml` only.** На `prepare` вызывается `sync_cursor_from_index`: `activeContext` + `armed_step` переписываются из next pending; stale checkpoint с другим step сбрасывается. `armed_step` — кэш, не источник правды.
+**Cursor SoT = `yaml/decompose-index.yaml` only.** На `prepare` вызывается `sync_cursor_from_index`: `activeContext` + `armed_step` переписываются из next pending; stale checkpoint с другим step сбрасывается. `armed_step` — кэш, не источник правды.
 
 **Одна точка записи status** (не править md и yaml руками):
 
 ```bash
 python3 .claude/hooks/epic_resolve.py finalize-step \
-  --decompose decompose-v1-portal --step e22
+  --decompose memory-bank/back/plan/T-HUB-001/yaml/decompose-index.yaml --step s01
 ```
 
 `finalize-step` также пишет `tasks/log` и при смене фазы — `tasks.md`.
 
-После смены состава шагов в `index.md` (новые строки таблицы) или если md битый:
-
-```bash
-python3 .claude/hooks/epic_resolve.py repair-index-mirror \
-  --decompose decompose-v1-portal
-python3 .claude/hooks/epic_resolve.py sync-index-yaml \
-  --decompose decompose-v1-portal
-```
-
-`repair-index-mirror` пересобирает queue-таблицу md из yaml (не трогает yaml).  
-`sync-index-yaml` по умолчанию **сохраняет** status из yaml; `--from-md-status` — bootstrap из md (только bootstrap).
+Состав шагов меняется только через валидированный `yaml/decompose-index.yaml` и shards
+`yaml/steps/`; отдельных markdown-индексов и mirror/bootstrap-команд нет.
 
 ## Traceability fields
 
@@ -79,4 +69,4 @@ python3 .claude/hooks/epic_resolve.py sync-index-yaml \
 | `evidence.tests` | `list[str]` | completed без tests | HIGH / CRITICAL (--strict) |
 | `@pytest.mark.ac` | marker | нет AC markers | MEDIUM / HIGH (--strict) |
 
-`validate-decompose-tree` дополнительно: каждый shard имеет `plan_contract`; index.md Notes без bare deferred.
+`validate-decompose-tree` дополнительно: каждый shard имеет `plan_contract`; YAML index/shards без bare deferred.

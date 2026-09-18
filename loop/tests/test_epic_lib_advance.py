@@ -20,12 +20,9 @@ def _load_epic():
 def _seed_index(tmp_path: Path, *, next_step: bool = True) -> tuple[Path, Path]:
     index_dir = (
         tmp_path
-        / "memory-bank/back/plan/decompose-demo"
+        / "memory-bank/back/plan/demo/yaml"
     )
     index_dir.mkdir(parents=True)
-    rows = [
-        "| **s06** | [s06-old.yaml](s06-old.yaml) | BACK IMPLEMENT | completed |",
-    ]
     steps = [
         {
             "id": "s06",
@@ -36,9 +33,6 @@ def _seed_index(tmp_path: Path, *, next_step: bool = True) -> tuple[Path, Path]:
         }
     ]
     if next_step:
-        rows.append(
-            "| **s07** | [s07-next.yaml](s07-next.yaml) | BACK IMPLEMENT | pending |"
-        )
         steps.append(
             {
                 "id": "s07",
@@ -50,7 +44,7 @@ def _seed_index(tmp_path: Path, *, next_step: bool = True) -> tuple[Path, Path]:
         )
     import yaml
 
-    ypath = index_dir / "index.yaml"
+    ypath = index_dir / "decompose-index.yaml"
     ypath.write_text(
         yaml.safe_dump(
             {"schema": "epic-decompose-index/v1", "plan_id": "demo", "steps": steps},
@@ -58,16 +52,10 @@ def _seed_index(tmp_path: Path, *, next_step: bool = True) -> tuple[Path, Path]:
         ),
         encoding="utf-8",
     )
-    md_path = index_dir / "index.md"
-    md_path.write_text(
-        "**Plan ID:** demo\n\n"
-        "| Step | Shard | Phase | Status |\n"
-        "|---|---|---|---|\n"
-        + "\n".join(rows)
-        + "\n",
-        encoding="utf-8",
-    )
-    (index_dir / "s07-next.yaml").write_text("step_id: s07\n", encoding="utf-8")
+    steps_dir = index_dir / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    (steps_dir / "s06-old.yaml").write_text("step_id: s06\n", encoding="utf-8")
+    (steps_dir / "s07-next.yaml").write_text("step_id: s07\n", encoding="utf-8")
     active = tmp_path / "memory-bank/activeContext.md"
     active.parent.mkdir(parents=True, exist_ok=True)
     active.write_text("## load_now\n- old\n\n## Handoff\n- old\n", encoding="utf-8")
@@ -77,7 +65,7 @@ def _seed_index(tmp_path: Path, *, next_step: bool = True) -> tuple[Path, Path]:
 def _mark(lib, tmp_path: Path, status: str = "completed") -> dict:
     return lib.mark_index_step_status(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
         "s06",
         status,
     )
@@ -93,8 +81,7 @@ def test_mark_index_advance_rewrites_active_context(tmp_path: Path) -> None:
     assert result["next_step"] == "s07"
     body = active.read_text(encoding="utf-8")
     assert "s07-next.yaml" in body
-    assert "index.yaml" in body
-    assert "](back/plan/decompose-demo/index.md)" not in body
+    assert "decompose-index.yaml" in body
     assert "## Handoff" in body
 
 

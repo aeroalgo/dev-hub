@@ -30,18 +30,12 @@ def index_yaml_path(path: Path) -> Path:
     if value.suffix.lower() in {".md", ".markdown"}:
         raise ValueError(f"markdown decomposition indexes are unsupported: {value}")
     if value.is_dir():
-        v2 = value / "yaml" / "decompose-index.yaml"
-        if v2.is_file():
-            return v2
-        for candidate in (value / "decompose-index.yaml", value / "index.yaml"):
-            if candidate.is_file():
-                return candidate
-        return v2
-    if value.name in {"decompose-index.yaml", "decompose-index.yml", "index.yaml", "index.yml"}:
+        return value / "yaml" / "decompose-index.yaml"
+    if value.name in {"decompose-index.yaml", "decompose-index.yml"}:
         return value
     if value.parent.name == "steps" and value.parent.parent.name == "yaml":
         return value.parent.parent / "decompose-index.yaml"
-    return value.parent / "index.yaml"
+    raise ValueError(f"expected canonical YAML decomposition index: {value}")
 
 
 def load_index_yaml(path: Path) -> dict[str, Any] | None:

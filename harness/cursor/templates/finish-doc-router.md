@@ -18,13 +18,13 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 
 Канон **IMPLEMENT** (эпик):
 
-1. **work shard** — `decompose-*/sNN|eNN-*.yaml` (**только pending/active**, не completed); AC = этот файл
-2. **`decompose-*/index.yaml`** — очередь/status (обязателен при эпике)
+1. **work shard** — `plan/<epic>/yaml/steps/sNN|eNN-*.yaml` (**только pending/active**, не completed); AC = этот файл
+2. **`plan/<epic>/yaml/decompose-index.yaml`** — очередь/status (обязателен при эпике)
 
 Без эпика / не-IMPLEMENT:
 
 1. next work shard — `bugfix-*.md` · `qa-*.yaml` · `task-*.md` · `sNN|eNN-*.yaml` (**pending/active**)
-2. при epic → AUDIT/QA: `decompose-*/index.yaml` (+ qa-артефакт)
+2. при epic → AUDIT/QA: `plan/<epic>/yaml/decompose-index.yaml` (+ qa-артефакт)
 3. опц. qa-артефакт при re-run / BUGFIX из Fix plan
 
 При QA `fail|blocked` обязательно добавляется `memory-bank/{role}/bugfix/<epic>/bugfix-queue.yaml`; при BUGFIX queue идёт первым в `load_now`, затем bugfix report и optional QA source.
@@ -35,8 +35,8 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 2. при `critical_count = 0` → следующий `* IMPLEMENT` (первый pending shard);
 3. при `critical_count > 0` → следующий `* CLARIFY` или `* DECOMPOSE` по `next_actions`; IMPLEMENT не считать автоматически заблокированным, если команда явно выбрала soft follow-up.
 
-**FORBIDDEN в `load_now`:** полный `plan-*.md` · «acceptance context = plan» · completed shards · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` (coverage, не hot path) · `implement-*/index.md`
-**OK index в `load_now`:** только `plan/decompose-*/index.yaml`
+**FORBIDDEN в `load_now`:** полный `plan/<epic>/md/plan.md` · «acceptance context = plan» · completed shards · `tasks.md` / `systemPatterns.md` · markdown indexes
+**OK index в `load_now`:** только `plan/<epic>/yaml/decompose-index.yaml`
 **AC:** в work shard / Handoff Epic QA / Fix plan — **не** в index. Jump `plan §N` только если Consumes требует и shard неполон.  
 **Исключение:** режим PLAN или вход DECOMPOSE — plan как объект работы OK до FINISH DECOMPOSE (после — tip `s01|e01` + `index.yaml`).
 
@@ -67,14 +67,14 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 
 ## Shard checkbox / implement (ORDER — до decompose completed)
 
-- [ ] **Файл существует:** `memory-bank/{back|front|integration}/implement/implement-<plan>/sNN|eNN-<slug>.yaml`
+- [ ] **Файл существует:** `memory-bank/{back|front|integration}/implement/<plan>/sNN|eNN-<slug>.yaml`
 - [x] Канон: `.cursor/templates/implement/epic-step.yaml` (`schema: epic-implement/v1`, `role`, `checkpoints`, FINISH только при все cp `done`)
 - [ ] **ЗАПРЕЩЕНО** legacy `.md` implement shards и Handoff внутри yaml step
 - [ ] **## Handoff** этого `sNN|eNN` уже в `activeContext.md` (шаг ниже) — **до** галки decompose
 
-## Decompose index (если шаг из `decompose-*/`) — только после step + Handoff
+## Decompose index (если шаг из `plan/<epic>/yaml/`) — только после step + Handoff
 
-- [ ] `status: completed` / `done` в `decompose-*/index.yaml` (**после** step-файла + Handoff) — только через `finalize-step`
+- [ ] `status: completed` / `done` в `plan/<epic>/yaml/decompose-index.yaml` (**после** step-файла + Handoff) — только через `finalize-step`
 - [x] **ЗАПРЕЩЕНО** руками править `tasks.md` / `tasks/log` на IMPLEMENT sNN
 
 
@@ -86,14 +86,14 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 Порядок: `## load_now` → **один** `## Handoff …` → `## done — do NOT load` (опционально, один).  
 Писать **после** `@verify` PASS и **до** sync decompose как часть того же FINISH.
 
-Канон курсора и переходов: `memory-bank/activeContext.md` · `memory-bank/**/plan/decompose-*/index.yaml` · implement step YAML · context-first runner `./loop/loop.sh`  
+Канон курсора и переходов: `memory-bank/activeContext.md` · `memory-bank/**/plan/<epic>/yaml/decompose-index.yaml` · implement step YAML · context-first runner `./loop/loop.sh`
 `- **Следующий:**` = human hint в Handoff; next step выбирает модель по activeContext + decompose index.
 
 ```markdown
 ## Handoff BACK IMPLEMENT T-xxx sNN
 
 - **Сделано:** …
-- **Артефакт:** [sNN-slug.yaml](back/implement/implement-<plan>/sNN-slug.yaml)
+- **Артефакт:** [sNN-slug.yaml](back/implement/<plan>/sNN-slug.yaml)
 - **Файлы:** `path/…` (если code_changed)
 - **Проверка:** dev-hub pytest / managed capability_checks / verify PASS / validate-step PASS
 - **Статус:** sNN completed; …
@@ -168,7 +168,7 @@ BUGFIX FINISH — обязательная рекомендация QA:
 
 Старт:
 1. memory-bank/activeContext.md → load_now + §Handoff
-2. memory-bank/back/plan/decompose-<plan_id>/sNN-<slug>.yaml
+2. memory-bank/back/plan/<plan_id>/yaml/steps/sNN-<slug>.yaml
 ```
 
 **IMPLEMENT (эпик завершён → AUDIT):**
@@ -179,7 +179,7 @@ BUGFIX FINISH — обязательная рекомендация QA:
 
 Старт:
 1. memory-bank/activeContext.md → §Handoff + load_now
-2. memory-bank/back/plan/decompose-<plan_id>/index.yaml
+2. memory-bank/back/plan/<plan_id>/yaml/decompose-index.yaml
 ```
 
 **QA blocked → BUGFIX:**

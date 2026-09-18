@@ -21,7 +21,7 @@ def _write(path: Path, text: str) -> None:
 def _seed_epic(tmp_path: Path, epic: str) -> None:
     from epic import default_state, save_epic_state
 
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -203,7 +203,7 @@ def test_prepare_session_keeps_bugfix_when_qa_failed(
         f"epic_id: {epic}\n"
         "---\n\n"
         "## load_now\n"
-        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"1. [index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         f"## Handoff BACK QA — {epic}\n"
         "- **Фаза:** BUGFIX завершена.\n"
         "- **Дальше:** `BACK QA`.\n",
@@ -253,7 +253,7 @@ def test_prepare_session_promotes_qa_after_bugfix_done(
             "phase": "BUGFIX",
             "active": True,
             "status": "running",
-            "armed_decompose": f"memory-bank/back/plan/decompose-{epic}/index.yaml",
+            "armed_decompose": f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml",
         }
     )
     save_epic_state(tmp_path, st)
@@ -267,7 +267,7 @@ def test_prepare_session_promotes_qa_after_bugfix_done(
         f"epic_id: {epic}\n"
         "---\n\n"
         "## load_now\n"
-        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"1. [index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         f"## Handoff BACK QA — {epic}\n"
         "- **Дальше:** `BACK QA`.\n",
     )

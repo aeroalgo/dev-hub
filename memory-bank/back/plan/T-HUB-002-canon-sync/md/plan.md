@@ -9,7 +9,7 @@
 
 **Skills:** writing-plans · brainstorming (locked decisions below) · python-testing-patterns (n/a code; doc grep AC)
 
-→ [T-HUB-002-canon-sync/md/decompose-index.md](T-HUB-002-canon-sync/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-002-canon-sync/yaml/decompose-index.yaml](T-HUB-002-canon-sync/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

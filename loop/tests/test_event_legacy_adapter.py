@@ -124,7 +124,7 @@ def test_gate_sidecars_in_event_log_are_ignored_without_invalidating_events(
         "event_id": "a" * 32,
         "seq": 1,
         "kind": "phase_transition",
-        "artifact": "memory-bank/back/plan/demo/index.yaml",
+        "artifact": "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
         "artifact_sha256": "b" * 64,
         "epic_id": "demo",
         "epoch": 0,

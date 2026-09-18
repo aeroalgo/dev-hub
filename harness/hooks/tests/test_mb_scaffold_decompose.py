@@ -28,21 +28,13 @@ def test_scaffold_decompose_5steps(tmp_path: Path):
 
     res = scaffold_decompose(epic_id=epic_id, role=role, outline=outline, project_root=tmp_path)
     assert res.ok
-    assert len(res.created) == 7  # 5 steps + index.yaml + index.md
+    assert len(res.created) == 6  # 5 steps + index.yaml
 
     idx_yaml = resolve(role=role, epic_id=epic_id, kind=EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
     assert idx_yaml.exists()
     idx_data = yaml.safe_load(idx_yaml.read_text())
     assert idx_data["schema"] == "epic-decompose-index/v1"
     assert len(idx_data["steps"]) == 5
-
-    idx_md = resolve(role=role, epic_id=epic_id, kind=EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=tmp_path)
-    assert idx_md.exists()
-    md_text = idx_md.read_text()
-    assert "## Requirements coverage" in md_text
-    assert "## Stages coverage" in md_text
-    assert "## Outcome map" in md_text
-    assert "## Replacement cleanup" in md_text
 
     for i in range(1, 6):
         step_path = resolve(
@@ -139,7 +131,7 @@ def test_formula_merge(tmp_path: Path):
     s02_data = yaml.safe_load(s02_path.read_text())
     assert s02_data["title"] == "unified-llm-models"
 
-    assert len(res.created) == 10  # 2 index files + 8 step files
+    assert len(res.created) == 9  # index.yaml + 8 step files
 
 
 def test_agent_add_snn(tmp_path: Path):

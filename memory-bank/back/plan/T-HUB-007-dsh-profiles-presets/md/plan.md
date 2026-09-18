@@ -1,16 +1,16 @@
 # [T-HUB-007 | dsh-profiles-presets] PLAN
 
-**Дата:** 2026-08-22  
-**Режим:** BACK PLAN  
-**Уровень:** L3  
-**Статус:** active  
-**Roadmap:** [roadmap-dsh-loop-backend-epics.md](roadmap-dsh-loop-backend-epics.md)  
-**Deps:** T-HUB-006  
+**Дата:** 2026-08-22
+**Режим:** BACK PLAN
+**Уровень:** L3
+**Статус:** active
+**Roadmap:** [roadmap-dsh-loop-backend-epics.md](roadmap-dsh-loop-backend-epics.md)
+**Deps:** T-HUB-006
 **Follow-up:** [T-HUB-016](plan-T-HUB-016-dsh-cc-hooks-bridge.md) монтирует `@deepseek-ai/dsh-hooks-claude-code` в эти profiles; [T-HUB-008](plan-T-HUB-008-dsh-epic-gate-plugin.md) — только gaps bridge.
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [T-HUB-007-dsh-profiles-presets/md/decompose-index.md](T-HUB-007-dsh-profiles-presets/md/decompose-index.md) — **DECOMPOSE completed** (s01–s06). PLAN revision 2026-08-27: hooks bridge **не** в этом эпике.
+→ [T-HUB-007-dsh-profiles-presets/yaml/decompose-index.yaml](T-HUB-007-dsh-profiles-presets/yaml/decompose-index.yaml) — **DECOMPOSE completed** (s01–s06). PLAN revision 2026-08-27: hooks bridge **не** в этом эпике.
 
 ---
 
@@ -72,20 +72,20 @@
 
 ### AC+
 
-1. `install-profiles.sh` → `$DSH_HOME/profiles/epic-implement` exists  
-2. `sync-agent-md-to-presets.py` → `dsh/presets/verify.prompt.md` contains AC+ section from verify.md  
-3. `--dump-config` for epic-implement lists subagent preset verify  
-4. Unit: phase `IMPLEMENT` → prepare returns `dsh_profile=epic-implement`  
-5. Table in `dsh/README.md`: all 8 phases → profile name  
-6. Model env `PROJECT_LOOP_IMPLEMENT_MODEL=X` documented → patch field to change  
+1. `install-profiles.sh` → `$DSH_HOME/profiles/epic-implement` exists
+2. `sync-agent-md-to-presets.py` → `dsh/presets/verify.prompt.md` contains AC+ section from verify.md
+3. `--dump-config` for epic-implement lists subagent preset verify
+4. Unit: phase `IMPLEMENT` → prepare returns `dsh_profile=epic-implement`
+5. Table in `dsh/README.md`: all 8 phases → profile name
+6. Model env `PROJECT_LOOP_IMPLEMENT_MODEL=X` documented → patch field to change
 
 ### AC−
 
-1. Не дублировать spawn-hard policy enforcement (→ T-HUB-016 bridge + T-HUB-008 gaps)  
-2. Не менять `.claude/agents/*.md` content (only consume)  
-3. Не require DSH for Claude default loop  
-4. Не commit API keys  
-5. Не монтировать `dsh-hooks-claude-code` в этом эпике (→ T-HUB-016) — только include slot в patch templates  
+1. Не дублировать spawn-hard policy enforcement (→ T-HUB-016 bridge + T-HUB-008 gaps)
+2. Не менять `.claude/agents/*.md` content (only consume)
+3. Не require DSH for Claude default loop
+4. Не commit API keys
+5. Не монтировать `dsh-hooks-claude-code` в этом эпике (→ T-HUB-016) — только include slot в patch templates
 
 ---
 
@@ -172,9 +172,9 @@ flowchart LR
 
 ## Стратегия тестирования
 
-1. Unit: sync script output hash vs agent md  
-2. Unit: phase → profile name mapping  
-3. Smoke: install-profiles + dump-config (skip if no node)  
+1. Unit: sync script output hash vs agent md
+2. Unit: phase → profile name mapping
+3. Smoke: install-profiles + dump-config (skip if no node)
 4. Manual: headless one-shot with epic-implement (requires API key — not CI gate)
 
 ---
@@ -191,18 +191,18 @@ flowchart LR
 
 ## До DECOMPOSE (черновик фаз)
 
-1. **s01 — sync-agent-md script + preset files (TDD)**  
-2. **s02 — epic-implement profile + dump-config smoke**  
-3. **s03 — epic-qa + epic-decompose profiles**  
-4. **s04 — remaining phase profiles (stub minimum)**  
-5. **s05 — install-profiles.sh + README**  
+1. **s01 — sync-agent-md script + preset files (TDD)**
+2. **s02 — epic-implement profile + dump-config smoke**
+3. **s03 — epic-qa + epic-decompose profiles**
+4. **s04 — remaining phase profiles (stub minimum)**
+5. **s05 — install-profiles.sh + README**
 6. **s06 — prepare dsh_profile mapping + tests**
 
 ---
 
 ## Разбивка после DECOMPOSE
 
-**DECOMPOSE:** [T-HUB-007-dsh-profiles-presets/md/decompose-index.md](T-HUB-007-dsh-profiles-presets/md/decompose-index.md)  
+**DECOMPOSE:** [T-HUB-007-dsh-profiles-presets/yaml/decompose-index.yaml](T-HUB-007-dsh-profiles-presets/yaml/decompose-index.yaml)
 **Index (machine):** [T-HUB-007-dsh-profiles-presets/yaml/decompose-index.yaml](T-HUB-007-dsh-profiles-presets/yaml/decompose-index.yaml)
 
 ### Очередь шагов (канон: index.yaml)

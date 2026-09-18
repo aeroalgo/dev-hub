@@ -42,10 +42,10 @@ def test_status_reports_stale_owner_without_authorizing_kill(tmp_path: Path, mon
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [s15.yaml](memory-bank/back/plan/decompose-x/s15.yaml)\n\n"
+        "## load_now\n1. [s15.yaml](memory-bank/back/plan/x/yaml/steps/s15.yaml)\n\n"
         "## Handoff\n- next: BACK IMPLEMENT @s15\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-x/s15.yaml", "step_id: s15\n")
+    _write(tmp_path, "memory-bank/back/plan/x/yaml/steps/s15.yaml", "step_id: s15\n")
     runtime = tmp_path / ".claude/runtime/epic"
     runtime.mkdir(parents=True)
     (runtime / "runner.json").write_text(

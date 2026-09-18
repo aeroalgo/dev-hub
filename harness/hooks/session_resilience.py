@@ -1350,12 +1350,8 @@ def load_implement_checkpoint_trace(
         sid = str(step_id).strip()
         matches: list[Path] = []
         for pattern in (
-            f"memory-bank/*/implement/implement-{epic}/{sid}-*.yaml",
-            f"memory-bank/*/implement/implement-{epic}/{sid}.yaml",
             f"memory-bank/*/implement/{epic}/{sid}-*.yaml",
             f"memory-bank/*/implement/{epic}/{sid}.yaml",
-            f"memory-bank/*/implement/{epic}/yaml/steps/{sid}-*.yaml",
-            f"memory-bank/*/implement/{epic}/yaml/steps/{sid}.yaml",
         ):
             for path in root.glob(pattern):
                 if path.is_file() and path not in matches:

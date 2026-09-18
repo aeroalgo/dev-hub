@@ -22,10 +22,6 @@ def _artifact_identity(path: Path, mb_root: Path) -> tuple[str, str] | None:
     if len(parts) < 4 or parts[1] not in {"plan", "implement", "qa", "bugfix", "audit"}:
         return None
     epic = parts[2]
-    for prefix in ("decompose-", "implement-", "qa-"):
-        if epic.startswith(prefix):
-            epic = epic[len(prefix):]
-            break
     return parts[0], epic
 
 
@@ -87,9 +83,6 @@ def resolve_bundle_paths(
         epic_ids = [epic_id]
         directories = [mb_root / role / kind / item for item in epic_ids]
         if kind == "implement":
-            directories.extend(
-                mb_root / role / kind / f"implement-{item}" for item in epic_ids
-            )
             patterns = [f"{step_id}-*.yaml", f"{step_id}.yaml"] if step_id else []
         else:
             patterns = [f"{kind}-*.{'md' if kind == 'bugfix' else 'yaml'}"]

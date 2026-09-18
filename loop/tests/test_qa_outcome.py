@@ -37,11 +37,50 @@ def test_classify_green_verify_paths() -> None:
 def test_suite_plan_runtime_vs_targeted() -> None:
     full = suite_plan_after_changes(["loop/x.py"])
     assert full.suite_scope == "full"
+    assert full.suite_command == "bin/pytest -q --tb=line"
     targeted = suite_plan_after_changes(["apps/tests/test_x.py"])
     assert targeted.suite_scope == "targeted"
     assert "apps/tests/test_x.py" in targeted.suite_command
     unknown = suite_plan_after_changes([])
     assert unknown.suite_scope == "full"
+
+
+def test_front_resolve_qa_suite_plan_uses_vitest_not_pytest() -> None:
+    plan = resolve_qa_suite_plan(".", {"role": "FRONT", "armed_epic": "T-UI"})
+    assert plan.suite_scope == "full"
+    assert "vitest" in plan.suite_command
+    assert "playwright" in plan.suite_command
+    assert "bin/pytest" not in plan.suite_command
+
+
+def test_front_suite_plan_rejects_pytest_after_bugfix() -> None:
+    plan = resolve_qa_suite_plan(
+        ".",
+        {
+            "role": "FRONT",
+            "armed_epic": "T-UI",
+            "qa_after_bugfix": {
+                "epic_id": "T-UI",
+                "suite_scope": "targeted",
+                "suite_command": "bin/pytest -q --tb=line",
+                "changed_paths": ["frontend/tests/x.test.tsx"],
+            },
+        },
+    )
+    assert plan.suite_scope == "full"
+    assert "vitest" in plan.suite_command
+    assert "bin/pytest" not in plan.suite_command
+
+
+def test_front_suite_plan_targeted_vitest() -> None:
+    plan = suite_plan_after_changes(
+        ["frontend/tests/components/foo.test.tsx"],
+        epic_id="T-UI",
+        role="FRONT",
+    )
+    assert plan.suite_scope == "targeted"
+    assert "vitest" in plan.suite_command
+    assert "foo.test.tsx" in plan.suite_command
 
 
 def test_resolve_qa_suite_plan_after_bugfix() -> None:

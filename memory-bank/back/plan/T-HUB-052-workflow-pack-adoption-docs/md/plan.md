@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · modern-python
 
-→ [T-HUB-052-workflow-pack-adoption-docs/md/decompose-index.md](T-HUB-052-workflow-pack-adoption-docs/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-052-workflow-pack-adoption-docs/yaml/decompose-index.yaml](T-HUB-052-workflow-pack-adoption-docs/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

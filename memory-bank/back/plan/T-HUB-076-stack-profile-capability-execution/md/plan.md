@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns (Eng review).  
 **Источник:** пользовательское решение «подключаем исполнение»; T-HUB-075 FR-014 / cut-list; `loop/stack_profiles/*`; `loop/context_loop.py`; `harness/hooks/epic_yaml.py`.
 
-→ После DECOMPOSE единственный трекер — [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) / [md/decompose-index.md](decompose-index.md); sNN-checkbox здесь намеренно не дублируются.
+→ После DECOMPOSE единственный трекер — [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) / [yaml/decompose-index.yaml](../yaml/decompose-index.yaml); sNN-checkbox здесь намеренно не дублируются.
 
 ## Контекст
 

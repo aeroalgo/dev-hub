@@ -2637,10 +2637,10 @@ def increment_schema_retry_count(
     return count
 
 
-# implement step: implement/<id>/(e|s)NN-*.yaml | leftover yaml/steps | v1 implement-<id>/
+# implement step: implement/<id>/(e|s)NN-*.yaml
 _IMPLEMENT_STEP_RE = re.compile(
     r"(memory-bank/(?:back|front|integration)/implement/"
-    r"(?:implement-[^\s`/]+|[^\s`/]+(?:/yaml/steps)?)/"
+    r"[^\s`/]+/"
     r"(?:e|s)\d{2}-[^\s`]+\.ya?ml)"
 )
 
@@ -2904,7 +2904,7 @@ BUGFIX_RE = re.compile(
 
 # Runner-only epic/program CLI — agent must not call these inside a session
 # (loop.sh owns after/resolve). Allowed: validate-step, flush-checkpoint,
-# seed-implement, mark-index-status, sync-index-yaml, status.
+# seed-implement, mark-index-status, status.
 _RUNNER_ONLY_SUBCMDS = (
     "after",
     "resolve",
@@ -3031,7 +3031,7 @@ def bash_discard_dirty_deny_reason(command: str | None) -> str | None:
 
 
 def index_bulk_status_deny_reason(command: str | None) -> str | None:
-    """Deny sed/cat>/perl -i that rewrites decompose index.md/yaml status in bulk."""
+    """Deny direct bulk edits of the validated decompose index."""
     if not command or not str(command).strip():
         return None
     cmd = str(command)
@@ -3039,15 +3039,14 @@ def index_bulk_status_deny_reason(command: str | None) -> str | None:
         return None
     if not _INDEX_MUTATOR_RE.search(cmd):
         return None
-    if "mark-index-status" in cmd or "sync-index-yaml" in cmd:
+    if "mark-index-status" in cmd:
         return None
     return (
-        "index_bulk_status_forbidden: не правь decompose index.md/yaml через "
-        "sed/perl -i/cat>/tee. Канон status = index.yaml; одна точка записи: "
+        "index_bulk_status_forbidden: не правь decompose-index.yaml через "
+        "sed/perl -i/cat>/tee. Канон status = decompose-index.yaml; одна точка записи: "
         "`python3 .claude/hooks/epic_resolve.py mark-index-status "
         "--decompose <index|id> --step eNN --status completed` "
-        "(зеркалит в index.md). Рассинхрон: repair-index-mirror. "
-        "Структура: sync-index-yaml."
+        "Изменяй только валидированный decompose-index.yaml через canonical finish/status API."
     )
 
 
@@ -3194,7 +3193,7 @@ def runner_cli_deny_reason(command: str | None) -> str | None:
     return (
         f"runner_cli_forbidden: `{sub}` — legacy IPC; context-first loop "
         f"не использует epic_resolve/program_resolve {sub}. "
-        "Агенту: validate-step · finalize-step · sync-index-yaml. "
+        "Агенту: validate-step · finalize-step. "
         "FINISH IMPLEMENT → finalize-step (index + tasks/log + load_now); "
         "не пиши tasks.md на sNN. Следующий шаг = Handoff «Следующий»."
     )

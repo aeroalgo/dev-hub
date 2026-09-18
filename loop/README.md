@@ -2,7 +2,7 @@
 
 Каталог **`loop/`** — автоматизация ролей. `memory-bank/` — артефакты. The source of truth is `activeContext.md` plus the decompose index.
 
-**Канон переходов:** `memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
+**Канон переходов:** `memory-bank/activeContext.md` + `plan/<epic>/yaml/decompose-index.yaml` + implement step.
 **Очередь эпиков (loop canon):** `memory-bank/back/roadmap/queue.yaml` (yaml-only). Opt-in: `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance`. Default `0` — stop / optional DAG fanout.
 MULTI-EPIC PLAN дописывает `queue.yaml` (`batch` + `batches.<slug>`); **`* PLAN` не** плодит `plan/roadmap-*`. Ручной `BACK|FRONT|INTEG ROADMAP MERGE` — ops reconcile. Template: `roadmap-queue.yaml`.
 Для cross-epic journey runner использует runner-owned `loop/dag/*.yaml`: манифест `loop-dag/v2`, dependency-ready узлы выбираются последовательно и стабильно. `GAP_FANOUT` в текущем checkout запускается вручную через `./bin/loop --phase GAP_FANOUT` (или `./loop/loop.sh --phase GAP_FANOUT` compatibility shim); он не является автоматическим переходом `bin/loop`.  
@@ -193,7 +193,7 @@ bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|tes
 
 ```bash
 ./bin/loop gpt
-./bin/loop decompose-T-033-concurrent-jobs-outbox gpt implement
+./bin/loop memory-bank/back/plan/T-033-concurrent-jobs-outbox/yaml/decompose-index.yaml gpt implement
 ./bin/loop --status
 ```
 

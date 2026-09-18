@@ -8,7 +8,7 @@
 **Roadmap:** [roadmap-suite-hygiene-epics.md](roadmap-suite-hygiene-epics.md) · queue sibling  
 **Baseline suite:** `19 failed, 1551 passed` (`/tmp/pytest-full-fresh.txt`, 2026-09-02)
 
-→ [T-HUB-054-suite-hygiene-runner-gate/md/decompose-index.md](T-HUB-054-suite-hygiene-runner-gate/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-054-suite-hygiene-runner-gate/yaml/decompose-index.yaml](T-HUB-054-suite-hygiene-runner-gate/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ## Контекст
 

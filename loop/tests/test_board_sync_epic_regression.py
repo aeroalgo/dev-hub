@@ -67,15 +67,14 @@ def test_e2e_arm_epic_implement_sets_step(tmp_path: Path) -> None:
 
     index_dir = plan_dir / "yaml"
     (index_dir / "steps").mkdir(parents=True, exist_ok=True)
-    (plan_dir / "md/decompose-index.md").write_text("# index md", encoding="utf-8")
     (index_dir / "decompose-index.yaml").write_text(
         yaml.safe_dump(
             {
                 "schema": "epic-decompose-index/v1",
                 "plan_id": "T-HUB-TEST",
                 "steps": [
-                    {"id": "s01", "title": "step 1", "status": "completed"},
-                    {"id": "s02", "title": "step 2", "status": "completed"},
+                    {"id": "s01", "file": "s01.yaml", "title": "step 1", "status": "completed"},
+                    {"id": "s02", "file": "s02.yaml", "title": "step 2", "status": "completed"},
                     {"id": "s03", "title": "step 3", "status": "pending", "file": "s03.yaml"},
                 ],
             }
@@ -83,6 +82,8 @@ def test_e2e_arm_epic_implement_sets_step(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (index_dir / "steps/s03.yaml").write_text("schema: epic-decompose/v1\ntitle: step 3\n", encoding="utf-8")
+    (index_dir / "steps/s01.yaml").write_text("schema: epic-decompose/v1\ntitle: step 1\n", encoding="utf-8")
+    (index_dir / "steps/s02.yaml").write_text("schema: epic-decompose/v1\ntitle: step 2\n", encoding="utf-8")
 
     res = arm_epic(
         cwd=tmp_path,
@@ -105,8 +106,8 @@ def test_e2e_sync_roadmap_rank_column_running_backlog_roadmap_column(tmp_path: P
         "version": "roadmap-queue/v2",
         "role": "back",
         "queue": [
-            {"id": "T-EPIC-1", "plan": "plan-T-EPIC-1.md", "deps": []},
-            {"id": "T-EPIC-2", "plan": "plan-T-EPIC-2.md", "deps": []},
+            {"id": "T-EPIC-1", "plan": "T-EPIC-1/md/plan.md", "deps": []},
+            {"id": "T-EPIC-2", "plan": "T-EPIC-2/md/plan.md", "deps": []},
         ],
     }
     (tmp_path / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True)
@@ -119,14 +120,13 @@ def test_e2e_sync_roadmap_rank_column_running_backlog_roadmap_column(tmp_path: P
         (ep_dir / "md").mkdir(parents=True, exist_ok=True)
         (ep_dir / "md/plan.md").write_text(f"# {ep}\n", encoding="utf-8")
         (ep_dir / "yaml").mkdir(parents=True, exist_ok=True)
-        (ep_dir / "md/decompose-index.md").write_text("# index md", encoding="utf-8")
         idx = ep_dir / "yaml/decompose-index.yaml"
         idx.write_text(
             yaml.safe_dump(
                 {
                     "schema": "epic-decompose-index/v1",
                     "plan_id": ep,
-                    "steps": [{"id": "s01", "title": "step 1", "status": "in_progress" if ep == "T-EPIC-1" else "pending"}],
+                    "steps": [{"id": "s01", "file": "s01.yaml", "title": "step 1", "status": "active" if ep == "T-EPIC-1" else "pending"}],
                 }
             ),
             encoding="utf-8",

@@ -13,7 +13,7 @@ alwaysApply: false
 
 ## Gates (обязательные — узкий путь)
 
-1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика**; **не** полный `plan-*.md`; при эпике с plan L2+ — `qa_consumes`-first; parent гоняет **full frontend** suite + Playwright; `epic_id` → путь артефакта
+1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика**; **не** полный `plan/<epic_id>/md/plan.md`; при эпике с plan L2+ — `qa_consumes`-first; parent гоняет **full frontend** suite + Playwright; `epic_id` → путь артефакта
 2. verification-before-completion · §0.11 · линт · типы · **полный frontend suite (HARD)**:
    - **suite = Vitest/RTL full + tsc/types + Playwright** (parent only). Канон команд: @.cursor/rules/shared/test-timeout.mdc (Frontend block).
    - Managed с `frontend/`: `timeout -k 10s 300s npm --prefix frontend exec vitest run` (+ lint/types по package scripts) + `timeout -k 10s 300s npm --prefix frontend exec playwright test` (или `npx playwright test` из `frontend/`).
@@ -33,7 +33,7 @@ alwaysApply: false
 ## Abort
 
 - PASS без scenario на user-visible AC · subagent runs tests → reject/FAIL
-- PASS / «suite green» на evidence только `bin/pytest` / backend pytest (без Vitest+Playwright) → **FAIL** (`suite_wrong_stack`)
+- **FORBIDDEN:** FRONT QA PASS / «suite green» на evidence только `bin/pytest` / backend pytest (без Vitest+Playwright) → FAIL (`suite_wrong_stack`)
 - PASS при leftover legacy/fallback / Kind I / fail `sot_enforce_scan` из plan sunset → FAIL
 - PASS при agent/hook/gate FR без behavior smoke → FAIL
 - FINISH/`qa-*.yaml` до завершения всех checks прогона → FAIL

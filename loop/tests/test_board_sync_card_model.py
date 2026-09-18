@@ -21,7 +21,7 @@ STEP = StepCard(
     role="back",
     epic_id="T-HUB-007/dsh-profiles",
     step_id="s02",
-    decompose_rel="memory-bank/back/plan/decompose-T-HUB-007/index.yaml",
+    decompose_rel="memory-bank/back/plan/T-HUB-007/yaml/decompose-index.yaml",
     phase="IMPLEMENT",
     sync_generation=42,
 )
@@ -31,7 +31,7 @@ GATE = GateCard(
     role="back",
     epic_id="T-HUB-007/dsh-profiles",
     gate_phase="QA",
-    decompose_rel="memory-bank/back/plan/decompose-T-HUB-007/index.yaml",
+    decompose_rel="memory-bank/back/plan/T-HUB-007/yaml/decompose-index.yaml",
     phase="QA",
     sync_generation=42,
     reason_code="qa_required",

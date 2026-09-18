@@ -49,8 +49,7 @@ def test_status_shows_drift_when_nonzero(tmp_path: Path) -> None:
         "schema_version": "loop-state/v2",
         "active": True,
         "drift_counters": {
-            "index_mirror_repair": 2,
-            "handoff_projected": 0,
+            "handoff_projected": 2,
         },
     }
     _write(
@@ -61,7 +60,7 @@ def test_status_shows_drift_when_nonzero(tmp_path: Path) -> None:
 
     res = ctx.status(tmp_path)
     assert "drift_counters" in res
-    assert res["drift_counters"] == {"index_mirror_repair": 2}
+    assert res["drift_counters"] == {"handoff_projected": 2}
 
 
 def test_status_no_drift_when_zero(tmp_path: Path) -> None:
@@ -71,7 +70,6 @@ def test_status_no_drift_when_zero(tmp_path: Path) -> None:
         "schema_version": "loop-state/v2",
         "active": True,
         "drift_counters": {
-            "index_mirror_repair": 0,
             "handoff_projected": 0,
         },
     }

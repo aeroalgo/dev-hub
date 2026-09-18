@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-044-runtime-sync-doctor-docs
-source_md: index.md
-status_canon: index.yaml
 appetite:
   timebox_days: 3
   cut_list:

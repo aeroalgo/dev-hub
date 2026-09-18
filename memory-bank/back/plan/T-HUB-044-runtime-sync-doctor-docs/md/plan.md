@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · python-testing-patterns
 
-→ [T-HUB-044-runtime-sync-doctor-docs/md/decompose-index.md](T-HUB-044-runtime-sync-doctor-docs/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-044-runtime-sync-doctor-docs/yaml/decompose-index.yaml](T-HUB-044-runtime-sync-doctor-docs/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 

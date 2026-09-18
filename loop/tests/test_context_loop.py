@@ -47,7 +47,7 @@ def _seed_context(cwd: Path, *, next_line: str = "INTEG IMPLEMENT e16") -> None:
         cwd,
         "memory-bank/integration/plan/x/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
-        "epic_id: x\n"
+        "plan_id: x\n"
         "steps:\n"
         "- id: e16\n"
         "  file: steps/e16-foo.yaml\n"
@@ -89,24 +89,25 @@ def test_sync_cursor_skips_implement_when_analyze_pending(tmp_path: Path) -> Non
     from epic import sync_cursor_from_index, save_epic_state
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-HUB-099/index.yaml",
-        "schema: epic-decompose-index/v1\n"
-        "epic_id: T-HUB-099\n"
-        "steps:\n"
-        "  - step_id: s01\n"
-        "    status: pending\n",
+            "memory-bank/back/plan/T-HUB-099/yaml/decompose-index.yaml",
+            "schema: epic-decompose-index/v1\n"
+            "plan_id: T-HUB-099\n"
+            "steps:\n"
+            "  - id: s01\n"
+            "    file: s01-foo.yaml\n"
+            "    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-HUB-099/s01-foo.yaml",
+        "memory-bank/back/plan/T-HUB-099/yaml/steps/s01-foo.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "1. [s01-foo.yaml](back/plan/decompose-T-HUB-099/s01-foo.yaml)\n"
-        "2. [index.yaml](back/plan/decompose-T-HUB-099/index.yaml)\n\n"
+        "1. [s01-foo.yaml](back/plan/T-HUB-099/yaml/steps/s01-foo.yaml)\n"
+            "2. [decompose-index.yaml](back/plan/T-HUB-099/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT s01`\n",
     )
@@ -114,7 +115,7 @@ def test_sync_cursor_skips_implement_when_analyze_pending(tmp_path: Path) -> Non
         tmp_path,
         {
             "armed_epic": "T-HUB-099",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-099/index.yaml",
+            "armed_decompose": "memory-bank/back/plan/T-HUB-099/yaml/decompose-index.yaml",
             "armed_step": "s01",
         },
     )
@@ -247,7 +248,7 @@ def test_dag_fanout_arms_dependency_ready_node(tmp_path: Path) -> None:
         "nodes:\n"
         "  - id: back\n"
         "    role: BACK\n"
-        "    decompose: memory-bank/back/plan/decompose-demo/index.md\n"
+        "    decompose: memory-bank/back/plan/demo/yaml/decompose-index.yaml\n"
         "    depends_on: []\n"
         "    completion:\n"
         "      type: decompose\n"
@@ -255,14 +256,17 @@ def test_dag_fanout_arms_dependency_ready_node(tmp_path: Path) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **s01** | [s01-one.yaml](s01-one.yaml) | pending |\n",
+        "memory-bank/back/plan/demo/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-one.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
 
@@ -271,7 +275,8 @@ def test_dag_fanout_arms_dependency_ready_node(tmp_path: Path) -> None:
     assert out["ok"] is True
     assert out["armed"] is True
     assert out["node"] == "back"
-    assert "decompose-demo" in (tmp_path / "memory-bank/activeContext.md").read_text()
+    active = (tmp_path / "memory-bank/activeContext.md").read_text()
+    assert "decompose-index.yaml" in active
 
 
 def test_status_includes_permission_mode_from_project_env(
@@ -295,19 +300,14 @@ def test_status_includes_finish_integrity_and_permission(tmp_path: Path, monkeyp
     _write(tmp_path, ".claude/project.env", "EPIC_PERMISSION_MODE=bypassPermissions\n")
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-x/index.yaml",
+        "memory-bank/integration/plan/x/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\nplan_id: x\nsteps:\n"
         "- id: e16\n  file: e16-foo.yaml\n  status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-x/index.md",
-        "# Реестр\n",
-    )
-    _write(
-        tmp_path,
         ".claude/runtime/epic/state.json",
-        '{"armed_epic":"x","armed_decompose":"memory-bank/integration/plan/decompose-x/index.yaml","armed_step":"e16"}\n',
+        '{"armed_epic":"x","armed_decompose":"memory-bank/integration/plan/x/yaml/decompose-index.yaml","armed_step":"e16"}\n',
     )
     monkeypatch.delenv("EPIC_PERMISSION_MODE", raising=False)
 
@@ -469,16 +469,19 @@ def test_dag_generate_reads_gap_decompose_links(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write(
         tmp_path,
-        "memory-bank/integration/gap/portal/gap-20260804-api.md",
-        "| BACK | decompose-demo |\n| FRONT | decompose-demo-front |\n",
+        "memory-bank/integration/gap/portal/gap-20260804-api.yaml",
+        "back:\n"
+        "  decompose: memory-bank/back/plan/demo/yaml/decompose-index.yaml\n"
+        "front:\n"
+        "  decompose: memory-bank/front/plan/demo-front/yaml/decompose-index.yaml\n",
     )
 
     out = ctx._cmd_dag_generate(tmp_path, "portal")
     dag = (tmp_path / out["path"]).read_text(encoding="utf-8")
 
     assert out["ok"] is True
-    assert "decompose-demo" in dag
-    assert "decompose-demo-front" in dag
+    assert "memory-bank/back/plan/demo/yaml/decompose-index.yaml" in dag
+    assert "memory-bank/front/plan/demo-front/yaml/decompose-index.yaml" in dag
 
 
 def test_gaps_field_is_not_stop_marker(tmp_path: Path) -> None:
@@ -495,7 +498,7 @@ def test_uppercase_gaps_deferred_note_is_not_stop(tmp_path: Path) -> None:
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "1. [s02.yaml](back/plan/decompose-x/s02.yaml)\n\n"
+        "1. [s02.yaml](back/plan/x/yaml/steps/s02.yaml)\n\n"
         "## Handoff\n"
         "- **Дальше:** BACK IMPLEMENT @s02\n"
         "- **GAPS:** docker cutover left for s12; engine confirm in s03\n"
@@ -526,7 +529,7 @@ def test_blocked_stop_marker(tmp_path: Path) -> None:
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "1. [e16-foo.yaml](integration/plan/decompose-x/e16-foo.yaml)\n\n"
+        "1. [e16-foo.yaml](integration/plan/x/yaml/steps/e16-foo.yaml)\n\n"
         "## Handoff INTEG\n"
         "BLOCKED: needs human\n"
         "- **Следующий:** INTEG IMPLEMENT e16\n",
@@ -664,7 +667,7 @@ def test_prepare_rebuilds_derived_projection(tmp_path: Path) -> None:
         tmp_path,
         "memory-bank/integration/plan/x/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
-        "epic_id: x\n"
+        "plan_id: x\n"
         "steps:\n"
         "- id: e16\n"
         "  file: steps/e16-foo.yaml\n"
@@ -707,7 +710,7 @@ def test_delta_paths_exist_skips_explorer_in_prompt(tmp_path: Path) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-x/e16-foo.yaml",
+        "memory-bank/integration/plan/x/yaml/steps/e16-foo.yaml",
         "schema: epic-decompose/v1\nstep_id: e16\n"
         "files:\n"
         f"- {code_a}\n"
@@ -715,8 +718,10 @@ def test_delta_paths_exist_skips_explorer_in_prompt(tmp_path: Path) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/integration/implement/implement-x/index.md",
-        "| Step | Status |\n| e16 | pending |\n",
+        "memory-bank/integration/implement/x/e16.yaml",
+        "schema: epic-implement/v1\nrole: integ\nstep_id: e16\n"
+        "plan_id: x\ntitle: e16 IMPLEMENT\nstatus: in_progress\n"
+        "date: '2026-09-18'\ncheckpoints: []\n",
     )
     _write(
         tmp_path,
@@ -729,8 +734,8 @@ def test_delta_paths_exist_skips_explorer_in_prompt(tmp_path: Path) -> None:
         "step_id: e16\n"
         "---\n\n"
         "## load_now\n"
-        "1. [e16-foo.yaml](integration/plan/decompose-x/e16-foo.yaml)\n"
-        "2. [index.md](integration/implement/implement-x/index.md)\n\n"
+        "1. [e16-foo.yaml](integration/plan/x/yaml/steps/e16-foo.yaml)\n"
+        "2. [e16.yaml](integration/implement/x/e16.yaml)\n\n"
         "## Handoff INTEG IMPLEMENT\n"
         "- **Следующий:** `INTEG IMPLEMENT e16`\n",
     )
@@ -770,13 +775,13 @@ def test_explorer_off_prompt_does_not_require_agent(tmp_path: Path) -> None:
         "step_id: e16\n"
         "---\n\n"
         "## load_now\n"
-        "1. [e16-foo.yaml](integration/plan/decompose-x/e16-foo.yaml)\n\n"
+        "1. [e16-foo.yaml](integration/plan/x/yaml/steps/e16-foo.yaml)\n\n"
         "## Handoff INTEG IMPLEMENT\n"
         "- **Следующий:** `INTEG IMPLEMENT e16`\n",
     )
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-x/e16-foo.yaml",
+        "memory-bank/integration/plan/x/yaml/steps/e16-foo.yaml",
         "schema: epic-decompose/v1\nstep_id: e16\n",
     )
     prompt = ctx.build_prompt(
@@ -807,10 +812,10 @@ def test_detect_delta_paths_scoped_when_missing_files(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-x/e16-foo.yaml",
+        "memory-bank/integration/plan/x/yaml/steps/e16-foo.yaml",
         "files:\n- frontend/src/missing-a.ts\n- frontend/src/missing-b.ts\n",
     )
-    load_now = ["memory-bank/integration/plan/decompose-x/e16-foo.yaml"]
+    load_now = ["memory-bank/integration/plan/x/yaml/steps/e16-foo.yaml"]
     scope, paths = ctx.detect_delta_paths(tmp_path, load_now)
     assert scope == "scoped"
     assert len(paths) == 2
@@ -832,11 +837,12 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-HUB-007/index.yaml",
+        "memory-bank/back/plan/T-HUB-007/yaml/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
-        "epic_id: T-HUB-007\n"
+        "plan_id: T-HUB-007\n"
         "steps:\n"
-        "  - step_id: s02\n"
+        "  - id: s02\n"
+        "    file: s02-epic-implement-profile.yaml\n"
         "    status: pending\n",
     )
     _write(
@@ -846,7 +852,7 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-T-HUB-007/s02-epic-implement-profile.yaml",
+        "memory-bank/back/plan/T-HUB-007/yaml/steps/s02-epic-implement-profile.yaml",
         "schema: epic-decompose/v1\n"
         "context:\n"
         "  consumes:\n"
@@ -868,8 +874,8 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
         "step_id: s02\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s02.yaml](back/plan/decompose-T-HUB-007/s02-epic-implement-profile.yaml)\n"
-        "2. [index.yaml](back/plan/decompose-T-HUB-007/index.yaml)\n\n"
+        "1. [s02.yaml](back/plan/T-HUB-007/yaml/steps/s02-epic-implement-profile.yaml)\n"
+        "2. [decompose-index.yaml](back/plan/T-HUB-007/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT s02`\n",
     )
@@ -905,7 +911,7 @@ def test_prepare_clears_blocked_and_continues(tmp_path: Path, monkeypatch) -> No
         "---\n\n"
         "## load_now\n"
         "1. memory-bank/back/plan/"
-        "decompose-T-036-session-checkpoint-resume/"
+        "T-036-session-checkpoint-resume/yaml/steps/"
         "s03-dirty-resume-extend.yaml\n\n"
         "## Handoff\nBLOCKED: verify_no_verdict\n",
     )
@@ -1019,7 +1025,7 @@ def test_prepare_clears_stale_post_implement_checkpoint(
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
     monkeypatch.delenv("HUB_ROOT", raising=False)
     epic = "T-HUB-015-dsh-board-arm-loop"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
@@ -1034,15 +1040,15 @@ def test_prepare_clears_stale_post_implement_checkpoint(
     )
     _write(
         tmp_path,
-        f"memory-bank/back/plan/decompose-{epic}/s01-one.yaml",
+        f"memory-bank/back/plan/{epic}/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\n",
     )
     _write(
         tmp_path,
-        f"memory-bank/back/implement/implement-{epic}/s01-one.yaml",
+        f"memory-bank/back/implement/{epic}/s01-one.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\n"
         f"plan_id: {epic}\ntitle: s01 — one IMPLEMENT\nstatus: completed\n"
-        f"decompose_ref: memory-bank/back/plan/decompose-{epic}/s01-one.yaml\n"
+        f"decompose_ref: memory-bank/back/plan/{epic}/yaml/steps/s01-one.yaml\n"
         "date: '2026-08-29'\n",
     )
     _write(
@@ -1067,7 +1073,7 @@ def test_prepare_clears_stale_post_implement_checkpoint(
         "---\n\n"
         "## load_now\n"
         f"1. [qa-20260829-board-arm-loop.yaml](back/qa/{epic}/qa-20260829-board-arm-loop.yaml)\n"
-        f"2. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"2. [index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         f"## Handoff BACK QA — {epic}\n"
         f"- **Эпик:** {epic}.\n"
         "- **Режим/шаг:** `BACK QA`.\n",
@@ -1121,7 +1127,7 @@ def test_check_after_commits_next_step_for_post_implement_phase(
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
     monkeypatch.delenv("HUB_ROOT", raising=False)
     epic = "demo"
-    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
@@ -1136,15 +1142,15 @@ def test_check_after_commits_next_step_for_post_implement_phase(
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-one.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "memory-bank/back/implement/demo/s01-one.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\n"
         "plan_id: demo\ntitle: s01 — one IMPLEMENT\nstatus: completed\n"
-        "decompose_ref: memory-bank/back/plan/decompose-demo/s01-one.yaml\n"
+        "decompose_ref: memory-bank/back/plan/demo/yaml/steps/s01-one.yaml\n"
         "date: '2026-08-29'\n",
     )
     _write(
@@ -1236,14 +1242,7 @@ def test_arm_clears_stale_checkpoint(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
     monkeypatch.delenv("HUB_ROOT", raising=False)
-    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
-    _write(
-        tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | one · [yaml](s01-one.yaml) | BACK IMPLEMENT | pending |\n",
-    )
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
@@ -1258,7 +1257,7 @@ def test_arm_clears_stale_checkpoint(tmp_path: Path, monkeypatch) -> None:
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-one.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: one\nnext_phase: BACK IMPLEMENT\nneeds_creative: \"no\"\n"
         "goal: x\ncontext: {}\ndelta: []\ndeletes: []\nout_of_scope: []\n"
@@ -1392,15 +1391,7 @@ def test_check_after_finish_integrity_wire() -> None:
 def test_prepare_syncs_cursor_from_index_yaml_sot(tmp_path: Path) -> None:
     """AC/armed_step lag behind index.yaml — prepare rewrites from yaml SoT."""
     ctx = _load_ctx()
-    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
-    _write(
-        tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | one · [yaml](s01-one.yaml) | BACK IMPLEMENT | completed |\n"
-        "| **s02** | two · [yaml](s02-two.yaml) | BACK IMPLEMENT | pending |\n",
-    )
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
@@ -1418,11 +1409,11 @@ def test_prepare_syncs_cursor_from_index_yaml_sot(tmp_path: Path) -> None:
         "  title: two\n"
         "  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-one.yaml", "step_id: s01\n")
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s02-two.yaml", "step_id: s02\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01-one.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s02-two.yaml", "step_id: s02\n")
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "memory-bank/back/implement/demo/s01-one.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: one\nstatus: completed\ndate: '2026-08-16'\n"
         "done: [x]\nfiles: [a.py]\ntests: ['timeout 300s .venv/bin/pytest -q']\n"
@@ -1441,8 +1432,8 @@ def test_prepare_syncs_cursor_from_index_yaml_sot(tmp_path: Path) -> None:
         "step_id: s01\n"
         "---\n\n"
         "## load_now\n"
-        "1. [s01-one.yaml](back/plan/decompose-demo/s01-one.yaml)\n"
-        "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "1. [s01-one.yaml](back/plan/demo/yaml/steps/s01-one.yaml)\n"
+        "2. [index.yaml](back/plan/demo/yaml/decompose-index.yaml)\n\n"
         "## Handoff\n- stuck on s01\n",
     )
     _write(
@@ -1535,7 +1526,7 @@ def test_check_after_promotes_decompose_before_fingerprint_stall(
         tmp_path,
         decompose,
         "schema: epic-decompose-index/v1\n"
-        "epic_id: demo\n"
+        "plan_id: demo\n"
         "steps:\n"
         "- id: s01\n"
         "  file: s01-demo.yaml\n"
@@ -1628,7 +1619,6 @@ def test_check_after_repairs_fingerprint_stall_via_evidence(tmp_path: Path) -> N
         decompose,
         "schema: epic-decompose-index/v1\n"
         "plan_id: demo\n"
-        "status_canon: decompose-index.yaml\n"
         "steps:\n"
         "- id: s01\n"
         "  file: s01-one.yaml\n"
@@ -1788,12 +1778,19 @@ def test_check_after_continues_when_handoff_advanced(tmp_path: Path) -> None:
         "step_id: e17\n"
         "---\n\n"
         "## load_now\n"
-        "1. [e17.yaml](integration/plan/decompose-x/e17.yaml)\n"
-        "2. [index.md](integration/implement/implement-x/index.md)\n\n"
+        "1. [e17.yaml](integration/plan/x/yaml/steps/e17.yaml)\n"
+        "2. [e17.yaml](integration/implement/x/e17.yaml)\n\n"
         "## Handoff INTEG IMPLEMENT e16 done\n"
         "- **Следующий:** `INTEG IMPLEMENT e17`\n",
     )
-    _write(tmp_path, "memory-bank/integration/plan/decompose-x/e17.yaml", "step_id: e17\n")
+    _write(tmp_path, "memory-bank/integration/plan/x/yaml/steps/e17.yaml", "step_id: e17\n")
+    _write(
+        tmp_path,
+        "memory-bank/integration/implement/x/e17.yaml",
+        "schema: epic-implement/v1\nrole: integ\nstep_id: e17\n"
+        "plan_id: x\ntitle: e17 IMPLEMENT\nstatus: in_progress\n"
+        "date: '2026-09-18'\ncheckpoints: []\n",
+    )
     after = ctx.check_after(tmp_path, fingerprint_before=prep["fingerprint"])
     assert after["ok"] is True
     assert after.get("complete") is False
@@ -1895,9 +1892,9 @@ def test_degraded_prompt_skips_other_epics_after_epic_done(tmp_path: Path) -> No
     _seed_context(tmp_path)
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-other/index.md",
-        "| step_id | title | status |\n| :--- | :--- | :--- |\n"
-        "| **s01** | [s01.yaml](s01.yaml) | pending |\n",
+        "memory-bank/back/plan/other/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: other\nsteps:\n"
+        "- id: s01\n  file: s01.yaml\n  status: pending\n",
     )
     _write(
         tmp_path,
@@ -1961,22 +1958,14 @@ def test_epic_done_rejected_without_qa_pass(tmp_path: Path) -> None:
     _seed_decompose_epic(tmp_path)
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **e01** | [e01-one.yaml](e01-one.yaml) | completed |\n"
-        "| **e02** | [e02-two.yaml](e02-two.yaml) | done |\n",
-    )
-    _write(
-        tmp_path,
         "memory-bank/integration/audit/demo/audit-20260807-demo.yaml",
         "schema: epic-audit/v1\n",
     )
-    ctx.arm_session(tmp_path, "decompose-demo")
+    ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n1. [index.md](integration/plan/decompose-demo/index.md)\n\n"
+        "## load_now\n1. [decompose-index.yaml](integration/plan/demo/yaml/decompose-index.yaml)\n\n"
         "## Handoff\nEPIC_DONE\n",
     )
     after = ctx.check_after(tmp_path, fingerprint_before="deadbeef")
@@ -2056,7 +2045,7 @@ def _mark_all_decompose_steps_done(cwd: Path) -> None:
 def test_arm_overwrites_blocked_foreign_context(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_decompose_epic(tmp_path)
-    out = ctx.arm_session(tmp_path, "demo")
+    out = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     assert out["ok"] is True
     assert out.get("complete") is not True
     assert out["step_id"] == "e02"
@@ -2081,7 +2070,7 @@ def test_arm_epic_done_when_all_completed(tmp_path: Path) -> None:
         "schema: epic-audit/v1\n",
     )
     _mark_all_decompose_steps_done(tmp_path)
-    out = ctx.arm_session(tmp_path, "demo")
+    out = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     assert out["ok"] is True
     assert out.get("complete") is not True
     assert out.get("phase") == "QA"
@@ -2093,18 +2082,10 @@ def test_arm_epic_done_when_all_completed(tmp_path: Path) -> None:
 def test_audit_phase_without_audit_artifact(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_decompose_epic(tmp_path)
-    _write(
-        tmp_path,
-        "memory-bank/integration/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **e01** | [e01-one.yaml](e01-one.yaml) | completed |\n"
-        "| **e02** | [e02-two.yaml](e02-two.yaml) | done |\n",
-    )
     _mark_all_decompose_steps_done(tmp_path)
     _write_e02_implement_completed(tmp_path)
 
-    out = ctx.arm_session(tmp_path, "decompose-demo")
+    out = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
 
     assert out["ok"] is True
     assert out["phase"] == "AUDIT"
@@ -2130,7 +2111,7 @@ def test_rebuild_projection_role_from_armed_decompose_not_stale_state(
         "schema: epic-audit/v1\n",
     )
     _mark_all_decompose_steps_done(tmp_path)
-    out = ctx.arm_session(tmp_path, "demo")
+    out = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     assert out["ok"] is True
     assert out.get("role") in {"INTEG", "integration"}
 
@@ -2151,7 +2132,7 @@ def test_audit_to_qa_transition(tmp_path: Path) -> None:
     _seed_decompose_epic(tmp_path)
     _mark_all_decompose_steps_done(tmp_path)
 
-    out_without_audit = ctx.arm_session(tmp_path, "demo")
+    out_without_audit = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     assert out_without_audit["phase"] == "AUDIT"
 
     _write(
@@ -2159,7 +2140,7 @@ def test_audit_to_qa_transition(tmp_path: Path) -> None:
         "memory-bank/integration/audit/demo/audit-20260807-demo.yaml",
         "schema: epic-audit/v1\n",
     )
-    out_with_audit = ctx.arm_session(tmp_path, "demo")
+    out_with_audit = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
 
     assert out_with_audit["phase"] == "QA"
 
@@ -2178,7 +2159,7 @@ def test_arm_done_when_qa_pass_exists(tmp_path: Path) -> None:
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )
     _mark_all_decompose_steps_done(tmp_path)
-    out = ctx.arm_session(tmp_path, "demo")
+    out = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     assert out["ok"] is True
     assert out.get("complete") is True
     assert out.get("stop") == "EPIC_DONE"
@@ -2206,7 +2187,7 @@ def test_arm_epic_done_after_qa_pass(tmp_path: Path) -> None:
         "# Reflection demo\nepic: demo\n",
     )
     _mark_all_decompose_steps_done(tmp_path)
-    out = ctx.arm_session(tmp_path, "demo")
+    out = ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     assert out["ok"] is True
     assert out.get("complete") is True
     assert out.get("stop") == "EPIC_DONE"
@@ -2224,7 +2205,7 @@ def test_check_after_rewrites_premature_epic_done(tmp_path: Path) -> None:
     )
     _mark_all_decompose_steps_done(tmp_path)
     # arm once to set armed_decompose in state, then force premature EPIC_DONE
-    ctx.arm_session(tmp_path, "demo")
+    ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
@@ -2248,17 +2229,9 @@ def test_check_after_rewrites_premature_epic_done(tmp_path: Path) -> None:
 def test_check_after_rewrites_premature_epic_done_to_audit(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_decompose_epic(tmp_path)
-    _write(
-        tmp_path,
-        "memory-bank/integration/plan/decompose-demo/index.md",
-        "| step_id | title | status |\n"
-        "| :--- | :--- | :--- |\n"
-        "| **e01** | [e01-one.yaml](e01-one.yaml) | completed |\n"
-        "| **e02** | [e02-two.yaml](e02-two.yaml) | done |\n",
-    )
     _mark_all_decompose_steps_done(tmp_path)
     _write_e02_implement_completed(tmp_path)
-    ctx.arm_session(tmp_path, "decompose-demo")
+    ctx.arm_session(tmp_path, "memory-bank/integration/plan/demo/yaml/decompose-index.yaml")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
@@ -2355,6 +2328,13 @@ def test_qa_and_audit_work_blocks_render_properly() -> None:
     assert "выбранного workflow" in qa_block
     assert "workflow-qa.mdc" not in qa_block
     assert "demo-epic" in qa_block
+    assert "bin/pytest -q --tb=line" in qa_block
+
+    front_qa = ctx._qa_work_block("FRONT", "demo-front")
+    assert "vitest" in front_qa
+    assert "playwright" in front_qa
+    assert "suite_command: `bin/pytest -q --tb=line`" not in front_qa
+    assert "npm --prefix frontend exec vitest run" in front_qa
 
     audit_block = ctx._audit_work_block("back", "demo-epic")
     assert "## AUDIT canon (HARD)" in audit_block
@@ -2552,7 +2532,7 @@ def test_build_prompt_accepts_resume_lines(tmp_path: Path) -> None:
 
     prompt = ctx.build_prompt(
         tmp_path,
-        load_now=["memory-bank/integration/plan/decompose-x/e16-foo.yaml"],
+        load_now=["memory-bank/integration/plan/x/yaml/steps/e16-foo.yaml"],
         delta_ok=True,
         delta_paths=[],
         resume_lines=["## resume_dirty (HARD)", "prev_session: aborted"],
@@ -2568,7 +2548,7 @@ def test_build_prompt_projection_schema(tmp_path: Path) -> None:
 
     prompt = ctx.build_prompt(
         tmp_path,
-        load_now=["memory-bank/integration/plan/decompose-x/e16-foo.yaml"],
+        load_now=["memory-bank/integration/plan/x/yaml/steps/e16-foo.yaml"],
         delta_ok=True,
         delta_paths=[],
         projection={
@@ -2918,15 +2898,7 @@ def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path)
 def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> None:
     """Retryable abort syncs armed_step from index before resume marker."""
     ctx = _load_ctx()
-    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
-    _write(
-        tmp_path,
-        "memory-bank/back/plan/decompose-demo/index.md",
-        "| step_id | title | next_phase | status |\n"
-        "| :--- | :--- | :--- | :--- |\n"
-        "| **s01** | one · [yaml](s01-one.yaml) | BACK IMPLEMENT | completed |\n"
-        "| **s02** | two · [yaml](s02-two.yaml) | BACK IMPLEMENT | pending |\n",
-    )
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
@@ -2944,11 +2916,11 @@ def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> N
         "  title: two\n"
         "  status: pending\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-one.yaml", "step_id: s01\n")
-    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s02-two.yaml", "step_id: s02\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s01-one.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/demo/yaml/steps/s02-two.yaml", "step_id: s02\n")
     _write(
         tmp_path,
-        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "memory-bank/back/implement/demo/s01-one.yaml",
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: one\nstatus: completed\ndate: '2026-08-16'\n"
         "done: [x]\nfiles: [a.py]\ntests: ['timeout 300s .venv/bin/pytest -q']\n"
@@ -2959,8 +2931,8 @@ def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> N
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n"
-        "1. [s01-one.yaml](back/plan/decompose-demo/s01-one.yaml)\n"
-        "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "1. [s01-one.yaml](back/plan/demo/yaml/steps/s01-one.yaml)\n"
+        "2. [index.yaml](back/plan/demo/yaml/decompose-index.yaml)\n\n"
         "## Handoff\n- stuck on s01\n",
     )
     _write(
@@ -3296,11 +3268,6 @@ def test_prepare_does_not_promote_analyze_from_artifact_without_receipt(
     )
     _write(
         tmp_path,
-        f"{decomp}/decompose-index.md",
-        "| step_id | status |\n| s01 | pending |\n",
-    )
-    _write(
-        tmp_path,
         f"{decomp}/steps/s01-env.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
     )
@@ -3345,7 +3312,7 @@ def test_build_prompt_decompose_includes_canon_checklist(tmp_path: Path) -> None
     _seed_context(tmp_path)
     prompt = ctx.build_prompt(
         tmp_path,
-        load_now=["memory-bank/back/plan/plan-T-HUB-030-harness-runtime-wire.md"],
+        load_now=["memory-bank/back/plan/T-HUB-030-harness-runtime-wire/md/plan.md"],
         projection={
             "phase": "BACK DECOMPOSE",
             "epic": "T-HUB-030",
@@ -3421,17 +3388,17 @@ role: back
 queue:
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue = lambda p, q: (
@@ -3467,12 +3434,12 @@ role: back
 queue:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     deps: []
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     deps: [T-FEAT-1]
     kind: feature
 done: []
@@ -3518,22 +3485,22 @@ role: back
 queue:
   - id: T-REF-1
     epic_id: T-REF-1
-    plan: plan-T-REF-1.md
+    plan: T-REF-1/md/plan.md
     deps: []
     kind: refactor
   - id: T-FEAT-3
     epic_id: T-FEAT-3
-    plan: plan-T-FEAT-3.md
+    plan: T-FEAT-3/md/plan.md
     deps: []
     kind: feature
 done:
   - id: T-FEAT-1
     epic_id: T-FEAT-1
-    plan: plan-T-FEAT-1.md
+    plan: T-FEAT-1/md/plan.md
     kind: feature
   - id: T-FEAT-2
     epic_id: T-FEAT-2
-    plan: plan-T-FEAT-2.md
+    plan: T-FEAT-2/md/plan.md
     kind: feature
 """
     _write_queue = lambda p, q: (

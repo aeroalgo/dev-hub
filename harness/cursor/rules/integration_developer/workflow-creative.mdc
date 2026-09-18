@@ -14,7 +14,7 @@ alwaysApply: false
 1a. Прочитай **Gates**
 2. ≥2 варианта: facets vs meta · period · key style · URL vs context
 3. `integration/creative/creative-<feature>.md`; contract draft
-3a. **Rewire dependents (обязательно до FINISH):** все `decompose-*/eNN-*.yaml` и index, где `needs_creative` / blockers ссылаются на этот creative. Канон: `.cursor/templates/decompose/epic-step.yaml` + `index.md`.
+3a. **Rewire dependents (обязательно до FINISH):** все `plan/<epic>/yaml/steps/eNN-*.yaml`, где `needs_creative` / blockers ссылаются на этот creative. Канон: `.cursor/templates/decompose/epic-step.yaml` + YAML index.
    - markdown-ссылка на creative в шаге; при всех CR closed → `needs_creative: yes (CR-…) — **closed**` + Next Phase IMPLEMENT; при open → `yes (<open>)` + CREATIVE
    - index: blockers `✅`; колонка `yes (CR-…) ✅` (не `yes (done)`); snapshot §Handoff обновить
    - **FAIL** если creative closed без кликабельной ссылки в зависимом `eNN`

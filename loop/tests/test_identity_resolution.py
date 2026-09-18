@@ -36,11 +36,10 @@ def _state(cwd: Path, **extra: object) -> None:
 
 def _index(cwd: Path, *, role: str = "back", epic: str = "T-035-loop-state-prod-hardening") -> None:
     base = f"memory-bank/{role}/plan/{epic}"
-    _write(cwd, f"{base}/md/decompose-index.md", "| step_id | title | status |\n| :--- | :--- | :--- |\n| **s11** | identity | pending |\n")
     _write(
         cwd,
         f"{base}/yaml/decompose-index.yaml",
-        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: decompose-index.md\nstatus_canon: decompose-index.yaml\nsteps:\n- id: s11\n  file: s11-identity-index-fail-closed.yaml\n  next_phase: {role.upper()} IMPLEMENT\n  title: identity\n  status: pending\n",
+        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsteps:\n- id: s11\n  file: s11-identity-index-fail-closed.yaml\n  next_phase: {role.upper()} IMPLEMENT\n  title: identity\n  status: pending\n",
     )
     _write(cwd, f"{base}/yaml/steps/s11-identity-index-fail-closed.yaml", "schema: epic-decompose/v1\nstep_id: s11\n")
 
@@ -111,11 +110,10 @@ def test_identity_resolves_by_plan_id_when_folder_slug_differs(tmp_path: Path) -
     lib = _load_lib()
     epic = "T-050-partner-rules-alembic-port"
     base = "memory-bank/back/plan/T-050"
-    _write(tmp_path, f"{base}/md/decompose-index.md", "| step_id | title | status |\n| **s01** | demo | pending |\n")
     _write(
         tmp_path,
         f"{base}/yaml/decompose-index.yaml",
-        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: decompose-index.md\nstatus_canon: decompose-index.yaml\nsteps:\n- id: s01\n  file: s01-demo.yaml\n  next_phase: BACK IMPLEMENT\n  title: demo\n  status: pending\n",
+        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsteps:\n- id: s01\n  file: s01-demo.yaml\n  next_phase: BACK IMPLEMENT\n  title: demo\n  status: pending\n",
     )
     _write(tmp_path, f"{base}/yaml/steps/s01-demo.yaml", "schema: epic-decompose/v1\nrole: back\nstep_id: s01\ntitle: demo\ngoal: demo\nas_built: []\ndelta: []\ndeletes: []\ncheckpoints: []\n")
     _state(tmp_path, armed_epic=epic, armed_decompose=None)

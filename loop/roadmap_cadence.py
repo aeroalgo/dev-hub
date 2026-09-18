@@ -990,11 +990,6 @@ def mark_plan_stale(
                     if cand.is_file():
                         target_plan_path = cand
                         break
-                if target_plan_path is None:
-                    for cand in plan_dir.glob(f"plan-*{resolved_epic}*.md"):
-                        if cand.is_file():
-                            target_plan_path = cand
-                            break
 
     if target_plan_path is None or not target_plan_path.is_file():
         raise FileNotFoundError(

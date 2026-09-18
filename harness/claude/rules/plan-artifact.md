@@ -1,10 +1,10 @@
 ---
 paths:
-  - "memory-bank/**/plan-*.md"
-  - "memory-bank/**/plan/decompose-*/**"
+  - "memory-bank/**/plan/*/md/plan.md"
+  - "memory-bank/**/plan/*/yaml/**"
   - "memory-bank/**/plan/**"
   - "memory-bank/**/gap/gap-*.md"
-  - "memory-bank/**/plan-*-GAP-*.md"
+  - "memory-bank/**/gap/**/*.md"
   - "memory-bank/back/plan/**"
   - "memory-bank/front/plan/**"
   - "memory-bank/integration/plan/**"
@@ -23,9 +23,9 @@ When creating or editing files matching these paths:
 2. **Chat brevity does not limit** this file. Short reply to user ≠ short plan/map/decompose.
 3. **Lean load ≠ lean write.** Context may stay focused; this artifact must be exhaustive.
 4. Truncating «для экономии контекста / токенов» = **FAIL**. Rewrite longer.
-5. **Multi-epic from research:** if PLAN input is research/audit with ≥2 cut criteria → **split** into N `plan-<epic_id>-*.md` + `roadmap-<slug>-epics.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc). One mega-plan that omits detail instead of splitting = **FAIL**.
+5. **Multi-epic from research:** if PLAN input is research/audit with ≥2 cut criteria → **split** into N `plan/<epic_id>/md/plan.md` artifacts and rows in `roadmap/queue.yaml` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc). One mega-plan that omits detail instead of splitting = **FAIL**.
 
-## Minimum bar (DECOMPOSE — `decompose-*/`)
+## Minimum bar (DECOMPOSE — `plan/<epic>/yaml/`)
 
 - **Maximal detail:** все этапы плана/канона + все AC+/AC−/FR/NFR → покрытия в index (`## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup`)
 - **Coverage rubric:** covered row ⇒ measurable `verify` у sNN/eNN (runnable pytest/`rg`/CLI; stage = delta+files; NFR/AC− не map-only). Канон: `workflow-*-decompose.mdc` §Coverage rubric
@@ -48,11 +48,11 @@ When creating or editing files matching these paths:
 
 - **FAIL** if only parity matrix / ID table without executable work
 - Required per every `G-BF*` / `G-FB*`: as-is asymmetry → what BACK/FRONT/INTEG must do → done checkboxes (шаблон `.cursor/templates/integration-gap.md` §«Работы по gap»)
-- Medium detail OK (full AC/wire may live in `plan-*-GAP-*`); gap itself must still be actionable without re-reading implement bullets
+- Medium detail OK (full AC/wire may live in the linked canonical plan artifact); gap itself must still be actionable without re-reading implement bullets
 
 ## Minimum bar (INTEG portal plan)
 
-If scope is portal/journey / file is `plan-INTEG-*`:
+If scope is portal/journey / file is `plan/<epic_id>/md/plan.md`:
 
 - **Hard FAIL** if artifact is TOC-only (registry table + short rollout without per-element detail)
 - Prefer **≥400 lines** OR equivalent density: every UI element gets its own subsection (§UI, §API today, §Contract outline, §wire, §tests) — not one mega-table alone

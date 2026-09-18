@@ -57,7 +57,7 @@ alwaysApply: false
     - **FORBIDDEN** `plan/roadmap-*-epics.*`  
 4. Single-epic: содержание по level delta в gates; E2E в плане
 
-**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
+**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / FRONT IMPLEMENT — PLAN **не** трогает status и не перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`.
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани: обязательны апсерт `memory-bank/front/roadmap/queue.yaml` + один/ N `memory-bank/front/plan/<task_id>/md/plan.md` и `md/prompt.md` (Covering одинаковый для multi-epic)
 7. `tasks.md` append-only (ссылка на queue + каждый эпик)

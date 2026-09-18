@@ -17,7 +17,7 @@ def _item(title: str = "First pending") -> WorkItem:
         epic_id="T-DEMO",
         step_id="s01",
         status="pending",
-        decompose_rel="memory-bank/back/plan/decompose-T-DEMO/index.yaml",
+        decompose_rel="memory-bank/back/plan/T-DEMO/yaml/decompose-index.yaml",
         title=title,
         workspace_ref=WORKSPACE,
     )

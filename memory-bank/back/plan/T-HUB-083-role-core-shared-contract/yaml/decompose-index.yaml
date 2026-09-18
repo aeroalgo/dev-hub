@@ -1,7 +1,5 @@
 schema: epic-decompose-index/v1
 plan_id: T-HUB-083-role-core-shared-contract
-source_md: ../md/decompose-index.md
-status_canon: decompose-index.yaml
 steps:
 - id: s01
   file: s01-role-core-contract-red-tests.yaml

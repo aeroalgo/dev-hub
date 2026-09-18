@@ -89,7 +89,7 @@ delta:
 - 'scaffold_plan: создаёт plan/<epic_id>/md/plan.md (section headers) + yaml/plan.yaml
   (minimal PlanSpec); fail-closed если уже есть и не --force'
 - 'scaffold_decompose: читает plan.yaml outline_steps → sNN-<slug>.yaml skeleton (delta:[],
-  as_built:[], goal: placeholder) + md/decompose-index.md coverage rows (пустой sNN
+  as_built:[], goal: placeholder) + yaml/decompose-index.yaml coverage rows (пустой sNN
   column)'
 - 'scaffold_implement_all: из decompose index.yaml → implement/<epic_id>/sNN.yaml
   in_progress'

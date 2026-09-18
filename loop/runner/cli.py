@@ -22,7 +22,7 @@ USAGE_TEXT = """Usage: ./bin/loop [EPIC] [MODEL] [MODE] [options]
 
 Context-first автоцикл. Курсор = memory-bank/activeContext.md.
 
-EPIC (опционально): T-HUB-027 | plan-<epic>.md | decompose-<id> | memory-bank/.../plan/...
+EPIC (опционально): T-HUB-027 | memory-bank/<role>/plan/<epic>/yaml/decompose-index.yaml
   → arm via resolver (PLAN / DECOMPOSE / ANALYZE / IMPLEMENT по состоянию эпика).
   → Прошлый activeContext игнорируется.
 Без EPIC: продолжение с текущего activeContext.
@@ -30,8 +30,8 @@ EPIC (опционально): T-HUB-027 | plan-<epic>.md | decompose-<id> | mem
 Examples:
   ./bin/loop . gpt
   ./bin/loop . --epic T-HUB-027 agy/gemini-3.6-flash-medium
-  ./bin/loop . plan-T-HUB-027-back-plan-gstack-adapt.md agy/gemini-3.6-flash-medium
-  ./bin/loop . decompose-v1-portal gpt implement
+  ./bin/loop . memory-bank/back/plan/T-HUB-027-back-plan-gstack-adapt/yaml/decompose-index.yaml agy/gemini-3.6-flash-medium
+  ./bin/loop . T-HUB-027 gpt implement
 
 MODE:
   implement
@@ -76,14 +76,10 @@ class CliArgs:
 def is_epic_spec(arg: str) -> bool:
     """Check if an argument looks like an epic spec / plan / decompose path."""
     patterns = [
-        "decompose-*",
-        "plan-*",
         "T-*",
-        "memory-bank/*/plan/decompose-*",
-        "memory-bank/*/plan/plan-*",
-        "memory-bank/*/plan/decompose-*/index.md",
-        "*/decompose-*",
-        "*/plan-*",
+        "memory-bank/*/plan/*/md/plan.md",
+        "memory-bank/*/plan/*/yaml/decompose-index.yaml",
+        "memory-bank/*/plan/*/yaml/decompose-index.yml",
     ]
     for pat in patterns:
         if fnmatch.fnmatch(arg, pat):

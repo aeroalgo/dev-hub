@@ -21,12 +21,12 @@ def _seed_fake_repo(tmp_path: Path) -> Path:
     mb.mkdir(parents=True)
 
     # Shard
-    shard = mb / "back" / "plan" / "decompose-t01" / "s01-foo.yaml"
+    shard = mb / "back" / "plan" / "T-01" / "yaml" / "steps" / "s01-foo.yaml"
     shard.parent.mkdir(parents=True)
     shard.write_text("schema: epic-decompose/v1\nstep_id: s01\n", encoding="utf-8")
 
     # Index
-    index = mb / "back" / "plan" / "decompose-t01" / "index.yaml"
+    index = mb / "back" / "plan" / "T-01" / "yaml" / "decompose-index.yaml"
     index.write_text(
         "schema: epic-decompose/v1\n"
         "epic_id: T-01\n"
@@ -48,8 +48,8 @@ def _seed_fake_repo(tmp_path: Path) -> Path:
         "step_id: s01\n"
         "---\n"
         "## load_now\n"
-        "1. [s01-foo.yaml](back/plan/decompose-t01/s01-foo.yaml)\n"
-        "2. [index.yaml](back/plan/decompose-t01/index.yaml)\n\n"
+        "1. [s01-foo.yaml](back/plan/T-01/yaml/steps/s01-foo.yaml)\n"
+        "2. [decompose-index.yaml](back/plan/T-01/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT s01`\n"
         "- **Gaps:** none.\n",

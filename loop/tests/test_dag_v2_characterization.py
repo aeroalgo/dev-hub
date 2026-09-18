@@ -44,7 +44,7 @@ def _canonical_v2_manifest() -> dict:
             {
                 "id": "back-core",
                 "role": "BACK",
-                "decompose": "memory-bank/back/plan/decompose-core/index.md",
+                "decompose": "memory-bank/back/plan/core/yaml/decompose-index.yaml",
                 "depends_on": [],
                 "completion": {"type": "decompose"},
                 "action": "implement",
@@ -52,7 +52,7 @@ def _canonical_v2_manifest() -> dict:
             {
                 "id": "front-ui",
                 "role": "FRONT",
-                "decompose": "memory-bank/front/plan/decompose-ui/index.md",
+                "decompose": "memory-bank/front/plan/ui/yaml/decompose-index.yaml",
                 "depends_on": ["back-core"],
                 "completion": {"type": "decompose"},
                 "action": "implement",
@@ -132,7 +132,7 @@ def test_v2_dag_manifest_strict_denial_diagnostics() -> None:
 
     # Reserved role slug in decompose epic_id
     bad_slug = _canonical_v2_manifest()
-    bad_slug["nodes"][0]["decompose"] = "memory-bank/back/plan/decompose-back/index.md"
+    bad_slug["nodes"][0]["decompose"] = "memory-bank/back/plan/back/yaml/decompose-index.yaml"
     res_slug = validate_manifest(bad_slug)
     assert res_slug["ok"] is False
     assert any(d["code"] == "epic_id_reserved" for d in res_slug["diagnostics"])
@@ -147,13 +147,13 @@ def test_legacy_v1_manifest_adapter_and_migration_boundary() -> None:
             {
                 "id": "back-core",
                 "role_dir": "back",
-                "decompose": "memory-bank/back/plan/decompose-core/index.md",
+                "decompose": "memory-bank/back/plan/core/yaml/decompose-index.yaml",
                 "depends_on": [],
             },
             {
                 "id": "front-ui",
                 "role_dir": "front",
-                "decompose": "memory-bank/front/plan/decompose-ui/index.md",
+                "decompose": "memory-bank/front/plan/ui/yaml/decompose-index.yaml",
                 "depends_on": ["back-core"],
             },
         ],
@@ -198,7 +198,7 @@ def test_context_loop_arm_dag_next_execution(tmp_path: Path) -> None:
             {
                 "id": "node-1",
                 "role": "BACK",
-                "decompose": "memory-bank/back/plan/decompose-core/index.md",
+                "decompose": "memory-bank/back/plan/core/yaml/decompose-index.yaml",
                 "depends_on": [],
                 "completion": {"type": "decompose"},
                 "action": "implement",
@@ -208,12 +208,13 @@ def test_context_loop_arm_dag_next_execution(tmp_path: Path) -> None:
     _write(tmp_path, "loop/dag/portal.yaml", yaml.safe_dump(manifest, sort_keys=False))
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-core/index.md",
-        "| step_id | title | status |\n|---|---|---|\n| **s01** | [s01-step.yaml](s01-step.yaml) | pending |\n",
+        "memory-bank/back/plan/core/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: core\nsteps:\n"
+        "  - id: s01\n    file: s01-step.yaml\n    status: pending\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-core/s01-step.yaml",
+        "memory-bank/back/plan/core/yaml/steps/s01-step.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
 
@@ -282,8 +283,8 @@ def test_v2_roadmap_queue_characterization(tmp_path: Path) -> None:
         "version": "roadmap-queue/v2",
         "role": "back",
         "queue": [
-            {"id": "epic-1", "plan": "plan-epic-1.md", "deps": []},
-            {"id": "epic-2", "plan": "plan-epic-2.md", "deps": ["epic-1"]},
+            {"id": "epic-1", "plan": "epic-1/md/plan.md", "deps": []},
+            {"id": "epic-2", "plan": "epic-2/md/plan.md", "deps": ["epic-1"]},
         ],
         "done": [],
     }

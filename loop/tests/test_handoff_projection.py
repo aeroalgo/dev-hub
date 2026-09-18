@@ -71,7 +71,7 @@ def test_project_handoff_from_reducer_syncs_stale_markdown(tmp_path: Path) -> No
     from epic import project_handoff_from_reducer, handoff_post_implement_phase
 
     epic = "T-proj-demo"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -90,7 +90,7 @@ def test_project_handoff_from_reducer_syncs_stale_markdown(tmp_path: Path) -> No
     _write(
         tmp_path / "memory-bank/activeContext.md",
         "## load_now\n"
-        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"1. [index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         f"## Handoff BACK BUGFIX — {epic}\n"
         "- **Режим/шаг:** `BACK BUGFIX`.\n",
     )
@@ -127,7 +127,7 @@ def test_epic_complete_allowed_uses_reducer_not_stale_handoff(tmp_path: Path) ->
     from epic import epic_complete_allowed, reduce_epic_lifecycle
 
     epic = "T-done-demo"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -171,7 +171,7 @@ def test_handoff_mode_line_wins_over_stale_audit_heading() -> None:
 
     text = (
         "## load_now\n"
-        "1. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "1. [index.yaml](back/plan/demo/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK AUDIT — demo\n"
         "- **Режим/шаг:** `BACK QA`.\n"
         "- **Дальше:** переход к `BACK QA`.\n"
@@ -184,7 +184,7 @@ def test_handoff_qa_not_demoted_by_dalshe_reflect() -> None:
 
     text = (
         "## load_now\n"
-        "1. [index.yaml](back/plan/decompose-T-HUB-040/index.yaml)\n\n"
+        "1. [index.yaml](back/plan/T-HUB-040/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK QA — T-HUB-040\n"
         "- **Эпик:** T-HUB-040 — все sNN completed.\n"
         "- **Режим/шаг:** `BACK QA`.\n"
@@ -199,7 +199,7 @@ def test_project_handoff_from_reducer_qa_failed_rewrites_premature_qa(
     from epic import handoff_post_implement_phase, project_handoff_from_reducer
 
     epic = "T-qa-fail-premature-qa"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     audit = f"memory-bank/back/audit/{epic}/audit-20260902-demo.yaml"
     qa = f"memory-bank/back/qa/{epic}/qa-20260902-demo.yaml"
     _write(
@@ -244,7 +244,7 @@ def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -
     from epic import project_handoff_from_reducer
 
     epic = "T-done-skip-demo"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -295,7 +295,7 @@ def test_project_handoff_implement_to_audit_when_queue_done(tmp_path: Path) -> N
     from epic import handoff_post_implement_phase, project_handoff_from_reducer
 
     epic = "T-implement-to-audit"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -338,7 +338,7 @@ def test_clear_stale_verify_no_verdict_at_audit(tmp_path: Path) -> None:
     from epic import clear_stale_verify_no_verdict_handoff, load_epic_state, save_epic_state
 
     epic = "T-stale-verify-audit"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"

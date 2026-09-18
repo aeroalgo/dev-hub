@@ -38,7 +38,7 @@ def test_sync_cursor_ignores_legacy_reflect_handoff_without_halt(tmp_path: Path)
     from epic import handoff_post_implement_phase, save_epic_state, sync_cursor_from_index
 
     epic = "T-HUB-043-runtime-bridge-codex"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -61,7 +61,7 @@ def test_sync_cursor_ignores_legacy_reflect_handoff_without_halt(tmp_path: Path)
         f"epic_id: {epic}\n"
         "---\n\n"
         "## load_now\n"
-        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"1. [index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK BACK REFLECT\n"
         "- **Дальше:** reflection\n",
     )
@@ -87,7 +87,7 @@ def test_sync_cursor_preserves_qa_handoff_without_rearm(tmp_path: Path) -> None:
     from epic import save_epic_state, sync_cursor_from_index
 
     epic = "T-HUB-demo"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"
@@ -111,7 +111,7 @@ def test_sync_cursor_preserves_qa_handoff_without_rearm(tmp_path: Path) -> None:
     )
     qa_body = (
         "## load_now\n"
-        f"1. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"1. [index.yaml](back/plan/{epic}/yaml/decompose-index.yaml)\n\n"
         f"## Handoff BACK QA — {epic}\n"
         "- **Режим/шаг:** `BACK QA`.\n"
     )
@@ -138,7 +138,7 @@ def test_prepare_completes_after_mb_finish_qa(tmp_path: Path) -> None:
     from loop.mb_finish.schemas import MbFinishRequest
 
     epic = "T-HUB-finish-qa"
-    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
     _write(
         tmp_path / decompose,
         "schema: epic-decompose-index/v1\n"

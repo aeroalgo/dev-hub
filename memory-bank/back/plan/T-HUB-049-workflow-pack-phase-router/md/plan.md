@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · modern-python
 
-→ [T-HUB-049-workflow-pack-phase-router/md/decompose-index.md](T-HUB-049-workflow-pack-phase-router/md/decompose-index.md) — **после DECOMPOSE**
+→ [T-HUB-049-workflow-pack-phase-router/yaml/decompose-index.yaml](T-HUB-049-workflow-pack-phase-router/yaml/decompose-index.yaml) — **после DECOMPOSE**
 
 ---
 
