@@ -466,3 +466,44 @@ class TestMainExecution:
         assert code == 1
         captured = capsys.readouterr()
         assert "arm epic mismatch" in captured.err
+
+    def test_main_arms_front_epic_with_front_role(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        proj = tmp_path / "proj"
+        plan = proj / "memory-bank" / "front" / "plan" / "T-FRONT-001" / "md" / "plan.md"
+        plan.parent.mkdir(parents=True)
+        (proj / "memory-bank" / "activeContext.md").write_text("# ac\n", encoding="utf-8")
+        plan.write_text("# plan\n", encoding="utf-8")
+        monkeypatch.setenv("PROJECT_ROOT", str(proj))
+        monkeypatch.setenv("EPIC_RUNTIME", "claude")
+
+        monkeypatch.setattr(
+            "loop.runner.cli.run_preflight_checks",
+            lambda config, **kwargs: type(
+                "PF",
+                (),
+                {"ok": True, "reason": None, "exit_code": 0},
+            )(),
+        )
+        monkeypatch.setattr(
+            "loop.runner.orchestrator.LoopRunner",
+            lambda *args, **kwargs: type(
+                "Runner",
+                (),
+                {"run": lambda self: type("Outcome", (), {"exit_code": 0})()},
+            )(),
+        )
+
+        import loop.context_loop as cl
+
+        calls: list[dict[str, Any]] = []
+
+        def arm(_cwd: Path, _epic: str, **kwargs: Any) -> dict[str, Any]:
+            calls.append(kwargs)
+            return {"ok": True, "complete": False, "epic_id": "T-FRONT-001"}
+
+        monkeypatch.setattr(cl, "arm_epic", arm)
+
+        assert main(["--epic", "T-FRONT-001", "-m", "gpt-test"]) == 0
+        assert calls == [{"role": "front"}]

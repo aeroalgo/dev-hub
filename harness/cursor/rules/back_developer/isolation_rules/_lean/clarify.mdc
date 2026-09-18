@@ -14,7 +14,7 @@ alwaysApply: false
 1. `load_now` = **только** clarify artifact (если есть) + `activeContext.md`; **НЕ** plan monolith без нужды (NFR-3 lean load)
 2. Jump `plan §N` / brief — только если Consumes явно требует и ambiguity без контекста не снять
 3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком (тянет `grilling`); `## Grill pass` в артефакт не пустая
-4. Сессия соблюдает shared-core: frontier rounds ≤3 · ≤10 Q · Recommended, CRITICAL policy
+4. Сессия соблюдает shared-core: frontier rounds ≤4 · ≤20 Q · Recommended, CRITICAL policy
 5. Каждый принятый A / раунд записан в clarify-артефакт (диск = SoT)
 6. Completion Report обязателен перед Handoff → PLAN Phase 1 / continue / spike
 7. Открытый `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list → **не** Phase 1 PLAN и **не** standalone FINISH ready

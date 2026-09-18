@@ -355,7 +355,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.verbose:
             sys.stdout.write(f"==> arm epic={target_epic} (via resolver)\n")
             sys.stdout.flush()
-        arm_res = cl.arm_epic(project_root, target_epic)
+        from epic_paths import resolve_arm_epic_target
+
+        arm_target = resolve_arm_epic_target(target_epic, project_root)
+        arm_kwargs = {"role": arm_target[1]} if arm_target else {}
+        arm_res = cl.arm_epic(project_root, target_epic, **arm_kwargs)
         if not arm_res.get("ok"):
             arm_err = (
                 arm_res.get("error")

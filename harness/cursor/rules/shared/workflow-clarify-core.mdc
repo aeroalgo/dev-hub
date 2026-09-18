@@ -1,5 +1,5 @@
 ---
-description: "CLARIFY core — shared taxonomy, frontier ≤10 Q / ≤3 rounds, CRITICAL markers, Completion Report (BACK/FRONT/INTEG)"
+description: "CLARIFY core — shared taxonomy, frontier ≤20 Q / ≤4 rounds, CRITICAL markers, Completion Report (BACK/FRONT/INTEG)"
 alwaysApply: false
 ---
 # CLARIFY — shared core
@@ -37,12 +37,12 @@ alwaysApply: false
 
 | Параметр | Значение |
 |----------|----------|
-| **Total Q** | **≤10** на CLARIFY-сессию (все раунды суммарно) |
-| **Rounds** | **≤3** |
+| **Total Q** | **≤20** на CLARIFY-сессию (все раунды суммарно) |
+| **Rounds** | **≤4** |
 | **Per round** | только **независимые** Q (frontier); зависимые → следующий раунд |
 | **Chat UX** | один **раунд** за ход (весь frontier раунда); ответы пользователя по номерам |
 | **Facts** | codebase/tools — не спрашивать пользователя |
-| **Stop** | frontier пуст · user `done`/`good`/`no more` · квота 10 · нет material candidates |
+| **Stop** | frontier пуст · user `done`/`good`/`no more` · квота 20 · нет material candidates |
 
 Формат вопроса в раунде (как grilling + hub Recommended):
 
@@ -69,7 +69,7 @@ Product probe проводится до WHAT, чтобы зафиксирова�
 6. **Future-fit** — Какие предполагаемые изменения в системе или продукте могут сделать это решение бессмысленным?
 
 ### Правила квоты и формата
-- **Квота CLARIFY:** продуктовые вопросы входят в общую квоту **≤10 total** (frontier rounds).
+- **Квота CLARIFY:** продуктовые вопросы входят в общую квоту **≤20 total** (frontier rounds).
 - **Batch vs rounds:** при пропуске CLARIFY в L3+ PLAN оператор заполняет обязательную **batch**-таблицу Product probe в плане; при CLARIFY — вопросы в frontier / Q→A в рамках квоты.
 - **Output contract:** Reframe + Premises (3–5 falsifiable допущений) + Recommended wedge.
 
@@ -96,7 +96,7 @@ Product probe проводится до WHAT, чтобы зафиксирова�
 
 ## Лимиты и формат
 
-1. **≤10 вопросов** на всю сессию CLARIFY (не на категорию); **≤3 раунда**.
+1. **≤20 вопросов** на всю сессию CLARIFY (не на категорию); **≤4 раунда**.
 2. **Frontier rounds:** один раунд = все независимые Q сейчас; не dump зависимых вместе.
 3. Формат ответа пользователя:
    - MC: **2–5** взаимоисключающих опций **или**
@@ -110,7 +110,7 @@ Product probe проводится до WHAT, чтобы зафиксирова�
    - Нельзя подменять вопрос лейблом/ID секции
 6. После ответа: принять `yes` / `recommended` / `suggested` как выбор рекомендации; иначе проверить маппинг на опцию / ≤5 слов; при двусмысленности — disambiguation **той же** Q (счётчик не растёт).
 
-Стоп очереди: критичные ambiguity сняты · пользователь `done`/`good`/`no more` · задано 10 Q · frontier пуст → «критичных ambiguity нет».
+Стоп очереди: критичные ambiguity сняты · пользователь `done`/`good`/`no more` · задано 20 Q · frontier пуст → «критичных ambiguity нет».
 
 ---
 
@@ -153,7 +153,7 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 ```markdown
 ## Completion Report
 - Grill: done · verdict=auto_resolved|needs_user_Q · rounds=N · grill_Q=M · mode=frontier
-- Asked: N/10
+- Asked: N/20
 - Resolved: …
 - Deferred: … (severity + next)
 - Coverage: scope=… data=… UX-API=… NFR=… integrations=… edge=… constraints=… terminology=…
@@ -180,7 +180,7 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 - **silent assumption** при пустом / размытом prompt (auth, stack, multi-tenant, PII, deploy target)
 - Подставлять стек/архитектуру «по умолчанию» вместо вопроса
 - Клонировать spec-kit clarify 1:1 или тащить внешний Spec Kit CLI
-- >10 Q или >3 раунда за сессию без новой `continue * CLARIFY`
+- >20 Q или >4 раунда за сессию без новой `continue * CLARIFY`
 - Dump **зависимых** вопросов в одном раунде; раунд без Recommended/Suggested
 - Закрывать PLAN при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list
 - Auto-wayfinder / root `CONTEXT.md` без согласия пользователя

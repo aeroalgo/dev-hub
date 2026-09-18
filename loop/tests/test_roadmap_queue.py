@@ -1233,9 +1233,8 @@ done:
     assert res["cadence_blocked"] is True
     assert res["stop"] == "CADENCE_BLOCKED"
 
-def test_mark_queue_epic_done_missing_cadence_fail_closed(tmp_path: Path) -> None:
-    """BF-001: mark_queue_epic_done fails closed when cadence.yaml is missing."""
-    import pytest
+def test_mark_queue_epic_done_initializes_missing_cadence(tmp_path: Path) -> None:
+    """A roadmap queue without cadence state starts with an idle cadence state."""
     rq = _load_rq()
     queue_yaml = """
 version: roadmap-queue/v2
@@ -1253,13 +1252,17 @@ done: []
     if cad_path.is_file():
         cad_path.unlink()
 
-    with pytest.raises(FileNotFoundError):
-        rq.mark_queue_epic_done(tmp_path, "T-FEAT-1", role="back", require_done=False)
+    out = rq.mark_queue_epic_done(tmp_path, "T-FEAT-1", role="back", require_done=False)
+
+    assert out["ok"] is True
+    assert out["written"] is True
+    assert out["cadence"]["phase"] == "idle"
+    assert out["cadence"]["counter"] == 1
+    assert (tmp_path / "memory-bank/back/roadmap/cadence.yaml").is_file()
 
 
-def test_roadmap_advance_missing_cadence_fail_closed(tmp_path: Path) -> None:
-    """BF-002: roadmap_advance fails closed when cadence.yaml is missing."""
-    import pytest
+def test_roadmap_advance_chains_without_existing_cadence(tmp_path: Path) -> None:
+    """EPIC_DONE can advance a normal feature queue before cadence state exists."""
     rq = _load_rq()
     queue_yaml = """
 version: roadmap-queue/v2
@@ -1270,16 +1273,26 @@ queue:
     plan: plan-T-FEAT-1.md
     deps: []
     kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    deps: [T-FEAT-1]
+    kind: feature
 done: []
 """
     _write(tmp_path, "memory-bank/back/roadmap/queue.yaml", queue_yaml.strip() + "\n")
-    _write(tmp_path, "memory-bank/back/plan/T-FEAT-1/md/plan.md", "# feat 1\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-2/md/plan.md", "# feat 2\n")
     cad_path = tmp_path / "memory-bank/back/roadmap/cadence.yaml"
     if cad_path.is_file():
         cad_path.unlink()
 
-    with pytest.raises(FileNotFoundError):
-        rq.roadmap_advance(tmp_path)
+    out = rq.roadmap_advance(tmp_path, skip_epic="T-FEAT-1")
+
+    assert out["ok"] is True
+    assert out["armed"] is True
+    assert out["epic"] == "T-FEAT-2"
+    assert out["phase"] == "DECOMPOSE"
+    assert cad_path.is_file()
 
 
 def test_upsert_refactor_epic(tmp_path: Path) -> None:

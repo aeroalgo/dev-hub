@@ -50,7 +50,7 @@ backend/
 ├── tests/                       # pytest тесты (api/service)
 │   ├── conftest.py
 │   └── api/
-├── app/main.py                  # FastAPI entrypoint
+├── main.py                  # FastAPI entrypoint
 ├── function_app.py              # Azure Functions entrypoint (если используется)
 └── host.json                    # Azure Functions host config
 ```

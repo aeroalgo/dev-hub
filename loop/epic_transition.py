@@ -49,6 +49,74 @@ _COMPOSITE_PHASE_BASES = {
     "PLAN REFACTOR": "PLAN",
 }
 _ARM_EPIC_KWARGS = frozenset({"require_plan"})
+_DECOMPOSE_VERIFY_FAILURE_CODES = frozenset(
+    {
+        "verify-decompose_pass_missing",
+        "verifier_receipt_missing",
+        "verifier_receipt_invalid",
+        "manual_authority_rejected",
+        "unauthorized_verifier_identity",
+        "receipt_digest_mismatch",
+        "receipt_identity_missing",
+        "projection_identity_missing",
+        "verdict_stale",
+        "verdict_wrong_step",
+        "epoch_mismatch",
+    }
+)
+
+
+def _is_decompose_transition_gate_failure(
+    result: dict[str, Any], target_phase: str,
+) -> bool:
+    """Return whether an arm failure requires restarting DECOMPOSE."""
+    if not result.get("halt"):
+        return False
+    if str(result.get("phase") or "").upper() != target_phase.upper():
+        return False
+    diagnostic = str(result.get("diagnostic_code") or "")
+    reason = str(result.get("reason") or "")
+    return (
+        diagnostic in _DECOMPOSE_VERIFY_FAILURE_CODES
+        or reason.startswith(f"DECOMPOSE → {target_phase.upper()} переход запрещён:")
+    )
+
+
+def _arm_phase_with_decompose_recovery(
+    cwd: Path,
+    epic_id: str,
+    role: str,
+    phase: str,
+    *,
+    target_rel: str | None = None,
+    decompose_rel: str | None = None,
+) -> dict[str, Any]:
+    """Arm a phase, restarting DECOMPOSE when its verify receipt is unusable."""
+    result = arm_phase(
+        cwd,
+        epic_id,
+        phase,
+        role,
+        target_rel=target_rel,
+        decompose_rel=decompose_rel,
+    )
+    if result.get("ok") or not _is_decompose_transition_gate_failure(result, phase):
+        return result
+
+    rearm = arm_phase(
+        cwd,
+        epic_id,
+        "DECOMPOSE",
+        role,
+        target_rel=target_rel,
+        recovery_rearm=True,
+    )
+    if rearm.get("ok"):
+        rearm["rearm_reason"] = str(
+            result.get("diagnostic_code") or "verify-decompose_pass_missing"
+        )
+        rearm["requested_phase"] = phase.upper()
+    return rearm
 
 
 def _allow_same_step_rearm_after_error(
@@ -860,7 +928,16 @@ def arm_epic(
             "epic_id": epic_id,
             "role": role,
         }
-    if phase in {"PLAN", "DECOMPOSE", "CLARIFY", "ANALYZE", "CREATIVE"}:
+    if phase == "ANALYZE":
+        return _arm_phase_with_decompose_recovery(
+            cwd_p,
+            epic_id,
+            role,
+            phase,
+            target_rel=action.plan_rel,
+            decompose_rel=action.decompose_rel,
+        )
+    if phase in {"PLAN", "DECOMPOSE", "CLARIFY", "CREATIVE"}:
         return arm_phase(
             cwd_p,
             epic_id,
@@ -886,7 +963,13 @@ def arm_epic(
                         )
             except Exception as exc:
                 pass
-        return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
+        return _arm_phase_with_decompose_recovery(
+            cwd_p,
+            epic_id,
+            role,
+            "IMPLEMENT",
+            decompose_rel=action.decompose_rel,
+        )
     if phase in {"AUDIT", "QA", "BUGFIX"}:
         # Post-implement phases must honor resolver phase (BUGFIX on qa_failed).
         # Passing decompose_rel would route arm_phase into _arm_from_decompose and
@@ -920,6 +1003,7 @@ def arm_phase(
     last_finished_epic = str(
         st_before.get("last_finished_epic") or st_before.get("armed_epic") or ""
     ).strip()
+    explicit_recovery_rearm = kwargs.get("recovery_rearm") is True
 
     if pack_id is None:
         try:
@@ -935,14 +1019,29 @@ def arm_phase(
     decompose_rel = kwargs.get("decompose") or kwargs.get("decompose_rel")
 
     gate_diagnostic = str(st_before.get("gate_diagnostic") or "").strip()
-    decompose_gate_failed = gate_diagnostic in {
-        "verify_spawn_missing",
-        "verify_runtime_error",
-        "verify_runtime_unsupported_tool",
-        "verify_runtime_collaboration_wait_timeout",
-        "verify-decompose_pass_missing",
-    } or str(st_before.get("repair_required") or "").strip() == "gate-repair"
     current_step = str(st_before.get("armed_step") or "").strip().upper()
+    decompose_phase_context = (
+        current_step in {"DECOMPOSE", "ANALYZE"}
+        or str(st_before.get("last_finished_step") or "").strip().upper()
+        in {"DECOMPOSE", "ANALYZE"}
+        or any(
+            token in str(st_before.get(key) or "").strip().upper()
+            for key in ("phase", "loop_phase")
+            for token in ("DECOMPOSE", "ANALYZE")
+        )
+    )
+    decompose_gate_failed = gate_diagnostic == "verify-decompose_pass_missing" or (
+        decompose_phase_context
+        and gate_diagnostic in {
+            "verify_spawn_missing",
+            "verify_runtime_error",
+            "verify_runtime_unsupported_tool",
+            "verify_runtime_collaboration_wait_timeout",
+        }
+    ) or (
+        decompose_phase_context
+        and str(st_before.get("repair_required") or "").strip() == "gate-repair"
+    )
     pre_implement_transition = (
         current_step in {"DECOMPOSE", "ANALYZE"}
         or str(st_before.get("last_finished_step") or "").strip().upper()
@@ -1139,7 +1238,7 @@ def arm_phase(
         same_epic = (not last_finished_epic) or (not armed_epic_val) or (
             last_finished_epic == armed_epic_val
         )
-        recovery_rearm = _allow_same_step_rearm_after_error(
+        recovery_rearm = explicit_recovery_rearm or _allow_same_step_rearm_after_error(
             cwd_p,
             last_finished=last_finished,
             armed_step=armed_step_val,
@@ -1176,6 +1275,16 @@ def arm_phase(
             st_sync["active"] = True
             st_sync["status"] = "armed"
             st_sync["halt_reason"] = None
+            if explicit_recovery_rearm and lifecycle_phase_u == "DECOMPOSE":
+                st_sync["last_finished_step"] = None
+                st_sync["last_finished_epic"] = None
+                st_sync["armed_after_finish"] = None
+                st_sync["gate_diagnostic"] = None
+                st_sync.pop("repair_required", None)
+                st_sync.pop("last_verify_verdict", None)
+                st_sync.pop("last_verify_evidence", None)
+                st_sync.pop("last_verify_receipt", None)
+                st_sync.pop("last_verify_evidence_sha256", None)
             _save(cwd_p, st_sync)
         if (
             res.get("ok") is not False

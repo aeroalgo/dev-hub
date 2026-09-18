@@ -301,6 +301,150 @@ def test_arm_phase_analyze_rejects_missing_decompose_verify(tmp_path):
     assert res["diagnostic_code"] == "verify-decompose_pass_missing"
 
 
+def test_arm_epic_rearms_unfinished_decompose_when_verify_receipt_is_missing(
+    tmp_path: Path,
+) -> None:
+    from epic.core import load_epic_state, save_epic_state
+    from loop.epic_transition import arm_epic
+
+    epic = "T-TEST-001-rearm"
+    plan_dir = tmp_path / "memory-bank/back/plan" / epic
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md/plan.md").write_text("# plan\n", encoding="utf-8")
+    (plan_dir / "yaml/steps").mkdir(parents=True, exist_ok=True)
+    index = plan_dir / "yaml/decompose-index.yaml"
+    index.write_text(
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: steps/s01-step.yaml\n"
+        "  status: pending\n"
+        "  next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+    (plan_dir / "yaml/steps/s01-step.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
+        encoding="utf-8",
+    )
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "status": "halted",
+            "armed_epic": epic,
+            "armed_decompose": str(index.relative_to(tmp_path)),
+            "armed_step": "DECOMPOSE",
+            "last_finished_step": "DECOMPOSE",
+            "last_finished_epic": epic,
+            "role": "BACK",
+        },
+    )
+
+    result = arm_epic(tmp_path, epic, role="back")
+
+    assert result["ok"] is True, result
+    assert result["phase"] == "DECOMPOSE"
+    assert result["armed_step"] == "DECOMPOSE"
+    assert result["recovery_rearm"] is True
+    state = load_epic_state(tmp_path)
+    assert state["last_finished_step"] is None
+    assert state.get("gate_diagnostic") in (None, "")
+
+
+def test_arm_epic_implement_restarts_decompose_after_missing_verify_receipt(
+    tmp_path: Path,
+) -> None:
+    from epic.core import load_epic_state, save_epic_state
+    from loop.epic_transition import arm_epic
+
+    epic = "T-TEST-001-rearm-implement"
+    plan_dir = tmp_path / "memory-bank/back/plan" / epic
+    (plan_dir / "md").mkdir(parents=True, exist_ok=True)
+    (plan_dir / "md/plan.md").write_text("# plan\n", encoding="utf-8")
+    (plan_dir / "yaml/steps").mkdir(parents=True, exist_ok=True)
+    index = plan_dir / "yaml/decompose-index.yaml"
+    index.write_text(
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: steps/s01-step.yaml\n"
+        "  status: completed\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "- id: s02\n"
+        "  file: steps/s02-step.yaml\n"
+        "  status: pending\n"
+        "  next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+    for step in ("s01", "s02"):
+        (plan_dir / f"yaml/steps/{step}-step.yaml").write_text(
+            f"schema: epic-decompose/v1\nstep_id: {step}\nneeds_creative: 'no'\n",
+            encoding="utf-8",
+        )
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "status": "halted",
+            "armed_epic": epic,
+            "armed_decompose": str(index.relative_to(tmp_path)),
+            "armed_step": "DECOMPOSE",
+            "last_finished_step": "DECOMPOSE",
+            "last_finished_epic": epic,
+            "gate_diagnostic": "verify-decompose_pass_missing",
+            "role": "BACK",
+        },
+    )
+
+    result = arm_epic(tmp_path, epic, role="back")
+
+    assert result["ok"] is True, result
+    assert result["phase"] == "DECOMPOSE"
+    assert result["armed_step"] == "DECOMPOSE"
+    assert result["requested_phase"] == "IMPLEMENT"
+    state = load_epic_state(tmp_path)
+    assert state["last_finished_step"] is None
+
+
+def test_implement_runtime_diagnostic_does_not_block_next_shard(
+    tmp_path: Path,
+) -> None:
+    from epic.core import load_epic_state, save_epic_state
+    from loop.epic_transition import arm_phase
+
+    epic = "T-TEST-001-runtime-diagnostic"
+    decomp = _seed_decompose_index(tmp_path, epic)
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "status": "running",
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "s05",
+            "last_finished_step": "s05",
+            "last_finished_epic": epic,
+            "phase": "BACK IMPLEMENT",
+            "gate_diagnostic": "verify_runtime_unsupported_tool",
+            "role": "BACK",
+        },
+    )
+
+    result = arm_phase(
+        tmp_path,
+        epic,
+        "IMPLEMENT",
+        "back",
+        decompose_rel=f"{decomp}/index.yaml",
+    )
+
+    assert result["ok"] is True, result
+    assert result["armed_step"] == "s01"
+    assert load_epic_state(tmp_path)["armed_step"] == "s01"
+
+
 def test_rebuild_demotes_analyze_without_decompose_verify(tmp_path):
     from epic.core import rebuild_epic_projection, save_epic_state  # noqa: PLC0415
 

@@ -31,7 +31,7 @@ try:
     from loop.analyze_gate import analyze_required_before_implement  # noqa: E402
 except ImportError:
     from analyze_gate import analyze_required_before_implement  # noqa: E402
-from loop.roadmap_cadence import on_resync_done, reset_cadence_idle  # noqa: E402
+from loop.roadmap_cadence import ensure_cadence, on_resync_done, reset_cadence_idle  # noqa: E402
 
 QUEUE_VERSION = "roadmap-queue/v2"
 SUPPORTED_QUEUE_VERSIONS = {QUEUE_VERSION}
@@ -462,7 +462,7 @@ def mark_queue_epic_done(
                 "reason": f"epic {ref} latest QA verdict is '{v}' ({latest_qa.name}); cannot advance or mark queue epic done",
                 "id": ref,
                 "path": parsed["path"],
-            }
+        }
 
     row = queue.pop(hit_idx)
     if require_done and not is_epic_done(root, role_key, row["id"]):
@@ -473,6 +473,8 @@ def mark_queue_epic_done(
             "id": row["id"],
             "path": parsed["path"],
         }
+
+    ensure_cadence(cwd=root)
 
     done_row: dict[str, Any] = {
         "id": row["id"],
@@ -810,9 +812,7 @@ def roadmap_advance(
                 "mark_done": marked,
             }
 
-    from loop.roadmap_cadence import load_cadence
-
-    cad_state = load_cadence(cwd=cwd)
+    cad_state = ensure_cadence(cwd=cwd)
 
     # 1. Replan phase: arm BACK REPLAN for pending pair_ids; deny refactor epics
     if cad_state.phase == "replan":

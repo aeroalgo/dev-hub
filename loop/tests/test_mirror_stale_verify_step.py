@@ -84,3 +84,35 @@ def test_mirror_stale_verify_step_does_not_demote_after_promote(tmp_path: Path) 
     assert after.get("last_verify_verdict") == "PASS"
     assert after.get("gate_diagnostic") == "stale_verify_step"
     assert not (after.get("last_verify_evidence") or {}).get("demoted_from_pass")
+
+
+def test_mirror_valid_retry_pass_clears_runtime_diagnostic(tmp_path: Path) -> None:
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_epic": "T-HUB-RETRY",
+            "armed_step": "s05",
+            "armed_role": "BACK",
+            "gate_diagnostic": "verify_runtime_unsupported_tool",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    mirror_verify_verdict(
+        tmp_path,
+        "PASS",
+        evidence={
+            "epic_id": "T-HUB-RETRY",
+            "role": "BACK",
+            "step": "s05",
+            "verdict": "PASS",
+            "verifier_identity": "verify-implement",
+            "authority": "autonomous",
+        },
+        agent_id="verify-implement",
+    )
+
+    after = load_epic_state(tmp_path)
+    assert after.get("last_verify_verdict") == "PASS"
+    assert after.get("gate_diagnostic") in (None, "")

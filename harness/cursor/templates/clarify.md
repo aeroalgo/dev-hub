@@ -73,7 +73,7 @@
 
 ## Frontier rounds
 
-> ≤3 раунда · ≤10 Q total · только независимые Q в раунде · канон: `grilling` + shared-core §Phase 0b
+> ≤4 раунда · ≤20 Q total · только независимые Q в раунде · канон: `grilling` + shared-core §Phase 0b
 
 ### Round 1
 - Q… → A… · resolution: resolved | deferred
@@ -88,7 +88,7 @@
 
 ## Q→A log
 
-Нумерованные вопросы (≤10 за сессию). Для каждого: варианты (если MC), Recommended/Suggested, ответ пользователя, resolution.
+Нумерованные вопросы (≤20 за сессию). Для каждого: варианты (если MC), Recommended/Suggested, ответ пользователя, resolution.
 
 ### Q1
 - **Question:** …?
@@ -117,7 +117,7 @@ CRITICAL без resolve или строки здесь → PLAN FINISH запр�
 ## Completion Report
 
 - **Grill:** done · verdict=… · rounds=N · grill_Q=M · mode=frontier
-- **Asked:** N/10
+- **Asked:** N/20
 - **Resolved:** …
 - **Deferred:** …
 - **Coverage:** scope=… · data=… · UX-API=… · NFR=… · integrations=… · edge=… · constraints=… · terminology=…

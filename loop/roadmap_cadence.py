@@ -63,6 +63,19 @@ def load_cadence(
     return RoadmapCadenceState.model_validate(parsed)
 
 
+def ensure_cadence(
+    cwd: str | Path | None = None,
+    path: str | Path | None = None,
+) -> RoadmapCadenceState:
+    """Load cadence state or initialize the canonical idle state when absent."""
+    target = Path(path) if path is not None else canon_cadence_path(cwd)
+    if target.is_file():
+        return load_cadence(path=target)
+    state = RoadmapCadenceState()
+    save_cadence(state, path=target)
+    return state
+
+
 def save_cadence(
     state: RoadmapCadenceState | dict[str, Any],
     cwd: str | Path | None = None,

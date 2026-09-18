@@ -3314,6 +3314,44 @@ done:
     assert "T-FEAT-1" in ac_text
 
 
+def test_epic_done_stop_result_chains_without_cadence(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    queue_yaml = """
+version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-FEAT-1
+    epic_id: T-FEAT-1
+    plan: plan-T-FEAT-1.md
+    deps: []
+    kind: feature
+  - id: T-FEAT-2
+    epic_id: T-FEAT-2
+    plan: plan-T-FEAT-2.md
+    deps: [T-FEAT-1]
+    kind: feature
+done: []
+"""
+    _write(tmp_path, "memory-bank/back/roadmap/queue.yaml", queue_yaml.strip() + "\n")
+    _write(tmp_path, "memory-bank/back/plan/T-FEAT-2/md/plan.md", "# feat 2\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\nEPIC_DONE\n")
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps({"armed_epic": "T-FEAT-1", "status": "complete", "active": False}),
+    )
+
+    monkeypatch.setenv("EPIC_CHAIN_ROADMAP", "1")
+    monkeypatch.setattr(ctx, "epic_complete_allowed", lambda cwd: {"allowed": True, "phase": "EPIC_DONE"})
+
+    res = ctx._epic_done_stop_result(tmp_path)
+
+    assert res["ok"] is True
+    assert res["chained"] is True
+    assert res["roadmap_advance"]["epic"] == "T-FEAT-2"
+    assert (tmp_path / "memory-bank/back/roadmap/cadence.yaml").is_file()
+
+
 def test_epic_done_stop_result_chains_to_plan_refactor(tmp_path: Path, monkeypatch) -> None:
     """FR-005 / US-003: EPIC_DONE in refactor phase chains to BACK PLAN REFACTOR for refactor epic."""
     from loop.roadmap_cadence import save_cadence, RoadmapCadenceState

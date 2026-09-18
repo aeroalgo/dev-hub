@@ -2063,6 +2063,8 @@ def mirror_verify_verdict(
         if diag in {
             "verify_spawn_missing",
             "manual_authority_rejected",
+            "verify_runtime_error",
+            "verify_runtime_unsupported_tool",
             "verify_runtime_collaboration_wait_timeout",
             "stale_verify_step",
         }:
@@ -2951,15 +2953,15 @@ def _implement_files_on_disk(cwd: Path, files: list[Any]) -> tuple[bool, list[st
 
 
 def _arm_from_decompose_via_transition(cwd: Path, decompose: str) -> dict[str, Any]:
-    from loop.epic_transition import arm_phase
+    from loop.epic_transition import _arm_phase_with_decompose_recovery
 
     role = role_from_decompose_path(decompose) or "BACK"
     epic_id = epic_id_from_decompose_path(decompose) or ""
-    return arm_phase(
+    return _arm_phase_with_decompose_recovery(
         cwd,
         epic_id,
-        "IMPLEMENT",
         role.lower(),
+        "IMPLEMENT",
         decompose_rel=decompose,
     )
 
