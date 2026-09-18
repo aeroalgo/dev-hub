@@ -33,7 +33,7 @@ Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP
 
 **Обязателен** для: `IMPLEMENT` (если `files:` неполные / широкий поиск) · `TASK` · `BUGFIX` · `REFACTOR` · `QA` · **`SECURITY` execute** (`@aNN` / `S` one-shot); также `PM DISCOVER`, `TL SYNC DEV`; **brownfield** `BACK/FRONT/INTEG VAN`.
 
-**Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `REFLECT` · `ARCHIVE NOW` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают. IMPLEMENT + полный `files:` / `delta_paths_*` — query skip.
+**Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `ARCHIVE NOW` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают. IMPLEMENT + полный `files:` / `delta_paths_*` — query skip.
 
 **CLI (не в PATH):** всегда из **корня репо** (cwd = root; Shell `working_directory` = root). Канон только `<repo>/graphify-out/` — HARD RULE в @.cursor/rules/graphify.mdc.
 

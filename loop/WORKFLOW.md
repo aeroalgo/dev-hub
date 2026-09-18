@@ -2,12 +2,12 @@
 
 Каталог **`loop/`** — автоматизация ролей; **не** часть `memory-bank/`.
 
-> **Переходы (канон):** `memory-bank/activeContext.md` + decompose index; открытый `needs_creative: yes (CR-…)` или CREATIVE tip армирует CREATIVE, а closed/completed creative step возвращает тот же/следующий tip в IMPLEMENT; **pre-IMPLEMENT ANALYZE gate** (zero completed sNN + analyze missing/stale/critical) → ANALYZE до IMPLEMENT; IMPLEMENT→QA→REFLECT→complete через context-first gates.
+> **Переходы (канон):** `memory-bank/activeContext.md` + decompose index; открытый `needs_creative: yes (CR-…)` или CREATIVE tip армирует CREATIVE, а closed/completed creative step возвращает тот же/следующий tip в IMPLEMENT; **pre-IMPLEMENT ANALYZE gate** (zero completed sNN + analyze missing/stale/critical) → ANALYZE до IMPLEMENT; IMPLEMENT→AUDIT→QA→DONE через context-first gates.
 >
 > **Очередь эпиков (канон):** `memory-bank/back/roadmap/queue.yaml`. MULTI-EPIC PLAN дописывает этот файл; `* ROADMAP MERGE` / `context_loop.py roadmap-merge` — reconcile/done. При `EPIC_CHAIN_ROADMAP=1` после `EPIC_DONE` → `roadmap-advance`. Без флага — stop.
 >
 > **Тесты (канон):** [`.cursor/rules/shared/test-timeout.mdc`](../.cursor/rules/shared/test-timeout.mdc) — каждая test-команда запускается с внешним таймаутом 300 секунд.
-> **HARD:** эпик **не** DONE / `EPIC_DONE`, пока нет **QA pass** + **REFLECT**  
+> **HARD:** эпик **не** DONE / `EPIC_DONE`, пока нет **QA pass**
 > **Курсор сессии:** `memory-bank/activeContext.md` (проекция)  
 > **Runner:** [`loop/runner/`](runner/) (`python3 -m loop.runner`) · [`bin/loop`](../bin/loop) (shim: [`./loop.sh`](loop.sh))
 
@@ -16,7 +16,7 @@
 | Где стоим / next | `memory-bank/activeContext.md` + decompose `index.md` |
 | Очередь эпиков | `roadmap/queue.yaml` (yaml-only SoT) |
 | Переходы | `activeContext.md` + `context_loop.py`/`epic` gates |
-| Gate DONE | `epic.epic_complete_allowed` (QA + reflection) |
+| Gate DONE | `epic.epic_complete_allowed` (QA pass) |
 | Chain next epic | `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` |
 | Runner | `bin/loop` → `python3 -m loop.runner` (shim: `./loop/loop.sh`) |
 | **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_SUBAGENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_COLLAB_WAIT_TIMEOUT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
@@ -61,7 +61,7 @@
 - A checkpoint records the durable cursor and lifecycle. `state.json` mirrors checkpoint telemetry; it is not an agent-owned cursor. A checkpoint/index conflict, malformed selected source or missing manifest is fail-closed.
 - Recovery after timeout/process death reads `<hub>/runtime/<slug>/epic/last-session.json` (canon: `HUB_ROOT/runtime/<slug>/epic/` next to `state.json`) and accepts only an explicitly validated `resume_from_step`. `BLOCKED` and `NEED_HUMAN` preserve the cursor; resume must validate the checkpoint and index before scheduling. Do not auto-delete product runtime dirs.
 - The v2 scheduler executes one dependency-ready node at a time in stable order. `GAP_FANOUT` is a manual-only operational command in this checkout; parallel fanout and distributed locks are not implied.
-- FINISH order is **seed-implement → flush checkpoints during work → suite → evidence (`status` stays `in_progress`) → validate-step → Handoff → verify PASS → `finalize-step` (atomic implement+index `completed`, `ok: true`)**. `EPIC_DONE` requires QA PASS and REFLECT. T-034 policy is a boundary and never an implicit permission to mutate agent state. `mark-index-status` updates index state on step completion.
+- FINISH order is **seed-implement → flush checkpoints during work → suite → evidence (`status` stays `in_progress`) → validate-step → Handoff → verify PASS → `finalize-step` (atomic implement+index `completed`, `ok: true`)**. `EPIC_DONE` requires QA PASS. T-034 policy is a boundary and never an implicit permission to mutate agent state. `mark-index-status` updates index state on step completion.
 - `prepare` on `mark_index_missing`: auto-rollback implement `completed`→`in_progress` (never auto-mark index), then continue; remaining integrity conflicts stay fail-closed/`NEED_HUMAN`.
 
 ## Rollout / rollback checklist
@@ -84,15 +84,15 @@ timeout 300s bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_int
 
 Тест закрепляет `validate_finish → check_after → prepare_session`: следующий узел остаётся закрытым до completion artifact предшественника, а финальный artifact требует `status: completed` и `integration_gate: pass`. Таймаут, retry и degraded caps берутся из runtime bounds выше; при ошибке сохраните evidence и выполните rollback boundary, не запускайте новый scheduling.
 
-Стоп автоцикла: `EPIC_DONE` **только** после QA pass + reflection; иначе runner сбрасывает на QA/REFLECT.  
+Стоп автоцикла: `EPIC_DONE` **только** после QA pass; иначе runner сбрасывает на QA или BUGFIX.
 При `EPIC_CHAIN_ROADMAP=1`: после валидного `EPIC_DONE` (из `check-after` **или** `prepare`, если projection.phase уже DONE) → `roadmap-advance` (следующий из Queue YAML) → outer loop continue; очередь исчерпана → `ROADMAP_DONE`.  
 `BLOCKED:` | `NEED_HUMAN:` — halt **только** для внешнего/человеческого стопа.
 Incomplete AC текущего эпика (pending cp, `gaps.blocked`, parity FAIL) → не `BLOCKED:`;
 hooks demote ложный `@verify` PASS → FAIL; на **IMPLEMENT** prepare injects `## FIX INCOMPLETE` и loop чинит в том же шаге.
 **QA/AUDIT** — review-only parent (`code_changed: no`): QA suite/reviewer fail → qa.yaml `fail|blocked` + `fix_plan[]` (`BACK BUGFIX …`) + `mb-finish`; AUDIT actionable finding → bounded `gate-repair` → повторный AUDIT. FORBIDDEN чинить prod/tests непосредственно в QA/AUDIT parent-сессии.
-`GAPS:` / `**GAPS:**` — **не** stop (часто deferred sNN/eNN notes; путают с INTEG GAP). ARCHIVE — вручную вне loop (не в DONE/REFLECT loop-сессии; finish = EPIC_DONE → chain).
+`GAPS:` / `**GAPS:**` — **не** stop (часто deferred sNN/eNN notes; путают с INTEG GAP). ARCHIVE — вручную вне loop (не в DONE loop-сессии; finish = EPIC_DONE → chain).
 
-**Lifecycle reducer (post-implement):** `bugfix_done` / `qa_fail` **после** `reflection_done` снова открывают QA **только пока нет более нового `qa_pass`**. Следующий `qa_pass` закрывает окно reopen → `REFLECT` (если reflection stale vs QA) или `DONE`. Иначе исторический `bugfix_done` после `reflection_done` навсегда пинит `phase=QA` при каждом rewrite `qa-*.yaml` (симптом: endless BACK QA при Handoff→REFLECT). Evidence-rehash bugfix **между** `qa_pass` и reflection **не** блокирует `DONE`. Default `_load_dag()` **не** автовыбирает `canary-*` / `*-demo` (только явный `--pipeline`).
+**Lifecycle reducer (post-implement):** `bugfix_done` / `qa_fail` снова открывают QA **только пока нет более нового `qa_pass`**. Следующий `qa_pass` закрывает окно reopen → `DONE`. Default `_load_dag()` **не** автовыбирает `canary-*` / `*-demo` (только явный `--pipeline`).
 
 ## Managed-agent gate bypass и policy
 
@@ -142,7 +142,6 @@ of importing a compatibility entrypoint.
 | AUDIT | `PROJECT_LOOP_AUDIT_MODEL` |
 | QA | `PROJECT_LOOP_QA_MODEL` |
 | BUGFIX | `PROJECT_LOOP_BUGFIX_MODEL` |
-| REFLECT | `PROJECT_LOOP_REFLECT_MODEL` |
 
 Если передан явный CLI `--model` (`make loop ARGS="--model gpt"`), он имеет приоритет над phase override. Если CLI-модель не задана, используется `PROJECT_LOOP_<PHASE>_MODEL` из `.claude/project.env` (или `.local`). Если нет ни CLI, ни phase env — prepare **HALT** `model_required` (тихий runtime/settings/stale default запрещён). Пример: `PROJECT_LOOP_DECOMPOSE_MODEL=agy/claude-sonnet-4-6` при `make loop ARGS="--model gpt"` → DECOMPOSE на gpt; без `--model` — на sonnet.
 

@@ -408,6 +408,30 @@ def test_reflect_not_in_loop_phase_model_env() -> None:
     assert "REFLECT" not in ctx.LOOP_PHASE_MODEL_ENV
 
 
+def test_reflect_has_no_live_entrypoints_or_phase_routes() -> None:
+    live_paths = [
+        ROOT / "harness/claude/commands/back-reflect.md",
+        ROOT / "harness/claude/commands/front-reflect.md",
+        ROOT / "harness/cursor/rules/back_developer/workflow-reflect.mdc",
+        ROOT / "harness/cursor/rules/front_developer/workflow-reflect.mdc",
+        ROOT / "harness/cursor/rules/integration_developer/workflow-reflect.mdc",
+        ROOT / "harness/cursor/rules/back_developer/isolation_rules/_lean/reflect.mdc",
+        ROOT / "harness/cursor/rules/front_developer/isolation_rules/_lean/reflect.mdc",
+        ROOT / "harness/cursor/rules/integration_developer/isolation_rules/_lean/reflect.mdc",
+    ]
+    assert all(not path.exists() for path in live_paths)
+
+    source_paths = [
+        ROOT / "loop/context_loop.py",
+        ROOT / "harness/hooks/epic/core.py",
+        ROOT / "harness/hooks/epic_index.py",
+        ROOT / "harness/hooks/epic_portfolio.py",
+        ROOT / "harness/hooks/session_resilience.py",
+    ]
+    for path in source_paths:
+        assert "REFLECT" not in path.read_text(encoding="utf-8"), path
+
+
 def test_agent_policy_no_secrets(tmp_path: Path, monkeypatch) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
@@ -697,6 +721,13 @@ def test_delta_paths_exist_skips_explorer_in_prompt(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INTEG\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: x\n"
+        "step_id: e16\n"
+        "---\n\n"
         "## load_now\n"
         "1. [e16-foo.yaml](integration/plan/decompose-x/e16-foo.yaml)\n"
         "2. [index.md](integration/implement/implement-x/index.md)\n\n"
@@ -731,6 +762,13 @@ def test_explorer_off_prompt_does_not_require_agent(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INTEG\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: x\n"
+        "step_id: e16\n"
+        "---\n\n"
         "## load_now\n"
         "1. [e16-foo.yaml](integration/plan/decompose-x/e16-foo.yaml)\n\n"
         "## Handoff INTEG IMPLEMENT\n"
@@ -847,42 +885,6 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
     assert "1× `@explorer`" not in prompt
 
 
-def test_prepare_degraded_when_load_now_empty(tmp_path: Path) -> None:
-    ctx = _load_ctx()
-    _write(
-        tmp_path,
-        "memory-bank/integration/plan/x/md/decompose-index.md",
-        "| Step | Status |\n| **e16** | pending |\n",
-    )
-    _write(
-        tmp_path,
-        "memory-bank/activeContext.md",
-        "## load_now\n\n## Handoff INTEG\n- **Следующий:** ???\n",
-    )
-    out = ctx.prepare_session(tmp_path, model="gpt")
-    assert out["ok"] is True
-    assert out.get("degraded") is True
-    prompt = Path(out["prompt_file"]).read_text(encoding="utf-8")
-    assert "Context degraded" in prompt
-    assert "decompose-index.md" in prompt
-
-
-def test_prepare_degraded_when_shape_broken(tmp_path: Path) -> None:
-    ctx = _load_ctx()
-    _write(
-        tmp_path,
-        "memory-bank/activeContext.md",
-        "## load_now\n1. missing.yaml\n\n"
-        "## Handoff one\n- a\n\n## Handoff two\n- b\n",
-    )
-    out = ctx.prepare_session(tmp_path, model="test-model")
-    assert out["ok"] is True
-    assert out.get("degraded") is True
-    assert out.get("shape_errors")
-    prompt = Path(out["prompt_file"]).read_text(encoding="utf-8")
-    assert "Context degraded" in prompt
-
-
 def test_prepare_clears_blocked_and_continues(tmp_path: Path, monkeypatch) -> None:
     # BLOCKED: left by a previous session must be stripped so the loop retries
     # rather than halting permanently with "LOOP COMPLETE (stop marker)".
@@ -894,6 +896,13 @@ def test_prepare_clears_blocked_and_continues(tmp_path: Path, monkeypatch) -> No
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: demo\n"
+        "step_id: s03\n"
+        "---\n\n"
         "## load_now\n"
         "1. memory-bank/back/plan/"
         "decompose-T-036-session-checkpoint-resume/"
@@ -915,7 +924,7 @@ def test_prepare_recovers_projection_conflict_by_clearing_checkpoint(
     monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
     monkeypatch.delenv("HUB_ROOT", raising=False)
-    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
         tmp_path,
         decompose,
@@ -930,7 +939,7 @@ def test_prepare_recovers_projection_conflict_by_clearing_checkpoint(
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/decompose-demo/s01-one.yaml",
+        "memory-bank/back/plan/demo/yaml/steps/s01-one.yaml",
         "schema: epic-decompose/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
         "title: one\nnext_phase: BACK IMPLEMENT\nneeds_creative: \"no\"\n"
         "goal: x\ncontext: {}\ndelta: []\ndeletes: []\nout_of_scope: []\n"
@@ -939,10 +948,22 @@ def test_prepare_recovers_projection_conflict_by_clearing_checkpoint(
     )
     _write(
         tmp_path,
+        "memory-bank/back/plan/demo/md/plan.md",
+        "# Demo plan\n",
+    )
+    _write(
+        tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: demo\n"
+        "step_id: s01\n"
+        "---\n\n"
         "## load_now\n"
-        "1. [s01-one.yaml](back/plan/decompose-demo/s01-one.yaml)\n"
-        "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "1. [s01-one.yaml](back/plan/demo/yaml/steps/s01-one.yaml)\n"
+        "2. [decompose-index.yaml](back/plan/demo/yaml/decompose-index.yaml)\n\n"
         "## Handoff BACK IMPLEMENT — s01\n"
         "- **Эпик:** demo\n"
         "- **Текущий шаг:** s01\n",
@@ -1037,6 +1058,13 @@ def test_prepare_clears_stale_post_implement_checkpoint(
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        f"epic_id: {epic}\n"
+        "step_id: QA\n"
+        "---\n\n"
         "## load_now\n"
         f"1. [qa-20260829-board-arm-loop.yaml](back/qa/{epic}/qa-20260829-board-arm-loop.yaml)\n"
         f"2. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
@@ -1405,6 +1433,13 @@ def test_prepare_syncs_cursor_from_index_yaml_sot(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: demo\n"
+        "step_id: s01\n"
+        "---\n\n"
         "## load_now\n"
         "1. [s01-one.yaml](back/plan/decompose-demo/s01-one.yaml)\n"
         "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
@@ -1764,7 +1799,7 @@ def test_check_after_continues_when_handoff_advanced(tmp_path: Path) -> None:
     assert after.get("complete") is False
 
 
-def test_check_after_shape_broken_does_not_halt(tmp_path: Path) -> None:
+def test_check_after_shape_broken_halts_before_retry(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
     prep = ctx.prepare_session(tmp_path, model="test-model")
@@ -1774,8 +1809,9 @@ def test_check_after_shape_broken_does_not_halt(tmp_path: Path) -> None:
         "## load_now\n1. a\n\n## Handoff A\n- x\n\n## Handoff B\n- y\n",
     )
     after = ctx.check_after(tmp_path, fingerprint_before=prep["fingerprint"])
-    assert after["ok"] is True or after.get("degraded") is True
-    assert after.get("halt") is not True or after.get("degraded") is True
+    assert after["ok"] is False
+    assert after.get("halt") is True
+    assert "CONTEXT_INCOMPLETE" in after.get("reason", "")
 
 
 def test_check_after_epic_done(tmp_path: Path) -> None:
@@ -1801,6 +1837,13 @@ def test_check_after_epic_done(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INTEG\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: demo\n"
+        "step_id: e01\n"
+        "---\n\n"
         "## load_now\n"
         "1. [decompose-index.yaml](integration/plan/x/yaml/decompose-index.yaml)\n"
         "2. [qa-20260802-x.yaml](integration/qa/x/qa-20260802-x.yaml)\n\n"
@@ -2269,6 +2312,13 @@ def test_degraded_prompt_epic_finished_only_after_qa_pass(
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INTEG\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: demo\n"
+        "step_id: e01\n"
+        "---\n\n"
         "## load_now\n"
         "1. [decompose-index.yaml](integration/plan/demo/yaml/decompose-index.yaml)\n\n"
         "## Handoff INTEG\n"
@@ -3234,11 +3284,11 @@ def test_prepare_does_not_promote_analyze_from_artifact_without_receipt(
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
     monkeypatch.delenv("HUB_ROOT", raising=False)
     epic = "T-050-partner-rules-alembic-port"
-    _write(tmp_path, f"memory-bank/back/plan/plan-{epic}.md", "# plan\n")
-    decomp = f"memory-bank/back/plan/decompose-{epic}"
+    decomp = f"memory-bank/back/plan/{epic}/yaml"
+    _write(tmp_path, f"memory-bank/back/plan/{epic}/md/plan.md", "# plan\n")
     _write(
         tmp_path,
-        f"{decomp}/index.yaml",
+        f"{decomp}/decompose-index.yaml",
         "schema: epic-decompose-index/v1\n"
         f"plan_id: {epic}\n"
         "steps:\n"
@@ -3246,12 +3296,12 @@ def test_prepare_does_not_promote_analyze_from_artifact_without_receipt(
     )
     _write(
         tmp_path,
-        f"{decomp}/index.md",
+        f"{decomp}/decompose-index.md",
         "| step_id | status |\n| s01 | pending |\n",
     )
     _write(
         tmp_path,
-        f"{decomp}/s01-env.yaml",
+        f"{decomp}/steps/s01-env.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
     )
     _write(
@@ -3265,7 +3315,7 @@ def test_prepare_does_not_promote_analyze_from_artifact_without_receipt(
         tmp_path,
         {
             "armed_epic": epic,
-            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_decompose": f"{decomp}/decompose-index.yaml",
             "armed_step": "ANALYZE",
             "role": "BACK",
             "active": True,
@@ -3276,7 +3326,11 @@ def test_prepare_does_not_promote_analyze_from_artifact_without_receipt(
         tmp_path,
         "memory-bank/activeContext.md",
         "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\n"
-        f"epic_id: {epic}\nstep_id: s01\n---\n\n## load_now\n",
+        f"epic_id: {epic}\nstep_id: s01\n---\n\n"
+        f"## load_now\n1. [s01-env.yaml]({decomp}/steps/s01-env.yaml)\n"
+        f"2. [decompose-index.yaml]({decomp}/decompose-index.yaml)\n\n"
+        f"## Handoff BACK IMPLEMENT — {epic}\n"
+        "- **Следующий:** `BACK IMPLEMENT s01`.\n",
     )
     prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True, prep

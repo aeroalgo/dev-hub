@@ -57,6 +57,11 @@ def test_load_phase_registry_no_args_fails() -> None:
         load_phase_registry()
 
 
+def test_get_phase_config_does_not_fallback_to_hub_root(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="pack_path_missing|Phase registry yaml file not found"):
+        get_phase_config("IMPLEMENT", pack_id="dev-hub-software", cwd=tmp_path)
+
+
 def test_no_bare_load_phase_registry() -> None:
     """AC−1 / s06: load_phase_registry() without args -> TypeError."""
     with pytest.raises(TypeError):

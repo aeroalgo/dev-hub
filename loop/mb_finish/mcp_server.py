@@ -8,23 +8,12 @@ from loop.mb_finish.impl import (
     finish_bugfix,
     finish_creative,
     finish_decompose,
-    finish_handoff,
     finish_plan,
     finish_qa,
 )
-from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest, MbFinishResult
+from loop.mb_finish.schemas import MbFinishRequest
 
 TOOLS = [
-    {
-        "name": "finish_handoff",
-        "description": "Finish handoff step",
-        "parameters": {
-            "meta": LoopHandoffMeta.model_json_schema(),
-            "load_now": {"type": "array", "items": LoadNowItem.model_json_schema()},
-            "body": HandoffBody.model_json_schema(),
-        },
-        "handler": lambda meta, load_now, body, cwd=None: finish_handoff(meta, load_now, body, cwd=cwd),
-    },
     {
         "name": "finish_implement",
         "description": "Finish implement step",

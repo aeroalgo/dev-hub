@@ -178,6 +178,23 @@ def test_resolve_session_identity_step_unknown_while_armed():
     assert drift.code == "step_unknown_while_armed"
 
 
+def test_resolve_session_identity_rejects_checkpoint_mismatch():
+    from loop.prompt_builder import resolve_session_identity, Drift
+
+    state = {"phase": "QA", "role": "BACK", "epic_id": "T-HUB-071", "armed_step": "QA"}
+    ac_meta = {"mode": "QA", "role": "BACK", "epic_id": "T-HUB-071"}
+    checkpoint = {
+        "identity": {"epic": "T-HUB-071", "role": "BACK", "step": "BUGFIX"},
+        "phase": "BUGFIX",
+        "step_id": "BUGFIX",
+    }
+
+    drift = resolve_session_identity(state, ac_meta, checkpoint=checkpoint)
+
+    assert isinstance(drift, Drift)
+    assert drift.code == "checkpoint_mismatch"
+
+
 def test_unarmed_ide_step_is_dash(tmp_path):
     """FR-002: When nothing armed, step is '-' and not ambiguous 'unknown'."""
     scope = build_prompt_scope(
@@ -186,5 +203,4 @@ def test_unarmed_ide_step_is_dash(tmp_path):
     )
     assert scope.step == "-"
     assert scope.step != "unknown"
-
 

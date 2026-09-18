@@ -20,7 +20,7 @@ ac_minus: []
 section_011: []
 
 checks:
-  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
+  - "full suite green — role-scoped: BACK/hub `bin/pytest -q --tb=line`; FRONT Vitest+Playwright (`npm --prefix frontend …`); managed: capability_checks: [test.full] своей surface"
   - "integration rule (§0.11)"
   - "no phantom refs"
   - "reviewer gate: VERDICT PASS"
@@ -35,4 +35,4 @@ limitations:
   - "optional QA caveats"
 
 suite:
-  - "bin/pytest -q --tb=line  # Hub (dev-hub self-test); managed projects: capability_checks: [test.full]"
+  - "BACK/hub: bin/pytest -q --tb=line  # FRONT: timeout -k 10s 300s npm --prefix frontend exec vitest run && … playwright test; managed: capability_checks: [test.full]"

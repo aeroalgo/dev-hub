@@ -60,7 +60,7 @@ def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any
         if not cand.is_absolute():
             cand = cwd / cand
         parent = cand.parent if cand.is_file() else cand
-        for name in ("index.yaml", "index.yml", "index.md", "decompose-index.yaml", "decompose-index.md"):
+        for name in ("index.yaml", "index.yml", "decompose-index.yaml", "decompose-index.yml"):
             alt = parent / name
             if alt.is_file():
                 alt_rel = alt.relative_to(cwd).as_posix()
@@ -93,9 +93,7 @@ def _resolve_work_shard_rel(cwd: Path, decompose_rel: str, step_id: str) -> str 
     dec_dir = idx_path.parent if idx_path.is_file() else idx_path
     if not dec_dir.is_absolute():
         dec_dir = cwd / dec_dir
-    if idx_path.name == "decompose-index.md" and idx_path.parent.name == "md":
-        dec_dir = idx_path.parent.parent / "yaml" / "steps"
-    elif idx_path.name in {"decompose-index.yaml", "decompose-index.yml"} and idx_path.parent.name == "yaml":
+    if idx_path.name in {"decompose-index.yaml", "decompose-index.yml"} and idx_path.parent.name == "yaml":
         dec_dir = idx_path.parent / "steps"
     for step in loaded.get("steps") or []:
         if str(step.get("id") or "").strip().lower() != sid:

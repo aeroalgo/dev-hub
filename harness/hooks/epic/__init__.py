@@ -53,7 +53,6 @@ from .core import (
     reduce_epic_lifecycle,
     repair_fingerprint_stall,
     repair_finish_desync,
-    repair_index_mirror,
     repair_post_implement_handoff_drift,
     repair_premature_completed_after_failed_finish,
     resolve_armed_decompose_for_integrity,
@@ -78,7 +77,7 @@ from .core import (
 )
 from .convergence import ConvergenceFinding, ConvergenceReport, run_convergence_checks
 from epic_paths import active_context_path, is_reserved_role_epic_id, role_from_decompose_path
-from epic_index import index_yaml_path, load_index_yaml, parse_steps_from_md
+from epic_index import index_yaml_path, load_index_yaml
 from _lib import gate_identity
 
 __all__ = [
@@ -131,7 +130,6 @@ __all__ = [
     'mirror_gate_verdict',
     'mirror_verify_verdict',
     'parse_qa_verdict',
-    'parse_steps_from_md',
     'post_implement_phase',
     'progress_snapshot',
     'project_handoff_from_reducer',
@@ -142,7 +140,6 @@ __all__ = [
     'reduce_epic_lifecycle',
     'repair_fingerprint_stall',
     'repair_finish_desync',
-    'repair_index_mirror',
     'repair_post_implement_handoff_drift',
     'repair_premature_completed_after_failed_finish',
     'resolve_armed_decompose_for_integrity',

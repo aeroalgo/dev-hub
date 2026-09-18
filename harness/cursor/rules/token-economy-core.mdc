@@ -65,7 +65,7 @@ This section **supersedes** every conflicting brevity rule. Workflow PLAN / DECO
 
 ## 0.2 Telegraph format (memory-bank) — NOT for plan/gap
 
-Applies to implement/task/qa/reflect shards, etc.
+Applies to implement/task/qa shards and other live workflow steps.
 
 - Bullets > paragraphs. One line = one fact.
 - Abbrev: req impl cfg auth val err msg fn comp dep AC PRD ERD

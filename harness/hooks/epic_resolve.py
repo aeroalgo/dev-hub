@@ -40,6 +40,7 @@ from epic.traceability import (
 )
 from epic.core import (  # noqa: E402
     _decompose_index_path,
+    arm_epic,
     finalize_step,
     halt_epic,
     load_epic_state,
@@ -241,15 +242,6 @@ def main() -> int:
     p_mb_impl.add_argument("--done", default="", help="done summary string")
     p_mb_impl.add_argument("--phase", default="BACK IMPLEMENT", help="phase string")
 
-    p_mb_handoff = mb_sub.add_parser("handoff", help="internal finish handoff (requires recovery-token)")
-    p_mb_handoff.add_argument("--role", default="BACK", help="role slug")
-    p_mb_handoff.add_argument("--mode", required=True, help="handoff mode (e.g. IMPLEMENT, QA)")
-    p_mb_handoff.add_argument("--epic-id", default=None, help="epic id")
-    p_mb_handoff.add_argument("--step", default=None, help="step id")
-    p_mb_handoff.add_argument("--next-hint", default=None, help="next hint")
-    p_mb_handoff.add_argument("--load-now-path", default=None, help="load now item path")
-    p_mb_handoff.add_argument("--load-now-desc", default=None, help="load now item description")
-    p_mb_handoff.add_argument("--recovery-token", default=None, help="journal recovery token")
 
     p_mb_qa = mb_sub.add_parser("qa", help="finish qa phase atomically")
     p_mb_qa.add_argument("--step", default="", help="step_id (optional)")
@@ -526,31 +518,6 @@ def main() -> int:
                 cwd=cwd,
             )
             res = finish_implement_step(req)
-            out = res.model_dump()
-            from loop.paths.pack_layout import pack_diagnostics
-            out.update(pack_diagnostics(cwd))
-            print(json.dumps(out, ensure_ascii=False, indent=2))
-            return 0 if res.ok else 2
-        if args.mb_cmd == "handoff":
-            from loop.mb_finish.impl import finish_handoff
-            from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta
-            meta = LoopHandoffMeta(
-                role=args.role,
-                mode=args.mode,
-                epic_id=args.epic_id,
-                step_id=args.step,
-            )
-            load_now = []
-            if args.load_now_path and args.load_now_desc:
-                load_now.append(LoadNowItem(path=args.load_now_path, description=args.load_now_desc))
-            body = HandoffBody(
-                mode=args.mode,
-                next_hint=args.next_hint,
-                epic_id=args.epic_id,
-                step_id=args.step,
-            )
-            recovery_tok = getattr(args, "recovery_token", None)
-            res = finish_handoff(meta, load_now, body, cwd=cwd, recovery_token=recovery_tok)
             out = res.model_dump()
             from loop.paths.pack_layout import pack_diagnostics
             out.update(pack_diagnostics(cwd))

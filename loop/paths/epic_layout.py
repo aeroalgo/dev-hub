@@ -156,12 +156,12 @@ def discover_v2_epics(cwd: Optional[Union[str, Path]] = None) -> list[tuple[str,
         for child in sorted(plan_dir.iterdir()):
             if not child.is_dir() or child.name.startswith("."):
                 continue
-            # A v2 epic plan dir must have md/ or yaml/ or decompose index / plan files
-            if (child / "yaml").is_dir() or (child / "md").is_dir():
+            # A v2 epic plan dir must have a canonical YAML tree or a plan.md.
+            if (child / "yaml" / "decompose-index.yaml").is_file() or (child / "yaml").is_dir() and not (child / "md" / "decompose-index.md").is_file():
                 epics_found.add((role, child.name))
             elif (child / "plan.md").is_file():
                 epics_found.add((role, child.name))
-            elif (child / "decompose-index.yaml").is_file() or (child / "decompose-index.md").is_file():
+            elif (child / "md" / "plan.md").is_file() or (child / "decompose-index.yaml").is_file():
                 epics_found.add((role, child.name))
 
     return sorted(list(epics_found))

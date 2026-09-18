@@ -85,15 +85,6 @@ def resolve_bundle_paths(
     if epic_id and role and mode_upper in {"IMPLEMENT", "QA", "BUGFIX"}:
         kind = mode_upper.lower()
         epic_ids = [epic_id]
-        if kind == "implement":
-            try:
-                from epic_paths import epic_id_from_plan_path, find_plan_md_path
-                plan_path = find_plan_md_path(cwd_path, role, epic_id)
-                full_id = epic_id_from_plan_path(plan_path)
-                if full_id and full_id not in epic_ids:
-                    epic_ids.append(full_id)
-            except Exception:
-                pass
         directories = [mb_root / role / kind / item for item in epic_ids]
         if kind == "implement":
             directories.extend(

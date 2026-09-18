@@ -6,16 +6,20 @@ import hashlib
 import json
 import os
 import shutil
-import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-HOOKS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-if str(HOOKS_DIR) not in sys.path:
-    sys.path.insert(0, str(HOOKS_DIR))
+from harness.hooks.epic_paths import epic_dir as get_epic_dir
+from loop.incidents.trace import read_session_trace_tail
 
-from epic_paths import epic_dir as get_epic_dir  # noqa: E402
-from loop.incidents.trace import read_session_trace_tail  # noqa: E402
+
+@dataclass(frozen=True, slots=True)
+class ArtifactBundleResult:
+    """Typed result of episode artifact collection."""
+
+    refs: dict[str, str] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
 
 
 def compute_file_sha256(path: Path | str) -> str:
@@ -48,16 +52,16 @@ def copy_artifacts(
     check_after_result: dict[str, Any] | None = None,
     *,
     trace_lines: int = 50,
-) -> dict[str, str]:
+) -> ArtifactBundleResult:
     """Copy session artifacts into episode directory.
 
-    Returns dict mapping artifact name -> relative path inside episode_dir.
-    Copy errors are handled gracefully without raising.
+    Return artifact references plus explicit errors for a partial bundle.
     """
     ep_dir = Path(episode_dir)
     ep_dir.mkdir(parents=True, exist_ok=True)
     base_epic_dir = get_epic_dir(cwd)
     artifact_refs: dict[str, str] = {}
+    errors: list[str] = []
 
     # 1. check_after.json
     if check_after_result is not None:
@@ -75,20 +79,19 @@ def copy_artifacts(
                 encoding="utf-8",
             )
             artifact_refs["check_after"] = "check_after.json"
-        except Exception:
-            pass
+        except (OSError, TypeError, ValueError) as exc:
+            errors.append(f"check_after_write_failed:{type(exc).__name__}:{exc}")
 
-    # 2. checkpoint_snapshot.json
+    # 2. checkpoint.json is the only live checkpoint source. The destination is
+    # intentionally named checkpoint_snapshot.json because it is an episode copy.
     try:
         cp_src = base_epic_dir / "checkpoint.json"
-        if not cp_src.is_file():
-            cp_src = base_epic_dir / "checkpoint_snapshot.json"
         if cp_src.is_file():
             cp_dst = ep_dir / "checkpoint_snapshot.json"
             shutil.copy2(cp_src, cp_dst)
             artifact_refs["checkpoint_snapshot"] = "checkpoint_snapshot.json"
-    except Exception:
-        pass
+    except OSError as exc:
+        errors.append(f"checkpoint_copy_failed:{type(exc).__name__}:{exc}")
 
     # 3. gate_verdict.json
     try:
@@ -107,8 +110,8 @@ def copy_artifacts(
             gv_dst = ep_dir / "gate_verdict.json"
             shutil.copy2(gv_src, gv_dst)
             artifact_refs["gate_verdict"] = "gate_verdict.json"
-    except Exception:
-        pass
+    except OSError as exc:
+        errors.append(f"gate_verdict_copy_failed:{type(exc).__name__}:{exc}")
 
     # 4. trace_tail.jsonl
     try:
@@ -118,7 +121,7 @@ def copy_artifacts(
             lines = [json.dumps(entry, ensure_ascii=False) for entry in tail_entries]
             tt_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
             artifact_refs["trace_tail"] = "trace_tail.jsonl"
-    except Exception:
-        pass
+    except (OSError, TypeError, ValueError) as exc:
+        errors.append(f"trace_tail_write_failed:{type(exc).__name__}:{exc}")
 
-    return artifact_refs
+    return ArtifactBundleResult(refs=artifact_refs, errors=errors)

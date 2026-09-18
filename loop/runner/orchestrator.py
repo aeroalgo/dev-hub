@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+from harness.hooks.epic_paths import epic_dir
 from loop.halt_logic import decide_after_action
 from loop.runner import (
     ContextPort,
@@ -63,10 +64,6 @@ class IncidentTracker:
         detail: Mapping[str, Any] | None = None,
     ) -> None:
         """Append a trace record for auditability."""
-        try:
-            from epic_paths import epic_dir
-        except ImportError:
-            from harness.hooks.epic_paths import epic_dir
         from loop.incidents.trace import append_trace
 
         edir = epic_dir(project_root)
@@ -83,10 +80,6 @@ class IncidentTracker:
         """Attempt Tier-1 automated self-healing if eligible open incidents exist."""
         if not self.tier1_enabled or os.environ.get("EPIC_INCIDENT_TIER1") == "0":
             return False
-        try:
-            from epic_paths import epic_dir
-        except ImportError:
-            from harness.hooks.epic_paths import epic_dir
         from loop.incidents.store import list_open_incidents, resolve_incident
         from loop.incidents.tier1_runner import run_tier1_session, should_attempt_tier1
 
@@ -491,7 +484,7 @@ class LoopRunner:
                             )
                         elif reason == "command not found":
                             self.stderr("==> HALT: runtime binary missing (fail-closed)\n")
-                            self.stderr("==> fix: install runtime CLI or set CODEX_BIN / CLAUDE_PATH / DSH_PATH\n")
+                            self.stderr("==> fix: install runtime CLI or set CODEX_BIN / CLAUDE_PATH\n")
                         else:
                             self.stderr("==> HALT: permanent session failure (fail-closed)\n")
                         return RunOutcome(action=RunAction.HALT, exit_code=1, reason=reason)
@@ -554,14 +547,14 @@ class LoopRunner:
 
                 if after_action == "complete":
                     # Check session boundary
-                    checkpoint_file = self.config.project_root / "runtime/dev-hub/epic/checkpoint.json"
+                    checkpoint_file = self.config.state_dir / "checkpoint.json"
                     if checkpoint_file.is_file():
                         try:
                             chk = json.loads(checkpoint_file.read_text())
                             if chk.get("session_boundary") in (True, "True", "true"):
                                 self.stdout("==> SESSION_BOUNDARY: step finalized with session_boundary gate\n")
-                        except Exception:
-                            pass
+                        except (OSError, json.JSONDecodeError) as exc:
+                            self.stderr(f"==> WARN: checkpoint read failed: {exc}\n")
 
                     if _roadmap_chain_enabled(self.config.project_root):
                         advance_fn = getattr(self.context_port, "roadmap_advance", None)

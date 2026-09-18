@@ -5,7 +5,7 @@
 ```markdown
 # Delivery log — YYYY-MM
 
-Сквозная хронология эпиков. **Пишет `finalize-step` на IMPLEMENT sNN.** Не в `load_now`. Руками — PLAN/DECOMPOSE/QA/REFLECT/ARCHIVE.
+Сквозная хронология эпиков. **Пишет `finalize-step` на IMPLEMENT sNN.** Не в `load_now`. Руками — PLAN/DECOMPOSE/QA/ARCHIVE.
 
 ## Timeline
 

@@ -91,3 +91,11 @@ def test_layout_v2_resolves_exact_step_and_epic(tmp_path):
         p.write_text(f"epic_id: {epic}\nstep_id: {step}\n")
     result = resolve_bundle_paths(tmp_path, "IMPLEMENT", "s01", ["memory-bank/back/plan/T-NEW/yaml/decompose-index.yaml"])
     assert result.auto_added == ["memory-bank/back/implement/implement-T-NEW/s01-impl.yaml"]
+
+
+def test_resolver_does_not_guess_epic_from_plan_mirror() -> None:
+    """Bundle resolution uses the typed artifact identity, not a plan.md fallback."""
+    source = Path("loop/mb_load/resolver.py").read_text(encoding="utf-8")
+    assert "from epic_paths import" not in source
+    assert "find_plan_md_path" not in source
+    assert "except Exception" not in source

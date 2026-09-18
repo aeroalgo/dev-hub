@@ -168,12 +168,13 @@ def test_prepare_primary_mb_load_fail_closed_on_invalid_shape(tmp_path: Path):
     from loop.context_loop import prepare_session
     mb_dir = tmp_path / "memory-bank"
     mb_dir.mkdir(parents=True, exist_ok=True)
-    # Shape broken (missing frontmatter / malformed) -> degraded recovery
+    # Shape broken (missing frontmatter / malformed) -> machine halt.
     (mb_dir / "activeContext.md").write_text("invalid shape text without headers", encoding="utf-8")
 
     out = prepare_session(tmp_path, model="test-model")
-    assert out.get("ok") is True
-    assert out.get("degraded") is True
+    assert out.get("ok") is False
+    assert out.get("halt") is True
+    assert out.get("complete") is False
     assert "shape_errors" in out or "diagnostic_codes" in out
     assert len(out.get("diagnostic_codes", [])) > 0 or len(out.get("shape_errors", [])) > 0
 

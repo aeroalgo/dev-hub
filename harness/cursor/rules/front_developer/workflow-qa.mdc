@@ -12,12 +12,12 @@ verification-before-completion · playwright-best-practices · owasp-security-ch
 **Скиллы (situational — только при триггере в diff/fail):**  
 code-review · frontend-testing · requesting-code-review
 
-**FORBIDDEN:** читать весь core+situational список «про запас»; frontend suite через subagent.
+**FORBIDDEN:** читать весь core+situational список «про запас»; frontend suite через subagent; **`bin/pytest` / backend pytest как FRONT QA suite**.
 
 **Процесс**:
 1. `OK FRONT QA - Выполняю техническую валидацию` → **Gates**
 2. Lean load §7; verification-before-completion; проверки — gates
-2a. **Full suite (HARD):** parent-only lint/types/unit/component/UX/a11y/**Playwright**; leftover A/B/C/I + `sot_enforce_scan`; behavior smoke. Канон: `_lean/qa.mdc`
+2a. **Full frontend suite (HARD):** parent-only lint/types/**Vitest**/UX/a11y/**Playwright** (не pytest). Команды — Frontend block в `shared/test-timeout.mdc`. leftover A/B/C/I + `sot_enforce_scan`; behavior smoke. Канон: `_lean/qa.mdc`
 2b. Epic QA load rule: если plan содержит `#qa-consumes` — читать только секцию через offset/grep.
 3. qa-артефакт: `memory-bank/front/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml` (шаблон `.cursor/templates/qa/epic-step.yaml`). Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
 4. fail|blocked → §Fix plan: **полный eligible** список; anti-ratchet.

@@ -59,7 +59,7 @@ alwaysApply: false
 | BUGFIX | `bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md` | `bugfix/bugfix-YYYYMMDD-<slug>.md` |
 | GAP (INTEG) | `gap/<epic_id>/gap-YYYYMMDD-<slug>.md` | `gap/gap-YYYYMMDD-<slug>.md` |
 | GAP CLOSE (INTEG) | `gap/<epic_id>/close-YYYYMMDD-<slug>.md` | `gap/close-YYYYMMDD-<slug>.md` |
-| REFLECT | `reflection/reflection-<task_id>-….md` | то же — **не** под `<epic_id>/` |
+| reflection archive | `reflection/reflection-<task_id>-….md` | то же — **не** под `<epic_id>/` |
 | TASK | — | `task/task-YYYYMMDD-<slug>.md` |
 
 **FORBIDDEN:** писать epic-артефакт CREATIVE/QA/BUGFIX/GAP в корень `creative/` / `qa/` / `bugfix/` / `gap/` без `<epic_id>/`, если эпик известен. **FORBIDDEN:** `qa|audit|analyze|implement/<epic_id>/yaml/`.

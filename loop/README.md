@@ -180,7 +180,7 @@ bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|tes
 - **Checkpoint:** durable cursor, `resume_from_step`, lifecycle (`pending` → `active` → `completed`/`BLOCKED`/`NEED_HUMAN`) and the decompose index are the recovery boundary. `state.json` mirrors checkpoint telemetry and must not be edited by an agent. Checkpoint/index conflicts halt fail-closed.
 - **Recovery:** after timeout or process death, inspect `HUB_ROOT/runtime/<slug>/epic/last-session.json` (same epic dir as `state.json`); resume only from the validated `resume_from_step`. A transient retry cap is bounded; degraded status is observable and does not silently reset the cursor. Manual fallback must be labelled manual and never masquerade as autonomous projection authority. Do not auto-delete product runtime dirs.
 - **Scheduler:** dependency-ready nodes run one at a time in stable order; parallel fanout and distributed-lock claims are out of scope. One checkout is the operational limitation.
-- **Gates:** runner owns timeout/session/status evidence; the agent owns the step artifact and Handoff; seed-implement then flush checkpoints during work; verify PASS precedes `mark-index-status`; QA PASS and REFLECT precede `EPIC_DONE`; T-034 policy remains a boundary, not an implicit override.
+- **Gates:** runner owns timeout/session/status evidence; the agent owns the step artifact and Handoff; seed-implement then flush checkpoints during work; verify PASS precedes `mark-index-status`; QA PASS precedes `EPIC_DONE`; T-034 policy remains a boundary, not an implicit override.
 
 ## Rollout and rollback
 

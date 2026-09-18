@@ -7,14 +7,7 @@ from typing import Any
 
 import yaml
 
-HOOKS = Path(__file__).resolve().parents[1] / ".claude" / "hooks"
-if str(HOOKS) not in __import__("sys").path:
-    __import__("sys").path.insert(0, str(HOOKS))
-LOOP_DIR = Path(__file__).resolve().parent
-if str(LOOP_DIR) not in __import__("sys").path:
-    __import__("sys").path.insert(0, str(LOOP_DIR))
-
-from epic import (  # noqa: E402
+from harness.hooks.epic import (
     arm_epic,
     atomic_write_text,
     find_next_decompose_step_from_queue,
@@ -22,16 +15,20 @@ from epic import (  # noqa: E402
     load_epic_state,
     post_implement_phase,
 )
-from epic.core import active_context_path, checkpoint_lock_path, checkpoint_path, load_checkpoint  # noqa: E402
-from epic_paths import epic_id_from_decompose_path, epic_id_from_plan_path, find_plan_md_path  # noqa: E402
+from harness.hooks.epic.core import (
+    active_context_path,
+    checkpoint_lock_path,
+    checkpoint_path,
+    latest_qa_any_artifact_for_reference,
+    load_checkpoint,
+    parse_qa_verdict,
+)
+from harness.hooks.epic_paths import epic_id_from_decompose_path, epic_id_from_plan_path, find_plan_md_path
 from loop.paths.epic_layout import EpicLayoutKind, normalize_role_dir, resolve  # noqa: E402
-from _lib import merged_project_env_map  # noqa: E402
-from loop.decompose_gate import decompose_shards_diagnostic  # noqa: E402
-try:
-    from loop.analyze_gate import analyze_required_before_implement  # noqa: E402
-except ImportError:
-    from analyze_gate import analyze_required_before_implement  # noqa: E402
-from loop.roadmap_cadence import ensure_cadence, on_resync_done, reset_cadence_idle  # noqa: E402
+from harness.hooks._lib import merged_project_env_map
+from loop.analyze_gate import analyze_required_before_implement
+from loop.decompose_gate import decompose_shards_diagnostic
+from loop.roadmap_cadence import ensure_cadence, on_resync_done, reset_cadence_idle
 
 QUEUE_VERSION = "roadmap-queue/v2"
 SUPPORTED_QUEUE_VERSIONS = {QUEUE_VERSION}
@@ -262,7 +259,7 @@ def parse_roadmap_queue(
 
 
 def find_decompose_index(cwd: str | Path, role: str, epic_id: str) -> Path | None:
-    from epic_paths import find_decompose_index_path
+    from harness.hooks.epic_paths import find_decompose_index_path
 
     return find_decompose_index_path(cwd, role, epic_id)
 
@@ -270,7 +267,7 @@ def find_decompose_index(cwd: str | Path, role: str, epic_id: str) -> Path | Non
 def load_steps_for_index(cwd: str | Path, idx: Path) -> dict[str, Any]:
     """Load decompose steps; support yaml-only indexes (no index.md yet)."""
     root = Path(cwd)
-    from epic_index import load_index_yaml, steps_from_doc
+    from harness.hooks.epic_index import load_index_yaml, steps_from_doc
 
     if (idx.name in ("index.yaml", "decompose-index.yaml") or idx.suffix in {".yaml", ".yml"}) and idx.is_file():
         doc = load_index_yaml(idx) or {}
@@ -450,7 +447,6 @@ def mark_queue_epic_done(
 
     # FR-013: If latest QA for this epic is fail or blocked, do not allow marking done as success.
     # Fail-closed diagnostic qa_fail_blocks_advance.
-    from epic.core import latest_qa_any_artifact_for_reference, parse_qa_verdict
     slug_for_qa = resolve_epic_slug(root, role_key, ref)
     latest_qa = latest_qa_any_artifact_for_reference(root, role_key, epic_id=slug_for_qa)
     if latest_qa:

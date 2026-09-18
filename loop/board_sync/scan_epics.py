@@ -2,20 +2,16 @@
 
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
-_LOOP = Path(__file__).resolve().parents[1]
-if str(_LOOP) not in sys.path:
-    sys.path.insert(0, str(_LOOP))
-
-from roadmap_queue import parse_roadmap_queue
-from board_sync.card_model import CardKind
-from board_sync.epic_resolver import EpicNextAction, resolve_epic_next_action
-from board_sync.scan_mb import _ROLES
-from board_sync.workspaces import WorkspaceRef
+from loop.paths.epic_layout import discover_v2_epics
+from loop.roadmap_queue import parse_roadmap_queue
+from loop.board_sync.card_model import CardKind
+from loop.board_sync.epic_resolver import EpicNextAction, resolve_epic_next_action
+from loop.board_sync.scan_mb import _ROLES
+from loop.board_sync.workspaces import WorkspaceRef
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,8 +63,6 @@ def scan_epics(workspace_refs: list[WorkspaceRef]) -> ScanEpicsResult:
 
         for role in _ROLES:
             queue_file = mb_dir / role / "roadmap" / "queue.yaml"
-            if not queue_file.is_file():
-                queue_file = mb_dir / role / f"roadmap-{role}.queue.yaml"
             queue_data: list[dict] = []
             if queue_file.is_file():
                 parsed = parse_roadmap_queue(ws_ref.path, queue_rel=str(queue_file.relative_to(ws_ref.path)))
@@ -89,33 +83,20 @@ def scan_epics(workspace_refs: list[WorkspaceRef]) -> ScanEpicsResult:
 
             epic_ids: set[str] = set()
 
-            # Find epics in plan/
-            plan_dir = role_dir / "plan"
-            if plan_dir.is_dir():
-                for p in plan_dir.glob("plan-*.md"):
-                    epic_id = p.stem.removeprefix("plan-")
-                    if epic_id:
-                        epic_ids.add(epic_id)
-                for p in plan_dir.glob("*/md/plan.md"):
-                    epic_id = p.parent.parent.name
-                    if epic_id:
-                        epic_ids.add(epic_id)
-                for p in plan_dir.glob("decompose-*"):
-                    if p.is_dir():
-                        epic_id = p.name.removeprefix("decompose-")
-                        if epic_id:
-                            epic_ids.add(epic_id)
-                for p in plan_dir.glob("*/yaml/decompose-index.yaml"):
-                    epic_id = p.parent.parent.name
-                    if epic_id:
-                        epic_ids.add(epic_id)
+            # The layout resolver owns v2 plan/index discovery. Flat plan names
+            # and decompose-* compatibility directories are not live sources.
+            epic_ids.update(
+                discovered_id
+                for discovered_role, discovered_id in discover_v2_epics(ws_ref.path)
+                if discovered_role == role
+            )
 
             # Find epics in implement/
             impl_dir = role_dir / "implement"
             if impl_dir.is_dir():
                 for p in impl_dir.iterdir():
                     if p.is_dir():
-                        epic_id = p.name.removeprefix("implement-")
+                        epic_id = p.name
                         if epic_id:
                             epic_ids.add(epic_id)
 

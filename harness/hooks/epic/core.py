@@ -741,11 +741,31 @@ def _serialize_epic_state(cwd: str | Path, state: dict[str, Any]) -> str:
         "cursor": state.get("dag_cursor") or state.get("fanout_cursor"),
         "done": sorted({str(item) for item in state.get("dag_done") or []}),
     }
-    state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"), cwd=cwd)
-    state["diagnostic_codes"] = sorted(
-        set(state.get("diagnostic_codes") or [])
-        | set(projection.get("diagnostic_codes") or [])
+    diagnostics = set(state.get("diagnostic_codes") or []) | set(
+        projection.get("diagnostic_codes") or []
     )
+    if projection.get("gates"):
+        state["gate_snapshot"] = projection["gates"]
+    elif state.get("phase"):
+        try:
+            state["gate_snapshot"] = gates_from_phase(state.get("phase"), cwd=cwd)
+        except ValueError:
+            # State serialization must remain possible for an isolated or
+            # not-yet-managed project, but it must record that phase gates
+            # were not resolved. Execution paths remain fail-closed.
+            state["gate_snapshot"] = {
+                "mode": None,
+                "need_verify": False,
+                "need_reviewer": False,
+            }
+            diagnostics.add("workflow_pack_unresolved")
+    else:
+        state["gate_snapshot"] = {
+            "mode": None,
+            "need_verify": False,
+            "need_reviewer": False,
+        }
+    state["diagnostic_codes"] = sorted(diagnostics)
     return json.dumps(state, ensure_ascii=False, indent=2) + "\n"
 
 
@@ -865,6 +885,12 @@ def gates_from_phase(
     default_gates = {"mode": None, "need_verify": False, "need_reviewer": False}
     resolved_pack: WorkflowPack | None = None
 
+    # A projection without a phase has no phase-specific gates to resolve.
+    # Do not require a project workflow pack merely to serialize an empty
+    # projection (common during fail-closed context validation).
+    if not str(phase or "").strip() and pack is None and pack_id is None:
+        return default_gates
+
     if isinstance(pack, WorkflowPack):
         resolved_pack = pack
         target_pack_id = pack.id
@@ -877,20 +903,23 @@ def gates_from_phase(
             resolved_pack = None
     else:
         try:
-            resolve_res = full_resolve(cwd)
+            resolve_res = full_resolve(cwd, hub_root=hub_root)
+            if not resolve_res.ok or resolve_res.pack is None:
+                codes = ", ".join(resolve_res.diagnostic_codes or ["workflow_pack_unresolved"])
+                raise ValueError(f"workflow pack resolution failed: {codes} (fail-closed)")
             resolved_pack = resolve_res.pack
             target_pack_id = resolved_pack.id
         except Exception:
-            target_pack_id = "dev-hub-software"
+            raise
 
     try:
-        reg = load_phase_registry(pack_id=target_pack_id, cwd=cwd)
-    except Exception:
-        try:
-            # Fallback to hub root for default packs in synthetic/temp test roots
-            reg = load_phase_registry(pack_id=target_pack_id, cwd=hub_root)
-        except Exception:
-            return default_gates
+        reg = load_phase_registry(
+            pack_id=target_pack_id,
+            cwd=cwd,
+            hub_root=hub_root,
+        )
+    except Exception as exc:
+        raise ValueError(f"phase registry unavailable for {target_pack_id!r}: {exc}") from exc
 
     val = str(phase or "").upper().strip()
     normalized_val = normalize_registry_phase(val, resolved_pack)
@@ -1133,11 +1162,6 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
             _reason_code = lifecycle.get("reason_code") or ""
             if phase == "QA" and _reason_code == "qa_failed":
                 phase = "BUGFIX"
-            _qa, _reflection = (
-                latest_qa_pass_artifact_for_reference(cwd_p, role_dir, epic_id),
-                None,
-            )
-
         expected = None
         phase_upper = phase.upper()
         try:
@@ -1252,6 +1276,13 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                 "AUDIT", "QA", "BUGFIX", "DONE"
             } or re.match(r"^[se]\d+", armed, re.I):
                 state["armed_step"] = phase_u
+    elif projection.get("next_step") and "IMPLEMENT" in phase_u:
+        # IMPLEMENT identity is the queue's next YAML step, even when a
+        # rebuilt/legacy state had no armed_step cache.  Keep the checkpoint
+        # and session-start identity bound to that same step.
+        armed = str(state.get("armed_step") or "").strip()
+        if not armed or re.match(r"^[sera]\d+", armed, re.I):
+            state["armed_step"] = str(projection["next_step"])
     state.update(
         {
             "phase": projection["phase"],
@@ -1598,15 +1629,15 @@ def extract_handoff_block(text: str) -> str:
 
 _HANDOFF_PHASE_HEADING_RE = re.compile(
     r"(?im)^##\s*Handoff\s+(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
-    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)\b"
+    r"(AUDIT|QA|BUGFIX|DECOMPOSE)\b"
 )
 _HANDOFF_MODE_LINE_RE = re.compile(
     r"(?im)(?:Режим/шаг|Mode/step):\s*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
-    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)`"
+    r"(AUDIT|QA|BUGFIX|DECOMPOSE)`"
 )
 _HANDOFF_NEXT_PHASE_RE = re.compile(
     r"(?im)(?:Дальше|Next):\s*.*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
-    r"(AUDIT|QA|REFLECT|BUGFIX)`"
+    r"(AUDIT|QA|BUGFIX)`"
 )
 
 
@@ -1762,7 +1793,12 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
     handoff_meta = parse_handoff_meta(active_context)
     projection = dict(st.get("projection") or {})
 
-    ident_or_drift = resolve_session_identity(st, handoff_meta, projection=projection)
+    ident_or_drift = resolve_session_identity(
+        st,
+        handoff_meta,
+        projection=projection,
+        checkpoint=load_checkpoint(cwd),
+    )
 
     # EPIC_PHASE / expected_identity check (FR-005)
     expected_phase = os.environ.get("EPIC_PHASE", "").strip().upper()
@@ -1800,6 +1836,7 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
         return {
             "additionalContext": "\n".join(diag_lines),
             "sessionTitle": "epic:context",
+            "halt": True,
         }
 
     # Populate projection from resolved identity
@@ -1881,6 +1918,7 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
     return {
         "additionalContext": ctx,
         "sessionTitle": "epic:context",
+        "halt": "CONTEXT_INCOMPLETE" in ctx,
     }
 
 
@@ -2139,112 +2177,68 @@ def gate_evidence_matches(cwd: str | Path, evidence: object) -> tuple[bool, str]
 
 
 
-_INDEX_MD_NAME = "index.md"
 _INDEX_YAML_NAMES = {"index.yaml", "index.yml"}
 
-
-def _sibling_decompose_index_md(path: Path) -> Path | None:
-    """Shard yaml/md in decompose-* dir → that dir's index.md. Else None."""
-    parent = path.parent
-    if not parent.name.startswith("decompose-"):
-        return None
-    cand = parent / _INDEX_MD_NAME
-    return cand if cand.is_file() else None
-
-
 def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path | None:
-    """Resolve human index.md (still used for hub links / mirror).
-
-    Accepts index.md, index.yaml, a decompose-* directory, an epic id under
-    {mb_root}/*/plan/, or a step shard yaml sitting next to index.md.
-    A shard must not be treated as the index itself (that desyncs yaml vs md).
-    """
+    """Resolve the YAML lifecycle index; Markdown is never returned or read."""
     if decompose is None or not isinstance(decompose, (str, Path)):
         return None
     if not decompose:
         return None
     root = Path(cwd)
     raw = str(decompose).replace("\\", "/")
-    decompose = raw
+    idx = root / raw
 
-    # Handle layout v2 decompose-index.yaml / decompose-index.md
-    if raw.endswith("decompose-index.yaml"):
-        md_cand = root / (raw[: -len("decompose-index.yaml")] + "decompose-index.md")
-        if md_cand.is_file():
-            return md_cand
-        md_parent = root / raw[: -len("yaml/decompose-index.yaml")] / "md" / "decompose-index.md"
-        if md_parent.is_file():
-            return md_parent
-        return root / raw
+    if raw.endswith("/md/decompose-index.md"):
+        return root / raw[: -len("/md/decompose-index.md")] / "yaml" / "decompose-index.yaml"
+    if raw.endswith("/decompose-index.md"):
+        return root / raw[: -len("/decompose-index.md")] / "decompose-index.yaml"
+    if raw.endswith("/index.md"):
+        yaml_sibling = idx.with_name("index.yaml")
+        return yaml_sibling if yaml_sibling.is_file() else None
+    if raw.endswith("/index.yaml") or raw.endswith("/index.yml") or raw.endswith("/decompose-index.yaml") or raw.endswith("/decompose-index.yml"):
+        return idx
 
-    if raw.endswith("decompose-index.md"):
-        if (root / raw).is_file():
-            return root / raw
-        y_cand = root / (raw[: -len("decompose-index.md")] + "decompose-index.yaml")
-        if y_cand.is_file():
-            return y_cand
-        y_parent = root / raw[: -len("md/decompose-index.md")] / "yaml" / "decompose-index.yaml"
-        if y_parent.is_file():
-            return y_parent
-        return root / raw
-
-    if raw.endswith("index.yaml"):
-        raw = raw[: -len("index.yaml")] + "index.md"
-        decompose = raw
-    idx = root / decompose
     if idx.is_dir():
-        if (idx / "md" / "decompose-index.md").is_file():
-            return idx / "md" / "decompose-index.md"
         if (idx / "yaml" / "decompose-index.yaml").is_file():
             return idx / "yaml" / "decompose-index.yaml"
-        idx = idx / _INDEX_MD_NAME
-    elif idx.name in _INDEX_YAML_NAMES:
-        idx = idx.with_name(_INDEX_MD_NAME)
-    elif idx.is_file() and idx.name != _INDEX_MD_NAME:
-        sibling = _sibling_decompose_index_md(idx)
-        if sibling is not None:
-            return sibling
-        # v2 step in yaml/steps/
+        if (idx / "decompose-index.yaml").is_file():
+            return idx / "decompose-index.yaml"
+        if (idx / "index.yaml").is_file():
+            return idx / "index.yaml"
+        return None
+    if idx.is_file():
+        if idx.name in _INDEX_YAML_NAMES or idx.name in {"decompose-index.yaml", "decompose-index.yml"}:
+            return idx
+        # A step shard is not an index, but its v2 parent may contain one.
         if idx.parent.name == "steps" and idx.parent.parent.name == "yaml":
-            v2_md = idx.parent.parent.parent / "md" / "decompose-index.md"
-            if v2_md.is_file():
-                return v2_md
             v2_yaml = idx.parent.parent / "decompose-index.yaml"
             if v2_yaml.is_file():
                 return v2_yaml
         return None
-    if idx.is_file():
-        return idx
-    # yaml-only tree: return md path even when md is absent (canon lives in yaml)
-    if idx.name == _INDEX_MD_NAME and idx.with_name("index.yaml").is_file():
-        return idx
 
-    # If decompose is an epic path in v1 or v2 that is missing or relocated:
+    # If decompose is an epic path in v1 or v2 that is missing or relocated,
+    # discover only YAML indexes.
     for base in (
         root / "memory-bank" / "back" / "plan",
         root / "memory-bank" / "front" / "plan",
         root / "memory-bank" / "integration" / "plan",
     ):
-        # check if it is an epic directory in v2
-        cand_v2 = base / decompose / "md" / "decompose-index.md"
-        if cand_v2.is_file():
-            return cand_v2
-        cand_v2_y = base / decompose / "yaml" / "decompose-index.yaml"
+        cand_v2_y = base / raw / "yaml" / "decompose-index.yaml"
         if cand_v2_y.is_file():
             return cand_v2_y
-        # if decompose is decompose-<epic_id> or decompose-<epic_id>/index.yaml, check migrated <epic_id>
-        parts = Path(decompose).parts
+        cand_legacy_y = base / raw / "index.yaml"
+        if cand_legacy_y.is_file():
+            return cand_legacy_y
+        parts = Path(raw).parts
         for p in parts:
             if p.startswith("decompose-"):
                 epic_slug = p[len("decompose-"):]
-                migrated_md = base / epic_slug / "md" / "decompose-index.md"
-                if migrated_md.is_file():
-                    return migrated_md
                 migrated_y = base / epic_slug / "yaml" / "decompose-index.yaml"
                 if migrated_y.is_file():
                     return migrated_y
 
-    if str(decompose).endswith((".md", ".yaml", ".yml")):
+    if raw.endswith((".md", ".yaml", ".yml")):
         return None
     for base in (
         root / "memory-bank" / "back" / "plan",
@@ -2257,7 +2251,7 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
         root / "memory-bank" / "front" / "security" / "plan",
         root / "memory-bank" / "integration" / "security" / "plan",
     ):
-        cand = base / decompose / "index.md"
+        cand = base / raw / "index.yaml"
         if cand.is_file():
             return cand
     return None
@@ -2810,7 +2804,7 @@ def mark_index_step_status(
     unchanged = old_st == status_l
     yaml_written = False
     if not unchanged:
-        ypath.write_text(dump_index_yaml(doc), encoding="utf-8")
+        atomic_write_text(ypath, dump_index_yaml(doc))
         yaml_written = True
 
     # yaml is SoT — md mirror is best-effort (rebuild queue if row missing).
@@ -2970,7 +2964,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
     """Make activeContext + armed_step match index.yaml next pending (SoT).
 
     armed_step / AC are caches — never win over index.yaml for IMPLEMENT queue.
-    Skips non-implement phases (DECOMPOSE/AUDIT/QA/REFLECT/DONE/…).
+    Skips non-implement phases (DECOMPOSE/AUDIT/QA/DONE/…).
     """
     cwd_p = Path(cwd)
     state = load_epic_state(cwd_p)
@@ -3031,7 +3025,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
             from loop.epic_transition import arm_phase
 
             arm_decomp = decompose
-            if arm_decomp.endswith(("/index.yaml", "/index.yml", "/index.md")):
+            if arm_decomp.endswith(("/index.yaml", "/index.yml")):
                 arm_decomp = str(Path(arm_decomp).parent).replace("\\", "/")
             arm_res = arm_phase(
                 cwd_p,
@@ -4289,11 +4283,11 @@ def project_handoff_from_reducer(
     elif (
         allow_terminal_done_projection
         and phase == "DONE"
-        and ("REFLECT" in text or "mode: REFLECT" in text or "BUGFIX" in text or "mode: QA" in text)
+        and ("BUGFIX" in text or "mode: QA" in text)
     ):
-        text_new = re.sub(r"Handoff\s+BACK\s+(REFLECT|BUGFIX|QA)", "Handoff BACK DONE", text)
-        text_new = re.sub(r"`BACK (REFLECT|BUGFIX|QA)`", "`BACK DONE`", text_new)
-        text_new = re.sub(r"mode:\s*(REFLECT|BUGFIX|QA)", "mode: DONE", text_new)
+        text_new = re.sub(r"Handoff\s+BACK\s+(BUGFIX|QA)", "Handoff BACK DONE", text)
+        text_new = re.sub(r"`BACK (BUGFIX|QA)`", "`BACK DONE`", text_new)
+        text_new = re.sub(r"mode:\s*(BUGFIX|QA)", "mode: DONE", text_new)
         ac.write_text(text_new, encoding="utf-8")
         projected = True
 
@@ -4638,8 +4632,8 @@ def discover_epic_for_pipeline(cwd: str | Path) -> dict[str, Any] | None:
 def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
     """HARD gate: EPIC_DONE only after QA pass (AUDIT → QA → DONE).
 
-    Legacy Handoff REFLECT is ignored (not blocking). Without QA pass the epic
-    is NOT complete — never treat as DONE.
+    A stale or unknown Handoff is ignored for lifecycle decisions. Without QA
+    pass the epic is NOT complete — never treat as DONE.
     """
     cwd_p = Path(cwd)
     project_handoff_from_reducer(cwd_p)

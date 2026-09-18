@@ -88,6 +88,7 @@ def test_inject_load_fail_graceful(monkeypatch, tmp_path):
         assert "CONTEXT_INCOMPLETE" in res["additionalContext"]
         assert "missing_active_context" in res["additionalContext"]
         assert "HALT" in res["additionalContext"]
+        assert res["halt"] is True
 
 
 def test_session_start_required_missing_context_incomplete(monkeypatch, tmp_path):
@@ -108,6 +109,7 @@ def test_session_start_required_missing_context_incomplete(monkeypatch, tmp_path
         assert "HALT" in ctx
         assert "leftover content" not in ctx
         assert "Warning: bundle load failed" not in ctx
+        assert res["halt"] is True
 
 
 def test_session_start_does_not_inject_leftover_required_as_complete(monkeypatch, tmp_path):
@@ -127,6 +129,7 @@ def test_session_start_does_not_inject_leftover_required_as_complete(monkeypatch
         assert "other.txt" not in ctx
         assert "some content" not in ctx
         assert "Один шаг → FINISH" not in ctx
+        assert res["halt"] is True
 
 
 def test_required_exception_typed_not_warning_success(monkeypatch, tmp_path):
@@ -141,6 +144,7 @@ def test_required_exception_typed_not_warning_success(monkeypatch, tmp_path):
         assert "HALT" in ctx
         assert "Warning" not in ctx
         assert "Один шаг → FINISH" not in ctx
+        assert res["halt"] is True
 
 
 def test_optional_only_miss_degrade_not_halt(monkeypatch, tmp_path):

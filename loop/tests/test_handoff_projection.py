@@ -46,9 +46,8 @@ def test_handoff_frontmatter_parse_and_mode(tmp_path: Path) -> None:
         "- **Дальше:** выполнить REFLECT.\n"
     )
     meta = parse_handoff_meta(text)
-    assert meta is not None
-    assert meta.mode == "REFLECT"
-    assert handoff_mode_from_text(text) == "REFLECT"
+    assert meta is None
+    assert handoff_mode_from_text(text) is None
     assert handoff_gate_phase_from_text(text) is None
 
 
@@ -64,7 +63,7 @@ def test_handoff_mode_back_reflect_normalizes(tmp_path: Path) -> None:
         "---\n\n"
         "## Handoff BACK BACK REFLECT\n"
     )
-    assert handoff_mode_from_text(text) == "REFLECT"
+    assert handoff_mode_from_text(text) is None
     assert handoff_gate_phase_from_text(text) is None
 
 
@@ -261,21 +260,20 @@ def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -
         tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )
-    _write(
-        tmp_path / f"memory-bank/back/reflection/reflection-{epic}.md",
-        "---\n"
-        f"epic_id: {epic}\n"
-        "date: '2026-08-30'\n"
-        "---\n\n"
-        "# reflection\n",
-    )
     ac_path = tmp_path / "memory-bank/activeContext.md"
     _write(
         ac_path,
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        f"epic_id: {epic}\n"
+        f"step_id: {epic}\n"
+        "---\n\n"
         "## load_now\n"
         f"1. [qa](back/qa/{epic}/qa-20260830-demo.yaml)\n\n"
-        f"## Handoff BACK REFLECT — {epic}\n"
-        "- **Режим/шаг:** `BACK REFLECT`.\n",
+        f"## Handoff BACK QA — {epic}\n"
+        "- **Режим/шаг:** `BACK QA`.\n",
     )
 
     out = project_handoff_from_reducer(tmp_path, allow_terminal_done_projection=False)
@@ -284,7 +282,7 @@ def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -
     assert out.get("projected") is False, out
 
     ac = ac_path.read_text(encoding="utf-8")
-    assert "Handoff BACK REFLECT" in ac
+    assert "Handoff BACK QA" in ac
     assert "Handoff BACK DONE" not in ac
 
     out_enabled = project_handoff_from_reducer(tmp_path, allow_terminal_done_projection=True)

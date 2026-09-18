@@ -15,7 +15,7 @@ _PRE_IMPLEMENT_RE = re.compile(
     re.I,
 )
 _PAST_IMPLEMENT_RE = re.compile(
-    r"\b(AUDIT|QA|REFLECT|ARCHIVE|IMPLEMENT done)\b",
+    r"\b(AUDIT|QA|ARCHIVE|IMPLEMENT done)\b",
     re.I,
 )
 _IN_PROGRESS_RE = re.compile(r"IMPLEMENT in progress", re.I)

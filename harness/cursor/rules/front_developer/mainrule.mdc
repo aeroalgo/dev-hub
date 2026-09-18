@@ -50,7 +50,7 @@ alwaysApply: false
 
 **Note:** loop SoT cadence сейчас wired для `back/`; FRONT cadence path — канон rules/artifacts; auto-arm loop для front — follow-up.
 
-**Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.
+**Archive (не gate):** reflection artifacts хранятся только в archive; lifecycle после QA = DONE.
 
 Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / структура).  
 As-built UI: `memory-bank/architecture/frontend.md` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  

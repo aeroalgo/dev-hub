@@ -332,7 +332,7 @@ def gate_atomic_finish(
             }
 
         if norm in _REVIEWER_ALIASES:
-            phase = str(state.get("phase") or state.get("armed_step") or "").upper()
+            phase = str(state.get("phase") or state.get("armed_step") or "").upper().split()[-1]
             if phase != "QA":
                 return None
             if _finish_tool_matches(state, prefix="mb-finish qa"):
@@ -350,7 +350,7 @@ def gate_atomic_finish(
             return _result_dump(result)
 
         if norm in _ANALYZE_ALIASES:
-            phase = str(state.get("phase") or state.get("armed_step") or "").upper()
+            phase = str(state.get("phase") or state.get("armed_step") or "").upper().split()[-1]
             if phase != "ANALYZE":
                 return None
             if _finish_tool_matches(state, prefix="mb-finish analyze"):
@@ -376,7 +376,7 @@ def gate_atomic_finish(
             return _result_dump(result)
 
         if norm in _BUGFIX_ALIASES:
-            phase = str(state.get("phase") or state.get("armed_step") or "").upper()
+            phase = str(state.get("phase") or state.get("armed_step") or "").upper().split()[-1]
             if phase != "BUGFIX":
                 return None
             if _finish_tool_matches(state, prefix="mb-finish bugfix"):

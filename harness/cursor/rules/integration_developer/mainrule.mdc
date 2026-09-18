@@ -55,7 +55,7 @@ alwaysApply: false
 
 **Note:** loop SoT cadence сейчас wired для `back/`; INTEG cadence path — канон rules/artifacts; auto-arm loop для integration — follow-up.
 
-**Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.
+**Archive (не gate):** reflection artifacts хранятся только в archive; lifecycle после QA = DONE.
 
 Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / create).  
 As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc (`INTEG VAN` = все shards).  

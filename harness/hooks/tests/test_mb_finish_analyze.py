@@ -295,6 +295,55 @@ def test_finish_audit_happy(tmp_path: Path):
     assert life.get("phase") == "QA"
 
 
+def test_finish_audit_uses_front_role_for_artifact_and_event(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """FRONT AUDIT must not fall back to the BACK artifact root."""
+    monkeypatch.setattr(
+        "harness.hooks.epic.core.gates_from_phase",
+        lambda *_args, **_kwargs: {
+            "mode": "audit",
+            "need_verify": False,
+            "need_reviewer": False,
+        },
+    )
+    epic = "T-FRONT-AUDIT-001"
+    plan_dir = tmp_path / "memory-bank" / "front" / "plan" / epic / "md"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "plan.md").write_text(
+        "# Plan\n\n## WHAT\n\n- **FR-001:** front requirement\n",
+        encoding="utf-8",
+    )
+    audit_dir = tmp_path / "memory-bank" / "front" / "audit" / epic
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    audit_file = audit_dir / "audit.yaml"
+    audit_file.write_text(_valid_audit_v2_yaml(epic_id=epic), encoding="utf-8")
+
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_role": "FRONT",
+            "phase": "AUDIT",
+        },
+    )
+
+    res = finish_audit(
+        MbFinishRequest(
+            phase="FRONT AUDIT",
+            step_id="AUDIT",
+            done_summary="front audit completed",
+            cwd=str(tmp_path),
+        )
+    )
+
+    assert res.ok is True, res.diagnostic_codes
+    assert "## Handoff FRONT QA" in (res.active_context or "")
+    events = tmp_path / "memory-bank" / "front" / "events" / epic / "events.jsonl"
+    assert events.is_file()
+    assert "audit_done" in events.read_text(encoding="utf-8")
+
+
 def test_finish_audit_rejects_actionable_findings_before_qa(tmp_path: Path):
     """AUDIT blockers must be repaired and re-audited; they cannot promote to QA."""
     epic = "T-TEST-AUDIT-FAIL"

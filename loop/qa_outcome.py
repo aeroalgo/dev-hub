@@ -23,8 +23,14 @@ RUNTIME_PREFIXES = (
     "dsh/",
 )
 
+BACK_FULL_SUITE = "bin/pytest -q --tb=line"
+FRONT_FULL_SUITE = (
+    "timeout -k 10s 300s npm --prefix frontend exec vitest run"
+    " && timeout -k 10s 300s npm --prefix frontend exec playwright test"
+)
+
 _PATH_RE = re.compile(
-    r"(?m)(?:^|\s|`)((?:loop|harness|bin|dsh|\.claude/hooks)[/][\w./\-]+\.(?:py|sh|md|toml|yaml|yml|json))"
+    r"(?m)(?:^|\s|`)((?:loop|harness|bin|dsh|\.claude/hooks|frontend)[/][\w./\-]+\.(?:py|sh|md|toml|yaml|yml|json|ts|tsx|js|jsx))"
 )
 _FILES_LINE_RE = re.compile(r"(?im)^(?:[-*]\s*)?(?:files?|changed|paths?)\s*[:=]\s*(.+)$")
 
@@ -33,10 +39,28 @@ def _norm_path(path: str) -> str:
     return str(path or "").replace("\\", "/").lstrip("./")
 
 
+def normalize_qa_role(role: str | None) -> str:
+    raw = str(role or "BACK").strip().upper()
+    if raw in {"FRONT", "F"}:
+        return "FRONT"
+    if raw in {"INTEG", "INTEGRATION", "I"}:
+        return "INTEG"
+    return "BACK"
+
+
+def full_suite_command_for_role(role: str | None) -> str:
+    if normalize_qa_role(role) == "FRONT":
+        return FRONT_FULL_SUITE
+    return BACK_FULL_SUITE
+
+
 def is_runtime_path(path: str) -> bool:
     norm = _norm_path(path)
     return any(norm.startswith(prefix) for prefix in RUNTIME_PREFIXES)
 
+
+def is_frontend_path(path: str) -> bool:
+    return _norm_path(path).startswith("frontend/")
 
 
 def extract_changed_paths(text: str) -> list[str]:
@@ -62,8 +86,11 @@ def suite_plan_after_changes(
     changed_paths: list[str],
     *,
     epic_id: str = "",
+    role: str | None = None,
 ) -> QaOutcome:
-    """Fail-closed: unknown changes -> full suite."""
+    """Fail-closed: unknown changes -> full suite for role surface."""
+    role_u = normalize_qa_role(role)
+    full_cmd = full_suite_command_for_role(role_u)
     paths = [_norm_path(p) for p in changed_paths if str(p).strip()]
     if not paths:
         return QaOutcome(
@@ -71,11 +98,78 @@ def suite_plan_after_changes(
             kind="all_green",
             next_action="verify_qa",
             suite_scope="full",
-            suite_command='bin/pytest -q --tb=line',
+            suite_command=full_cmd,
             reasons=["unknown_changes_fail_closed_full_suite"],
             changed_paths=[],
             epic_id=epic_id,
         )
+
+    if role_u == "FRONT":
+        runtime = [p for p in paths if is_runtime_path(p)]
+        if runtime:
+            return QaOutcome(
+                schema=SCHEMA_LOOP_QA_OUTCOME,
+                kind="all_green",
+                next_action="verify_qa",
+                suite_scope="full",
+                suite_command=full_cmd,
+                reasons=["runtime_paths_changed"],
+                changed_paths=paths,
+                epic_id=epic_id,
+            )
+        front_paths = [p for p in paths if is_frontend_path(p)]
+        e2e = [
+            p
+            for p in front_paths
+            if "/e2e/" in p or p.endswith(".spec.ts") or p.endswith(".spec.tsx")
+        ]
+        unit = [
+            p
+            for p in front_paths
+            if p.endswith((".test.ts", ".test.tsx", ".test.js", ".test.jsx"))
+            or "/tests/" in p
+        ]
+        if e2e and not unit:
+            cmd = (
+                "timeout -k 10s 300s npm --prefix frontend exec playwright test -- "
+                + " ".join(e2e)
+            )
+            return QaOutcome(
+                schema=SCHEMA_LOOP_QA_OUTCOME,
+                kind="all_green",
+                next_action="verify_qa",
+                suite_scope="targeted",
+                suite_command=cmd,
+                reasons=["front_e2e_targeted_suite"],
+                changed_paths=paths,
+                epic_id=epic_id,
+            )
+        if unit and not e2e:
+            cmd = (
+                "timeout -k 10s 300s npm --prefix frontend exec vitest run -- "
+                + " ".join(unit)
+            )
+            return QaOutcome(
+                schema=SCHEMA_LOOP_QA_OUTCOME,
+                kind="all_green",
+                next_action="verify_qa",
+                suite_scope="targeted",
+                suite_command=cmd,
+                reasons=["front_unit_targeted_suite"],
+                changed_paths=paths,
+                epic_id=epic_id,
+            )
+        return QaOutcome(
+            schema=SCHEMA_LOOP_QA_OUTCOME,
+            kind="all_green",
+            next_action="verify_qa",
+            suite_scope="full",
+            suite_command=full_cmd,
+            reasons=["front_fail_closed_full_suite"],
+            changed_paths=paths,
+            epic_id=epic_id,
+        )
+
     runtime = [p for p in paths if is_runtime_path(p)]
     if runtime:
         return QaOutcome(
@@ -83,13 +177,20 @@ def suite_plan_after_changes(
             kind="all_green",
             next_action="verify_qa",
             suite_scope="full",
-            suite_command='bin/pytest -q --tb=line',
+            suite_command=full_cmd,
             reasons=["runtime_paths_changed"],
             changed_paths=paths,
             epic_id=epic_id,
         )
     marker = chr(47) + "tests" + chr(47)
-    testish = [p for p in paths if marker in p or p.startswith("tests" + chr(47)) or p.endswith("_test.py") or p.startswith("test_")]
+    testish = [
+        p
+        for p in paths
+        if marker in p
+        or p.startswith("tests" + chr(47))
+        or p.endswith("_test.py")
+        or p.startswith("test_")
+    ]
     targets = testish or [p for p in paths if p.endswith(".py")]
     if not targets:
         return QaOutcome(
@@ -97,7 +198,7 @@ def suite_plan_after_changes(
             kind="all_green",
             next_action="verify_qa",
             suite_scope="full",
-            suite_command='bin/pytest -q --tb=line',
+            suite_command=full_cmd,
             reasons=["no_pytestable_targets_fail_closed_full_suite"],
             changed_paths=paths,
             epic_id=epic_id,
@@ -119,7 +220,7 @@ def classify_qa_outcome(signals: QaSignals | dict[str, Any]) -> QaOutcome:
     """Pure classifier: signals -> sole next_action."""
     sig = signals if isinstance(signals, QaSignals) else QaSignals.model_validate(signals)
     scope: QaSuiteScope = sig.suite_scope
-    command = sig.suite_command or 'bin/pytest -q --tb=line'
+    command = sig.suite_command or BACK_FULL_SUITE
     common = {
         "schema": SCHEMA_LOOP_QA_OUTCOME,
         "suite_scope": scope,
@@ -161,18 +262,60 @@ def classify_qa_outcome(signals: QaSignals | dict[str, Any]) -> QaOutcome:
 def resolve_qa_suite_plan(cwd: str | Path, state: dict[str, Any] | None = None) -> QaOutcome:
     """Suite command for current QA arm (full by default; after BUGFIX may be targeted)."""
     st = dict(state or {})
+    role = normalize_qa_role(
+        st.get("armed_role") or st.get("role") or st.get("role_id")
+    )
+    full_cmd = full_suite_command_for_role(role)
     rerun = st.get("qa_after_bugfix")
     epic_id = str(st.get("armed_epic") or st.get("epic_id") or "")
     if not isinstance(rerun, dict):
-        return QaOutcome(schema=SCHEMA_LOOP_QA_OUTCOME, kind="all_green", next_action="verify_qa", suite_scope="full", suite_command='bin/pytest -q --tb=line', reasons=["fresh_qa_full_suite"], epic_id=epic_id)
+        return QaOutcome(
+            schema=SCHEMA_LOOP_QA_OUTCOME,
+            kind="all_green",
+            next_action="verify_qa",
+            suite_scope="full",
+            suite_command=full_cmd,
+            reasons=["fresh_qa_full_suite"],
+            epic_id=epic_id,
+        )
     scope = str(rerun.get("suite_scope") or "full").strip().lower()
     command = str(rerun.get("suite_command") or "").strip()
     paths = [str(p) for p in (rerun.get("changed_paths") or []) if str(p).strip()]
     if scope == "targeted" and command:
-        return QaOutcome(schema=SCHEMA_LOOP_QA_OUTCOME, kind="all_green", next_action="verify_qa", suite_scope="targeted", suite_command=command, reasons=["qa_after_bugfix_targeted"], changed_paths=paths, epic_id=str(rerun.get("epic_id") or epic_id))
+        if role == "FRONT" and ("pytest" in command or command.startswith("bin/pytest")):
+            return QaOutcome(
+                schema=SCHEMA_LOOP_QA_OUTCOME,
+                kind="all_green",
+                next_action="verify_qa",
+                suite_scope="full",
+                suite_command=full_cmd,
+                reasons=["front_reject_pytest_suite_command"],
+                changed_paths=paths,
+                epic_id=str(rerun.get("epic_id") or epic_id),
+            )
+        return QaOutcome(
+            schema=SCHEMA_LOOP_QA_OUTCOME,
+            kind="all_green",
+            next_action="verify_qa",
+            suite_scope="targeted",
+            suite_command=command,
+            reasons=["qa_after_bugfix_targeted"],
+            changed_paths=paths,
+            epic_id=str(rerun.get("epic_id") or epic_id),
+        )
     if paths:
-        return suite_plan_after_changes(paths, epic_id=str(rerun.get("epic_id") or epic_id))
-    return QaOutcome(schema=SCHEMA_LOOP_QA_OUTCOME, kind="all_green", next_action="verify_qa", suite_scope="full", suite_command='bin/pytest -q --tb=line', reasons=["qa_after_bugfix_default_full"], epic_id=str(rerun.get("epic_id") or epic_id))
+        return suite_plan_after_changes(
+            paths, epic_id=str(rerun.get("epic_id") or epic_id), role=role
+        )
+    return QaOutcome(
+        schema=SCHEMA_LOOP_QA_OUTCOME,
+        kind="all_green",
+        next_action="verify_qa",
+        suite_scope="full",
+        suite_command=full_cmd,
+        reasons=["qa_after_bugfix_default_full"],
+        epic_id=str(rerun.get("epic_id") or epic_id),
+    )
 
 
 def render_qa_outcome_policy(outcome: QaOutcome) -> str:
@@ -187,11 +330,12 @@ def render_qa_outcome_policy(outcome: QaOutcome) -> str:
         "  `suite_red` | `plan_mismatch` | `ac_gap` | `transport_broken` | `all_green`",
         "- Mapping:",
         "  - suite_red / plan_mismatch / ac_gap -> next_action=bugfix (qa-*.yaml fail|blocked, mb-finish qa). FORBIDDEN: verify-qa, repair-loop, second suite.",
-        "  - all_green after suite -> next_action=verify_qa (AC review only; do not re-run pytest).",
+        "  - all_green after suite -> next_action=verify_qa (AC review only; do not re-run suite).",
         "  - verify PASS (incl. ineligible residuals only) -> done; verify FAIL/BLOCKED with eligible B* -> bugfix.",
         "  - transport_broken -> one retry_spawn; then need_human.",
         "- verify-qa must NOT re-run suite; it reviews AC+/AC-/section 0.11 against Suite results.",
         "- Anti-ratchet: pack AC+/AC−/§0.11 from Frozen QA checklist (plan AC/SC sha); FORBIDDEN reformulate or raise bar; style/naming/comments not BUGFIX.",
+        "- Role stack: FRONT suite_command = Vitest+Playwright only. FORBIDDEN substitute `bin/pytest` / backend pytest (`suite_wrong_stack`).",
     ]
     if outcome.changed_paths:
         lines.append("- changed_paths: " + ", ".join(f"`{p}`" for p in outcome.changed_paths[:20]))

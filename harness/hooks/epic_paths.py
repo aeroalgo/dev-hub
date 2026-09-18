@@ -253,14 +253,10 @@ def find_decompose_index_path(
     if role_norm == "integ":
         role_norm = "integration"
 
-    # Try resolver (v2) first
     try:
         v2_yaml = resolve(role_norm, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
         if v2_yaml.is_file():
             return v2_yaml
-        v2_md = resolve(role_norm, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=root)
-        if v2_md.is_file():
-            return v2_md
     except Exception:
         pass
 

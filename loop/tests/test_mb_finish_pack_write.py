@@ -1,7 +1,6 @@
 """Tests for mb_finish pack-aware activeContext writing (s05).
 
-Updated in s06 (T-HUB-068): finish_handoff requires recovery_token matching active journal.
-Tokenless calls fail-closed.
+The handoff writer is exercised only through the internal transaction-recovery path.
 """
 
 from pathlib import Path

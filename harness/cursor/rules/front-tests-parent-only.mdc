@@ -34,3 +34,5 @@ HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/play
 TDD red/green и Playwright в `FRONT IMPLEMENT|TASK|BUGFIX|QA|REFACTOR` — **только parent**.
 
 **FAIL:** subagent прогнал frontend-тесты; parent spawn без HARD RULE строки.
+
+**FORBIDDEN (wrong stack):** в FRONT-режимах запускать `bin/pytest` / backend pytest вместо Vitest/Playwright → `suite_wrong_stack`.

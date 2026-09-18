@@ -19,15 +19,19 @@ alwaysApply: true
 ## Обязательная форма
 
 ```text
-# Hub (dev-hub self-test):
+# Hub (dev-hub self-test) / BACK QA (hub):
 bin/pytest ...
 # Hub (dev-hub alternative):
 timeout -k 10s 300s .venv/bin/pytest ...
-# Frontend (parent-only):
+# FRONT IMPLEMENT/TASK targeted (parent-only):
 timeout -k 10s 300s npm --prefix frontend exec vitest ...
 timeout -k 10s 300s npm --prefix frontend exec tsc ...
-# Frontend scenario (parent-only):
-timeout -k 10s 300s npx playwright test ...
+# FRONT QA full suite (parent-only) — НЕ bin/pytest:
+timeout -k 10s 300s npm --prefix frontend exec vitest run
+timeout -k 10s 300s npm --prefix frontend exec tsc --noEmit
+timeout -k 10s 300s npm --prefix frontend exec playwright test
+# Frontend scenario targeted (parent-only):
+timeout -k 10s 300s npm --prefix frontend exec playwright test -- <spec>
 # Managed projects (capability-scoped execution evidence, no raw runner fallback):
 timeout -k 10s 300s python tests/test_*.py
 # Managed project capability check:
@@ -36,16 +40,19 @@ timeout -k 10s 300s npm test
 timeout -k 10s 300s make test
 ```
 
-**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита; `timeout 300s` **без** `-k`/`--kill-after` (не добивает hang); применение hub runner команд к managed capability-контрактам.
+**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита; `timeout 300s` **без** `-k`/`--kill-after` (не добивает hang); применение hub runner команд к managed capability-контрактам; **`FRONT` / `FRONT QA` запускает `bin/pytest` или backend suite** (wrong stack → `suite_wrong_stack`).
 
 В implement/QA step поле `tests:` содержит исполняемую команду в backticks (для hub) или `capability_checks` (для managed), а результат фиксируется в `verification_results` и sidecar evidence.
 
 ## Единый scope
 
 - **targeted:** одна команда/один файл/один `-k` — максимум 300 секунд; канон для IMPLEMENT / BUGFIX / TASK / verify-implement (в managed проектах — capability `test.targeted`).
-- **full suite (QA HARD):** для hub — `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k` — весь default collection репозитория. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`). Для managed проектов — capability `test.full`.
+- **full suite (QA HARD):**
+  - **BACK** hub — `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k`. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
+  - **FRONT QA** — full **frontend** suite: Vitest run + types/lint + Playwright (команды Frontend block выше). **Не** `bin/pytest`. Evidence только pytest → **FAIL** (`suite_wrong_stack`).
+  - Managed — capability `test.full` **своей** роли/surface (front ≠ backend).
 - **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
-- если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full**.
+- если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full** (для роли: FRONT=frontend, BACK=pytest/capability).
 
 ## DECOMPOSE / IMPLEMENT boundary (HARD)
 

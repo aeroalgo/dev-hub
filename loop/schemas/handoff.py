@@ -52,7 +52,10 @@ class LoopHandoffFrontmatter(BaseModel):
     @field_validator("mode")
     @classmethod
     def _mode_upper(cls, value: str) -> str:
-        return value.upper()
+        normalized = value.upper()
+        if normalized == "REFLECT" or normalized.endswith(" REFLECT"):
+            raise ValueError("REFLECT is not a live loop phase; use QA, BUGFIX, or DONE")
+        return normalized
 
     def model_dump_frontmatter(self) -> dict[str, str | None]:
         data = {

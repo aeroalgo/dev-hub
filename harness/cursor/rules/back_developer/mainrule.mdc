@@ -53,7 +53,7 @@ feature-эпика и смотрит rolling window из 8 feature-эпиков.
 
 **Anti-carry policy:** строгий запрет (FORBIDDEN) на перенос незакрытых FR в соседние feature-эпики (no neighbor carry) и запрет скользящих окон (sliding window).
 
-**Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.
+**Archive (не gate):** reflection artifacts хранятся только в archive; lifecycle после QA = DONE.
 
 Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / структура).  
 As-built: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  

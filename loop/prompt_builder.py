@@ -41,7 +41,12 @@ class Identity:
 class Drift:
     """Diagnostic when session identity resolution detects drift or conflict."""
 
-    code: Literal["phase_mismatch", "epic_mismatch", "step_unknown_while_armed"]
+    code: Literal[
+        "phase_mismatch",
+        "epic_mismatch",
+        "step_unknown_while_armed",
+        "checkpoint_mismatch",
+    ]
     armed_step: str
     ac_mode: str
     projection_phase: str
@@ -54,6 +59,7 @@ def resolve_session_identity(
     state: Any | None,
     ac_meta: Any | None,
     projection: dict[str, Any] | None = None,
+    checkpoint: dict[str, Any] | None = None,
 ) -> Identity | Drift:
     """Single typed resolver: resolve_session_identity(state, ac_meta, projection) -> Identity | Drift.
 
@@ -182,13 +188,52 @@ def resolve_session_identity(
     step = step_candidate or ""
     command = f"{resolved_role} {resolved_phase}"
 
-    return Identity(
+    identity = Identity(
         role=resolved_role,
         phase=resolved_phase,
         step=step,
         epic_id=epic_id,
         command=command,
     )
+    if checkpoint:
+        cp_identity = checkpoint.get("identity")
+        cp_identity = cp_identity if isinstance(cp_identity, dict) else {}
+        checkpoint_fields = {
+            "epic": cp_identity.get("epic") or checkpoint.get("epic_id"),
+            "role": cp_identity.get("role") or checkpoint.get("role"),
+            "phase": cp_identity.get("phase") or checkpoint.get("phase"),
+            "step": cp_identity.get("step") or checkpoint.get("step_id"),
+        }
+        expected_fields = {
+            "epic": identity.epic_id,
+            "role": identity.role,
+            "phase": identity.phase,
+            "step": identity.step,
+        }
+        for key, raw_value in checkpoint_fields.items():
+            value = str(raw_value or "").strip()
+            expected = str(expected_fields[key] or "").strip()
+            if not value or not expected:
+                continue
+            if key == "phase":
+                # Checkpoints persist the composite command phase (for
+                # example ``BACK IMPLEMENT``), while Identity exposes the
+                # normalized phase token (``IMPLEMENT``).
+                value = _norm_p(value)
+                expected = _norm_p(expected)
+            elif key in {"role", "step"}:
+                value = value.upper()
+                expected = expected.upper()
+            if value != expected:
+                return Drift(
+                    code="checkpoint_mismatch",
+                    armed_step=identity.step,
+                    ac_mode=identity.phase,
+                    projection_phase=identity.phase,
+                    epic_id=identity.epic_id,
+                    role=identity.role,
+                )
+    return identity
 
 
 @dataclass(frozen=True)

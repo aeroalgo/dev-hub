@@ -90,6 +90,15 @@ def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path,
                 "title": "path check",
                 "next_phase": "BACK IMPLEMENT",
                 "as_built": [],
+                "skills": {
+                    "code_surface": "infra",
+                    "impl": [
+                        ".agents/skills/tdd/SKILL.md",
+                        ".agents/skills/python-testing-patterns/SKILL.md",
+                        ".agents/skills/modern-python/SKILL.md",
+                        ".agents/skills/python-anti-patterns/SKILL.md",
+                    ],
+                },
                 "plan_contract": {
                     "fr_ids": ["FR-01"],
                     "nouns": ["path"],

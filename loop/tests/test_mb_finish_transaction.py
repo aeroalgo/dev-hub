@@ -2,7 +2,7 @@
 
 Independent Test SoT:
 - Crash after context write leaves mixed Handoff/index identity -> recover must align files (both new or both old).
-- Public CLI / python finish_handoff without recovery_token -> diagnostic finish_handoff_forbidden, state not armed.
+- Public finish_handoff adapters are absent; the internal recovery path remains token-locked.
 - FAIL dilution documented: atomic replace of one file without multi-file journal is not enough.
 """
 from __future__ import annotations
@@ -52,6 +52,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _setup_epic_fixture(tmp_path: Path) -> dict[str, Any]:
     """Create a minimal 2-step decompose environment."""
+    phase_registry = tmp_path / "loop" / "schemas" / "phase_registry.yaml"
+    phase_registry.parent.mkdir(parents=True, exist_ok=True)
+    phase_registry.write_text(
+        (ROOT / "loop" / "schemas" / "phase_registry.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
     dec_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-EPIC-DEMO" / "yaml"
     steps_dir = dec_dir / "steps"
     steps_dir.mkdir(parents=True, exist_ok=True)
@@ -94,6 +100,13 @@ def _setup_epic_fixture(tmp_path: Path) -> dict[str, Any]:
     act_path = tmp_path / "memory-bank" / "activeContext.md"
     act_path.parent.mkdir(parents=True, exist_ok=True)
     initial_context = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-EPIC-DEMO\n"
+        "step_id: s01\n"
+        "---\n\n"
         "## load_now\n"
         "- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s01-step.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
@@ -123,131 +136,19 @@ def _setup_epic_fixture(tmp_path: Path) -> dict[str, Any]:
     }
 
 
-def test_crash_after_context_mixed_identity_recovered(tmp_path: Path) -> None:
-    """TM-001 / US-001 / SC-001: Crash after context write leaves mixed Handoff/index.
-
-    Scenario:
-    - Context file was replaced (staged/written to next step s02).
-    - Process was killed before index commit (s01 is still pending in decompose-index.yaml).
-    - As-built unjournaled behavior has mixed identity: Handoff points to s02, index points to s01 pending.
-    - Recover mechanism (s04) MUST align files: either both new (s02) or both old (s01), never mixed identity.
-
-    Dilution FAIL: 'atomic replace of one file' without multi-file journal leaves mixed identity across files.
-    """
-    fixture = _setup_epic_fixture(tmp_path)
-    act_path: Path = fixture["act_path"]
-    index_yaml: Path = fixture["index_yaml"]
-
-    # Simulate crash after context write: activeContext points to s02, but decompose-index still says s01 pending
-    crashed_context = (
+def _context_for_step(step: str) -> str:
+    return (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-EPIC-DEMO\n"
+        f"step_id: {step}\n"
+        "---\n\n"
         "## load_now\n"
-        "- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n"
+        f"- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/{step}-step.yaml`\n\n"
         "## Handoff BACK IMPLEMENT\n"
-        "- **Следующий:** `BACK IMPLEMENT @s02`\n"
-        "- **Фаза:** `BACK IMPLEMENT`\n"
-        "- **Эпик:** `T-EPIC-DEMO`\n"
-        "- **Шаг:** `s02`\n"
-    )
-    act_path.write_text(crashed_context, encoding="utf-8")
-
-    # Verify that in unrecovered/crashed state we currently have mixed identity
-    ctx_text = act_path.read_text(encoding="utf-8")
-    handoff = extract_handoff_block(ctx_text)
-    assert "@s02" in handoff or "s02" in handoff
-
-    loaded_index = load_decompose_steps_fail_closed(tmp_path, "memory-bank/back/plan/T-EPIC-DEMO/yaml/decompose-index.yaml")
-    steps = loaded_index.get("steps", [])
-    s01_info = next((s for s in steps if s.get("id") == "s01"), None)
-    assert s01_info is not None
-    assert s01_info.get("status") == "pending"
-
-    # Now attempt to recover via prepare_session (which runs recover_finish_transaction and sync_cursor_from_index)
-    from loop.context_loop import prepare_session
-    prep = prepare_session(tmp_path, model="test-model")
-    assert prep.get("ok") is True, f"prepare_session failed during recovery: {prep}"
-
-    # Post-recovery invariant: never mixed identity (either both s01 or both s02)
-    ctx_after = act_path.read_text(encoding="utf-8")
-    handoff_after = extract_handoff_block(ctx_after)
-    handoff_step = "s02" if "@s02" in handoff_after else "s01"
-
-    index_after = load_decompose_steps_fail_closed(tmp_path, "memory-bank/back/plan/T-EPIC-DEMO/yaml/decompose-index.yaml")
-    s01_status = next(s["status"] for s in index_after.get("steps", []) if s.get("id") == "s01")
-
-    if handoff_step == "s02":
-        # New identity: s01 must be completed
-        assert s01_status == "completed", "Mixed identity: Handoff is s02 but s01 is not completed in index"
-    elif handoff_step == "s01":
-        # Rolled back to old identity: s01 is pending, handoff is s01
-        assert s01_status == "pending", "Mixed identity: Handoff rolled back to s01 but index is not pending"
-    else:
-        pytest.fail(f"Unknown handoff step identity: {handoff_step}")
-
-
-def test_mb_finish_handoff_without_token_forbidden_recovery_token_tokenless(tmp_path: Path) -> None:
-    """TM-003 / US-002 / SC-002: Public finish_handoff without token is forbidden.
-
-    Public CLI or unit call to finish_handoff without recovery_token must fail with
-    diagnostic 'finish_handoff_forbidden' and refuse to write/arm state.
-    """
-    _setup_epic_fixture(tmp_path)
-
-    meta = LoopHandoffMeta(mode="BACK IMPLEMENT", role="BACK", epic_id="T-EPIC-DEMO", step_id="s01")
-    load_now = [LoadNowItem(path="memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml", description="Step 2")]
-    body = HandoffBody(mode="BACK IMPLEMENT", next_hint="step 2", epic_id="T-EPIC-DEMO", step_id="s02")
-
-    # Call finish_handoff without recovery_token
-    # On as-built: finish_handoff succeeds (ok=True) and does not require recovery_token.
-    # Contract: MUST return ok=False, diagnostic_codes containing 'finish_handoff_forbidden'.
-    res: MbFinishResult = finish_handoff(meta, load_now, body, cwd=tmp_path)
-
-    assert not res.ok, "Expected finish_handoff without recovery_token to fail"
-    assert "finish_handoff_forbidden" in res.diagnostic_codes, (
-        f"Expected diagnostic 'finish_handoff_forbidden', got {res.diagnostic_codes}"
-    )
-
-
-def test_handoff_without_token_does_not_arm_state_tokenless(tmp_path: Path) -> None:
-    """AC-2: Public finish_handoff without token must not arm state or bypass verify."""
-    _setup_epic_fixture(tmp_path)
-
-    meta = LoopHandoffMeta(mode="BACK IMPLEMENT", role="BACK", epic_id="T-EPIC-DEMO", step_id="s01")
-    load_now = [LoadNowItem(path="memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml", description="Step 2")]
-    body = HandoffBody(mode="BACK IMPLEMENT", next_hint="step 2", epic_id="T-EPIC-DEMO", step_id="s02")
-
-    res = finish_handoff(meta, load_now, body, cwd=tmp_path)
-    state = load_epic_state(tmp_path)
-
-    # State must remain armed on s01, not altered by forbidden handoff
-    assert state.get("armed_step") == "s01"
-    assert "finish_handoff_forbidden" in (res.diagnostic_codes or [])
-
-
-def test_cli_mb_finish_handoff_without_token_fails_closed_tokenless(tmp_path: Path) -> None:
-    """CLI dispatcher 'mb-finish handoff' without recovery_token exits non-zero with error diagnostic."""
-    _setup_epic_fixture(tmp_path)
-
-    cmd = [
-        sys.executable,
-        str(ROOT / "harness" / "hooks" / "epic_resolve.py"),
-        "--cwd",
-        str(tmp_path),
-        "mb-finish",
-        "handoff",
-        "--mode",
-        "BACK IMPLEMENT",
-        "--epic-id",
-        "T-EPIC-DEMO",
-        "--step",
-        "s01",
-    ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-
-    # In s01 red state: as-built epic_resolve.py invokes finish_handoff directly and exits 0.
-    # In target state: exits non-zero (code 2) and outputs diagnostic finish_handoff_forbidden.
-    assert proc.returncode != 0, f"Expected non-zero exit code from tokenless CLI handoff, got 0. stdout: {proc.stdout}"
-    assert "finish_handoff_forbidden" in proc.stdout, (
-        f"Expected 'finish_handoff_forbidden' in stdout, got:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        f"- **Следующий:** `BACK IMPLEMENT @{step}`\n"
     )
 
 
@@ -530,6 +431,18 @@ def test_check_after_does_not_call_public_handoff() -> None:
         assert "finish_handoff(" not in content, "context_loop must not call finish_handoff"
 
 
+def test_phase_finishers_use_shared_finish_transaction_boundary() -> None:
+    """P1-06: phase finishers must not keep direct activeContext backup/write paths."""
+    source = Path("loop/mb_finish/impl.py").read_text(encoding="utf-8")
+    for name in ("finish_decompose", "finish_plan", "finish_audit", "finish_creative"):
+        start = source.index(f"def {name}(")
+        next_def = source.find("\ndef ", start + 1)
+        body = source[start : next_def if next_def != -1 else len(source)]
+        assert "commit_finish_context(" in body
+        assert "atomic_write_text(act_path" not in body
+        assert "backup = None" not in body
+
+
 # ---------------------------------------------------------------------------
 # s04: prepare_session recovers leftover journal before agent work
 # (FR-005, FR-013, US-001, US-004, SC-001, SC-003, AC+2, AC+4, AC−1, AC−3, AC−5, TM-001, TM-002, TM-004, TM-007)
@@ -555,7 +468,7 @@ def test_prepare_session_recovers_leftover_journal(tmp_path: Path) -> None:
         tmp_path,
         "tx-leftover",
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n## Handoff BACK IMPLEMENT\n- **Следующий:** `BACK IMPLEMENT @s02`\n",
+        _context_for_step("s02"),
     )
     # Simulate partial write of activeContext
     act_path.write_text("corrupt_or_partial_context_before_crash", encoding="utf-8")
@@ -601,10 +514,10 @@ def test_crash_after_context_recover_aligns(tmp_path: Path) -> None:
         tmp_path,
         "tx-ctx-written",
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n## Handoff BACK IMPLEMENT\n- **Следующий:** `BACK IMPLEMENT @s02`\n",
+        _context_for_step("s02"),
     )
     # Overwrite target with staged content (simulating crash right after context write)
-    act_path.write_text("## load_now\n- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n## Handoff BACK IMPLEMENT\n- **Следующий:** `BACK IMPLEMENT @s02`\n", encoding="utf-8")
+    act_path.write_text(_context_for_step("s02"), encoding="utf-8")
 
     rec = FinishTxRecord(
         tx_id="tx-ctx-written",
@@ -643,9 +556,7 @@ def test_crash_after_context_and_state_recover_as_one_cursor(
         tmp_path,
         tx_id,
         "memory-bank/activeContext.md",
-        "## load_now\n"
-        "- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n"
-        "## Handoff BACK IMPLEMENT\n- **Шаг:** `s02`\n",
+        _context_for_step("s02"),
     )
     staged_state = stage_epic_state_in_tx(tmp_path, tx_id, state)
     write_finish_tx(
@@ -780,7 +691,7 @@ def test_crash_after_index_pre_marker_recover(tmp_path: Path) -> None:
         tmp_path,
         "tx-idx-written",
         "memory-bank/activeContext.md",
-        "## load_now\n- `memory-bank/back/plan/T-EPIC-DEMO/yaml/steps/s02-step.yaml`\n\n## Handoff BACK IMPLEMENT\n- **Следующий:** `BACK IMPLEMENT @s02`\n",
+        _context_for_step("s02"),
     )
 
     rec = FinishTxRecord(

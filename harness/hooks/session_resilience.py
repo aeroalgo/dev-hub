@@ -1340,7 +1340,6 @@ def load_implement_checkpoint_trace(
             "ANALYZE",
             "CLARIFY",
             "BUGFIX",
-            "REFLECT",
             "DONE",
             "CREATIVE",
             "ARCHIVE",

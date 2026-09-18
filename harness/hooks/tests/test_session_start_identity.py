@@ -55,6 +55,7 @@ def test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt(monkeypatch, tmp_p
             f"Expected CONTEXT_IDENTITY_DRIFT in additionalContext due to state BUGFIX vs AC QA mismatch. Got:\n{ctx}"
         )
         assert "HALT" in ctx, f"Expected HALT card in additionalContext. Got:\n{ctx}"
+        assert res["halt"] is True
 
         # Must NOT emit COMMAND: BACK QA
         assert "COMMAND: BACK QA" not in ctx, "Must not emit COMMAND: BACK QA when armed in BUGFIX"
@@ -189,3 +190,4 @@ def test_epic_phase_mismatch_halt(monkeypatch, tmp_path):
         assert "CONTEXT_IDENTITY_DRIFT" in ctx
         assert "HALT" in ctx
         assert "code: phase_mismatch" in ctx
+        assert res["halt"] is True

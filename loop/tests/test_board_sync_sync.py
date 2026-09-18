@@ -114,7 +114,7 @@ def test_roadmap_selection_failure_is_reported_without_writes(
 ) -> None:
     ref = _project(tmp_path, statuses=["completed"])
     monkeypatch.setattr(
-        "roadmap_queue.select_next_epic",
+        "loop.roadmap_queue.select_next_epic",
         lambda *_: {"ok": False, "error": "queue_yaml_missing"},
     )
     client = FakeClient()

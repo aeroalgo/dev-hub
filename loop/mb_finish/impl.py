@@ -1,4 +1,4 @@
-"""finish_handoff, finish_qa, and finish_bugfix implementation."""
+"""Phase finishers and internal transaction-recovery implementation."""
 
 import hashlib
 import os
@@ -37,6 +37,7 @@ from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, Mb
 from loop.mb_finish.transaction import (
     FinishTxRecord,
     FinishTxState,
+    commit_finish_context,
     commit_staged_files,
     recover_finish_transaction,
     rollback_staged_files,
@@ -701,7 +702,7 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     st["halt_reason"] = None
     qa_dir = resolve_mb_root(cwd) / role_dir / "qa" / epic_id
     changed_paths = extract_changed_paths(bugfix_art.read_text(encoding="utf-8", errors="replace"))
-    suite_plan = suite_plan_after_changes(changed_paths, epic_id=epic_id)
+    suite_plan = suite_plan_after_changes(changed_paths, epic_id=epic_id, role=role)
     st["qa_after_bugfix"] = QaAfterBugfix(
         epic_id=epic_id,
         phase_run_id=state.get("phase_run_id") or state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
@@ -871,14 +872,14 @@ def finish_decompose(
                 c
                 for c in candidates
                 if "/plan/" in c.replace("\\", "/")
-                and c.endswith(("index.yaml", "index.yml", "index.md"))
+                and c.endswith(("index.yaml", "index.yml"))
             ]
             if not preferred:
                 preferred = [
                     c
                     for c in candidates
                     if "/plan/" in c.replace("\\", "/")
-                    and Path(c).name in {"index.yaml", "index.yml", "index.md", "decompose-index.yaml", "decompose-index.yml", "decompose-index.md"}
+                    and Path(c).name in {"index.yaml", "index.yml", "decompose-index.yaml", "decompose-index.yml"}
                 ]
             if preferred:
                 decompose_rel = preferred[0]
@@ -904,7 +905,6 @@ def finish_decompose(
             state["armed_epic"] = epic_id
         if role and not state.get("armed_role"):
             state["armed_role"] = role
-        save_epic_state(cwd, state)
 
     if not decompose_rel:
         return MbFinishResult(
@@ -977,15 +977,19 @@ def finish_decompose(
             shape_errors=[str(exc)],
         )
 
-    backup = None
-    if act_path.exists():
-        try:
-            backup = act_path.read_text(encoding="utf-8")
-        except Exception:
-            backup = None
-
+    tx_id = f"tx-decompose-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
     try:
-        atomic_write_text(act_path, rendered)
+        commit_finish_context(
+            cwd,
+            tx_id=tx_id,
+            epic_id=epic_id or "",
+            step_id="DECOMPOSE",
+            phase=f"{role} DECOMPOSE",
+            active_context_rel=act_rel,
+            active_context=rendered,
+            state=state,
+        )
     except ActiveContextLocked as exc:
         return MbFinishResult(
             ok=False,
@@ -993,11 +997,6 @@ def finish_decompose(
             shape_errors=[str(exc)],
         )
     except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],
@@ -1148,15 +1147,19 @@ def finish_plan(
             shape_errors=[str(exc)],
         )
 
-    backup = None
-    if act_path.exists():
-        try:
-            backup = act_path.read_text(encoding="utf-8")
-        except Exception:
-            backup = None
-
+    tx_id = f"tx-plan-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
     try:
-        atomic_write_text(act_path, rendered)
+        commit_finish_context(
+            cwd,
+            tx_id=tx_id,
+            epic_id=epic_id or "",
+            step_id="PLAN",
+            phase=f"{role} PLAN",
+            active_context_rel=act_rel,
+            active_context=rendered,
+            state=state,
+        )
     except ActiveContextLocked as exc:
         return MbFinishResult(
             ok=False,
@@ -1164,11 +1167,6 @@ def finish_plan(
             shape_errors=[str(exc)],
         )
     except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],
@@ -1250,7 +1248,7 @@ def finish_analyze(
         cand = cwd / decompose_rel
         if cand.is_dir():
             cand = cand / "index.yaml"
-        elif cand.name in {"index.md", "index.yml"}:
+        elif cand.name == "index.yml":
             cand = cand.with_name("index.yaml")
         if cand.is_file():
             idx_path = cand
@@ -1337,15 +1335,20 @@ def finish_audit(
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
-    role = (state.get("armed_role") or "BACK").upper()
-    role_dir = role.lower()
+    phase_role = str(req.phase or "").strip().split(maxsplit=1)[0].upper()
+    if phase_role not in {"BACK", "FRONT", "INTEG", "INTEGRATION"}:
+        phase_role = ""
+    role = (phase_role or state.get("armed_role") or "BACK").upper()
+    role_dir = "integration" if role.lower() == "integ" else role.lower()
 
     if not epic_id:
         decompose = state.get("armed_decompose") or ""
         if decompose:
             epic_id = epic_id_from_decompose_path(decompose)
 
-    audit_art_path = latest_audit_artifact_for_reference(cwd, epic_id=epic_id)
+    audit_art_path = latest_audit_artifact_for_reference(
+        cwd, role_dir=role_dir, epic_id=epic_id
+    )
     audit_art = Path(audit_art_path) if audit_art_path else None
     if not audit_art or not audit_art.is_file():
         return MbFinishResult(
@@ -1453,15 +1456,44 @@ def finish_audit(
             shape_errors=[str(exc)],
         )
 
-    backup = None
-    if act_path.exists():
-        try:
-            backup = act_path.read_text(encoding="utf-8")
-        except Exception:
-            backup = None
+    st_after = load_epic_state(cwd)
+    st_after["armed_step"] = "QA"
+    st_after["phase"] = "QA"
+    st_after["active"] = True
+    st_after["status"] = "running"
+    st_after["halt_reason"] = None
+    fp_data = f"audit:{utc_now()}"
+    fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
+    apply_last_finish_tool(
+        cwd,
+        st_after,
+        "mb-finish audit",
+        fp,
+        finished_step="AUDIT",
+        armed_after_finish="QA",
+        handoff_text=rendered,
+    )
 
+    if epic_id:
+        _append_event(cwd, role_dir, epic_id, "audit_done", audit_art)
+        reconcile_epic_events(cwd, role_dir, epic_id)
+
+    tx_id = f"tx-audit-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
     try:
-        atomic_write_text(act_path, rendered)
+        commit_finish_context(
+            cwd,
+            tx_id=tx_id,
+            epic_id=epic_id or "",
+            step_id="AUDIT",
+            phase=f"{role} AUDIT",
+            active_context_rel=act_rel,
+            active_context=rendered,
+            state=st_after,
+            event_role_dir=role_dir if epic_id else None,
+            event_kind="audit_done" if epic_id else None,
+            event_artifact=audit_rel if epic_id else None,
+        )
     except ActiveContextLocked as exc:
         return MbFinishResult(
             ok=False,
@@ -1469,43 +1501,13 @@ def finish_audit(
             shape_errors=[str(exc)],
         )
     except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],
             shape_errors=[str(exc)],
         )
 
-    if role_dir == "integ":
-        role_dir = "integration"
-    if epic_id:
-        _append_event(cwd, role_dir, epic_id, "audit_done", audit_art)
-        reconcile_epic_events(cwd, role_dir, epic_id)
-
-    st_after = load_epic_state(cwd)
-    st_after["armed_step"] = "QA"
-    st_after["phase"] = "QA"
-    st_after["active"] = True
-    st_after["status"] = "running"
-    st_after["halt_reason"] = None
-    save_epic_state(cwd, st_after)
-
     sync_cursor_from_index(cwd)
-
-    fp_data = f"audit:{utc_now()}"
-    fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-
-    write_last_finish_tool(
-        cwd,
-        "mb-finish audit",
-        fp,
-        finished_step="AUDIT",
-        armed_after_finish="QA",
-    )
 
     return MbFinishResult(
         ok=True,
@@ -1603,15 +1605,19 @@ def finish_creative(
             shape_errors=[str(exc)],
         )
 
-    backup = None
-    if act_path.exists():
-        try:
-            backup = act_path.read_text(encoding="utf-8")
-        except Exception:
-            backup = None
-
+    tx_id = f"tx-creative-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
     try:
-        atomic_write_text(act_path, rendered)
+        commit_finish_context(
+            cwd,
+            tx_id=tx_id,
+            epic_id=epic_id or "",
+            step_id="CREATIVE",
+            phase=f"{role} CREATIVE",
+            active_context_rel=act_rel,
+            active_context=rendered,
+            state=state,
+        )
     except ActiveContextLocked as exc:
         return MbFinishResult(
             ok=False,
@@ -1619,11 +1625,6 @@ def finish_creative(
             shape_errors=[str(exc)],
         )
     except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],

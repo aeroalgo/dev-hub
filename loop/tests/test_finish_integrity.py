@@ -230,7 +230,7 @@ def test_validate_finish_integrity_index_implement_conflict(tmp_path: Path) -> N
     assert result["diagnostic_codes"] == [lib.INDEX_IMPLEMENT_CONFLICT]
 
 
-def test_prepare_session_repairs_false_index_completed(tmp_path: Path) -> None:
+def test_prepare_session_halts_before_repair_on_incomplete_context(tmp_path: Path) -> None:
     ctx = _load_ctx()
     decompose = "memory-bank/back/plan/demo/yaml/decompose-index.yaml"
     _write(
@@ -247,10 +247,11 @@ def test_prepare_session_repairs_false_index_completed(tmp_path: Path) -> None:
 
     result = ctx.prepare_session(tmp_path, model="test-model")
 
-    assert result["ok"] is True
-    assert result.get("halt") is not True
+    assert result["ok"] is False
+    assert result.get("halt") is True
+    assert any("missing_handoff" in code for code in result.get("diagnostic_codes", []))
     idx_text = (tmp_path / decompose).read_text(encoding="utf-8")
-    assert "completed" not in idx_text.lower() or "pending" in idx_text.lower()
+    assert "status: completed" in idx_text
 
 
 def test_validate_finish_integrity_returns_diagnostic_codes_list(tmp_path: Path) -> None:
@@ -946,11 +947,9 @@ def test_prepare_session_repairs_mark_index_missing(tmp_path: Path) -> None:
 
     result = ctx.prepare_session(tmp_path, model="gpt")
 
-    assert result.get("halt") is not True or "mark_index_missing" not in (
-        result.get("diagnostic_codes") or []
-    )
+    assert result.get("halt") is True
     impl_text = (tmp_path / impl).read_text(encoding="utf-8")
-    assert "status: in_progress" in impl_text
+    assert "status: completed" in impl_text
 
 
 def test_finalize_step_last_snn_calls_promote_if_ready(tmp_path: Path, monkeypatch) -> None:

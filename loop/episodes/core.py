@@ -5,16 +5,11 @@ from __future__ import annotations
 import json
 import os
 import re
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-HOOKS_DIR = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-if str(HOOKS_DIR) not in sys.path:
-    sys.path.insert(0, str(HOOKS_DIR))
-
-from epic_paths import epic_dir as get_epic_dir  # noqa: E402
+from harness.hooks.epic_paths import epic_dir as get_epic_dir
 from loop.episodes.bundle import compute_load_now_sha256, copy_artifacts  # noqa: E402
 from loop.schemas.episode import EpisodeManifest  # noqa: E402
 
@@ -119,8 +114,10 @@ def finalize_episode(
             if isinstance(paths, list):
                 initial_data["load_now_sha256"] = compute_load_now_sha256(cwd, paths)
 
-    art_refs = copy_artifacts(cwd, target_dir, check_after_result)
-    initial_data["artifact_refs"] = art_refs
+    bundle = copy_artifacts(cwd, target_dir, check_after_result)
+    initial_data["artifact_refs"] = bundle.refs
+    initial_data["artifact_errors"] = bundle.errors
+    initial_data["artifact_status"] = "partial" if bundle.errors else "complete"
 
     manifest = EpisodeManifest.model_validate(initial_data)
 

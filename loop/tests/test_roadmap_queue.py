@@ -299,7 +299,7 @@ def test_roadmap_advance_arms_next_after_done(tmp_path: Path) -> None:
     assert "T-013" in text
 
 
-def test_roadmap_advance_decompose_prepare_ok_without_index(tmp_path: Path) -> None:
+def test_roadmap_advance_decompose_prepare_halts_without_index(tmp_path: Path) -> None:
     rq = _load_rq()
     ctx = _load_ctx()
     _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
@@ -321,12 +321,9 @@ def test_roadmap_advance_decompose_prepare_ok_without_index(tmp_path: Path) -> N
     assert advance["phase"] == "DECOMPOSE"
     assert advance["epic"] == "T-013"
     prep = ctx.prepare_session(tmp_path, model="test-model")
-    assert prep.get("ok") is True, prep
-    assert prep.get("halt") is not True
-    st_path = tmp_path / ".claude/runtime/epic/state.json"
-    st = json.loads(st_path.read_text(encoding="utf-8"))
-    assert st.get("armed_step") == "DECOMPOSE"
-    assert st.get("armed_decompose") in (None, "")
+    assert prep.get("ok") is False, prep
+    assert prep.get("halt") is True
+    assert any("required" in code for code in prep.get("diagnostic_codes", []))
 
 
 def test_epic_chain_flag_default_off(tmp_path: Path, monkeypatch) -> None:

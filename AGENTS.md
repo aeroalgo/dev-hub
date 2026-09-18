@@ -69,5 +69,6 @@ entrypoint, выбери текущую фазу, затем последова�
 
 ## Root classification & Testing
 
-- Hub (dev-hub self-test): Python tests запускай из корня репозитория через `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
-- Managed projects: верификация выполняется строго через stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest / unmanaged commands.
+- Hub (dev-hub self-test) / **BACK**: Python tests — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
+- **FRONT** (IMPLEMENT/TASK/QA): Vitest + Playwright (`timeout -k 10s 300s npm --prefix frontend exec vitest|playwright …`). **FORBIDDEN:** `bin/pytest` / backend pytest как FRONT suite.
+- Managed projects: верификация через stack profile `capability_checks` и typed execution evidence; без generic fallback к raw pytest. Role surface сохраняется (front checks ≠ backend suite).

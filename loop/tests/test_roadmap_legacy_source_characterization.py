@@ -94,11 +94,20 @@ def test_incident_tracker_attempt_tier1_disabled_characterization(
     assert tracker_enabled.attempt_tier1(tmp_path) is False
 
 
-def test_incident_tracker_attempt_tier1_exception_swallow_characterization(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Characterization: attempt_tier1 returns False without exception when import fails."""
-    monkeypatch.delenv("EPIC_INCIDENT_TIER1", raising=False)
-    tracker = IncidentTracker(tier1_enabled=True)
-    # Under current code, loop.epic_paths is missing and swallowed by except Exception: return False
-    assert tracker.attempt_tier1(tmp_path) is False
+def test_incident_tracker_uses_canonical_epic_path_owner() -> None:
+    """The runner must not retain a bare-import fallback for epic paths."""
+    source = Path("loop/runner/orchestrator.py").read_text(encoding="utf-8")
+    assert "from epic_paths import" not in source
+    assert "except ImportError" not in source
+    assert "DSH_PATH" not in source
+    assert 'runtime/dev-hub/epic/checkpoint.json' not in source
+    assert 'self.config.state_dir / "checkpoint.json"' in source
+
+
+def test_roadmap_queue_uses_package_imports() -> None:
+    """Roadmap runtime must not bootstrap a second bare-module import surface."""
+    source = Path("loop/roadmap_queue.py").read_text(encoding="utf-8")
+    assert "__import__(\"sys\")" not in source
+    assert "from analyze_gate import" not in source
+    assert "from epic import" not in source
+    assert "from epic_paths import" not in source

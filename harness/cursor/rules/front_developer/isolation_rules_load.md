@@ -27,5 +27,3 @@ Legacy (`main.mdc`, `Core/*` кроме pointer на shared paths, `_archive/`) 
 | JANITOR | `_lean/audit.mdc` (scan gates; см. workflow-janitor) |
 | ARCHIVE NOW | `_lean/archive.mdc` |
 | SECURITY | `_lean/security.mdc` (+ `workflow-security.mdc`; epic: `shared/workflow-security-epic.mdc`) |
-
-**REFLECT:** workflow-reflect.mdc — архив; не в hot path / не в таблице режимов.

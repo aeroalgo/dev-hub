@@ -1,18 +1,20 @@
 import os
-import sys
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
-HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-if str(HOOKS) not in sys.path:
-    sys.path.insert(0, str(HOOKS))
-
-from epic_index import index_md_path, load_index_yaml, dump_index_yaml, set_step_status_in_doc, mirror_status_to_md  # noqa: E402
-from loop.parallel.wave import compute_ready_wave  # noqa: E402
-from loop.parallel.overlap import file_overlap_check  # noqa: E402
-from loop.parallel.worktree import create_worktree, destroy_worktree  # noqa: E402
+from harness.hooks.epic import atomic_write_text
+from harness.hooks.epic_index import (
+    dump_index_yaml,
+    index_md_path,
+    load_index_yaml,
+    mirror_status_to_md,
+    set_step_status_in_doc,
+)
+from loop.parallel.wave import compute_ready_wave
+from loop.parallel.overlap import file_overlap_check
+from loop.parallel.worktree import create_worktree, destroy_worktree
 
 
 @dataclass
@@ -72,7 +74,7 @@ def update_step_status_flock(index_path: Path, step_id: str, status: str) -> Non
             doc = load_index_yaml(index_path)
             if doc:
                 set_step_status_in_doc(doc, step_id, status)
-                index_path.write_text(dump_index_yaml(doc), encoding="utf-8")
+                atomic_write_text(index_path, dump_index_yaml(doc))
                 md_path = index_md_path(index_path)
                 if md_path.is_file():
                     mirror_status_to_md(md_path, step_id, status)

@@ -68,41 +68,25 @@ def test_shape_diagnostics_distinguish_duplicate_sections() -> None:
     ]
 
 
-def test_degraded_counter_reaches_configured_cap(tmp_path: Path, monkeypatch) -> None:
+def test_active_context_shape_is_machine_halt(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed(tmp_path)
-    monkeypatch.setenv("EPIC_DEGRADED_MAX", "2")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
         "## load_now\n- broken\n\n## Handoff one\n- x\n\n## Handoff two\n- y\n",
     )
 
-    first = ctx.prepare_session(tmp_path, model="test-model")
-    second = ctx.prepare_session(tmp_path, model="test-model")
-
-    assert first["degraded"] is True
-    assert second["halt"] is True
-    assert second["reason"] == (
-        "NEED_HUMAN: activeContext shape remains invalid after 2 recovery sessions"
-    )
+    out = ctx.prepare_session(tmp_path, model="test-model")
+    assert out["ok"] is False
+    assert out["halt"] is True
+    assert out["diagnostic_codes"]
 
 
-def test_valid_context_resets_degraded_counter(tmp_path: Path, monkeypatch) -> None:
+def test_valid_context_is_not_degraded(tmp_path: Path) -> None:
     ctx = _load_ctx()
-    _seed(tmp_path)
-    monkeypatch.setenv("EPIC_DEGRADED_MAX", "2")
-    _write(
-        tmp_path,
-        "memory-bank/activeContext.md",
-        "## load_now\n- broken\n\n## Handoff one\n- x\n\n## Handoff two\n- y\n",
-    )
-    ctx.prepare_session(tmp_path, model="test-model")
-
     _seed(tmp_path)
     out = ctx.prepare_session(tmp_path, model="test-model")
-    state = ctx.load_epic_state(tmp_path)
 
+    assert out["ok"] is True
     assert out["degraded"] is False
-    assert state["degraded_count"] == 0
-    assert state["degraded_fingerprint"] is None

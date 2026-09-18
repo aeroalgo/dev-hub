@@ -98,6 +98,14 @@ def mb_finish_hint_after_verdict(
     if not cli:
         return None
     label = str(agent_type or "verify")
+    if verdict_u == "PASS":
+        return (
+            f"{label} VERDICT: PASS — lifecycle atomically invokes `{cli}` and commits the step. "
+            "Если JSON-ответ содержит `ok: true`, немедленно останови текущий turn. "
+            "Parent MUST stop this turn now; не читай файлы, не запускай дополнительные проверки; "
+            "do not rerun mb-finish, inspect the gate, or start another session. "
+            "FORBIDDEN: ручной Write activeContext."
+        )
     return (
         f"{label} VERDICT: {str(verdict).upper()} — parent: сразу вызови `{cli}` "
         "(FORBIDDEN: ручной Write activeContext на FINISH). "

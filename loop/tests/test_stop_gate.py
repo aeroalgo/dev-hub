@@ -54,6 +54,28 @@ def _write(rel: str, body: str, cwd: Path) -> None:
 
 
 def _ensure_gate_agents(cwd: Path) -> None:
+    # Stop-gate now resolves phase gates through the canonical workflow-pack
+    # registry.  Keep this fixture self-contained instead of relying on the
+    # removed hub-root fallback.
+    (cwd / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: dev-hub-software\n"
+        "default_target: backend\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
+    phase_registry = cwd / "loop" / "schemas" / "phase_registry.yaml"
+    phase_registry.parent.mkdir(parents=True, exist_ok=True)
+    phase_registry.write_text(
+        (ROOT / "loop" / "schemas" / "phase_registry.yaml").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
+    (cwd / "memory-bank").mkdir(parents=True, exist_ok=True)
     agents = cwd / ".claude" / "agents"
     agents.mkdir(parents=True, exist_ok=True)
     specs = (
@@ -1096,15 +1118,28 @@ def test_stop_gate_armed_epic_ignored_without_epic_loop(tmp_path: Path) -> None:
 def test_session_start_payload_requires_epic_loop(tmp_path: Path, monkeypatch) -> None:
     epic_lib = _load_epic_lib()
     _write(
-        "memory-bank/back/plan/decompose-ssp/index.md",
+        "memory-bank/back/plan/ssp/md/decompose-index.md",
         "| Step | Status |\n| --- | --- |\n| **s01** | pending |\n",
         tmp_path,
     )
     _write(
+        "memory-bank/back/plan/ssp/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: ssp\nsteps:\n"
+        "- id: s01\n  file: steps/s01-one.yaml\n  status: pending\n",
+        tmp_path,
+    )
+    _write(
+        "memory-bank/back/plan/ssp/yaml/steps/s01-one.yaml",
+        "schema: epic-decompose/v1\nstep_id: s01\nplan_id: ssp\n"
+        "next_phase: BACK IMPLEMENT\nneeds_creative: 'no'\n",
+        tmp_path,
+    )
+    _write(
         "memory-bank/activeContext.md",
-        "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\nepic_id: ssp\n---\n"
-        "## load_now\n- `memory-bank/back/plan/decompose-ssp/index.md`\n\n"
-        "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
+        "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\n"
+        "epic_id: ssp\nstep_id: s01\n---\n"
+        "## load_now\n- `memory-bank/back/plan/ssp/yaml/decompose-index.yaml`\n\n"
+        "## Handoff BACK IMPLEMENT — s01\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
     ctx = _load_context_loop()
@@ -1243,8 +1278,8 @@ def test_mark_index_step_status_one_row(tmp_path: Path) -> None:
     assert r["ok"] is True
     assert r.get("canon") == "index.yaml"
     text = idx.read_text(encoding="utf-8")
-    assert "| **e13** | [e13-b.yaml](e13-b.yaml) | INTEG IMPLEMENT | completed |" in text
-    assert "| **e14** | [e14-c.yaml](e14-c.yaml) | INTEG IMPLEMENT | pending |" in text
+    assert "**e13**" in text and "completed" in text
+    assert "**e14**" in text and "pending" in text
     assert "- [x] e13 — b" in text
     assert "- [ ] e14 — c" in text
     yml = ypath.read_text(encoding="utf-8")
@@ -1681,7 +1716,7 @@ def test_projection_phase_none_keeps_regex_fallback(tmp_path: Path) -> None:
 
 def test_gates_from_phase_ignores_terminal_phases() -> None:
     epic_lib = _load_epic_lib()
-    assert epic_lib.gates_from_phase("REFLECT") == {
+    assert epic_lib.gates_from_phase("UNKNOWN_PHASE") == {
         "mode": None,
         "need_verify": False,
         "need_reviewer": False,

@@ -48,6 +48,26 @@ def _queue(project: Path, epic: str) -> None:
     )
 
 
+def test_legacy_queue_files_are_not_board_sources(tmp_path: Path) -> None:
+    project, ref = _project(tmp_path)
+    legacy = project / "memory-bank/back/plan/roadmap-epics.queue.yaml"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text(
+        yaml.safe_dump(
+            {
+                "version": "roadmap-queue/v2",
+                "role": "back",
+                "queue": [{"id": "T-LEGACY", "deps": []}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from loop.board_sync.scan_gates import _queued_epics
+
+    assert _queued_epics(project, "back") == set()
+
+
 def test_gate_analyze(tmp_path: Path) -> None:
     project, workspace = _project(tmp_path)
     _index(project, "T-DEMO", ["pending"])
@@ -140,7 +160,7 @@ def test_roadmap_invalid_queue_diagnostic(monkeypatch, tmp_path: Path) -> None:
         lambda *_: {"phase": "ROADMAP", "reason_code": "roadmap_required"},
     )
     monkeypatch.setattr(
-        "roadmap_queue.select_next_epic",
+        "loop.roadmap_queue.select_next_epic",
         lambda *_: {"ok": False, "error": "queue_yaml_missing"},
     )
 
@@ -154,10 +174,10 @@ def test_roadmap_valid_selection_is_side_effect_free(monkeypatch, tmp_path: Path
     _, workspace = _project(tmp_path)
     calls: list[str] = []
     monkeypatch.setattr(
-        "roadmap_queue.select_next_epic",
+        "loop.roadmap_queue.select_next_epic",
         lambda *_: {"ok": True, "entry": {"epic": "T-NEXT"}},
     )
-    monkeypatch.setattr("roadmap_queue.arm_roadmap_entry", lambda *_: calls.append("arm"))
+    monkeypatch.setattr("loop.roadmap_queue.arm_roadmap_entry", lambda *_: calls.append("arm"))
 
     gates = scan_gates([workspace], [])
 

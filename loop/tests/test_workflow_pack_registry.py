@@ -64,6 +64,39 @@ def test_default_pack_paths(tmp_path: Path) -> None:
             os.environ["EPIC_WORKFLOW_PACK"] = old_env_ewp
 
 
+def test_managed_product_uses_hub_phase_registry_and_product_memory_bank(
+    tmp_path: Path,
+) -> None:
+    """Managed products keep artifacts locally while phase rules live in dev-hub."""
+    hub = tmp_path / "dev-hub"
+    project = tmp_path / "product"
+    (hub / "loop" / "schemas").mkdir(parents=True, exist_ok=True)
+    (project / "memory-bank").mkdir(parents=True, exist_ok=True)
+    (hub / "loop" / "workflow_pack_registry.yaml").write_text(
+        "schema: workflow-pack-registry/v1\n"
+        "default: dev-hub-software\n"
+        "packs:\n"
+        "  dev-hub-software:\n"
+        "    id: dev-hub-software\n"
+        "    roles: [back, front, integration]\n"
+        "    command_prefixes: [BACK, FRONT, INTEG]\n"
+        "    phase_registry: loop/schemas/phase_registry.yaml\n"
+        "    memory_bank: memory-bank\n"
+        "    rules_root: .cursor/rules\n"
+        "    artifact_layout: software-epic-v1\n",
+        encoding="utf-8",
+    )
+    (hub / "loop" / "schemas" / "phase_registry.yaml").write_text(
+        "schema: loop-phase-registry/v1\nphases: {}\n",
+        encoding="utf-8",
+    )
+
+    res = full_resolve(cwd=project, hub_root=hub)
+
+    assert res.ok is True, res.diagnostic_codes
+    assert res.pack_id == "dev-hub-software"
+
+
 def test_corrupt_registry_yaml(tmp_path: Path) -> None:
     """TM-003 / FR-003: Malformed yaml in registry -> load_registry -> Exception / validation failure."""
     corrupt_registry_dir = tmp_path / "loop"
@@ -251,4 +284,3 @@ def test_software_pack_unaffected() -> None:
             os.environ["WORKFLOW_PACK"] = old_env_wp
         if old_env_ewp is not None:
             os.environ["EPIC_WORKFLOW_PACK"] = old_env_ewp
-

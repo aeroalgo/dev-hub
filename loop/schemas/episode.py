@@ -34,6 +34,8 @@ class EpisodeManifest(BaseModel):
     load_now_paths: list[str] = Field(default_factory=list)
     load_now_sha256: list[str] = Field(default_factory=list)
     artifact_refs: dict[str, str] = Field(default_factory=dict)
+    artifact_status: Literal["complete", "partial"] = "complete"
+    artifact_errors: list[str] = Field(default_factory=list)
 
     @field_validator("schema", mode="before")
     @classmethod

@@ -18,7 +18,7 @@ alwaysApply: false
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
 | `* QA` | align after suite |
 | `* ARCHIVE NOW` | clear epic load_now |
-| `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; reflection артефакты остаются (не gate); clear `load_now`; «await VAN» / next T-xxx |
+| `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; архивные reflection-артефакты сохраняются (не gate); clear `load_now`; «await VAN» / next T-xxx |
 | `* CREATIVE` | rewire `sNN`/`eNN` канон `yes (CR-…) — **closed**` / index `yes (CR-…) ✅`; next tip по open/closed (`templates/decompose/epic-step.yaml`) |
 | `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
 | `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |

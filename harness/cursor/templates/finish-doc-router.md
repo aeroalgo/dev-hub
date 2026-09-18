@@ -1,7 +1,7 @@
 # FINISH — doc-router update
 
 **Task:** T-xxx  
-**Command:** BACK IMPLEMENT | QA | REFLECT | ARCHIVE | PLAN | VAN | INTEG …
+**Command:** BACK IMPLEMENT | QA | ARCHIVE | PLAN | VAN | INTEG …
 
 Канон заполнения `activeContext.md`: **Write весь файл целиком** на FINISH.  
 Структура: `## load_now` → **ровно один** `## Handoff …` → **≤ один** `## done — do NOT load`.  
@@ -51,7 +51,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 ## tasks.md Index
 
 - IMPLEMENT sNN: **не** трогать руками — пишет `finalize-step` (`tasks/log` всегда; Active-строка только при смене фазы эпика)
-- PLAN / DECOMPOSE / QA / REFLECT / ARCHIVE: обновить колонки **Step**, **Status** и **Progress** для T-xxx
+- PLAN / DECOMPOSE / QA / ARCHIVE: обновить колонки **Step**, **Status** и **Progress** для T-xxx
 - last-5: только при смене фазы, не на каждый sNN
 
 ## Delivery log
@@ -62,7 +62,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 | YYYY-MM-DD | T-xxx | BACK IMPLEMENT sNN | [sNN-slug.yaml](back/implement/.../sNN-slug.yaml) |
 ```
 
-**Когда руками:** FINISH PLAN / DECOMPOSE / CREATIVE / QA / BUGFIX / TASK / REFLECT / ARCHIVE.  
+**Когда руками:** FINISH PLAN / DECOMPOSE / CREATIVE / QA / BUGFIX / TASK / ARCHIVE.
 **Пропуск агентом:** checkbox внутри шага; IMPLEMENT sNN (хук).
 
 ## Shard checkbox / implement (ORDER — до decompose completed)
@@ -115,9 +115,9 @@ QA (обязателен всегда — pass и blocked). Роль: `BACK` | `
 Без эпика: путь плоско `memory-bank/back/qa/qa-….yaml`. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc.
 
 **pass** — добавить:
-- **Следующий:** BACK REFLECT | BACK IMPLEMENT sNN+1 | ARCHIVE NOW
+- **Следующий:** BACK IMPLEMENT sNN+1 | ARCHIVE NOW
 - **Кратко:** suite green; scope подтверждён
-- **New chat:** yes → REFLECT или следующий IMPLEMENT
+- **New chat:** yes → следующий IMPLEMENT или ARCHIVE NOW
 
 **fail | blocked** — добавить (обязательно):
 - **Следующий:** `BACK BUGFIX` (первая строка Fix plan) → затем повторный `BACK QA`
@@ -149,7 +149,7 @@ BUGFIX FINISH — обязательная рекомендация QA:
 - **Queue:** [bugfix-queue.yaml](memory-bank/back/bugfix/<epic_id>/bugfix-queue.yaml) — первый open/in_progress; queue status SoT
 - **Предыдущий:** [bugfix-…](memory-bank/back/bugfix/<epic_id>/bugfix-….md) — progress report
 - **Источник QA:** [qa-…](memory-bank/back/qa/qa-….yaml) — issue QA-1, QA-2
-- **Следующий:** `BACK QA <plan_id> — <предмет>` (повтор эпика; не REFLECT пока QA не pass)
+- **Следующий:** `BACK QA <plan_id> — <предмет>` (повтор эпика; после исправления)
 - **Epic QA:** scope + suite из исходного qa §Epic QA
 - **Осталось в queue:** BF-… `open|in_progress|blocked` (если есть; BUGFIX не завершается)
 - **code_changed:** yes

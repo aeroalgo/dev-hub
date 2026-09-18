@@ -5,7 +5,6 @@ from loop.mb_finish.impl import (
     finish_audit,
     finish_bugfix,
     finish_decompose,
-    finish_handoff,
     finish_plan,
     finish_qa,
 )
@@ -28,7 +27,6 @@ __all__ = [
     "finish_audit",
     "finish_bugfix",
     "finish_decompose",
-    "finish_handoff",
     "finish_plan",
     "finish_qa",
     "render_active_context",

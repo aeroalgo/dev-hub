@@ -3,8 +3,8 @@
 
 Канон переходов и next mode: activeContext.md + decompose index.
 Next mode/step — решение модели по context, не отдельный FSM-парсер runner.
-Если load_now/shape парсятся плохо — всё равно стартуем сессию: агент сам
-читает activeContext + decompose index и выбирает шаг (и чинит activeContext).
+Если load_now/shape парсятся плохо — prepare останавливает loop до исправления
+activeContext; частичный контекст не является достаточным основанием для spawn.
 """
 from __future__ import annotations
 
@@ -81,7 +81,6 @@ from harness.hooks.epic import (  # noqa: E402
     read_active_context,
     rebuild_epic_projection,
     clear_stale_verify_no_verdict_handoff,
-    repair_index_mirror,
     repair_fingerprint_stall,
     repair_premature_completed_after_failed_finish,
     sync_cursor_from_index,
@@ -565,17 +564,11 @@ def discover_decompose_indexes(cwd: str | Path, *, limit: int = 5) -> list[str]:
     found: list[str] = []
     # Discover v2 epics first
     for role, epic_id in discover_v2_epics(root):
-        idx_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=root)
-        if idx_md.is_file():
-            found.append(idx_md.relative_to(root).as_posix())
+        idx_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
+        if idx_yaml.is_file():
+            found.append(idx_yaml.relative_to(root).as_posix())
             if len(found) >= limit:
                 return found
-        else:
-            idx_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
-            if idx_yaml.is_file():
-                found.append(idx_yaml.relative_to(root).as_posix())
-                if len(found) >= limit:
-                    return found
 
     return found
 
@@ -928,6 +921,8 @@ def _qa_work_block(_role: str, epic_id: str, *, cwd: Path | None = None, state: 
 
     cwd_p = Path(cwd or Path("."))
     st = dict(state or {})
+    st.setdefault("role", _role)
+    st.setdefault("armed_role", _role)
     prior_only = isinstance(st.get("qa_after_bugfix"), dict)
     freeze = ensure_freeze(
         cwd_p,
@@ -945,7 +940,7 @@ def _qa_work_block(_role: str, epic_id: str, *, cwd: Path | None = None, state: 
     return (
         f"""## QA canon (HARD) — classifier-driven
 1. Прочитай только QA-цепочку выбранного workflow через entrypoint и `mainrule.mdc`.
-2. Ровно один suite-command из classifier ниже. FORBIDDEN: повторные прогоны, смена flags, `python -m pytest`, thrash.
+2. Ровно один suite-command из classifier ниже (как есть). FORBIDDEN: повторные прогоны, смена flags, подмена команды, thrash. FRONT: не подменяй Vitest/Playwright на `bin/pytest`.
 3. QA — review epic `{epic_id}`: не чини код в этой сессии.
 4. Следуй `next_action` классификатора: bugfix без verify; verify_qa только на all_green после suite.
 5. Pack verify-qa from **Frozen QA checklist** below (1:1). FORBIDDEN: reformulate AC or raise the bar.
@@ -1272,7 +1267,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "2a. Читай только `bugfix-queue.yaml`; возьми первый `open`/`in_progress`, переведи в `in_progress`, исправь его и после targeted green запиши `done` + evidence + done_at. За сессию можно закрыть часть очереди.\n"
             "2b. Не перепрыгивай через open; без human переводи текущий пункт в `blocked` + NEED_HUMAN. `bugfix-queue.yaml` — единственный SoT статусов, prose bugfix-*.md — отчёт.\n"
             "3. Полную `verification.command` запускай только когда все items terminal; PASS требует evidence. FAIL → gate repair, append новых open в ту же очередь, фаза остаётся BUGFIX.\n"
-            "4. After queue verification PASS and verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
+            "4. After queue verification PASS and verify-bugfix PASS: lifecycle atomically commits `mb-finish bugfix`; parent immediately stops the turn.\n"
             "5. Следующий режим и artifact определяет текущий workflow; не придумывай другой маршрут.\n"
             "6. После успешного FINISH останови сессию: BACK QA выполнит следующий запуск runner.\n"
             "7. Не создавай QA verdict и не вызывай mb-finish qa в BUGFIX-сессии; не изменяй gate evidence.\n"
@@ -1284,9 +1279,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             explorer_on=explorer_on,
         )
         finish_block = (
-            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish implement --step <sNN>`\n"
-            "> Если JSON-ответ `mb-finish` содержит `ok: true`, немедленно заверши текущую сессию/turn. Не делай после этого Read, Grep, Bash, git status или повторную валидацию. Следующий шаг runner запустит отдельным эпизодом.\n"
-            "> Если `ok: false`, остановись на диагностике CLI и исправляй только указанную причину.\n"
+            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) lifecycle atomically commits the implement step через `mb-finish implement`. Parent immediately stops the turn; do not rerun `mb-finish implement`, inspect the gate, or start another session for the same PASS.\n"
         )
     elif phase_kind == "qa":
         finish_block = (
@@ -1297,7 +1290,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "Только потом один `qa-*.yaml`: `blockers`/`fix_plan` 1:1 **только с eligible** "
             "`## BLOCKERS (complete)` (+ suite/leftover gaps). "
             "FAIL/BLOCKED с eligible B* → seed/merge `bugfix-queue.yaml`, Handoff BUGFIX + `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`. "
-            "PASS (в т.ч. только ineligible residuals) → тот же `mb-finish qa` (DONE).\n"
+            "PASS (в т.ч. только ineligible residuals) → lifecycle атомарно вызывает `mb-finish qa` (DONE); parent сразу останавливает turn. После PASS запрещены ручной повторный `mb-finish`, `rg`/Read по gate и новый QA-сеанс для того же verdict.\n"
             "> FORBIDDEN: fail-fast mid-checks / partial eligible blockers / repair-loop / повторный suite / "
             "правки продукта в QA / spawn verify-qa while suite incomplete / "
             "BUGFIX из style·naming·comments·«сделай тест строже plan».\n"
@@ -1321,13 +1314,11 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
     elif phase_kind == "analyze":
         finish_block = (
-            "\n> После analyze yaml на диске и analyze-verify PASS → "
-            "runtime делает atomic `mb-finish analyze` (или parent: "
-            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish analyze`).\n"
+            "\n> После analyze yaml на диске и analyze-verify PASS lifecycle делает atomic `mb-finish analyze`; parent immediately stops the turn.\n"
             "FORBIDDEN: ручной Write activeContext на FINISH ANALYZE.\n"
             "> Если `mb-finish` / auto-finish вернул `ok: true` — немедленно останови turn без новых tools "
             "(не читай файлы, не запускай дополнительные проверки); следующий шаг — новый runner-эпизод.\n"
-            "> FORBIDDEN после analyze-verify PASS: повторный Read/Bash/исследование gate — только finish или stop.\n"
+            "> FORBIDDEN после analyze-verify PASS: повторный Read/Bash/исследование gate, ручной `mb-finish` или новый session — только stop.\n"
         )
     elif phase_kind == "decompose":
         finish_block = _decompose_finish_block()
@@ -1457,10 +1448,6 @@ def _analyze_phase_complete(cwd: Path) -> bool:
         v2_idx = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
         if v2_idx.is_file():
             idx_path = v2_idx
-        else:
-            v2_md = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd)
-            if v2_md.is_file():
-                idx_path = v2_md
     if idx_path is None or not idx_path.is_file():
         return False
     loaded = load_steps_for_index(cwd, idx_path)
@@ -1809,6 +1796,9 @@ def prepare_session(
         ac_rel = str(ac.relative_to(cwd_p)) if ac.is_relative_to(cwd_p) else str(ac)
         return {
             "ok": False,
+            "complete": False,
+            "halt": True,
+            "diagnostic_codes": ["missing_active_context"],
             "reason": f"нет {ac_rel} — создай файл или восстанови из git",
         }
 
@@ -1817,6 +1807,37 @@ def prepare_session(
     recovered = recover_finish_transaction(cwd_p)
     if not recovered.get("ok") and recovered.get("halt"):
         return recovered
+
+    # Validate and resolve the bundle after transaction recovery but before
+    # projection repair or phase promotion. A malformed cursor must not reach
+    # any path that can spawn a session, even if a recovery branch could infer
+    # a step.
+    try:
+        preflight_load = load_session(cwd_p)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "complete": False,
+            "halt": True,
+            "diagnostic_codes": [f"required_context_exception:{type(exc).__name__}"],
+            "reason": f"CONTEXT_INCOMPLETE: session context load failed: {exc}",
+        }
+    if not preflight_load.ok or preflight_load.status != "complete":
+        diagnostic_codes = sorted(
+            set(preflight_load.diagnostic_codes or [])
+            | {f"missing_required:{path}" for path in preflight_load.required_missing}
+            | set(preflight_load.shape_errors or [])
+            | ({"context_incomplete"} if not preflight_load.diagnostic_codes and not preflight_load.shape_errors else set())
+        )
+        return {
+            "ok": False,
+            "complete": False,
+            "halt": True,
+            "diagnostic_codes": diagnostic_codes,
+            "required_missing": list(preflight_load.required_missing),
+            "shape_errors": list(preflight_load.shape_errors),
+            "reason": "CONTEXT_INCOMPLETE: required session context is missing or invalid",
+        }
 
     cleared_role = clear_reserved_role_arm(cwd_p)
     if cleared_role.get("cleared"):
@@ -2061,12 +2082,6 @@ def prepare_session(
         state["armed_decompose"] = decompose
         save_epic_state(cwd_p, state)
     if decompose:
-        md_repair = repair_index_mirror(cwd_p, decompose)
-        if not md_repair.get("ok"):
-            logger.warning(
-                "prepare: md mirror repair skipped (yaml remains canon): %s",
-                md_repair.get("error") or md_repair,
-            )
         # Failed finish must not advance on agent-written completed.
         failed_step = str(state.get("finish_failed_step") or "").strip()
         if (
@@ -2242,20 +2257,35 @@ def prepare_session(
         text = cleaned
         stripped_blocked = True
 
-    mb_load_res = load_session(cwd_p)
+    try:
+        mb_load_res = load_session(cwd_p)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "complete": False,
+            "halt": True,
+            "diagnostic_codes": [f"required_context_exception:{type(exc).__name__}"],
+            "reason": f"CONTEXT_INCOMPLETE: session context load failed: {exc}",
+        }
+    if not mb_load_res.ok or mb_load_res.status != "complete":
+        diagnostic_codes = sorted(
+            set(mb_load_res.diagnostic_codes or [])
+            | {f"missing_required:{path}" for path in mb_load_res.required_missing}
+            | set(mb_load_res.shape_errors or [])
+            | ({"context_incomplete"} if not mb_load_res.diagnostic_codes and not mb_load_res.shape_errors else set())
+        )
+        return {
+            "ok": False,
+            "complete": False,
+            "halt": True,
+            "diagnostic_codes": diagnostic_codes,
+            "required_missing": list(mb_load_res.required_missing),
+            "shape_errors": list(mb_load_res.shape_errors),
+            "reason": "CONTEXT_INCOMPLETE: required session context is missing or invalid",
+        }
     shape = mb_load_res.shape_errors or validate_active_context_shape(text)
-    load_now = [item.path for item in mb_load_res.load_now] if mb_load_res.ok else extract_load_now(text)
-    existing: list[str] = [f.path for f in mb_load_res.files] if mb_load_res.ok else []
-    if not existing:
-        for raw in load_now:
-            p = raw.strip()
-            if not p.startswith("memory-bank/"):
-                if p.startswith(("back/", "front/", "integration/")):
-                    p = f"memory-bank/{p}"
-                else:
-                    continue
-            if (cwd_p / p).is_file() or (cwd_p / p).is_dir():
-                existing.append(p)
+    load_now = [item.path for item in mb_load_res.load_now]
+    existing: list[str] = [f.path for f in mb_load_res.files]
 
     delta_scope, delta_paths = detect_delta_paths(cwd_p, existing)
     delta_ok = delta_scope == "exist"
@@ -2415,7 +2445,7 @@ def prepare_session(
     )
 
     fp = fingerprint_context(text)
-    degraded = bool(shape) or not existing
+    degraded = False
 
     pp = prompt_path(cwd_p)
     pp.write_text(prompt, encoding="utf-8")
@@ -2434,28 +2464,8 @@ def prepare_session(
     st["step_progress_fingerprint"] = _step_progress_fingerprint(
         cwd_p, progress_paths
     )
-    previous_fp = st.get("degraded_fingerprint")
-    if degraded:
-        if previous_fp == fp:
-            st["degraded_count"] = int(st.get("degraded_count") or 0) + 1
-        else:
-            st["degraded_count"] = 1
-        st["degraded_fingerprint"] = fp
-        max_degraded = resolve_runtime_config(cwd_p).degraded_max
-        if st["degraded_count"] >= max_degraded:
-            reason = (
-                f"NEED_HUMAN: activeContext shape remains invalid after "
-                f"{max_degraded} recovery sessions"
-            )
-            st["active"] = False
-            st["status"] = "halted"
-            st["halt_reason"] = reason
-            save_epic_state(cwd_p, st)
-            return {"ok": False, "complete": False, "halt": True, "reason": reason}
-    else:
-        st["degraded_count"] = 0
-        st["degraded_fingerprint"] = None
-    st["context_degraded"] = degraded
+    st["degraded_count"] = 0
+    st["degraded_fingerprint"] = None
     st["delta_paths_exist"] = delta_scope == "exist"
     st["delta_paths_scoped"] = delta_scope == "scoped"
     st["delta_scope"] = delta_scope
@@ -3116,12 +3126,6 @@ def check_after(
         state["armed_decompose"] = decompose
         save_epic_state(cwd_p, state)
     if decompose:
-        md_repair = repair_index_mirror(cwd_p, decompose)
-        if not md_repair.get("ok"):
-            logger.warning(
-                "check_after: md mirror repair skipped (yaml remains canon): %s",
-                md_repair.get("error") or md_repair,
-            )
         finish_integrity = validate_finish_integrity_with_repair(
             cwd_p,
             decompose=decompose,
@@ -3322,57 +3326,47 @@ def check_after(
         st = load_epic_state(cwd_p)
         fp_now = fingerprint_context(text)
         shape = validate_active_context_shape(text)
-    degraded = bool(shape) or not extract_load_now(text)
-    if degraded:
-        max_degraded = resolve_runtime_config(cwd_p).degraded_max
-        count = int(st.get("degraded_count") or 0)
-        if st.get("degraded_fingerprint") == fp_now:
-            count += 1
-        else:
-            count = 1
-        st["degraded_count"] = count
-        st["degraded_fingerprint"] = fp_now
-        save_epic_state(cwd_p, st)
-        if count >= max_degraded:
-            reason = (
-                f"NEED_HUMAN: activeContext shape remains invalid after "
-                f"{max_degraded} recovery sessions"
-            )
-            st["active"] = False
-            st["status"] = "halted"
-            st["halt_reason"] = reason
-            save_epic_state(cwd_p, st)
-            return {"ok": False, "halt": True, "reason": reason}
-    else:
-        st["degraded_count"] = 0
-        st["degraded_fingerprint"] = None
-        save_epic_state(cwd_p, st)
-        projection = rebuild_epic_projection(cwd_p)
-        cp = load_checkpoint(cwd_p)
-        if cp:
-            step_id = str(st.get("armed_step") or cp.get("step_id") or "").strip()
-            step_completed = _checkpoint_should_advance_after_session(cwd_p, step_id)
-            # Advance when index step finalized or post-implement phase finished
-            # (AUDIT/QA/BUGFIX). Otherwise same_step — avoids committed/next_step
-            # ghosts that halt re-arm with checkpoint_projection_conflict while index
-            # still pending.
-            checkpoint_lifecycle(
-                cwd_p,
-                checkpoint_id=cp["checkpoint_id"],
-                session_id=cp["session_id"],
-                runner_id=cp.get("runner_id"),
-                identity=cp.get("identity"),
-                step_id=cp["step_id"],
-                phase=cp["phase"],
-                phase_epoch=projection.get("phase_epoch") or cp["phase_epoch"],
-                projection_hash=projection.get("projection_hash"),
-                index_fingerprint=(projection.get("projection") or {}).get("index_fingerprint"),
-                context_fingerprint=fp_now,
-                stage="committed",
-                status="committed",
-                next_action="advance" if step_completed else "resume",
-                resume_policy="next_step" if step_completed else "same_step",
-            )
+    if shape or not extract_load_now(text):
+        diagnostic_codes = sorted(set(shape) or {"missing_load_now"})
+        return {
+            "ok": False,
+            "complete": False,
+            "halt": True,
+            "diagnostic_codes": diagnostic_codes,
+            "shape_errors": shape,
+            "reason": "CONTEXT_INCOMPLETE: activeContext is invalid after session execution",
+            "fingerprint": fp_now,
+        }
+
+    st["degraded_count"] = 0
+    st["degraded_fingerprint"] = None
+    save_epic_state(cwd_p, st)
+    projection = rebuild_epic_projection(cwd_p)
+    cp = load_checkpoint(cwd_p)
+    if cp:
+        step_id = str(st.get("armed_step") or cp.get("step_id") or "").strip()
+        step_completed = _checkpoint_should_advance_after_session(cwd_p, step_id)
+        # Advance when index step finalized or post-implement phase finished
+        # (AUDIT/QA/BUGFIX). Otherwise same_step — avoids committed/next_step
+        # ghosts that halt re-arm with checkpoint_projection_conflict while index
+        # still pending.
+        checkpoint_lifecycle(
+            cwd_p,
+            checkpoint_id=cp["checkpoint_id"],
+            session_id=cp["session_id"],
+            runner_id=cp.get("runner_id"),
+            identity=cp.get("identity"),
+            step_id=cp["step_id"],
+            phase=cp["phase"],
+            phase_epoch=projection.get("phase_epoch") or cp["phase_epoch"],
+            projection_hash=projection.get("projection_hash"),
+            index_fingerprint=(projection.get("projection") or {}).get("index_fingerprint"),
+            context_fingerprint=fp_now,
+            stage="committed",
+            status="committed",
+            next_action="advance" if step_completed else "resume",
+            resume_policy="next_step" if step_completed else "same_step",
+        )
     post_phase = None
     epic_info = discover_epic_for_pipeline(cwd_p)
     if epic_info:
@@ -3385,7 +3379,7 @@ def check_after(
         "load_now": extract_load_now(text),
         "fingerprint": fp_now,
         "shape_errors": shape,
-        "degraded": degraded,
+        "degraded": False,
         "fingerprint_repair": fingerprint_repair,
         "post_implement_phase": post_phase,
     }
@@ -3547,7 +3541,6 @@ def _rearm_same_phase_after_retry(
         "BUGFIX",
         "AUDIT",
         "QA",
-        "REFLECT",
     }
     try:
         from loop.epic_transition import arm_phase, normalize_registry_phase
@@ -3753,7 +3746,6 @@ def record_abort(
             and bool(finish_tool.get("fingerprint"))
             and str(st.get("last_finished_step") or "").strip().lower()
             == str(finish_fail_step).lower()
-            and st.get("armed_decompose")
         )
         if already_finished:
             cursor_sync = sync_cursor_from_index(cwd_p)
@@ -4155,7 +4147,7 @@ def _node_status(cwd: Path, node: dict[str, Any]) -> str:
     decompose = _node_decompose_path(node)
     idx = Path(cwd) / decompose
     if idx.is_dir():
-        idx = idx / "index.md"
+        idx = idx / "index.yaml"
     try:
         from epic import find_next_decompose_step_from_queue
         from epic import load_decompose_steps_fail_closed
@@ -4163,13 +4155,6 @@ def _node_status(cwd: Path, node: dict[str, Any]) -> str:
     except (OSError, TypeError, ValueError, yaml.YAMLError):
         return "unknown"
     if not loaded["ok"]:
-        if loaded.get("diagnostic_code") == "index_ambiguous":
-            try:
-                from epic import parse_steps_from_md
-                md_steps = parse_steps_from_md(idx.read_text(encoding="utf-8", errors="replace"))
-            except (OSError, Exception):
-                return "unknown"
-            return "done" if not md_steps else "unknown"
         return "unknown"
     if find_next_decompose_step_from_queue(loaded["steps"]):
         return "pending"
@@ -4799,9 +4784,9 @@ def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
             text = gap.read_text(encoding="utf-8", errors="replace")
             links = list(dict.fromkeys(re.findall(r"decompose-[A-Za-z0-9._-]+", text)))
             data = {
-                "back": {"decompose": f"{mb_root_rel}/back/plan/{links[0]}/index.md"}
+                "back": {"decompose": f"{mb_root_rel}/back/plan/{links[0]}/index.yaml"}
                 if links else {},
-                "front": {"decompose": f"{mb_root_rel}/front/plan/{links[1]}/index.md"}
+                "front": {"decompose": f"{mb_root_rel}/front/plan/{links[1]}/index.yaml"}
                 if len(links) > 1 else {},
             }
         elif not isinstance(data, dict):
@@ -4902,7 +4887,7 @@ def main(argv: list[str] | None = None) -> int:
     p_arm.add_argument(
         "--epic",
         required=True,
-        help="Epic id (T-HUB-029), plan-*.md, or decompose-<id>[/index.md] (legacy)",
+        help="Epic id (T-HUB-029), plan-*.md, or decompose-<id>[/index.yaml]",
     )
 
     p_after = sub.add_parser("check-after", help="Inspect activeContext after session")

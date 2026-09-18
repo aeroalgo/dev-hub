@@ -8,7 +8,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from loop.mb_finish.mcp_server import list_tools
-from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest
+from loop.mb_finish.schemas import MbFinishRequest
 
 
 def test_mcp_descriptors_parity():
@@ -18,7 +18,6 @@ def test_mcp_descriptors_parity():
     tools = {t["name"]: t for t in descriptors["tools"]}
 
     expected_cmds = [
-        "finish_handoff",
         "finish_implement",
         "finish_qa",
         "finish_bugfix",
@@ -38,12 +37,9 @@ def test_mcp_descriptors_parity():
     # Check MbFinishRequest schema parity
     req_schema = MbFinishRequest.model_json_schema()
     for cmd in expected_cmds:
-        if cmd == "finish_handoff":
-            assert tools[cmd]["parameters"]["meta"] == LoopHandoffMeta.model_json_schema()
-            assert tools[cmd]["parameters"]["load_now"]["items"] == LoadNowItem.model_json_schema()
-            assert tools[cmd]["parameters"]["body"] == HandoffBody.model_json_schema()
-        else:
-            assert tools[cmd]["parameters"] == req_schema
+        assert tools[cmd]["parameters"] == req_schema
+
+    assert "finish_handoff" not in tools
 
 
 def test_mcp_server_startup():

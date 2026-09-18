@@ -97,6 +97,50 @@ def test_load_decompose_steps_fail_closed_rejects_missing_yaml(tmp_path: Path) -
     assert res["steps"] == []
 
 
+def test_runtime_index_resolution_reads_yaml_when_md_mirror_exists(tmp_path: Path) -> None:
+    lib = _load_lib()
+    base = "memory-bank/back/plan/demo"
+    yaml_path = tmp_path / base / "yaml" / "decompose-index.yaml"
+    _write(
+        tmp_path,
+        f"{base}/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01.yaml\n"
+        "  status: pending\n",
+    )
+    _write(tmp_path, f"{base}/md/decompose-index.md", "| s01 | pending |\n")
+
+    result = lib.load_decompose_steps_fail_closed(
+        tmp_path,
+        f"{base}/md/decompose-index.md",
+    )
+    assert result["ok"] is True
+    assert Path(result["index"]) == yaml_path
+
+
+def test_runtime_index_resolver_never_returns_md(tmp_path: Path) -> None:
+    from harness.hooks.epic_paths import find_decompose_index_path
+
+    epic = "T-YAML-ONLY"
+    md_only = tmp_path / f"memory-bank/back/plan/{epic}/md/decompose-index.md"
+    md_only.parent.mkdir(parents=True, exist_ok=True)
+    md_only.write_text("# mirror only\n", encoding="utf-8")
+    assert find_decompose_index_path(tmp_path, "back", epic) is None
+
+    yaml_path = tmp_path / f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    yaml_path.write_text(
+        "schema: epic-decompose-index/v1\nplan_id: T-YAML-ONLY\nsteps: []\n",
+        encoding="utf-8",
+    )
+    resolved = find_decompose_index_path(tmp_path, "back", epic)
+    assert resolved == yaml_path
+    assert resolved.suffix == ".yaml"
+
+
 def test_mark_index_step_status_fails_closed_without_yaml(tmp_path: Path) -> None:
     lib = _load_lib()
     base = "memory-bank/back/plan/decompose-demo"
@@ -105,3 +149,12 @@ def test_mark_index_step_status_fails_closed_without_yaml(tmp_path: Path) -> Non
     res = lib.mark_index_step_status(tmp_path, f"{base}/index.md", "s01", "completed")
     assert res["ok"] is False
     assert "missing decompose index" in res["error"]
+
+
+def test_index_writers_use_shared_atomic_owner() -> None:
+    core_source = Path("harness/hooks/epic/core.py").read_text(encoding="utf-8")
+    parallel_source = Path("loop/parallel/orchestrator.py").read_text(encoding="utf-8")
+    assert "ypath.write_text(dump_index_yaml(doc)" not in core_source
+    assert "index_path.write_text(dump_index_yaml(doc)" not in parallel_source
+    assert "atomic_write_text(ypath, dump_index_yaml(doc))" in core_source
+    assert "atomic_write_text(index_path, dump_index_yaml(doc))" in parallel_source

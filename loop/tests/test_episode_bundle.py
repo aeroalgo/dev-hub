@@ -86,6 +86,37 @@ def test_copy_failure_graceful(tmp_path: Path) -> None:
     assert "check_after" in manifest.artifact_refs
 
 
+def test_legacy_checkpoint_snapshot_is_not_used_as_live_source(tmp_path: Path) -> None:
+    epic_runtime = tmp_path / ".claude" / "runtime" / "epic"
+    epic_runtime.mkdir(parents=True, exist_ok=True)
+    (epic_runtime / "checkpoint_snapshot.json").write_text("{}", encoding="utf-8")
+
+    ep_id = begin_episode(tmp_path)
+    manifest = finalize_episode(tmp_path, ep_id)
+
+    assert "checkpoint_snapshot" not in manifest.artifact_refs
+    assert manifest.artifact_status == "complete"
+    assert manifest.artifact_errors == []
+
+
+def test_artifact_copy_failure_is_recorded_as_partial(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    epic_runtime = tmp_path / ".claude" / "runtime" / "epic"
+    epic_runtime.mkdir(parents=True, exist_ok=True)
+    (epic_runtime / "checkpoint.json").write_text("{}", encoding="utf-8")
+
+    def fail_copy(*_args: object, **_kwargs: object) -> None:
+        raise OSError("copy failed")
+
+    monkeypatch.setattr("loop.episodes.bundle.shutil.copy2", fail_copy)
+    ep_id = begin_episode(tmp_path)
+    manifest = finalize_episode(tmp_path, ep_id)
+
+    assert manifest.artifact_status == "partial"
+    assert any(error.startswith("checkpoint_copy_failed:") for error in manifest.artifact_errors)
+
+
 def test_load_now_sha256_snapshot(tmp_path: Path) -> None:
     f1 = tmp_path / "foo.txt"
     f1.write_text("hello", encoding="utf-8")

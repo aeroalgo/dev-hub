@@ -359,17 +359,24 @@ def _handle_verify_finish_agent(
         return
 
     if auto_finish_failed:
+        print(
+            f"{agent_type}: atomic finish failed; stop current turn. "
+            "Do not rerun mb-finish or inspect the gate from the parent session.",
+            file=sys.stderr,
+        )
         return
 
-    hint = None if auto_finished else mb_finish_hint_after_verdict(agent_type, verdict, cwd)
-    if hint:
-        print(hint, file=sys.stderr)
     if auto_finished:
         print(
             f"{agent_type}: FINISH ok — parent MUST stop this turn now "
             "(no Bash/Read/Grep after automatic mb-finish)",
             file=sys.stderr,
         )
+        return
+
+    hint = mb_finish_hint_after_verdict(agent_type, verdict, cwd)
+    if hint:
+        print(hint, file=sys.stderr)
 
 
 def main() -> None:

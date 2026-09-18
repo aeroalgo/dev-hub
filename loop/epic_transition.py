@@ -225,7 +225,12 @@ def normalize_registry_phase(phase: str, pack: Any = None) -> str:
     return normalized
 
 
-def load_phase_registry(*, pack_id: str | None = None, cwd: Path | str | None = None) -> dict[str, Any]:
+def load_phase_registry(
+    *,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+    hub_root: Path | str | None = None,
+) -> dict[str, Any]:
     """Load and validate phase registry yaml for a pack. Fail-closed on missing file or invalid schema."""
     if pack_id is None:
         raise TypeError("load_phase_registry requires pack_id: fail-closed")
@@ -242,8 +247,17 @@ def load_phase_registry(*, pack_id: str | None = None, cwd: Path | str | None = 
         raise ValueError(f"Workflow pack not found: {pack_id!r} (pack_path_missing)")
 
     cwd_path = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
+    resolved_hub_root = Path(hub_root).resolve() if hub_root is not None else None
+    if resolved_hub_root is None:
+        env_hub = os.environ.get("DEV_HUB") or os.environ.get("HUB_ROOT")
+        if env_hub and Path(env_hub).is_dir():
+            resolved_hub_root = Path(env_hub).resolve()
     resolved_path = cwd_path / pack.phase_registry
-    cache_key = f"pack:{pack_id}:{str(cwd_path)}"
+    if not resolved_path.exists() and resolved_hub_root is not None:
+        hub_path = resolved_hub_root / pack.phase_registry
+        if hub_path.exists():
+            resolved_path = hub_path
+    cache_key = f"pack:{pack_id}:{str(resolved_path)}"
 
     if cache_key in _PHASE_REGISTRY_CACHE:
         return _PHASE_REGISTRY_CACHE[cache_key]
@@ -274,21 +288,17 @@ def get_phase_config(
     from loop.workflow.registry import load_registry, get_pack
 
     resolved_pack = None
-    hub_root_path = Path(__file__).resolve().parent.parent
     if pack_id is not None:
         reg_obj = load_registry()
         resolved_pack = get_pack(reg_obj, pack_id)
-        try:
-            registry = load_phase_registry(pack_id=pack_id, cwd=cwd)
-        except Exception:
-            registry = load_phase_registry(pack_id=pack_id, cwd=hub_root_path)
+        registry = load_phase_registry(pack_id=pack_id, cwd=cwd)
     else:
         resolve_res = full_resolve(cwd)
         resolved_pack = resolve_res.pack
-        try:
-            registry = load_phase_registry(pack_id=resolved_pack.id, cwd=cwd)
-        except Exception:
-            registry = load_phase_registry(pack_id=resolved_pack.id, cwd=hub_root_path)
+        if not resolve_res.ok or resolved_pack is None:
+            codes = ", ".join(resolve_res.diagnostic_codes or ["workflow_pack_unresolved"])
+            raise ValueError(f"workflow pack resolution failed: {codes} (fail-closed)")
+        registry = load_phase_registry(pack_id=resolved_pack.id, cwd=cwd)
 
     phases = registry.get("phases", {})
     normalized_phase = normalize_registry_phase(phase, resolved_pack)
@@ -849,15 +859,18 @@ def _arm_pre_implement(
     armed_decompose: str | None = None
     if phase_u == "ANALYZE" and decompose_rel:
         decomp_yaml = decompose_rel
-        if decomp_yaml.endswith("/md/decompose-index.md"):
-            decomp_yaml = decomp_yaml[: -len("/md/decompose-index.md")] + "/yaml/decompose-index.yaml"
-        elif decomp_yaml.endswith("decompose-index.md"):
-            decomp_yaml = decomp_yaml[: -len("decompose-index.md")] + "decompose-index.yaml"
-        elif decomp_yaml.endswith("index.md"):
-            decomp_yaml = decomp_yaml[: -len("index.md")] + "index.yaml"
+        decomp_path = Path(decomp_yaml)
+        if decomp_path.name == "decompose-index.md" and decomp_path.parent.name == "md":
+            yaml_path = decomp_path.parent.parent / "yaml" / "decompose-index.yaml"
+            if (cwd_p / yaml_path).is_file():
+                decomp_yaml = yaml_path.as_posix()
+        elif decomp_path.name == "index.md":
+            yaml_path = decomp_path.with_name("index.yaml")
+            if (cwd_p / yaml_path).is_file():
+                decomp_yaml = yaml_path.as_posix()
         decomp_link = decomp_yaml.removeprefix("memory-bank/")
         decomp_path = Path(decompose_rel)
-        if decomp_path.name in {"decompose-index.yaml", "decompose-index.md"}:
+        if decomp_path.name in {"decompose-index.yaml", "decompose-index.yml", "index.yaml", "index.yml"}:
             decomp_label = decomp_path.name
         elif decomp_path.suffix.lower() in {".yaml", ".yml", ".md"}:
             decomp_label = f"{decomp_path.parent.name}/{decomp_path.name}"
@@ -880,29 +893,17 @@ def _arm_pre_implement(
         v2_yaml = layout_resolve(
             role_key, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p
         )
-        v2_md = layout_resolve(
-            role_key, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p
-        )
         if idx and idx.is_file():
             decomp_yaml = idx.relative_to(cwd_p).as_posix()
-            if idx.name in {"decompose-index.md", "index.md"}:
-                sibling_yaml = idx.with_name(
-                    "decompose-index.yaml" if idx.name == "decompose-index.md" else "index.yaml"
-                )
-                if sibling_yaml.is_file():
-                    decomp_yaml = sibling_yaml.relative_to(cwd_p).as_posix()
-                elif idx.name == "decompose-index.md":
-                    decomp_yaml = v2_yaml.relative_to(cwd_p).as_posix()
         else:
             decomp_yaml = v2_yaml.relative_to(cwd_p).as_posix()
         decomp_link = decomp_yaml.removeprefix("memory-bank/")
-        decomp_md_link = v2_md.relative_to(cwd_p).as_posix().removeprefix("memory-bank/")
         load_now += (
-            f"2. `.cursor/templates/decompose/` — epic-step.yaml + index.md "
-            f"(layout v2: md/decompose-index.md + yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).\n"
+            f"2. `.cursor/templates/decompose/` — epic-step.yaml + YAML index "
+            f"(layout v2: yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).\n"
             f"3. `.cursor/rules/{rule_dir}/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.\n"
             f"4. Target decompose: [`decompose-index.yaml`]({decomp_link}) "
-            f"(layout v2: `{decomp_md_link}` + `{decomp_link}` + `yaml/steps/sNN-<slug>.yaml`).\n"
+            f"(layout v2: `{decomp_link}` + `yaml/steps/sNN-<slug>.yaml`).\n"
         )
         armed_decompose = decomp_yaml if idx and idx.is_file() else None
     body = (
@@ -1187,8 +1188,6 @@ def arm_phase(
             idx_path = cwd_p / decompose_rel
         else:
             idx_path = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p)
-            if not idx_path.is_file():
-                idx_path = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
         if idx_path and idx_path.is_file():
             p_res = run_parallel_wave(epic_id, idx_path, cwd_p, env=env)
             if p_res and p_res.spawned:
@@ -1438,10 +1437,6 @@ def promote_if_ready(
         v2_idx = resolve(role_dir, epic, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p)
         if v2_idx.is_file():
             idx_path = v2_idx
-        else:
-            v2_md = resolve(role_dir, epic, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
-            if v2_md.is_file():
-                idx_path = v2_md
     if idx_path is None or not idx_path.is_file():
         try:
             from roadmap_queue import find_decompose_index
@@ -1481,20 +1476,13 @@ def promote_if_ready(
         else str(idx_path)
     )
     arm_decompose_dir = decompose_rel
-    if arm_decompose_dir.endswith(
-        ("/index.yaml", "/index.yml", "/index.md")
-    ):
+    if arm_decompose_dir.endswith(("/index.yaml", "/index.yml")):
         arm_decompose_dir = str(Path(arm_decompose_dir).parent).replace("\\", "/")
     arm_decompose_index = decompose_rel
-    if not arm_decompose_index.endswith(
-        ("/index.yaml", "/index.yml", "/index.md")
-    ):
+    if not arm_decompose_index.endswith(("/index.yaml", "/index.yml", "/decompose-index.yaml", "/decompose-index.yml")):
         yaml_cand = cwd_p / arm_decompose_index / "index.yaml"
-        md_cand = cwd_p / arm_decompose_index / "index.md"
         if yaml_cand.is_file():
             arm_decompose_index = str(yaml_cand.relative_to(cwd_p)).replace("\\", "/")
-        elif md_cand.is_file():
-            arm_decompose_index = str(md_cand.relative_to(cwd_p)).replace("\\", "/")
 
     pending = [
         s

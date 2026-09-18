@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,19 +14,9 @@ from .card_model import CardKind
 from .epic_resolver import resolve_epic_next_action
 from .scan_mb import WorkItem
 from .workspaces import WorkspaceRef
-
-_LOOP = Path(__file__).resolve().parents[1]
-if str(_LOOP) not in sys.path:
-    sys.path.insert(0, str(_LOOP))
-
-_HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
-if str(_HOOKS) not in sys.path:
-    sys.path.insert(0, str(_HOOKS))
-
-from epic import reduce_epic_lifecycle
-
-from analyze_gate import critical_count as _critical_count
-from analyze_gate import latest_analyze as _latest_analyze
+from harness.hooks.epic import reduce_epic_lifecycle
+from loop.analyze_gate import critical_count as _critical_count
+from loop.analyze_gate import latest_analyze as _latest_analyze
 
 _ACTIVE_STATUSES = frozenset({"pending", "in_progress", "active", "blocked"})
 _COMPLETED_STATUSES = frozenset({"completed", "done"})
@@ -170,19 +159,7 @@ def scan_gates(
 def _queued_epics(project: Path, role: str) -> set[str]:
     """Return epic ids declared by the role's roadmap queue."""
     result: set[str] = set()
-    candidates = [
-        project / "memory-bank" / role / "roadmap" / "queue.yaml",
-        project / "memory-bank" / role / "plan" / "roadmap-epics.queue.yaml",
-    ]
-    road = project / "memory-bank" / role / "roadmap"
-    if road.is_dir():
-        for queue in road.glob("**/*.yaml"):
-            if "archive" in queue.parts:
-                continue
-            candidates.append(queue)
-    plan_dir = project / "memory-bank" / role / "plan"
-    if plan_dir.is_dir():
-        candidates.extend(plan_dir.glob("roadmap-*.queue.yaml"))
+    candidates = [project / "memory-bank" / role / "roadmap" / "queue.yaml"]
     seen: set[Path] = set()
     for queue in candidates:
         if not queue.is_file() or queue in seen:
@@ -209,17 +186,13 @@ def _known_epics(project: Path, role: str, steps: list[WorkItem]) -> set[str]:
         if item.workspace_ref.path == project and item.role == role
     }
     result.update(_queued_epics(project, role))
-    plan_dir = project / "memory-bank" / role / "plan"
-    if plan_dir.is_dir():
-        result.update(
-            path.name.removeprefix("decompose-")
-            for path in plan_dir.glob("decompose-*")
-            if path.is_dir()
-        )
-        for child in plan_dir.iterdir():
-            if child.is_dir() and not child.name.startswith("."):
-                if (child / "md" / "plan.md").is_file() or (child / "yaml").is_dir():
-                    result.add(child.name)
+    from loop.paths.epic_layout import discover_v2_epics
+
+    result.update(
+        discovered_id
+        for discovered_role, discovered_id in discover_v2_epics(project)
+        if discovered_role == role
+    )
     return result
 
 def _pre_gates(
@@ -256,7 +229,7 @@ def _roadmap_gate(
     if any(item.workspace_ref.path == workspace_ref.path for item in steps):
         return [], []
     try:
-        import roadmap_queue
+        from loop import roadmap_queue
 
         selection = roadmap_queue.select_next_epic(workspace_ref.path)
     except (ImportError, OSError, ValueError, KeyError) as exc:

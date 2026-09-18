@@ -62,6 +62,16 @@ def test_mode_uppercase_coercion():
     assert meta.mode == "IMPLEMENT"
 
 
+def test_reflect_mode_is_rejected_as_removed_live_phase():
+    with pytest.raises(ValidationError, match="REFLECT is not a live loop phase"):
+        LoopHandoffFrontmatter(
+            schema="loop-handoff/v1",
+            role="BACK",
+            mode="BACK REFLECT",
+            epic_id="T-HUB-060",
+        )
+
+
 def test_integration_role_coercion():
     meta = LoopHandoffFrontmatter(
         schema="loop-handoff/v1",

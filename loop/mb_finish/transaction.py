@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -163,6 +163,59 @@ def commit_staged_files(cwd: Path | str, staged_files: list[FinishTxStagedFile])
         target_file.parent.mkdir(parents=True, exist_ok=True)
         content = stage_file.read_text(encoding="utf-8")
         atomic_write_text(target_file, content)
+
+
+def commit_finish_context(
+    cwd: Path | str,
+    *,
+    tx_id: str,
+    epic_id: str,
+    step_id: str,
+    phase: str,
+    active_context_rel: str,
+    active_context: str,
+    state: dict[str, Any] | None = None,
+    event_role_dir: str | None = None,
+    event_kind: str | None = None,
+    event_artifact: str | None = None,
+) -> FinishTxRecord:
+    """Commit a finish context and optional state snapshot through one journal.
+
+    Phase-specific finishers use this boundary instead of writing activeContext
+    directly and keeping an ad-hoc backup. The journal remains in COMMITTED
+    state until the next prepare cycle removes it, so a crash is recoverable.
+    """
+    staged_files = [
+        stage_file_in_tx(cwd, tx_id, active_context_rel, active_context),
+    ]
+    if state is not None:
+        staged_files.append(stage_epic_state_in_tx(cwd, tx_id, state))
+    record = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id,
+        step_id=step_id,
+        phase=phase,
+        state=FinishTxState.PREPARED,
+        staged_files=staged_files,
+        recovery_token=tx_id,
+        event_role_dir=event_role_dir,
+        event_kind=event_kind,
+        event_artifact=event_artifact,
+    )
+    write_finish_tx(cwd, record)
+    try:
+        commit_staged_files(cwd, staged_files)
+    except Exception as exc:
+        rollback_staged_files(cwd, staged_files)
+        record.state = FinishTxState.ROLLBACK_REQUIRED
+        record.error = str(exc)
+        write_finish_tx(cwd, record)
+        raise
+    record.state = FinishTxState.CONTEXT_WRITTEN
+    write_finish_tx(cwd, record)
+    record.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd, record)
+    return record
 
 
 def rollback_staged_files(cwd: Path | str, staged_files: list[FinishTxStagedFile]) -> None:
