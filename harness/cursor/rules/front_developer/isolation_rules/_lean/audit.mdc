@@ -18,7 +18,7 @@ alwaysApply: false
    `source_ref`, evidence и минимальный `bugfix_subject`.
 5. OUT-OF-SCOPE observation пишется только в `replan_candidates[]`; он не
    создаёт finding, audit-shard или изменение текущего plan.
-6. FINISH: `PASS → FRONT QA`; `FAIL → FRONT BUGFIX <subject>`. AUDIT никогда не
+6. FINISH: actionable `FAIL|blocked` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `FRONT QA`. AUDIT никогда не
    выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT.
 7. Frontend suite / Vitest / Playwright в AUDIT — **FORBIDDEN** (QA only; parent-only).
 
@@ -30,9 +30,9 @@ alwaysApply: false
 - Full-repo/legacy scan, architecture parity, inventory прежних plans либо
   исходного prompt выданы за работу AUDIT → FAIL.
 - Запуск pytest/vitest/Playwright/suite → FAIL: проверки исполняет QA.
-- Вызов `mb-finish audit` как gate simplified audit → FAIL до отдельной
-  runtime-интеграции.
+- `mb-finish audit` при `converged: false`/actionable findings → FAIL; сначала
+  bounded `gate-repair`, затем повторный AUDIT.
 
 ## Verify
 
-`rg -n 'check_matrix|replan_candidates|FRONT QA|FRONT BUGFIX' .cursor/rules/front_developer/workflow-audit.mdc`
+`rg -n 'check_matrix|replan_candidates|gate-repair|FRONT QA' .cursor/rules/front_developer/workflow-audit.mdc`

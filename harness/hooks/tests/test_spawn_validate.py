@@ -259,6 +259,32 @@ def test_gate_repair_well_formed_prompt_allowed(tmp_path: Path, monkeypatch) -> 
     assert deny_reasons == []
 
 
+def test_audit_actionable_finding_allows_gate_repair(tmp_path: Path) -> None:
+    from _lib import last_verdict_allows_repair
+
+    epic = "T-AUDIT-REPAIR"
+    artifact = tmp_path / "memory-bank" / "back" / "audit" / epic / "audit.yaml"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(
+        "schema: epic-audit/v2\n"
+        "converged: false\n"
+        "findings:\n"
+        "  - id: F1\n"
+        "    gap_type: partial\n"
+        "    severity: HIGH\n"
+        "    source_ref: FR-001\n"
+        "    evidence: app/dashboard.py\n"
+        "    remaining_work: wire the missing runtime path\n",
+        encoding="utf-8",
+    )
+    state = {"mode": "audit", "armed_epic": epic, "armed_role": "BACK"}
+
+    assert last_verdict_allows_repair(str(tmp_path), "audit-session", state=state)
+
+    artifact.write_text("schema: epic-audit/v2\nconverged: true\nfindings: []\n", encoding="utf-8")
+    assert not last_verdict_allows_repair(str(tmp_path), "audit-session", state=state)
+
+
 def test_gate_repair_vague_blockers_denied(tmp_path: Path, monkeypatch) -> None:
     _repair_setup(tmp_path)
     monkeypatch.setenv("EPIC_LOOP", "1")

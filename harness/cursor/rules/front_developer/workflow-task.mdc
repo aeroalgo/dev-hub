@@ -5,9 +5,9 @@ alwaysApply: false
 ### Команда: FRONT TASK
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/task.mdc
-**Скиллы:** мини skills gate — Impl Core + situational из `skills-gate-situational.mdc` (не весь каталог); Design Core если visible UI; pre-FINISH: verification + code-review — `@.agents/skills/<name>/SKILL.md`
+**Скиллы:** мини skills gate — Impl Core + situational из `skills-gate-situational.mdc` (не весь каталог); Design groups (минимум D0) если visible UI; pre-FINISH: verification + code-review — `@.agents/skills/<name>/SKILL.md`
 
-**Visible UI → DESIGN CORE HARD** (пакет 6 из `skills-gate-situational.mdc`): Read до UI-кода + list в task shard. Pure lib — skip.
+**Visible UI → DESIGN GROUPS HARD** (D0 Lean Core + опциональные D1–D4 из `skills-gate-situational.mdc` / clarify pack): Read до UI-кода + list в task shard. Pure lib — skip. **FORBIDDEN** all-or-nothing Taste 13.
 
 **Процесс**:
 1. `OK FRONT TASK - [суть]` — задача в том же сообщении

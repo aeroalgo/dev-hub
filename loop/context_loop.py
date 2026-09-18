@@ -917,7 +917,8 @@ def _audit_work_block(_role: str, epic_id: str) -> str:
 1. Прочитай только AUDIT-цепочку текущей команды через entrypoint и `mainrule.mdc`.
 2. Сопоставь intent текущего epic `{epic_id}` с runtime evidence по правилам workflow.
 3. Не подменяй audit наличием файлов, green suite или статусом шага.
-4. На FINISH следуй finish-процедуре текущего workflow.
+4. Если audit нашёл actionable product finding, это repairable blocker: передай его в `gate-repair` с точным `id | path | fix`, ALLOW WRITE и VERIFY; после repair повтори AUDIT. Не маршрутизируй такую находку в BUGFIX.
+5. На FINISH следуй finish-процедуре текущего workflow; `mb-finish audit` разрешён только при `converged: true`.
 """
 
 
@@ -1307,7 +1308,11 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
     elif phase_kind == "audit":
         finish_block = (
-            "\n> После Triple Assess + epic-audit/v2 на диске → вызови: "
+            "\n> После Triple Assess + epic-audit/v2 на диске проверь `converged`. "
+            "Если есть actionable findings / `converged: false`: НЕ вызывай `mb-finish audit` и НЕ переходи в BUGFIX. "
+            "Собери BLOCKERS из findings (`- id | path | concrete_fix`), передай их в `gate-repair` с ALLOW WRITE + VERIFY, "
+            "дождись repair, затем повтори тот же AUDIT и перепиши artifact. "
+            "Только после `converged: true` вызови: "
             "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish audit`\n"
             "FORBIDDEN: ручной Write activeContext на FINISH AUDIT.\n"
             "FORBIDDEN: pytest/suite как замена plan↔runtime; shallow v1 / empty findings+converged без inventory.\n"
@@ -1979,9 +1984,9 @@ def prepare_session(
                         proj.get("phase") or projection.get("phase") or state.get("phase") or ""
                     ).upper()
     # Reducer arm wins over stale AC handoff: qa_failed → BUGFIX must not be
-    # overwritten by a premature Handoff BACK QA / BACK AUDIT. Inverse: after
+    # overwritten by a premature Handoff BACK QA. Inverse: after
     # bugfix_done the reducer says QA — do not keep a stale BUGFIX arm.
-    if proj_phase == "BUGFIX" and handoff_phase in {"AUDIT", "QA", None}:
+    if proj_phase == "BUGFIX" and handoff_phase in {"QA", None}:
         epic_for_life = str(
             state.get("armed_epic") or projection.get("epic_id") or ""
         ).strip()
@@ -3147,6 +3152,36 @@ def check_after(
         if cap_res is not None and not cap_res.get("ok"):
             return _run_tier0_check_after(cwd_p, cap_res)
 
+    promoted_after_decompose_verify = None
+    if str(armed_step_now).upper() == "DECOMPOSE":
+        from loop.decompose_gate import decompose_verify_pass_ready
+
+        verify = decompose_verify_pass_ready(cwd_p, state)
+        if verify.get("ok"):
+            promoted_after_decompose_verify = _promote_if_ready(cwd_p)
+            if (
+                promoted_after_decompose_verify is not None
+                and not promoted_after_decompose_verify.get("ok")
+            ):
+                res = {
+                    "ok": False,
+                    "halt": True,
+                    "reason": promoted_after_decompose_verify.get("error")
+                    or promoted_after_decompose_verify.get("reason")
+                    or "decompose promote failed",
+                    "promote": promoted_after_decompose_verify,
+                }
+                if promoted_after_decompose_verify.get("diagnostic_code"):
+                    res["diagnostic_code"] = promoted_after_decompose_verify[
+                        "diagnostic_code"
+                    ]
+                return res
+            if (
+                promoted_after_decompose_verify is not None
+                and promoted_after_decompose_verify.get("ok")
+            ):
+                text = read_active_context(cwd_p)
+
     fp_now = fingerprint_context(text)
     before = fingerprint_before
     if before is None:
@@ -3260,14 +3295,16 @@ def check_after(
     save_epic_state(cwd_p, st)
     from loop.session_finalize import should_probe_analyze_promotion
 
-    promoted = (
-        _promote_if_ready(cwd_p)
-        if should_probe_analyze_promotion(
-            armed_step=st.get("armed_step"),
-            active_context_text=text,
+    promoted = promoted_after_decompose_verify
+    if promoted is None:
+        promoted = (
+            _promote_if_ready(cwd_p)
+            if should_probe_analyze_promotion(
+                armed_step=st.get("armed_step"),
+                active_context_text=text,
+            )
+            else None
         )
-        else None
-    )
     if promoted is not None and not promoted.get("ok"):
         res = {
             "ok": False,
@@ -4524,6 +4561,14 @@ def cadence_status(cwd: str | Path) -> dict[str, Any]:
                     replan_outcomes_dict[k] = dict(v)
                 else:
                     replan_outcomes_dict[k] = {"outcome": str(v)}
+        if state.replan_epic_id and state.replan_epic_id in state.replan_outcomes:
+            aggregate = replan_outcomes_dict.get(state.replan_epic_id, {})
+            pair_details.append({
+                "epic_id": state.replan_epic_id,
+                "status": aggregate.get("outcome", "pending"),
+                "reason": aggregate.get("reason", ""),
+                "evidence": aggregate.get("evidence"),
+            })
         resync_evidence_dict = None
         if state.resync_evidence is not None:
             if hasattr(state.resync_evidence, "model_dump"):
@@ -4542,7 +4587,12 @@ def cadence_status(cwd: str | Path) -> dict[str, Any]:
             "phase": state.phase,
             "counter": state.counter,
             "every_n": state.every_n,
+            "review_window_n": state.review_window_n,
+            "feature_history": list(state.feature_history),
             "pair_ids": list(state.pair_ids),
+            "review_window_ids": list(state.pair_ids),
+            "replan_epic_id": state.replan_epic_id,
+            "replan_started": state.replan_started,
             "replan_outcomes": replan_outcomes_dict,
             "pair_details": pair_details,
             "resync_evidence": resync_evidence_dict,
@@ -4551,7 +4601,7 @@ def cadence_status(cwd: str | Path) -> dict[str, Any]:
             "blocked": is_paused,
             "status": "paused" if is_paused else "active",
             "message": (
-                f"Cadence block active ({state.phase}): feature selection paused until replan/resync completes (T-HUB-093 / T-HUB-094)"
+                f"Cadence block active ({state.phase}): feature selection paused until aggregate replan, refactor, and resync complete (T-HUB-093 / T-HUB-094)"
                 if is_paused
                 else "Cadence idle: normal roadmap advance active"
             ),
@@ -4561,8 +4611,13 @@ def cadence_status(cwd: str | Path) -> dict[str, Any]:
             "ok": False,
             "phase": "unknown",
             "counter": 0,
-            "every_n": 2,
+            "every_n": 4,
+            "review_window_n": 8,
+            "feature_history": [],
             "pair_ids": [],
+            "review_window_ids": [],
+            "replan_epic_id": None,
+            "replan_started": False,
             "replan_outcomes": {},
             "pair_details": [],
             "paused": False,
@@ -4575,8 +4630,13 @@ def cadence_status(cwd: str | Path) -> dict[str, Any]:
             "ok": False,
             "phase": "corrupt",
             "counter": 0,
-            "every_n": 2,
+            "every_n": 4,
+            "review_window_n": 8,
+            "feature_history": [],
             "pair_ids": [],
+            "review_window_ids": [],
+            "replan_epic_id": None,
+            "replan_started": False,
             "replan_outcomes": {},
             "pair_details": [],
             "paused": True,
@@ -4592,8 +4652,9 @@ def format_cadence_status(data: dict[str, Any]) -> str:
         return f"Roadmap cadence status: ERROR ({data.get('error', 'unknown error')})"
     phase = data.get("phase", "idle")
     counter = data.get("counter", 0)
-    every_n = data.get("every_n", 2)
-    pair_ids = ", ".join(data.get("pair_ids") or []) or "none"
+    every_n = data.get("every_n", 4)
+    review_window_n = data.get("review_window_n", 8)
+    pair_ids = ", ".join(data.get("review_window_ids") or data.get("pair_ids") or []) or "none"
     paused = data.get("paused", False)
     status_str = "PAUSED (cadence block active)" if paused else "ACTIVE"
 
@@ -4601,6 +4662,7 @@ def format_cadence_status(data: dict[str, Any]) -> str:
         f"Roadmap Cadence Status: {status_str}",
         f"  Phase:    {phase}",
         f"  Counter:  {counter} / {every_n}",
+        f"  Review window ({review_window_n}): {pair_ids}",
         f"  Pair IDs: {pair_ids}",
     ]
     pair_details = data.get("pair_details")
@@ -4641,7 +4703,7 @@ def format_cadence_status(data: dict[str, Any]) -> str:
         else:
             lines.append("  Refactor: COMPLETED / NOOP (transitioned to resync)")
     elif phase == "replan":
-        lines.append("  Refactor: PENDING (waiting for replan pair to complete)")
+        lines.append("  Refactor: PENDING (waiting for aggregate REPLAN epic QA PASS)")
     else:
         lines.append("  Refactor: IDLE")
 
@@ -4909,7 +4971,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_cadence = sub.add_parser(
         "cadence-status",
-        help="Show roadmap cadence status (phase, counter, every_n, pair_ids)",
+        help="Show roadmap cadence status (phase, counter, feature history, review window)",
     )
     p_cadence.add_argument(
         "--json",

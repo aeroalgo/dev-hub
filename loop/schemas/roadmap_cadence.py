@@ -102,8 +102,12 @@ class RoadmapCadenceState(BaseModel):
     schema_version: str = Field(alias="schema", default=SCHEMA_ROADMAP_CADENCE)
     phase: CadencePhase = "idle"
     counter: int = Field(default=0, ge=0)
-    every_n: int = Field(default=2, ge=1)
+    every_n: int = Field(default=4, ge=1)
+    review_window_n: int = Field(default=8, ge=1)
     pair_ids: list[str] = Field(default_factory=list)
+    feature_history: list[str] = Field(default_factory=list)
+    replan_epic_id: str | None = None
+    replan_started: bool = False
     replan_outcomes: dict[str, ReplanOutcomeRecord] = Field(default_factory=dict)
     resync_evidence: ResyncEvidence | dict[str, Any] | None = None
     resync_summary: dict[str, Any] | None = None
@@ -124,6 +128,15 @@ class RoadmapCadenceState(BaseModel):
             return []
         if not isinstance(value, list):
             raise TypeError("pair_ids must be a list")
+        return [str(v).strip() for v in value if str(v).strip()]
+
+    @field_validator("feature_history", mode="before")
+    @classmethod
+    def _validate_feature_history(cls, value: object) -> object:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise TypeError("feature_history must be a list")
         return [str(v).strip() for v in value if str(v).strip()]
 
 

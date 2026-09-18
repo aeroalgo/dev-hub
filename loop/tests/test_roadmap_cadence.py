@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from loop.roadmap_cadence import (
     advance_replan,
+    bind_replan_epic,
     canon_cadence_path,
     execute_cadence_resync,
     filter_critical_gaps,
@@ -16,6 +17,7 @@ from loop.roadmap_cadence import (
     load_cadence,
     mark_plan_stale,
     on_feature_done,
+    on_replan_epic_done,
     on_non_feature_done,
     on_refactor_done,
     on_resync_done,
@@ -44,7 +46,8 @@ def test_cadence_schema_validation() -> None:
     assert state.schema_version == SCHEMA_ROADMAP_CADENCE
     assert state.phase == "idle"
     assert state.counter == 0
-    assert state.every_n == 2
+    assert state.every_n == 4
+    assert state.review_window_n == 8
     assert state.pair_ids == []
 
     # Valid phases
@@ -162,7 +165,7 @@ def test_cadence_fail_closed_on_corrupt(tmp_path: Path) -> None:
 
 
 def test_on_feature_done_triggers_replan_after_every_n(tmp_path: Path) -> None:
-    save_cadence(RoadmapCadenceState(), cwd=tmp_path)
+    save_cadence(RoadmapCadenceState(every_n=2), cwd=tmp_path)
 
     first = on_feature_done("T-HUB-001", cwd=tmp_path)
     assert first.counter == 1
@@ -174,6 +177,84 @@ def test_on_feature_done_triggers_replan_after_every_n(tmp_path: Path) -> None:
     assert second.phase == "replan"
     assert second.pair_ids == ["T-HUB-001", "T-HUB-002"]
     assert load_cadence(cwd=tmp_path) == second
+
+
+def test_default_cadence_uses_four_features_and_eight_item_review_window(tmp_path: Path) -> None:
+    save_cadence(RoadmapCadenceState(), cwd=tmp_path)
+
+    state = RoadmapCadenceState()
+    for index in range(1, 9):
+        state = on_feature_done(f"T-FEAT-{index}", cwd=tmp_path)
+        if index < 4:
+            assert state.phase == "idle"
+        elif index == 4:
+            assert state.phase == "replan"
+            break
+
+    assert state.every_n == 4
+    assert state.review_window_n == 8
+    assert state.counter == 4
+    assert state.feature_history == [f"T-FEAT-{i}" for i in range(1, 5)]
+    assert state.pair_ids == state.feature_history
+
+
+def test_replan_is_one_aggregate_epic_then_refactor(tmp_path: Path) -> None:
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            counter=4,
+            every_n=4,
+            review_window_n=8,
+            pair_ids=[f"T-FEAT-{i}" for i in range(1, 9)],
+            feature_history=[f"T-FEAT-{i}" for i in range(1, 9)],
+        ),
+        cwd=tmp_path,
+    )
+
+    bound = bind_replan_epic(cwd=tmp_path, epic_id="T-REPLAN-001")
+    assert bound.replan_epic_id == "T-REPLAN-001"
+    assert bound.replan_started is True
+    assert bound.phase == "replan"
+
+    finished = on_replan_epic_done(cwd=tmp_path, epic_id="T-REPLAN-001")
+    assert finished.phase == "refactor"
+    assert list(finished.replan_outcomes) == ["T-REPLAN-001"]
+    assert finished.feature_history == [f"T-FEAT-{i}" for i in range(1, 9)]
+
+
+def test_replan_arm_loads_only_review_prompts(tmp_path: Path) -> None:
+    from loop.epic_transition import _arm_pre_implement
+
+    feature_ids = ["T-FEAT-1", "T-FEAT-2"]
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            pair_ids=feature_ids,
+            feature_history=feature_ids,
+        ),
+        cwd=tmp_path,
+    )
+    for epic_id in feature_ids:
+        base = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md"
+        base.mkdir(parents=True, exist_ok=True)
+        (base / "plan.md").write_text("# source plan\n", encoding="utf-8")
+        (base / "prompt.md").write_text("## Epic\nOutcome\n", encoding="utf-8")
+        (base / "decompose-index.md").write_text("forbidden\n", encoding="utf-8")
+
+    armed = _arm_pre_implement(
+        tmp_path,
+        epic_id=feature_ids[-1],
+        role="back",
+        phase="REPLAN",
+        target_rel=None,
+    )
+    assert armed["ok"] is True
+    active = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
+    assert "prompt.md" in active
+    assert active.count("memory-bank/back/plan/T-FEAT-1/md/prompt.md") >= 1
+    assert active.count("memory-bank/back/plan/T-FEAT-2/md/prompt.md") >= 1
+    assert "plan.md" not in active
+    assert "decompose-index.md" not in active
 
 
 def test_on_non_feature_done_does_not_change_cadence(tmp_path: Path) -> None:
@@ -1416,7 +1497,7 @@ def test_full_cadence_lifecycle_e2e(tmp_path: Path) -> None:
     from loop.roadmap_queue import mark_queue_epic_done, roadmap_advance
 
     # Initialize cadence SoT
-    save_cadence(RoadmapCadenceState(), cwd=tmp_path)
+    save_cadence(RoadmapCadenceState(every_n=2), cwd=tmp_path)
 
     queue_yaml = "\n".join([
         "version: roadmap-queue/v2",

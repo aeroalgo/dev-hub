@@ -4,6 +4,7 @@ import hashlib
 import os
 import re
 from pathlib import Path
+import yaml
 from harness.hooks._lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _append_event,
@@ -1382,6 +1383,29 @@ def finish_audit(
             ok=False,
             diagnostic_codes=codes,
             shape_errors=shape_errs,
+        )
+
+    try:
+        audit_doc = yaml.safe_load(content)
+    except Exception:
+        audit_doc = None
+    from harness.hooks.epic.audit_validate import actionable_audit_findings
+
+    actionable = actionable_audit_findings(audit_doc) if isinstance(audit_doc, dict) else []
+    if not isinstance(audit_doc, dict) or audit_doc.get("converged") is not True:
+        blocker_lines = [
+            "audit blocker "
+            f"{finding.get('id') or 'unknown'}: "
+            f"{finding.get('remaining_work') or finding.get('evidence') or 'actionable audit finding'}"
+            for finding in actionable
+        ]
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["audit_blockers_present" if actionable else "audit_not_converged"],
+            shape_errors=(
+                blocker_lines
+                or ["AUDIT не прошёл: converged: true обязателен до перехода в QA"]
+            ),
         )
 
     try:

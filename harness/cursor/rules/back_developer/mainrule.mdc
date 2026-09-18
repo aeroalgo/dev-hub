@@ -15,7 +15,7 @@ alwaysApply: false
 |-------|---------|
 | `BACK VAN` | @.cursor/rules/back_developer/workflow-van.mdc |
 | `BACK PLAN` | @.cursor/rules/back_developer/workflow-plan.mdc — Phase 0 auto-clarify + Phase 1 (+ inline roadmap-merge) |
-| `BACK PLAN REFACTOR` | @.cursor/rules/back_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (фаза 2 cadence-блока: строго после replan pair_ids; refactor epic или noop) |
+| `BACK PLAN REFACTOR` | @.cursor/rules/back_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (строго после QA aggregate REPLAN-эпика; refactor epic или noop) |
 | `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
 | `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc |
@@ -35,14 +35,19 @@ alwaysApply: false
 |-------|---------|
 | `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc — только если canon устарел без PLAN |
 | `BACK RECONCILE` | @.cursor/rules/back_developer/workflow-reconcile.mdc — drift после hotfix или фаза resync cadence-блока (`--from-queue`) |
-| `BACK REPLAN` | @.cursor/rules/back_developer/workflow-replan.mdc — после QA: skip\|spawn новых epic_id (не overwrite parent); SoT = parent `## Epic` + код; marker `replan-i2\|i3.yaml`; spawn без Parent-prompt/QA links; cadence pair_ids one-hop |
+| `BACK REPLAN` | @.cursor/rules/back_developer/workflow-replan.mdc — aggregate review 8 feature prompts + code; ровно один `kind: replan`, затем DECOMPOSE → IMPLEMENT → QA |
 | `BACK JANITOR` | @.cursor/rules/back_developer/workflow-janitor.mdc |
 
 ## Cadence block (Kind I order)
 
-Каденс-блок (`memory-bank/back/roadmap/cadence.yaml`) выполняется каждые N feature-эпиков (every-2) в строгом порядке: `REPLAN -> Refactor -> Resync -> Reset/Idle`:
-1. `phase=replan`: REPLAN для `pair_ids` (one-hop per parent ID; critical gaps → spawn new epics + marker; else skip evidence; forbid overwrite parent / replan-of-replan in-block).
-2. `phase=refactor`: PLAN REFACTOR (строго после закрытия всех pair_ids в replan; refactor epic `kind: refactor` или noop evidence).
+Каденс-блок (`memory-bank/back/roadmap/cadence.yaml`) запускается каждые 4
+feature-эпика и смотрит rolling window из 8 feature-эпиков. Порядок:
+`REPLAN aggregate -> DECOMPOSE -> IMPLEMENT -> QA -> PLAN REFACTOR -> Resync -> Reset/Idle`:
+1. `phase=replan`: один aggregate REPLAN-эпик (`kind: replan`) читает только
+   source `prompt.md` и кодовую базу; replan/refactor не считаются feature.
+   Внутри блока действует one-hop policy; `replan-of-replan` — **FORBIDDEN**.
+2. `phase=refactor`: PLAN REFACTOR разрешён только после QA PASS aggregate
+   REPLAN-эпика; создаётся `kind: refactor` или noop evidence.
 3. `phase=resync`: вызов reconcile для всех эпиков очереди `queue.yaml` (через CLI/API `--from-queue`), структурированная фиксация `ResyncEvidence` в `cadence.yaml`, инвалидация планов HOW при HIGH drift без мутации §Epic, fail-closed блокировка resume при необработанном HIGH drift.
 4. `phase=idle` (reset): сброс фазы в `idle` и обнуление счётчика фич (`on_resync_done` / `reset_cadence_idle`) для возобновления движения feature-эпиков.
 

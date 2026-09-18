@@ -49,6 +49,19 @@ def _as_dict(data: Any) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def actionable_audit_findings(doc: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return product findings that must be repaired before AUDIT can pass."""
+    findings = doc.get("findings")
+    if not isinstance(findings, list):
+        return []
+    return [
+        finding
+        for finding in findings
+        if isinstance(finding, dict)
+        and str(finding.get("gap_type") or "").strip().lower() in _ACTIONABLE_GAPS
+    ]
+
+
 def _norm_role(role_dir: str) -> str:
     value = str(role_dir or "back").strip().lower()
     if value == "integ":

@@ -1,0 +1,33 @@
+---
+description: "PRODUCT roadmap gates — lean load (shared)"
+alwaysApply: false
+---
+# PRODUCT ROADMAP gates (lean)
+
+## Load
+1. `memory-bank/activeContext.md`
+2. Команда → один объект:
+   - VISION → `product/vision.md`
+   - PHASES → `product/phases.md`
+   - ROADMAP REBUILD → `vision.md` + `phases.md` + `{role}/roadmap/queue.yaml` (status)
+   - STATUS → только `product/roadmap.md`
+3. Skills (Policy lazy — Read тел SKILL только по команде):
+   - VISION → `.agents/skills/brainstorming/SKILL.md` + `product-discovery/SKILL.md`
+   - PHASES → `.agents/skills/product-manager/SKILL.md` + `writing-plans/SKILL.md` (SoT = `phases.md`)
+   - REBUILD / STATUS → **skip skills**
+
+## Forbidden
+- Полный `vision`/`phases` в IMPLEMENT `load_now`
+- Ручной SoT в `roadmap.md` в обход REBUILD
+- `* ROADMAP MERGE` вместо PRODUCT * (другой режим)
+- Правка code `queue.yaml` из PRODUCT *
+- Eager skills на REBUILD/STATUS
+- Скилы-исполнители: `roadmap` (autonomous) · `executing-plans` · `breakdown-plan` · GSD roadmap SoT
+- Параллельный артефакт скила вместо product SoT (`docs/superpowers/plans/…`, `.agents/product-marketing.md`, отдельный PRD)
+
+## Done when
+| Команда | Done |
+|---------|------|
+| VISION / PHASES | файл обновлён; next tip REBUILD при смысловом изменении; методы скилов применены к product SoT |
+| REBUILD | `roadmap.md` ≤80 строк + чеклист phases синхронизирован с queue; skills не грузились |
+| STATUS | ответ без записи (или только по явной просьбе); skills не грузились |

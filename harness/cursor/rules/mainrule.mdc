@@ -16,6 +16,7 @@ alwaysApply: true
 |-----------|----------|
 | Обычный вопрос, без команды роли | **Не** читай workflow, isolation rules, `.agents/skills/` |
 | «Примени workflow» / «от идеи до реализации» | @.cursor/rules/shared/workflow-idea-pipeline.mdc |
+| `PRODUCT VISION` / `PHASES` / `ROADMAP` / `STATUS` | @.cursor/rules/shared/workflow-product-roadmap.mdc |
 | Команда роли PLAN/DECOMPOSE/VAN | Цепочка ниже + **Read** .cursor/rules/token-economy-core.mdc |
 | Команда роли IMPLEMENT/TASK/BUGFIX | Цепочка ниже; stub already-on — **не** грузить full token-economy-core |
 
@@ -31,6 +32,10 @@ alwaysApply: true
 
 **PLAN / DECOMPOSE / brownfield VAN:** до работы — `Read` entrypoint текущего runtime (`CLAUDE.md` для Claude Code, `AGENTS.md` для Codex) → `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow → `Gates` → связанные `@` рекурсивно до листьев.
 
+**EXCEPT Policy lazy (HARD):** блок/строка `Policy lazy` — inventory on-trigger. **FORBIDDEN** Read тел этих файлов на старте только из-за `@` в lazy-блоке. Read — по trigger из Hot path / Gates / Replacement / wire. Pack-graph edge (`@`) для ownership **сохраняется**; eager bootstrap — нет.
+
+**DECOMPOSE skills:** @.cursor/rules/shared/_lean/decompose-skills-load.mdc — copy paths в step; Read тел SKILL = IMPLEMENT/CREATIVE. Role Core/Design lists — в role workflow.
+
 **IMPLEMENT / TASK / BUGFIX / REFACTOR (code):** **canonical `## Hot path` wins.** До кода — **не** рекурсивный `@`. Обязательный Read:
 
 1. `activeContext.md` → `load_now` (work shard + `decompose-index.yaml`)
@@ -43,7 +48,7 @@ alwaysApply: true
 
 Пропущенный Read из **этого** списка — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
 
-Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK|FRONT|INTEG RECONCILE` → `<epic_id>`. `BACK|FRONT|INTEG REPLAN` → `<epic_id>`.
+Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`, `PRODUCT VISION`, `PRODUCT PHASES`, `PRODUCT ROADMAP REBUILD`, `PRODUCT ROADMAP`, `PRODUCT STATUS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK|FRONT|INTEG RECONCILE` → `<epic_id>`. `BACK|FRONT|INTEG REPLAN` → `<epic_id>`.
 
 ## Префикс → индекс → core
 
@@ -61,6 +66,7 @@ alwaysApply: true
 | Команда | Workflow |
 |---------|----------|
 | `IDEA PIPELINE` · `CONTINUE` · `FINISH` · `STATUS` | DECIDE scorecard/verdict перед VAN/PLAN; детали: .cursor/rules/shared/workflow-idea-pipeline.mdc |
+| `PRODUCT VISION` · `PRODUCT PHASES` · `PRODUCT ROADMAP REBUILD` · `PRODUCT STATUS` | Product-слой (vision/phases/roadmap); .cursor/rules/shared/workflow-product-roadmap.mdc |
 
 Скиллы без workflow: `find-skills` · `git-commit` · `memory-management` — только по явному запросу.
 

@@ -66,8 +66,29 @@
 | edge | Clear \| Partial \| Missing | |
 | constraints | Clear \| Partial \| Missing | |
 | terminology | Clear \| Partial \| Missing | |
+| design_skills (FRONT UI) | Clear \| Partial \| Missing \| n/a | surface / dialect / image_pack |
 
-Канон категорий: @.cursor/rules/shared/workflow-clarify-core.mdc §Таксономия.
+Канон категорий: @.cursor/rules/shared/workflow-clarify-core.mdc §Таксономия.  
+FRONT UI: @.cursor/rules/front_developer/workflow-clarify.mdc §Design skills.
+
+---
+
+## Design skills pack (FRONT — при UI-scope)
+
+> Канон: `front_developer/skills-gate-situational.mdc` · `workflow-clarify.mdc` §Design skills  
+> BACK/INTEG: секция `n/a` или удалить.
+
+```yaml
+surface: product_ui | marketing_landing | portfolio | product_redesign | marketing_redesign | brand_identity | mobile_app_mock | stitch_export | image_to_code_site
+dialect: none | minimalist | brutalist | high_end | gpt_awwards
+image_pack: []  # web_refs | mobile_refs | brandkit | image_to_code
+groups: [D0]    # + D1/D2/D3/D4
+pin_v1: false
+resolved_paths:
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/impeccable/SKILL.md
+  - .agents/skills/emil-design-eng/SKILL.md
+```
 
 ---
 
@@ -120,5 +141,5 @@ CRITICAL без resolve или строки здесь → PLAN FINISH запр�
 - **Asked:** N/20
 - **Resolved:** …
 - **Deferred:** …
-- **Coverage:** scope=… · data=… · UX-API=… · NFR=… · integrations=… · edge=… · constraints=… · terminology=…
+- **Coverage:** scope=… · data=… · UX-API=… · NFR=… · integrations=… · edge=… · constraints=… · terminology=… · design_pack=surface/dialect/groups (FRONT UI) | n/a
 - **Next action:** `BACK PLAN <slug>` | `continue CLARIFY` | `to-prd`/`to-spec` | `spike` (skip warning)

@@ -28,9 +28,10 @@ def shared_collaboration_policy(*, phase: str | None = None) -> str:
 1a. **GATE_IDENTITY (HARD):** в каждом spawn prompt `verify-*` / `analyze-verify` / `gate-repair` сразу после `agent_type:` обязателен блок `GATE_IDENTITY session_id=<SoT> epic_id=<SoT> step_id=<SoT>` (SoT = session_start_identity / current gate identity). FORBIDDEN null/placeholder. Без строки — PreToolUse DENY или child BLOCKED `prompt_incomplete:GATE_IDENTITY`.
 2. Перед FINISH DECOMPOSE запусти `verify-decompose`; для ANALYZE fix используй `analyze-verify` по текущему workflow.
 3. Если verify возвращает FAIL или BLOCKED, либо запуск verify завершается repairable runtime error, передай в `gate-repair` секции BLOCKERS + ALLOW WRITE + VERIFY, дождись repair и повтори **тот же** verify. Это автоматический repair-loop.
+3a. Если AUDIT artifact содержит actionable findings или `converged: false`, не переходи в BUGFIX и не вызывай `mb-finish audit`. Передай findings в `gate-repair` теми же секциями BLOCKERS + ALLOW WRITE + VERIFY, дождись repair, затем заново выполни тот же AUDIT и перепиши artifact. Только `converged: true` позволяет `mb-finish audit` → QA.
 4. **Pack BLOCKERS (HARD):** каждая строка строго `- <blocker_id> | <path> | <concrete_fix>`, где `<path>` ∈ ALLOW WRITE и `<concrete_fix>` — одно действие из verify-отчёта. Голый список id без path|fix = DENY spawn. Не изобретай blockers сверх verify-отчёта и не проси repair «починить coverage вообще».
 4a. **Verify scope (HARD):** gate смотрит только ALLOW / шаг IMPLEMENT. Чужой dirty worktree не pack в BLOCKERS и не чини через `git checkout --` / `git restore` / `rm`.
-5. Лимит repair-loop: максимум **2** цикла `gate-repair → re-verify` на один parent-run. После 2-го FAIL/BLOCKED — **не** NEED_HUMAN и **не** начинай 3-й repair в этом run: заверши сессию с retryable outcome. Runner **обязан** перезапустить **ту же** phase+step (DECOMPOSE / ANALYZE / sNN / BUGFIX / QA / …). **FORBIDDEN:** mb-finish / promote / Handoff на следующую фазу или следующий sNN после исчерпания repair-loop или при verify FAIL. Не изобретай новые nitpick-blockers.
+5. Лимит repair-loop: максимум **2** цикла `gate-repair → re-verify` на один parent-run. Для AUDIT это `gate-repair → повторный AUDIT`. После 2-го FAIL/BLOCKED — **не** NEED_HUMAN и **не** начинай 3-й repair в этом run: заверши сессию с retryable outcome. Runner **обязан** перезапустить **ту же** phase+step. **FORBIDDEN:** mb-finish / promote / Handoff на следующую фазу или следующий sNN после исчерпания repair-loop или при неуспешном AUDIT. Не изобретай новые nitpick-blockers.
 6. Для `gate-repair` в VERIFY передавай **точную** команду проверки текущей фазы по файлам из ALLOW WRITE (targeted pytest / CLI validate — как указал parent). Полный `bin/pytest -q --tb=line` — только parent в QA; не требуй full suite внутри `gate-repair`.
 7. Не создавай finish без свежего PASS текущего gate-run, не выдумывай receipt/verdict и не редактируй runtime gate state вручную. Retryable abort / repair exhausted → следующий outer-loop attempt = **та же** phase+step на любом шаге пайплайна.
 8. Если транспорт сабагента недоступен, зафиксируй blocker как repairable, повтори canonical spawn через adapter и затем запусти `gate-repair`; после ограниченных retry только NEED_HUMAN, но не ложный PASS.
@@ -42,7 +43,7 @@ def claude_collaboration_block(ctx: SessionContext) -> str:
 ## CLAUDE CODE COLLABORATION ADAPTER (HARD)
 1. Для субагентов используй Claude Code `Agent` с canonical `subagent_type`; для gate-run передавай packed BLOCKERS/ALLOW/VERIFY sections.
 2. Дождись завершения `Agent` перед разбором verdict. Alias `verify`/`reviewer` разрешён только по общей карте gate-агентов.
-3. Вне QA: для FAIL/BLOCKED/runtime error вызови `Agent` с `subagent_type=gate-repair`, затем повтори исходный gate-agent. В QA следуй QA-контракту выше (BUGFIX path, не repair-loop).
+3. Вне QA: для FAIL/BLOCKED/runtime error вызови `Agent` с `subagent_type=gate-repair`, затем повтори исходный gate-agent; для AUDIT повтори сам audit. В QA следуй QA-контракту выше (BUGFIX path, не repair-loop).
 """
 
 
@@ -54,6 +55,6 @@ def codex_collaboration_block(ctx: SessionContext) -> str:
 2. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) может быть произвольной. Child получает managed model из Codex agent config.
 3. Для managed child используй модель из `codex/agents.config.toml` (после materialize — из `.codex/agents/<agent>.toml`); модель child не наследуй из root без явного override.
 4. В первой строке spawn prompt обязательно `agent_type: <canonical>` (`verify-qa`, `verify-bugfix`, `verify-implement`, `gate-repair`). Сразу после — `GATE_IDENTITY session_id=<SoT> epic_id=<SoT> step_id=<SoT>`. Без `agent_type` label станет unknown; без `GATE_IDENTITY` — DENY/BLOCKED.
-5. Вне QA: для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify. В QA — BUGFIX path по QA-контракту, не product repair-loop.
+5. Вне QA: для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify; для AUDIT после repair повтори сам audit. В QA — BUGFIX path по QA-контракту, не product repair-loop.
 6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK|FRONT|INTEG RECONCILE` и только с ALLOW READ текущего epic.
 """

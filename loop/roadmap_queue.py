@@ -464,8 +464,12 @@ def mark_queue_epic_done(
                 "path": parsed["path"],
         }
 
-    row = queue.pop(hit_idx)
-    if require_done and not is_epic_done(root, role_key, row["id"]):
+    row = queue[hit_idx]
+    row_kind = str(row.get("kind") or "feature").strip().lower()
+    # The aggregate REPLAN is a real delivery epic.  It may leave cadence only
+    # after its normal DECOMPOSE -> IMPLEMENT -> QA lifecycle is DONE.
+    must_be_done = require_done or row_kind == "replan"
+    if must_be_done and not is_epic_done(root, role_key, row["id"]):
         return {
             "ok": False,
             "error": "mark_queue_epic_not_done",
@@ -473,6 +477,7 @@ def mark_queue_epic_done(
             "id": row["id"],
             "path": parsed["path"],
         }
+    row = queue.pop(hit_idx)
 
     ensure_cadence(cwd=root)
 
@@ -504,6 +509,9 @@ def mark_queue_epic_done(
     cadence_epic = done_row.get("epic_id") or done_row["id"]
     if kind == "feature":
         c_state = on_feature_done(root, epic_id=cadence_epic)
+    elif kind == "replan":
+        from loop.roadmap_cadence import on_replan_epic_done
+        c_state = on_replan_epic_done(root, epic_id=cadence_epic)
     elif kind == "refactor":
         from loop.roadmap_cadence import on_refactor_done
         c_state = on_refactor_done(root, epic_id=cadence_epic)
@@ -777,6 +785,75 @@ def arm_roadmap_entry(cwd: str | Path, selection: dict[str, Any]) -> dict[str, A
     return res
 
 
+def _select_kind_epic(
+    cwd: str | Path,
+    *,
+    kind: str,
+    queue_rel: str | None = None,
+) -> dict[str, Any]:
+    """Select a non-feature cadence epic without allowing feature interleaving."""
+    parsed = parse_roadmap_queue(cwd, queue_rel=queue_rel)
+    if not parsed.get("ok"):
+        return parsed
+    role = str(parsed.get("role") or "back").strip().lower() or "back"
+    done_ids = {str(item.get("id") or "").strip() for item in parsed.get("done") or []}
+    wanted = str(kind or "").strip().lower()
+    candidates = [
+        item
+        for item in parsed.get("queue") or []
+        if str(item.get("kind") or "feature").strip().lower() == wanted
+        and str(item.get("id") or "").strip() not in done_ids
+    ]
+    if wanted == "replan" and len(candidates) > 1:
+        return {
+            "ok": False,
+            "halt": True,
+            "stop": "NEED_HUMAN: cadence_multiple_replan_epics",
+            "error": "cadence_multiple_replan_epics",
+            "reason": "cadence block requires exactly one aggregate kind: replan epic",
+            "ids": [str(item.get("id") or "") for item in candidates],
+            "path": parsed.get("path"),
+        }
+    for item in parsed.get("queue") or []:
+        if str(item.get("kind") or "feature").strip().lower() != wanted:
+            continue
+        if str(item.get("id") or "").strip() in done_ids:
+            continue
+        missing = [d for d in item.get("deps") or [] if d not in done_ids]
+        if missing:
+            return {
+                "ok": False,
+                "halt": True,
+                "stop": "NEED_HUMAN: roadmap_deps_blocked",
+                "reason": f"cadence {wanted} epic has unmet dependencies",
+                "blocked": [{"id": item.get("id"), "missing_deps": missing}],
+                "path": parsed.get("path"),
+            }
+        entry = resolve_entry(
+            cwd,
+            role=role,
+            epic_id=str(item.get("id") or ""),
+            plan_name=str(item.get("plan") or item.get("epic_id") or ""),
+        )
+        if not entry.get("ok"):
+            return entry
+        return {
+            "ok": True,
+            "role": role,
+            "item": item,
+            "entry": entry,
+            "done_ids": sorted(done_ids),
+            "blocked": [],
+            "path": parsed.get("path"),
+        }
+    return {
+        "ok": False,
+        "error": "cadence_epic_missing",
+        "reason": f"no {wanted} epic is present in roadmap queue",
+        "path": parsed.get("path"),
+    }
+
+
 def roadmap_advance(
     cwd: str | Path,
     *,
@@ -814,19 +891,21 @@ def roadmap_advance(
 
     cad_state = ensure_cadence(cwd=cwd)
 
-    # 1. Replan phase: arm BACK REPLAN for pending pair_ids; deny refactor epics
+    # 1. Replan phase: one aggregate REPLAN epic for the review window.
     if cad_state.phase == "replan":
-        selected = select_next_epic(
-            cwd,
-            queue_rel=queue_rel,
-            roadmap_rel=roadmap_rel,
-            skip_epic=skip_epic,
-        )
-        if selected.get("ok"):
-            item = selected.get("item") or selected.get("entry") or {}
-            item_kind = str(item.get("kind") or "feature").strip().lower()
-            if item_kind == "refactor":
-                out_deny = {
+        # Read old every-2 state files as a compatibility mode.  New states
+        # use the aggregate epic contract below; this branch only keeps
+        # already-running legacy cadence blocks recoverable.
+        if cad_state.every_n == 2 and not cad_state.replan_epic_id and not cad_state.replan_started:
+            selected_legacy = select_next_epic(
+                cwd,
+                queue_rel=queue_rel,
+                roadmap_rel=roadmap_rel,
+                skip_epic=skip_epic,
+            )
+            legacy_item = selected_legacy.get("item") or {}
+            if str(legacy_item.get("kind") or "feature").strip().lower() == "refactor":
+                return {
                     "ok": False,
                     "armed": False,
                     "complete": False,
@@ -836,15 +915,64 @@ def roadmap_advance(
                     "reason": "cannot select or arm refactor epic while cadence phase is 'replan'",
                     "phase": "replan",
                 }
-                if marked is not None:
-                    out_deny["mark_done"] = marked
-                return out_deny
+            pending_pair_ids = [
+                pid for pid in cad_state.pair_ids if pid not in cad_state.replan_outcomes
+            ]
+            if pending_pair_ids:
+                target_pid = pending_pair_ids[0]
+                from loop.epic_transition import _arm_pre_implement
 
-        pending_pair_ids = [
-            pid for pid in cad_state.pair_ids if pid not in cad_state.replan_outcomes
-        ]
-        if pending_pair_ids:
-            target_pid = pending_pair_ids[0]
+                arm_res = _arm_pre_implement(
+                    cwd,
+                    epic_id=target_pid,
+                    role="back",
+                    phase="REPLAN",
+                    target_rel=None,
+                    replan_prompt_only=False,
+                )
+                if not arm_res.get("ok"):
+                    return arm_res
+                out_legacy = {
+                    "ok": True,
+                    "armed": True,
+                    "complete": False,
+                    "epic": target_pid,
+                    "phase": "REPLAN",
+                    "step_id": "REPLAN",
+                    "role": "back",
+                    "cadence_phase": "replan",
+                    "review_window_ids": list(cad_state.pair_ids),
+                    "arm": arm_res,
+                }
+                if marked is not None:
+                    out_legacy["mark_done"] = marked
+                return out_legacy
+        selected = _select_kind_epic(cwd, kind="replan", queue_rel=queue_rel)
+        if selected.get("ok"):
+            item = selected.get("item") or {}
+            replan_epic_id = str(item.get("epic_id") or item.get("id") or "").strip()
+            from loop.roadmap_cadence import bind_replan_epic
+
+            cad_state = bind_replan_epic(cwd=cwd, epic_id=replan_epic_id)
+            armed = arm_roadmap_entry(cwd, selected)
+            armed["cadence_phase"] = "replan"
+            armed["review_window_ids"] = list(cad_state.pair_ids)
+            if marked is not None:
+                armed["mark_done"] = marked
+            return armed
+
+        if not cad_state.replan_started:
+            target_pid = cad_state.pair_ids[-1] if cad_state.pair_ids else ""
+            if not target_pid:
+                return {
+                    "ok": False,
+                    "armed": False,
+                    "complete": False,
+                    "halt": True,
+                    "error": "cadence_review_window_empty",
+                    "stop": "NEED_HUMAN: cadence_review_window_empty",
+                    "reason": "cannot start aggregate REPLAN without feature review window",
+                }
             from loop.epic_transition import _arm_pre_implement
 
             arm_res = _arm_pre_implement(
@@ -856,6 +984,11 @@ def roadmap_advance(
             )
             if not arm_res.get("ok"):
                 return arm_res
+            from loop.roadmap_cadence import load_cadence, save_cadence
+
+            state_after_arm = load_cadence(cwd=cwd)
+            state_after_arm.replan_started = True
+            save_cadence(state_after_arm, cwd=cwd)
             out_replan = {
                 "ok": True,
                 "armed": True,
@@ -865,6 +998,7 @@ def roadmap_advance(
                 "step_id": "REPLAN",
                 "role": "back",
                 "cadence_phase": "replan",
+                "review_window_ids": list(state_after_arm.pair_ids),
                 "arm": arm_res,
             }
             if marked is not None:
@@ -880,7 +1014,9 @@ def roadmap_advance(
             "error": "cadence_blocked",
             "stop": "CADENCE_BLOCKED",
             "phase": cad_state.phase,
-            "reason": f"cadence phase is '{cad_state.phase}', pausing feature advance",
+            "error": "cadence_epic_missing",
+            "stop": "NEED_HUMAN: cadence_epic_missing",
+            "reason": "aggregate REPLAN must create exactly one queue epic before implementation can continue",
             "cadence": cad_state.model_dump(by_alias=True),
         }
         if marked is not None:

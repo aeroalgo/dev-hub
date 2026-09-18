@@ -1,8 +1,12 @@
 schema: roadmap-cadence/v1
 phase: resync
 counter: 2
-every_n: 2
+every_n: 4
+review_window_n: 8
 pair_ids: []
+feature_history: []
+replan_epic_id: null
+replan_started: false
 replan_outcomes: {}
 resync_evidence: null
 resync_summary: null

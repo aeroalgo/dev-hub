@@ -37,7 +37,8 @@ completed implement-шарды. Исходный prompt, предыдущие it
 ## Вердикт и переход
 
 - Нет `fail|blocked` → `verdict: PASS` → `FRONT QA`.
-- Есть `fail|blocked` → `verdict: FAIL` → конкретный `FRONT BUGFIX <subject>`.
+- Есть `fail|blocked` → actionable finding → `gate-repair` с blockers/ALLOW WRITE/VERIFY → повторный FRONT AUDIT. В BUGFIX из AUDIT не переходить.
+- Только после повторной проверки без actionable findings (`converged: true`) → `FRONT QA`.
 - AUDIT не создаёт audit-shards, не запускает DECOMPOSE/IMPLEMENT и не объявляет
   `EPIC DONE`.
 - После зелёного QA переход к следующей итерации или final review выбирает
@@ -58,11 +59,11 @@ FAIL и без remediation shard.
 
 ## Переходный статус
 
-Этот workflow намеренно меняет только agent-инструкции. До отдельной задачи по
-runtime/loop `mb-finish audit` и его validator всё ещё ожидают старый полный
-`epic-audit/v2`; не использовать их как gate упрощённого AUDIT.
+`mb-finish audit` — sole-writer и gate перехода в QA: он отклоняет AUDIT с
+`converged: false` или actionable findings. Product repair выполняется только
+через bounded `gate-repair`, после чего parent обязан повторить AUDIT.
 
 ## FINISH
 
 Сформируй один Handoff в `memory-bank/activeContext.md`: iteration, verdict,
-точные BUGFIX либо `FRONT QA`, а также `replan_candidates` отдельно от findings.
+результат repair/re-audit либо `FRONT QA`, а также `replan_candidates` отдельно от findings.

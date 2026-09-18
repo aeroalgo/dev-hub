@@ -99,6 +99,9 @@ VERDICT: PASS → finalize-step → stop
 
 Parent **не** FINISH и **не** «ожидает verify» после FAIL/BLOCKED/runtime error — только repair → retry verify.
 
+**AUDIT actionable finding branch (HARD):**
+`AUDIT artifact: converged: false` + actionable finding → `@gate-repair` с теми же BLOCKERS / ALLOW WRITE / VERIFY → повторный AUDIT → только `converged: true` → `mb-finish audit` → QA. В BUGFIX этот finding не маршрутизируется.
+
 **HARD:** `finalize-step` вызывается агентом **только после `VERDICT: PASS`** — без исключений.  
 **HARD:** `status: completed` в implement пишет **только** `finalize-step` (вместе с index); агент не ставит completed руками.  
 **HARD:** агент **не** пишет `tasks.md` / `tasks/log` на IMPLEMENT sNN — это делает `finalize-step`.  

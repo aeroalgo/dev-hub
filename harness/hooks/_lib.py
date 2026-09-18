@@ -529,7 +529,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
         if agent.id not in GATE_AGENTS
     ]
     agent_lines.extend(
-        f"| Repair agent | @{agent.id} после verify FAIL/BLOCKED или gate-runtime error — чинит BLOCKERS in-scope |"
+        f"| Repair agent | @{agent.id} после verify FAIL/BLOCKED, actionable AUDIT или gate-runtime error — чинит BLOCKERS in-scope |"
         for agent in repair_agents
     )
     agent_lines.extend(
@@ -552,7 +552,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             *search_lines,
             *agent_lines,
             "| Agent running | FORBIDDEN TaskOutput mid-poll — жди completion (VERDICT / repair JSON) |",
-            "| verify FAIL/BLOCKED | @gate-repair с BLOCKERS + ALLOW WRITE + VERIFY → retry @verify; "
+            "| verify FAIL/BLOCKED или AUDIT blockers | @gate-repair с BLOCKERS + ALLOW WRITE + VERIFY → retry same verify/AUDIT; "
             "FORBIDDEN: «ожидаю verify», FINISH, новый @verify/repair пока in_flight |",
             "| Parallel spawn | DENY: второй managed пока in_flight; DENY: та же model busy |",
             "| Pre-FINISH code_changed | seed-implement → flush cp → suite → "
@@ -2496,9 +2496,11 @@ def last_verdict_was_fail(cwd: str | Path | None = None, session_id: str | None 
 
 
 def last_verdict_allows_repair(
-    cwd: str | Path | None = None, session_id: str | None = None
+    cwd: str | Path | None = None,
+    session_id: str | None = None,
+    state: dict[str, Any] | None = None,
 ) -> bool:
-    """Return True for a repairable verifier result or gate-runtime failure."""
+    """Return True for a repairable verifier, audit, or gate-runtime failure."""
     repairable_diagnostics = {
         "verify_spawn_missing",
         "reviewer_spawn_missing",
@@ -2506,13 +2508,42 @@ def last_verdict_allows_repair(
         "verify_runtime_unsupported_tool",
     }
 
+    st = {}
+    if cwd:
+        try:
+            from epic.core import load_epic_state
+
+            st.update(load_epic_state(cwd) or {})
+        except Exception:
+            pass
     if session_id and cwd:
-        st = load_state(session_id, str(cwd))
-        verdict = str(st.get("verify_verdict") or "").upper()
-        if st.get("verify_done") and verdict in {"FAIL", "BLOCKED"}:
-            return True
-        if str(st.get("gate_diagnostic") or "") in repairable_diagnostics:
-            return True
+        st.update(load_state(session_id, str(cwd)) or {})
+    st.update(state or {})
+    verdict = str(st.get("verify_verdict") or "").upper()
+    if st.get("verify_done") and verdict in {"FAIL", "BLOCKED"}:
+        return True
+    if str(st.get("gate_diagnostic") or "") in repairable_diagnostics:
+        return True
+
+    phase = str(st.get("mode") or st.get("phase") or st.get("armed_step") or "").upper()
+    if "AUDIT" in phase and cwd:
+        try:
+            from epic.core import latest_audit_artifact_for_reference
+            from harness.hooks.epic.audit_validate import actionable_audit_findings
+            import yaml
+
+            epic_id = str(st.get("armed_epic") or st.get("epic_id") or "").strip()
+            role = str(st.get("armed_role") or st.get("role") or "back").strip().lower()
+            if role == "integ":
+                role = "integration"
+            artifact = latest_audit_artifact_for_reference(cwd, role, epic_id=epic_id)
+            if artifact and artifact.is_file():
+                doc = yaml.safe_load(artifact.read_text(encoding="utf-8"))
+                if isinstance(doc, dict) and doc.get("converged") is not True:
+                    if actionable_audit_findings(doc):
+                        return True
+        except Exception:
+            pass
 
     if cwd:
         try:

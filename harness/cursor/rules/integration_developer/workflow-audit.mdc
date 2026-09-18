@@ -37,7 +37,8 @@ completed implement-шарды (`eNN`). Исходный prompt, предыду�
 ## Вердикт и переход
 
 - Нет `fail|blocked` → `verdict: PASS` → `INTEG QA`.
-- Есть `fail|blocked` → `verdict: FAIL` → конкретный `INTEG BUGFIX <subject>`.
+- Есть `fail|blocked` → actionable finding → `gate-repair` с blockers/ALLOW WRITE/VERIFY → повторный INTEG AUDIT. В BUGFIX из AUDIT не переходить.
+- Только после повторной проверки без actionable findings (`converged: true`) → `INTEG QA`.
 - AUDIT не создаёт audit-shards, не запускает DECOMPOSE/IMPLEMENT и не объявляет
   `EPIC DONE`.
 - После зелёного QA переход к следующей итерации или final review выбирает

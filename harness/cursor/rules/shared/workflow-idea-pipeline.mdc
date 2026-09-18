@@ -37,7 +37,7 @@ alwaysApply: false
 
 ### 0. Старт
 1. Ответь: `OK IDEA PIPELINE - <intake | continue | finish | status>`
-2. Прочитай: `memory-bank/activeContext.md`, `memory-bank/productContext.md`, `memory-bank/tasks.md`
+2. Прочитай: `memory-bank/activeContext.md`, `memory-bank/productContext.md`, `memory-bank/product/roadmap.md` (если есть), `memory-bank/tasks.md`
 3. Для CONTINUE/STATUS/FINISH — прочитай `memory-bank/idea/idea-<slug>.md` из `load_now` или последний pipeline пользователя
 
 ### 1. INTAKE — классификация идеи

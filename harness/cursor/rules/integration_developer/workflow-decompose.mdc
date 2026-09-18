@@ -5,13 +5,14 @@ alwaysApply: false
 ### Команда: INTEG DECOMPOSE
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/decompose.mdc
-**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Skills load (HARD):** @.cursor/rules/shared/_lean/decompose-skills-load.mdc — DECOMPOSE = copy paths; Read тел = IMPLEMENT
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Transition gate:** @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
-**Скиллы (сессия DECOMPOSE):** @.agents/skills/query-builder/SKILL.md; @.agents/skills/writing-plans/SKILL.md
+**Скиллы (сессия):** @.agents/skills/query-builder/SKILL.md; @.agents/skills/writing-plans/SKILL.md
 **Не грузить:** `executing-plans`
 **FORBIDDEN в полях `back:`/`front:` eNN:** `writing-plans` · `brainstorming` — они сессионные (DECOMPOSE-only). В back/front impl lists — только skills из BACK/FRONT allowlist.
 
-Каждый YAML decompose-step обязан содержать top-level `skills:` с `code_surface` и `impl`. Для INTEG IMPLEMENT каждый путь из `skills.impl` — обязательный Read до production-кода; не подменять список hardcoded-каталогом.
+Каждый YAML decompose-step обязан содержать top-level `skills:` с `code_surface` и `impl`. Значения — repo-relative пути; список — единственный источник обязательных Read для INTEG IMPLEMENT (не hardcoded-каталог). **FORBIDDEN на DECOMPOSE:** Read тел Core/situational SKILL.md (shared skills-load).
 
 **Цель:** Plan Element registry → `decompose-*/` (`index.md` + **все** `eNN-*.yaml`) за **один** проход. НЕ писать код.  
 DECOMPOSE = весь batch; IMPLEMENT = один eNN.

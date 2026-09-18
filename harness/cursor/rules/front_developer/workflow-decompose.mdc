@@ -5,10 +5,11 @@ alwaysApply: false
 ### Команда: FRONT DECOMPOSE
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/decompose.mdc
-**Situational skills:** @.cursor/rules/front_developer/skills-gate-situational.mdc (allowlist + checklist + Design Core)
-**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Situational skills:** @.cursor/rules/front_developer/skills-gate-situational.mdc (allowlist + checklist + Design groups)
+**Skills load (HARD):** @.cursor/rules/shared/_lean/decompose-skills-load.mdc — DECOMPOSE = copy paths; Read тел = IMPLEMENT/CREATIVE
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Transition gate:** @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
-**Скиллы (сессия DECOMPOSE):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если размыто)  
+**Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если размыто)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
 **Цель:** `plan/<id>/md/plan.md` → `memory-bank/front/plan/<plan_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`. НЕ писать код.  
@@ -61,15 +62,17 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 
 ## Skills gate → каждый `sNN` (HARD)
 
+Канон load: @.cursor/rules/shared/_lean/decompose-skills-load.mdc.  
 Канон для IMPLEMENT — **только** списки в step. IMPLEMENT **не** угадывает скиллы и **не** держит широкий слой A.
 
-Каждый FRONT `sNN`: `**visible_ui:**` + **Impl skills** = **Impl Core ∪ situational** (+ **Design Core** пакет если `yes`).
+Каждый FRONT `sNN`: `**visible_ui:**` + **Impl skills** = **Impl Core ∪ situational** (+ **Design groups** если `yes`: минимум D0).
 
-В YAML decompose-step результат хранится в top-level секции `skills:`: `code_surface`, `impl` и для UI `design` (допустим также `design_skills`). `impl` обязателен для FRONT IMPLEMENT, а `design`/`design_skills` обязателен до UI-кода при `visible_ui: yes`.
+В YAML decompose-step результат хранится в top-level секции `skills:`: `code_surface`, `impl` и для UI `design` (допустим также `design_skills`). Значения — repo-relative пути `.agents/skills/<name>/SKILL.md`; этот список — единственный источник обязательных Read для FRONT IMPLEMENT. `impl` обязателен для FRONT IMPLEMENT, а `design`/`design_skills` обязателен до UI-кода при `visible_ui: yes`.
 
-**FORBIDDEN в `impl:` любого `sNN`:** `writing-plans` · `brainstorming` · `executing-plans` · `breakdown-plan` — они **сессионные** (DECOMPOSE-only). В `impl:` — **только Impl Core + allowlist** из `skills-gate-situational.mdc`. Поставить session skill в `impl:` = FAIL.
+**FORBIDDEN в `impl:` любого `sNN`:** `writing-plans` · `brainstorming` · `executing-plans` · `breakdown-plan` — они **сессионные** (DECOMPOSE-only). В `impl:` — **только Impl Core + allowlist** из `skills-gate-situational.mdc`. Поставить session skill в `impl:` = FAIL.  
+**FORBIDDEN на DECOMPOSE:** Read тел Impl Core / Design groups / situational SKILL.md (см. shared skills-load).
 
-### Impl Core (всегда — ровно эти 6)
+### Impl Core (всегда — ровно эти 6; copy paths, не Read)
 
 - `.agents/skills/tdd/SKILL.md`
 - `.agents/skills/frontend-testing/SKILL.md`
@@ -80,18 +83,19 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 
 ### Situational + Design
 
-1. **Read** front_developer/skills-gate-situational.mdc
+1. **Read** front_developer/skills-gate-situational.mdc (allowlist + checklist — **не** SKILL.md групп)
 2. Прогони **Checklist — DECOMPOSE** (`visible_ui`, parent-only Playwright, …)
-3. `visible_ui: yes` → скопировать **Design Core** (весь пакет Base 4 + Taste 13) в блок Design skills  
+3. `visible_ui: yes` → **скопировать** Design groups в `skills.design`:
+   - приоритет: clarify `## Design skills pack`.resolved_paths
+   - иначе defaults по `surface` (product_ui → **только D0**)
+   - `# surface=… groups=… dialect=…`
    `visible_ui: no` → `**Design skills:** —` + причина
-4. Cap situational ≤ **4** (+ 6 Impl Core; Design Core не в cap situational)
-5. В step — только итоговые пути + `#`-комментарий почему (silent = FAIL). **FORBIDDEN:** скиллы вне allowlist/пакетов; копировать весь checklist в `sNN`; skill без обоснования
-
-**Сессия DECOMPOSE:** если ≥1 шаг с `visible_ui: yes` — **Read Design Core один раз** до нарезки этих `sNN`.
+4. Cap situational ≤ **4** (+ 6 Impl Core; Design groups не в cap situational)
+5. В step — только итоговые пути + `#`-комментарий почему (silent = FAIL). **FORBIDDEN:** скиллы вне allowlist/групп; весь бывший «Taste 13» all-or-nothing; >1 D2 dialect; копировать весь checklist в `sNN`; skill без обоснования
 
 **FINISH-only** (не в `sNN`): `verification-before-completion` · `requesting-code-review`
 
-**Index:** «per-step skills gate (Impl Core + situational + Design Core); канон в каждом sNN».
+**Index:** «per-step skills gate (Impl Core + situational + Design groups paths); Read тел = IMPLEMENT/CREATIVE».
 
 IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. `workflow-implement.mdc`.
 
@@ -99,14 +103,14 @@ IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. 
 
 **Процесс**:
 1. `OK FRONT DECOMPOSE - [plan_id]`
-1a. Прочитай **Gates** + **skills-gate-situational**
+1a. Прочитай **Gates** + **skills-gate-situational** (+ shared skills-load)
 2. Прочитай план (L3–4: все shards) — выпиши AC/NFR/этапы UX + **Replacement / sunset**
-2b. UI в scope → Read Design Core до нарезки `visible_ui: yes`
+2b. UI в scope → **скопировать** Design groups (D0+) в `skills.design` при нарезке `visible_ui: yes` из clarify pack / surface map (**не** Read тел SKILL)
 3. В `index.md`: Requirements / Stages / Outcome map / **Replacement cleanup** + Skills note (gate, не полный каталог)
 4. Атомарные шаги: files, `deletes`, `step_id`, `needs_creative`, `visible_ui`, next (`creative`|`implement`), `tdd: true`; brownfield UI replace → явные delete/cutover sNN
 5. Каждый `sNN-<slug>.yaml` (@.cursor/templates/decompose/epic-step.yaml): skills gate + lean-интерфейсы (без полных interface/TSX), процесс, тест-кейсы, checkpoint, **`deletes`**
 5z. **FAIL** если schema ≠ `epic-decompose/v1` (+ `role: front`, list as_built/delta). **FORBIDDEN** invented schemas. FINISH: `validate-decompose-tree` → exit 0
-5a. **FAIL** без `visible_ui` / без Impl Core / `yes` без Design Core / `no` без причины / situational вне allowlist / situational >4
+5a. **FAIL** без `visible_ui` / без Impl Core / `yes` без D0 (Lean Core) / `yes` с >1 D2 / `no` без причины / situational вне allowlist / situational >4
 5b. **FAIL** если нет Outcome map / Requirements / Stages / Replacement cleanup
 5c. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` в очереди (shared/workflow-legacy-fallback-cleanup.mdc)
 5c. **FAIL** если план заменяет UI-поверхность, а нет sNN с `deletes` (и нет out_of_scope+follow-up)

@@ -14,7 +14,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | `verify-bugfix` | BUGFIX pre-FINISH (`code_changed: yes`) | **да** (если gate active в loop) | `@verify` |
 | `verify-qa` | BACK QA после suite | **да** (если gate active в loop) | `@reviewer` |
 | `verify-decompose` | DECOMPOSE pre-FINISH | **да** (если gate active в loop) | — |
-| `gate-repair` | после `@verify-*` VERDICT: FAIL | **да** (если enabled в loop) | — |
+| `gate-repair` | после `@verify-*` FAIL/BLOCKED **или actionable AUDIT finding** | **да** (если enabled в loop) | — |
 | `sunset-inventory` | discovery / scan sunset targets (legacy fallbacks, dual-paths, shims) | **да** (если shard `sunset_scope.required: true`) | `@sunset-inventory`, `sunset` |
 | `analyze-verify` | после fix plan/decompose по ANALYZE findings | нет (gate после CRITICAL fix; packed FINDINGS/COVERAGE/ALLOW) | — |
 | `verify` (alias) | pre-FINISH IMPLEMENT / BUGFIX | legacy alias → `verify-implement` / `verify-bugfix` | `@verify` |
@@ -42,7 +42,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: implement yaml + decompose yaml + code; checklist SoT = decompose; alias `@verify`); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (`ALLOW READ` с bugfix queue + report; queue SoT статусов, report SoT Changes/Verification; alias `@verify`); FAIL/DENY → fix → retry до PASS |
 | Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: plan.md + decompose-index.yaml; coverage SoT = shards) |
-| После `@verify-*` VERDICT: FAIL | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed `- id \| path \| fix` · ALLOW WRITE · VERIFY); repair done/partial → retry @verify до PASS |
+| После `@verify-*` VERDICT: FAIL или AUDIT finding | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed `- id \| path \| fix` · ALLOW WRITE · VERIFY); repair done/partial → retry тот же verify или AUDIT до PASS |
 | После ANALYZE fix (plan/decompose) | **`@analyze-verify`** (packed); FAIL → fix → retry; PASS → re-ANALYZE или IMPLEMENT gate |
 | BACK QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (Suite results + ALLOW + Frozen checklist; alias `@reviewer`); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
@@ -60,9 +60,9 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
 **FAIL:** spawn `verify-implement`/`verify` без `ALLOW READ` или без implement+decompose yaml paths в ALLOW / path нет на диске; spawn `verify-bugfix` без bugfix queue + report paths; spawn `verify-decompose` без plan.md + decompose-index.yaml; spawn `verify-qa`/`reviewer` без Suite results / ALLOW / freeze; spawn gate-repair без обязательных секций / ALLOW = дерево / >max файлов (10 default; 40 verify-qa) / globs `**` в ALLOW.
 **FAIL:** verify-qa fail-fast (FAIL до полного AC+/AC−/§0.11) или partial `## BLOCKERS (complete)`.
-  ├─ verify FAIL/BLOCKED/runtime error → parent @gate-repair (`- id | path | fix` + ALLOW WRITE + VERIFY) → retry @verify
+  ├─ verify FAIL/BLOCKED/runtime error или AUDIT blockers → parent @gate-repair (`- id | path | fix` + ALLOW WRITE + VERIFY) → retry same verify/AUDIT
   ├─ gate-repair fail → parent расширяет ALLOW WRITE / уточняет path|fix или чинит сам → retry
-Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
+Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или actionable AUDIT; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
 **FAIL:** `@gate-repair` с голыми blocker id без `| path | fix` или path ∉ ALLOW WRITE.
 
 **FAIL:** «проверь шаг» / QA review / search без секций (для `verify-implement` — без ALLOW READ + обоих yaml).  

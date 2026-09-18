@@ -4257,13 +4257,12 @@ def project_handoff_from_reducer(
         ac.write_text(text_new, encoding="utf-8")
         projected = True
     elif phase == "BUGFIX" and (
-        "mode: AUDIT" in text
-        or "mode: QA" in text
-        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+(AUDIT|QA)\b", text)
+        "mode: QA" in text
+        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+QA\b", text)
     ):
-        text_new = re.sub(r"Handoff\s+BACK\s+(AUDIT|QA)", "Handoff BACK BUGFIX", text)
-        text_new = re.sub(r"`BACK (AUDIT|QA)`", "`BACK BUGFIX`", text_new)
-        text_new = re.sub(r"mode:\s*(AUDIT|QA)", "mode: BUGFIX", text_new)
+        text_new = re.sub(r"Handoff\s+BACK\s+QA", "Handoff BACK BUGFIX", text)
+        text_new = re.sub(r"`BACK QA`", "`BACK BUGFIX`", text_new)
+        text_new = re.sub(r"mode:\s*QA", "mode: BUGFIX", text_new)
         if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:
             frontmatter = (
                 f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\n"
@@ -4273,13 +4272,12 @@ def project_handoff_from_reducer(
         ac.write_text(text_new, encoding="utf-8")
         projected = True
     elif phase == "QA" and (
-        "mode: AUDIT" in text
-        or "mode: BUGFIX" in text
-        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+(AUDIT|BUGFIX)\b", text)
+        "mode: BUGFIX" in text
+        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+BUGFIX\b", text)
     ):
-        text_new = re.sub(r"Handoff\s+BACK\s+(AUDIT|BUGFIX)", "Handoff BACK QA", text)
-        text_new = re.sub(r"`BACK (AUDIT|BUGFIX)`", "`BACK QA`", text_new)
-        text_new = re.sub(r"mode:\s*(AUDIT|BUGFIX)", "mode: QA", text_new)
+        text_new = re.sub(r"Handoff\s+BACK\s+BUGFIX", "Handoff BACK QA", text)
+        text_new = re.sub(r"`BACK BUGFIX`", "`BACK QA`", text_new)
+        text_new = re.sub(r"mode:\s*BUGFIX", "mode: QA", text_new)
         if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:
             frontmatter = (
                 f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\n"
@@ -5033,8 +5031,8 @@ def arm_epic(
 ) -> dict[str, Any]:
     """Arm activeContext for epic via resolver (pre-implement / implement / post-implement)."""
     cwd_p = Path(cwd)
-    from board_sync.epic_resolver import resolve_epic_next_action
-    from epic_transition import arm_phase
+    from loop.board_sync.epic_resolver import resolve_epic_next_action
+    from loop.epic_transition import arm_phase
 
     action = resolve_epic_next_action(cwd_p, role, epic_id, require_plan=require_plan)
     phase = (action.phase or "").upper()

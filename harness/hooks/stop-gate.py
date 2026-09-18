@@ -20,6 +20,7 @@ from _lib import (
     agent_enabled,
     has_blocked_verify_no_verdict,  # compat: BLOCKED|NEED_HUMAN; deprecate BLOCKED в 004
     is_epic_loop_env,
+    last_verdict_allows_repair,
     load_state,
     merged_project_env_map,
     neutralize_state,
@@ -427,6 +428,15 @@ def main() -> None:
             return
 
     if st.get("mode") == "audit" and finishing:
+        if last_verdict_allows_repair(cwd, session_id, state=st):
+            if stop_hook_active:
+                return
+            _block(
+                "spawn-gate: AUDIT содержит actionable blockers — нельзя FINISH и нельзя переходить в BUGFIX. "
+                "Запусти @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY из audit findings), "
+                "затем повтори тот же AUDIT до `converged: true`."
+            )
+            return
         ac = Path(cwd) / "memory-bank" / "activeContext.md" if cwd else None
         handoff_ok = False
         finished_via_tool = False

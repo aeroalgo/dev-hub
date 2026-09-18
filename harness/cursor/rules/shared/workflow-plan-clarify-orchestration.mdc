@@ -54,14 +54,16 @@ alwaysApply: false
 2. **Read** `.agents/skills/grill-me/SKILL.md` целиком → тянет `grilling` → `## Grill pass` в clarify-артефакт
 3. Taxonomy scan → coverage map (в артефакт)
 4. Frontier rounds (≤4, ≤20 Q total); после каждого раунда → Q→A + Frontier rounds log + patch draft plan секций если draft уже есть
+4a. **FRONT UI-scope:** Design skills Q (surface / dialect / image) или auto-resolve → секция `## Design skills pack` + `resolved_paths` (`front_developer/workflow-clarify.mdc` · `skills-gate-situational.mdc`)
 5. CRITICAL → resolve или defer-list (owner/next)
-6. **Completion Report** в clarify-артефакт; `status: done` если ready for Phase 1
+6. **Completion Report** в clarify-артефакт (`design_pack=` при FRONT UI); `status: done` если ready for Phase 1
 7. Опционально предложить `to-prd`/`to-spec` (синтез) перед Phase 1 — не блокирует
 
 ### Phase 0 halt (не переходить к Phase 1)
 
 - Ожидается ответ пользователя на текущий **раунд**
 - Открытый CRITICAL без resolve/defer-list
+- FRONT UI без `## Design skills pack` / `resolved_paths`
 - Квота 20/20 исчерпана с material gaps → FINISH с next `continue * CLARIFY` (новая сессия)
 
 ### Phase 0 → Phase 1 gate (в той же сессии, без отдельного чата)
@@ -76,6 +78,7 @@ alwaysApply: false
 
 - Ссылка на clarify в шапке plan: `**Clarify:** memory-bank/{role}/clarify/clarify-…md` (если Phase 0 был или артефакт существует)
 - Секция `## Clarifications` — session ref + краткий summary resolved/deferred (не дублировать весь Q→A)
+- **FRONT:** в Clarifications / Chat decisions — краткий `design_pack:` (surface / dialect / groups) для DECOMPOSE skills.design
 - `plan/<epic_id>/md/prompt.md` — абстрактный outcome + Chat decisions (`workflow-plan-outcome-prompt.mdc`); clarify Q→A **не** копировать в prompt
 - Остальной процесс — role `workflow-plan.mdc` (multi-epic, merge, FINISH guards)
 

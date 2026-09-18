@@ -16,6 +16,11 @@
 runtime, затем `.cursor/rules/mainrule.mdc` и всю выбранную role/mode chain
 с Gates и `@`-ссылками.
 
+**EXCEPT Policy lazy:** не читай тела файлов из блока/строки `Policy lazy`
+на старте только из-за `@` — только по trigger (см. `mainrule.mdc` §Full linked
+chain). На **DECOMPOSE** не читай тела Core/situational/Design SKILL.md —
+только copy paths в step (`shared/_lean/decompose-skills-load.mdc`).
+
 ## Workflow router
 
 По таблице router выбери текущую команду, роль и режим. Затем прочитай только

@@ -58,13 +58,13 @@ description: Hub CLARIFY Phase 0 for BACK|FRONT|INTEG PLAN/CLARIFY — framing g
 
 | Параметр | Значение |
 |----------|----------|
-| **Total Q** | **≤10** на CLARIFY-сессию (все раунды суммарно) |
-| **Rounds** | **≤3** |
+| **Total Q** | **≤20** на CLARIFY-сессию (все раунды суммарно) |
+| **Rounds** | **≤4** |
 | **Per round** | только **независимые** Q (frontier); зависимые → следующий раунд |
 | **Format** | numbered `❓ Qn` + MC/short + `➡️ Recommended` (как grilling) |
 | **Chat UX** | один **раунд** за ход (весь frontier раунда); ждать ответы по номерам |
 | **Facts** | grep/read/subagent — не спрашивать пользователя |
-| **Stop** | frontier пуст · user `done`/`good` · квота 10 · нет material gaps |
+| **Stop** | frontier пуст · user `done`/`good` · квота 20 · нет material gaps |
 
 ### Приоритет узлов (impact)
 
@@ -117,7 +117,7 @@ description: Hub CLARIFY Phase 0 for BACK|FRONT|INTEG PLAN/CLARIFY — framing g
 ## FORBIDDEN
 
 - Пропустить Grill pass или grilling Read «потому что ясно»
-- >10 Q или >3 раунда без новой `continue * CLARIFY` сессии
+- >20 Q или >4 раунда без новой `continue * CLARIFY` сессии
 - Параллельный dump **зависимых** вопросов в одном раунде
 - Архитектурные решения вместо вопросов
 - Писать полный plan до Completion Report Phase 0

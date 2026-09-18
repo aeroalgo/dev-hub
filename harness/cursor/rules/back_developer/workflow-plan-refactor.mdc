@@ -72,12 +72,12 @@ Epic success: **net LOC ≤ 0** and **net public symbols / owners ≤ 0**, or an
 В рамках автоматического цикла каденса (`memory-bank/back/roadmap/cadence.yaml`) `BACK PLAN REFACTOR` является второй обязательной фазой:
 
 ```text
-phase=replan (pair_ids: complete | skip) → phase=refactor (PLAN REFACTOR: kind: refactor | noop) → phase=resync
+phase=replan (one aggregate `kind: replan` epic QA PASS) → phase=refactor (PLAN REFACTOR: kind: refactor | noop) → phase=resync
 ```
 
 ### Правила исполнения в Cadence-блоке
 
-1. **Строгая блокировка до завершения REPLAN:** `BACK PLAN REFACTOR` исполняется строго после того, как для всех `pair_ids` в `cadence.yaml` зафиксирован терминальный исход (`complete` или `skip`). Запуск refactor при незавершённой фазе `replan` — **FORBIDDEN** (fail-closed, `ValueError`).
+1. **Строгая блокировка до завершения REPLAN:** `BACK PLAN REFACTOR` исполняется строго после QA PASS единственного aggregate `replan_epic_id` в `cadence.yaml`. Запуск refactor при незавершённой фазе `replan`, отсутствии aggregate row или без полного `DECOMPOSE → IMPLEMENT → QA` — **FORBIDDEN** (fail-closed, `ValueError`).
 2. **Результат фазы refactor:**
    - При наличии безопасных кандидатов на удаление или консолидацию создаётся план и в очередь ставится эпик с `kind: refactor` (`start_refactor_phase`).
    - Если доказательств для безопасного рефакторинга нет, фиксируется noop evidence (`record_refactor_noop`, `no_safe_deletion_or_consolidation_found`).

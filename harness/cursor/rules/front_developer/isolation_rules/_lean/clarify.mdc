@@ -15,8 +15,9 @@ alwaysApply: false
 2. Jump в brief или plan допустим только если ambiguity без этого контекста не снять.
 3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком (тянет `grilling`); `## Grill pass` в артефакт не пустая
 4. Соблюдать shared core: frontier rounds ≤4 · ≤20 Q · Recommended, CRITICAL policy.
+4a. **UI-scope → Design skills pack:** surface / dialect / image_pack + `resolved_paths` (канон `workflow-clarify.mdc` §Design skills + `skills-gate-situational.mdc`). Auto-resolve допустим при однозначном brief; без pack при visible UI → FAIL FINISH
 5. Каждый принятый ответ / раунд записывать в clarify-артефакт; диск — source of truth.
-6. Completion Report обязателен перед Handoff → PLAN Phase 1 / continue.
+6. Completion Report обязателен перед Handoff → PLAN Phase 1 / continue (`design_pack=` при UI).
 7. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list → не Phase 1 PLAN
 
 ## Abort
@@ -24,4 +25,5 @@ alwaysApply: false
 - Нет slug или цели — запросить идентификацию, не выдумывать scope.
 - Не подменять clarify советами по frontend-стеку или архитектурными решениями.
 - FINISH без `## Grill pass` или без `Grill:` в Completion Report → FAIL
+- UI-scope FINISH без `## Design skills pack` / без `resolved_paths` → FAIL
 - Не клонировать spec-kit clarify и не вызывать specify-cli.

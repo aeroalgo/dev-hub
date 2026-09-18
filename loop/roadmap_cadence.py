@@ -161,17 +161,86 @@ def on_feature_done(
     state = load_cadence(cwd=resolved_cwd, path=resolved_path)
     if state.phase != "idle":
         return state
-    if resolved_epic and resolved_epic in state.pair_ids:
+    if not state.feature_history and state.pair_ids:
+        # Migrate pre-window cadence files that only persisted pair_ids.
+        state.feature_history = list(state.pair_ids)[-state.review_window_n :]
+    if resolved_epic and resolved_epic in state.feature_history:
         return state
-    if state.counter == 0:
-        state.pair_ids = []
-    state.counter += 1
     if resolved_epic:
-        state.pair_ids.append(resolved_epic)
+        state.feature_history.append(resolved_epic)
+        state.feature_history = state.feature_history[-state.review_window_n :]
+        # Keep the legacy field as a compatibility alias for the current
+        # rolling review window.  It is no longer a pair of work items.
+        state.pair_ids = list(state.feature_history)
+    state.counter += 1
     if state.counter >= state.every_n:
         state.phase = "replan"
-        state.pair_ids = state.pair_ids[-state.every_n :]
+        state.pair_ids = state.feature_history[-state.review_window_n :]
+        state.replan_epic_id = None
+        state.replan_started = False
         state.replan_outcomes = {}
+    save_cadence(state, cwd=resolved_cwd, path=resolved_path)
+    return state
+
+
+def bind_replan_epic(
+    arg1: str | Path | None = None,
+    arg2: str | None = None,
+    *,
+    epic_id: str | None = None,
+    cwd: str | Path | None = None,
+    path: str | Path | None = None,
+) -> RoadmapCadenceState:
+    """Bind the single aggregate REPLAN epic for the active cadence block."""
+    resolved_cwd, resolved_path, resolved_epic = _resolve_cwd_and_epic(
+        arg1, arg2, cwd, path, epic_id
+    )
+    state = load_cadence(cwd=resolved_cwd, path=resolved_path)
+    if state.phase != "replan":
+        raise ValueError(
+            f"cannot bind replan epic: current cadence phase is {state.phase!r}, expected 'replan'"
+        )
+    if not resolved_epic:
+        raise ValueError("epic_id is required for bind_replan_epic")
+    if state.replan_epic_id and state.replan_epic_id != resolved_epic:
+        raise ValueError(
+            f"replan epic already bound: {state.replan_epic_id!r}; one aggregate epic is allowed"
+        )
+    state.replan_epic_id = resolved_epic
+    state.replan_started = True
+    save_cadence(state, cwd=resolved_cwd, path=resolved_path)
+    return state
+
+
+def on_replan_epic_done(
+    arg1: str | Path | None = None,
+    arg2: str | None = None,
+    *,
+    epic_id: str | None = None,
+    cwd: str | Path | None = None,
+    path: str | Path | None = None,
+) -> RoadmapCadenceState:
+    """Move the cadence block from REPLAN to PLAN REFACTOR after QA PASS."""
+    resolved_cwd, resolved_path, resolved_epic = _resolve_cwd_and_epic(
+        arg1, arg2, cwd, path, epic_id
+    )
+    state = load_cadence(cwd=resolved_cwd, path=resolved_path)
+    if state.phase != "replan":
+        raise ValueError(
+            f"cannot complete replan epic: current cadence phase is {state.phase!r}, expected 'replan'"
+        )
+    if not resolved_epic or state.replan_epic_id != resolved_epic:
+        raise ValueError(
+            f"unexpected replan epic {resolved_epic!r}; expected {state.replan_epic_id!r}"
+        )
+    state.replan_outcomes = {
+        resolved_epic: ReplanOutcomeRecord(
+            epic_id=resolved_epic,
+            outcome="complete",
+            reason="aggregate REPLAN epic passed QA",
+        )
+    }
+    state.phase = "refactor"
     save_cadence(state, cwd=resolved_cwd, path=resolved_path)
     return state
 
@@ -243,10 +312,11 @@ def advance_replan(
     cwd: str | Path | None = None,
     path: str | Path | None = None,
 ) -> RoadmapCadenceState:
-    """Advance a single epic in the replan phase of the cadence block.
+    """Advance an aggregate (or legacy pair-mode) epic in cadence replan.
 
-    Records the outcome (complete or skip) with structured evidence.
-    Transitions phase to 'refactor' only once all pair_ids have been advanced.
+    New cadence states accept only the bound aggregate ``replan_epic_id`` and
+    transition to ``refactor`` after that one outcome.  Legacy every-2 states
+    retain the old pair_ids path so an in-flight block can be recovered.
     """
     resolved_cwd = cwd
     resolved_path = path
@@ -316,6 +386,49 @@ def advance_replan(
 
     if not resolved_epic:
         raise ValueError("epic_id is required for advance_replan")
+
+    if state.replan_epic_id:
+        if resolved_epic != state.replan_epic_id:
+            raise ValueError(
+                f"epic {resolved_epic!r} is not the aggregate replan epic {state.replan_epic_id!r}"
+            )
+        if resolved_epic in state.replan_outcomes:
+            existing = state.replan_outcomes[resolved_epic]
+            raise ValueError(
+                f"cannot advance replan: aggregate epic {resolved_epic!r} already has terminal outcome {existing.outcome!r}"
+            )
+
+        normalized_outcome = str(resolved_outcome or "").strip().lower()
+        if normalized_outcome in ("completed", "done"):
+            normalized_outcome = "complete"
+        elif normalized_outcome == "skipped":
+            normalized_outcome = "skip"
+        if normalized_outcome not in ("complete", "skip"):
+            raise ValueError(
+                f"invalid replan outcome: {resolved_outcome!r}, expected 'complete' or 'skip'"
+            )
+        if normalized_outcome == "skip" and not (resolved_reason or resolved_evidence):
+            raise ValueError(
+                "missing evidence for aggregate replan skip: structured evidence or reason is required"
+            )
+        record = ReplanOutcomeRecord(
+            epic_id=resolved_epic,
+            outcome=normalized_outcome,  # type: ignore[arg-type]
+            reason=str(resolved_reason or "aggregate REPLAN epic passed QA"),
+            evidence=(
+                ReplanEvidence.model_validate(resolved_evidence)
+                if isinstance(resolved_evidence, dict)
+                else resolved_evidence
+                if isinstance(resolved_evidence, ReplanEvidence)
+                else ReplanEvidence(reason=str(resolved_evidence))
+                if isinstance(resolved_evidence, str)
+                else None
+            ),
+        )
+        state.replan_outcomes = {resolved_epic: record}
+        state.phase = "refactor"
+        save_cadence(state, cwd=resolved_cwd, path=resolved_path)
+        return state
 
     if resolved_epic not in state.pair_ids:
         raise ValueError(
@@ -592,6 +705,8 @@ def on_resync_done(
     state.phase = "idle"
     state.counter = 0
     state.pair_ids = []
+    state.replan_epic_id = None
+    state.replan_started = False
     state.replan_outcomes = {}
     save_cadence(state, cwd=resolved_cwd, path=resolved_path)
     return state
@@ -942,6 +1057,7 @@ __all__ = [
     "ResyncEvidence",
     "RoadmapCadenceState",
     "advance_replan",
+    "bind_replan_epic",
     "canon_cadence_path",
     "execute_cadence_resync",
     "filter_critical_gaps",
@@ -950,6 +1066,7 @@ __all__ = [
     "mark_plan_stale",
     "on_feature_done",
     "on_non_feature_done",
+    "on_replan_epic_done",
     "on_refactor_done",
     "on_resync_done",
     "record_refactor_noop",

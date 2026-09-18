@@ -766,6 +766,7 @@ def _arm_pre_implement(
     phase: str,
     target_rel: str | None,
     decompose_rel: str | None = None,
+    replan_prompt_only: bool = True,
 ) -> dict[str, Any]:
     """Arm activeContext for pre-implement phases (PLAN, DECOMPOSE, CLARIFY, ANALYZE)."""
 
@@ -789,7 +790,44 @@ def _arm_pre_implement(
 
     phase_u = str(phase or "").upper()
     role_u = str(role or "back").upper()
-    if target_rel:
+    if phase_u == "REPLAN" and replan_prompt_only:
+        # REPLAN is an analysis cursor, not a source epic lifecycle step.  Its
+        # only artifact context is the prompt of each feature in the cadence
+        # review window; loading the anchor plan here would violate the
+        # prompt-only contract.
+        from loop.roadmap_cadence import load_cadence
+
+        cadence = load_cadence(cwd=cwd_p)
+        prompt_items: list[str] = []
+        missing_prompts: list[str] = []
+        for source_id in cadence.pair_ids:
+            source_plan = find_plan_md_path(cwd_p, role_key, source_id)
+            prompt_path = source_plan.parent / "prompt.md" if source_plan else None
+            if prompt_path is None or not prompt_path.is_file():
+                missing_prompts.append(source_id)
+                continue
+            prompt_rel = prompt_path.relative_to(cwd_p).as_posix()
+            prompt_items.append(
+                f"{len(prompt_items) + 1}. [`{prompt_rel}`]({prompt_rel.removeprefix('memory-bank/')}) "
+                "— source feature prompt; read only this prompt for outcome gaps.\n"
+            )
+        if missing_prompts:
+            return {
+                "ok": False,
+                "halt": True,
+                "stop": "NEED_HUMAN: outcome_prompt_missing",
+                "reason": (
+                    "REPLAN review window has no readable prompt.md for: "
+                    + ", ".join(missing_prompts)
+                ),
+                "missing_prompts": missing_prompts,
+            }
+        load_now = "".join(prompt_items)
+        load_now += (
+            f"{len(prompt_items) + 1}. `codebase` — inspect implementation and tests "
+            "as runtime evidence; do not read source epic plan/decompose/implement/QA shards.\n"
+        )
+    elif target_rel:
         pass
     elif resolved_plan is not None:
         try:
@@ -802,11 +840,12 @@ def _arm_pre_implement(
         target_rel = layout_resolve(
             role_key, epic_id, EpicLayoutKind.PLAN_MD, project_root=cwd_p
         ).relative_to(cwd_p).as_posix()
-    link = target_rel.removeprefix("memory-bank/")
     next_cmd = f"{role_u} {phase_u}"
-    load_now = (
-        f"1. [{Path(target_rel).name}]({link}) — source plan/artifact for pre-implement phase {phase_u}.\n"
-    )
+    if not (phase_u == "REPLAN" and replan_prompt_only):
+        link = target_rel.removeprefix("memory-bank/")
+        load_now = (
+            f"1. [{Path(target_rel).name}]({link}) — source plan/artifact for pre-implement phase {phase_u}.\n"
+        )
     armed_decompose: str | None = None
     if phase_u == "ANALYZE" and decompose_rel:
         decomp_yaml = decompose_rel

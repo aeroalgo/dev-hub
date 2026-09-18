@@ -442,7 +442,7 @@ class AgentPostToolAdapter:
         if agent_type:
             clear_in_flight(st, agent=str(agent_type))
 
-        # Repair completion never authorizes a verifier PASS; parent must retry @verify.
+        # Repair completion never authorizes a verifier/audit PASS; parent must retry the same gate.
         if st.get("repair_in_flight"):
             st["repair_in_flight"] = False
             st["gate_diagnostic"] = "repair_complete_verify_required"

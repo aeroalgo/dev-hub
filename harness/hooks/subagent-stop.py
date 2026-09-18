@@ -600,16 +600,22 @@ def main() -> None:
         st["repair_status"] = status
         st["repair_result"] = result
         save_state(session_id, cwd, st)
+        phase = str(st.get("mode") or st.get("phase") or st.get("armed_step") or "").upper()
+        retry_target = (
+            "тот же AUDIT: перечитай изменённые пути, пересобери audit artifact и повтори проверку"
+            if "AUDIT" in phase
+            else "@verify с packed prompt"
+        )
         if status in {"done", "partial"}:
             print(
-                f"gate-repair: status={status} — parent retry @verify с packed prompt; "
+                f"gate-repair: status={status} — parent retry {retry_target}; "
                 "FORBIDDEN FINISH до VERDICT: PASS.",
                 file=sys.stderr,
             )
         else:
             print(
                 "gate-repair: status=fail — parent расширь ALLOW WRITE / blockers, "
-                "затем retry @gate-repair или @verify.",
+                "затем retry @gate-repair или тот же AUDIT/verify.",
                 file=sys.stderr,
             )
         return

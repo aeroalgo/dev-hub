@@ -295,6 +295,44 @@ def test_finish_audit_happy(tmp_path: Path):
     assert life.get("phase") == "QA"
 
 
+def test_finish_audit_rejects_actionable_findings_before_qa(tmp_path: Path):
+    """AUDIT blockers must be repaired and re-audited; they cannot promote to QA."""
+    epic = "T-TEST-AUDIT-FAIL"
+    _write_plan_with_frs(tmp_path, epic, ["FR-001"])
+    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / epic
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    audit_file = audit_dir / "audit.yaml"
+    audit_file.write_text(
+        _valid_audit_v2_yaml(epic_id=epic).replace(
+            "findings: []\nconverged: true",
+            "findings:\n"
+            "  - id: F1\n"
+            "    gap_type: missing\n"
+            "    severity: HIGH\n"
+            "    source_ref: FR-001\n"
+            "    evidence: app/dashboard.py missing runtime wiring\n"
+            "    remaining_work: wire the production scenario options\n"
+            "converged: false",
+        ),
+        encoding="utf-8",
+    )
+    save_epic_state(tmp_path, {"armed_epic": epic, "armed_role": "BACK", "phase": "AUDIT"})
+
+    res = finish_audit(
+        MbFinishRequest(
+            phase="BACK AUDIT",
+            step_id="AUDIT",
+            done_summary="audit blockers",
+            cwd=str(tmp_path),
+        )
+    )
+
+    assert res.ok is False
+    assert "audit_blockers_present" in res.diagnostic_codes
+    assert "wire the production scenario options" in res.shape_errors[0]
+    assert "QA" not in (read_active_context(tmp_path) or "")
+
+
 def test_finish_audit_v2_layout_path_emits_audit_done(tmp_path: Path):
     """finish_audit finds yaml/audit.yaml and emits audit_done without touching _declared_artifacts."""
     epic = "T-TEST-V2"

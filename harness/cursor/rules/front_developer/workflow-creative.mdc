@@ -5,7 +5,7 @@ alwaysApply: false
 ### Команда: FRONT CREATIVE
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/creative.mdc
-**Situational skills:** @.cursor/rules/front_developer/skills-gate-situational.mdc (allowlist + checklist + Design Core)
+**Situational skills:** @.cursor/rules/front_developer/skills-gate-situational.mdc (allowlist + checklist + Design groups)
 
 **Batch:** все компоненты в одном `creative-*.md`.
 
@@ -13,7 +13,7 @@ alwaysApply: false
 
 ## Skills gate → каждый creative-файл / CR batch (HARD)
 
-**Core ∪ Design Core ∪ situational** → список в creative-файле → Read **только** его.
+**Core ∪ Design groups ∪ situational** → список в creative-файле → Read **только** его.
 
 ### Core (всегда для FRONT CREATIVE)
 
@@ -24,19 +24,19 @@ alwaysApply: false
 
 1. **Read** .cursor/rules/front_developer/skills-gate-situational.mdc
 2. Прогони **Checklist — CREATIVE**
-3. UI batch → **Design Core** (весь пакет Base 4 + Taste 13); иначе `Design: —` + причина
-4. Cap situational ≤ **3** (+ 2 Core; Design Core не в cap)
+3. UI batch → Design groups из clarify pack / surface map (минимум **D0**); иначе `Design: —` + причина
+4. Cap situational ≤ **3** (+ 2 Core; Design groups не в cap)
 5. В creative-файле блок `## Skills gate` с итоговыми путями
 
 ```markdown
 ## Skills gate
 - `.agents/skills/brainstorming/SKILL.md`
 - `.agents/skills/frontend-patterns/SKILL.md`
-- …Design Core…
+- …Design groups (D0+)…
 - …situational…
 ```
 
-**FORBIDDEN:** Read вне списка; situational вне allowlist; situational >3.
+**FORBIDDEN:** Read вне списка; situational вне allowlist; situational >3; весь бывший Taste-пакет all-or-nothing.
 
 ---
 

@@ -1,0 +1,173 @@
+---
+description: "PRODUCT — shared product vision / phases / lean roadmap (без BACK|FRONT)"
+alwaysApply: false
+---
+# PRODUCT ROADMAP (shared)
+
+**Layer 0:** @.cursor/rules/token-economy-stub.mdc · на команде — @.cursor/rules/token-economy-core.mdc  
+**Router:** @.cursor/rules/mainrule.mdc  
+**Paths:** @.cursor/rules/shared/memory-bank-paths.mdc  
+**FINISH:** @.cursor/rules/shared/finish-doc-router.mdc  
+**Gates:** @.cursor/rules/shared/_lean/product-roadmap.mdc
+
+**Скиллы (Policy lazy — Read тел только по триггеру команды ниже; не на REBUILD/STATUS):**
+- @.agents/skills/brainstorming/SKILL.md — **VISION:** уточнение intent / Mode / запретов до записи vision
+- @.agents/skills/product-discovery/SKILL.md — **VISION:** JTBD, рынок, ICP, opportunity (метод → `vision.md`)
+- @.agents/skills/product-manager/SKILL.md — **PHASES:** приоритеты MoSCoW/RICE, волны, AC (метод → `phases.md`; **не** писать отдельный PRD)
+- @.agents/skills/writing-plans/SKILL.md — **PHASES:** структура «что после чего» (**SoT path override:** только `memory-bank/product/phases.md`; **FORBIDDEN** `docs/superpowers/plans/…`)
+
+**FORBIDDEN skills в PRODUCT \*:** `roadmap` (autonomous build executor) · `executing-plans` · `breakdown-plan` · `agile-product-owner` · `marketing-plan` · `product-marketing` (пишет чужой `.agents/product-marketing.md`) · GSD `roadmap`/`roadmapper` как SoT (другая схема артефактов).
+
+Без префикса роли. Не путать с `* ROADMAP MERGE` (slug queues → canon) и с `memory-bank/{role}/roadmap/queue.yaml` (code-эпики).
+
+---
+
+## Распознавание
+
+| Команда | Действие |
+|---------|----------|
+| `PRODUCT VISION` | ревизия / правка `memory-bank/product/vision.md` |
+| `PRODUCT PHASES` | ревизия / правка `memory-bank/product/phases.md` |
+| `PRODUCT ROADMAP REBUILD` | пересобрать `memory-bank/product/roadmap.md` из vision + phases + code-queue status |
+| `PRODUCT STATUS` | показать «где на карте» из `roadmap.md` + next |
+
+Алиасы: `PRODUCT ROADMAP` = `PRODUCT ROADMAP REBUILD`.
+
+---
+
+## SoT (три файла)
+
+| Файл | Роль | Объём | Пишет |
+|------|------|-------|-------|
+| `memory-bank/product/vision.md` | что / зачем / Mode A·D / запреты | полный | `PRODUCT VISION` |
+| `memory-bank/product/phases.md` | волны F* / когда что / ресурсы | полный | `PRODUCT PHASES` |
+| `memory-bank/product/roadmap.md` | lean карта «сейчас / next» | ≤80 строк | **только** `PRODUCT ROADMAP REBUILD` |
+
+**FORBIDDEN:** править `roadmap.md` руками как SoT · класть полный `vision`/`phases` в IMPLEMENT `load_now` · дублировать code-queue длинным текстом в roadmap.
+
+**Code queue (отдельный слой):** `memory-bank/back|front|integration/roadmap/queue.yaml` — нарезается из product roadmap через `* PLAN`, не заменяет product-слой.
+
+---
+
+## Алгоритм
+
+```text
+1. Меняется смысл продукта     → PRODUCT VISION   → vision.md
+2. Меняется порядок / волны    → PRODUCT PHASES   → phases.md
+3. После 1 и/или 2             → PRODUCT ROADMAP REBUILD → roadmap.md
+4. Ориентация в коде / STATUS  → читать roadmap.md (+ role shard), не monolith vision/phases
+5. Новый code-эпик             → из roadmap.wave → BACK|FRONT|INTEG PLAN → queue.yaml
+```
+
+---
+
+## Hot path
+
+### 0. Старт
+1. Ответ: `OK PRODUCT <VISION|PHASES|ROADMAP REBUILD|STATUS>`
+2. Read: `memory-bank/activeContext.md`
+3. Read Gates: @.cursor/rules/shared/_lean/product-roadmap.mdc
+4. Skills: **только** по таблице ниже (Policy lazy — не грузить пакет целиком «на всякий случай»)
+
+| Команда | Read SKILL.md |
+|---------|----------------|
+| `PRODUCT VISION` | `brainstorming` + `product-discovery` |
+| `PRODUCT PHASES` | `product-manager` + `writing-plans` (SoT override → `phases.md`) |
+| `PRODUCT ROADMAP REBUILD` | **нет** |
+| `PRODUCT STATUS` | **нет** |
+
+### 1. По команде
+
+**VISION**
+1. Read SKILL: brainstorming + product-discovery (если ещё не в кэше сессии)
+2. Read `memory-bank/product/vision.md` (объект работы)
+3. Внеси правки пользователя / зафиксируй канон (методы скилов → секции vision; **не** создавать параллельный PRD/spec)
+4. Внутренние ссылки на phases/roadmap — относительные в `product/`
+5. FINISH → предложи `PRODUCT ROADMAP REBUILD` если менялись Mode / north star / HARD порядок кода
+
+**PHASES**
+1. Read SKILL: product-manager + writing-plans (SoT = `phases.md` only)
+2. Read `memory-bank/product/phases.md`
+3. Правки волн / чеклистов / порядка ресурсов (приоритезация из product-manager — в phases, не в отдельный backlog-файл)
+4. Ссылка на vision — `vision.md` (не корневые legacy-имена)
+5. FINISH → обязателен next tip `PRODUCT ROADMAP REBUILD`
+
+**ROADMAP REBUILD**
+1. **Skip skills**
+2. Read `vision.md` + `phases.md` (можно jumps по заголовкам; не копипастить monolith в чат)
+3. Read code status: `memory-bank/back/roadmap/queue.yaml` (+ front/integ queues если есть)
+4. Write **целиком** `roadmap.md` по шаблону ниже
+5. Синхронизируй чеклист в `phases.md` §«когда что» с `done`/`queue` (только маркеры `[x]`/`[ ]`, без переписывания стратегии)
+6. FINISH → `load_if_needed` = `product/roadmap.md`; Handoff 2–3 строки «волна / режим / next»
+
+**STATUS**
+1. **Skip skills**
+2. Read только `roadmap.md` (+ `activeContext` Handoff)
+3. Краткий ответ: сейчас · next signal · next code command
+4. Без правок файлов, без FINISH rewrite (кроме явной просьбы)
+
+### 2. Шаблон `roadmap.md` (HARD ≤80 строк)
+
+```markdown
+# Product roadmap — Niche Audit
+
+**Rebuilt:** YYYY-MM-DD  
+**SoT:** [vision.md](vision.md) · [phases.md](phases.md)  
+**Code queues:** `back/roadmap/queue.yaml` (и др. роли при наличии)
+
+## Одна фраза
+…
+
+## Режимы
+| Mode A | Mode D | …
+|------|--------|-----|
+
+## Где мы
+| Поле | Значение |
+|------|----------|
+| Волна | F1 / F1c / … |
+| Режим фокуса | Mode A \| Mode D |
+| Code now | queue[0] epic_id или — |
+| Code done (волна) | T-00x, … |
+
+## Волна → next
+1. … (done|active|blocked)
+2. …
+
+## Next signal
+- Условие перехода к следующей волне: …
+
+## Out / FORBIDDEN (кратко)
+- …
+
+## Нарезка кода
+- Следующий PLAN из этой карты: `BACK|FRONT PLAN …` (не invent epic в ROADMAP REBUILD)
+```
+
+### 3. Doc-router / IMPLEMENT
+
+| Режим | vision / phases | roadmap |
+|-------|-----------------|---------|
+| PRODUCT * / PLAN / VAN / CLARIFY | OK как объект работы | OK |
+| IMPLEMENT / TASK / BUGFIX / QA | **не** в `load_now` | `load_if_needed` (ориентация) |
+| PRODUCT STATUS | не грузить | только roadmap |
+
+Handoff после REBUILD / role FINISH: 2–3 строки из roadmap («строим … / next …»).
+
+### 4. FINISH
+
+1. Write `activeContext.md` целиком (один `## Handoff PRODUCT …`)
+2. `load_now` — артефакт команды (vision|phases|roadmap); не тащить оба monolith сразу
+3. `load_if_needed` — всегда держать `product/roadmap.md` после первого REBUILD
+4. Next tip по таблице Gates
+
+---
+
+## AC−
+
+1. Нет третьего «ручного» SoT рядом с roadmap  
+2. Нет full vision/phases в IMPLEMENT `load_now`  
+3. roadmap ≤80 строк; ссылки на vision/phases, не дубль  
+4. Code-queue не переписывается из PRODUCT * (только status-read)  
+6. Legacy корневые `контекст-идеи.md` / `пошаговый-план.md` — только stub→redirect, не канон  
+7. Нет eager Read скилов на REBUILD/STATUS; нет записи в `docs/superpowers/plans/` или `.agents/product-marketing.md` из PRODUCT *  

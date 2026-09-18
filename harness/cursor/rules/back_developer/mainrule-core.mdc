@@ -27,7 +27,7 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 
 ```text
 VAN → PLAN(I1) → DECOMPOSE → ANALYZE → CREATIVE? → IMPLEMENT* → AUDIT → QA → REPLAN(I2/I3) ↺ → FINAL REVIEW → DONE → ARCHIVE
-                 ↘ RECONCILE (hotfix drift)                         ↘ BUGFIX from AUDIT/QA
+                 ↘ RECONCILE (hotfix drift)                         ↘ BUGFIX from QA
 ```
 
 Next: Handoff в `memory-bank/activeContext.md`; следующий шаг — activeContext + decompose index.

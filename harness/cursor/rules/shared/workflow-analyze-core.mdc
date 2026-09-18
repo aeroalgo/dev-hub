@@ -28,7 +28,7 @@ alwaysApply: false
     - иначе (api|service|sql|ws|model|infra|test|ui): `impl` **не** пустой; BACK Core(4) / FRONT Impl Core(6) целиком ∈ `impl`; session skills (`writing-plans`/…) в `impl` = FAIL.  
     - Surface defaults (BACK: `api`→fastapi+async+errors; `service`→async+errors; `ws`→+websocket; `sql`→sqlalchemy; FRONT `ui`→playwright-best-practices) — каждый missing id либо в `impl`, либо в `skills.omit_justification` / `skills_omit` с **непустой** причиной. Bare omit / copy-paste `impl: []` с template = FAIL.  
     - Situational вне role allowlist или >cap (BACK ≤6 / FRONT ≤4) = FAIL.  
-    Categories: `skills_core_missing` · `skills_situational_unjustified` · `skills_impl_empty` · `skills_allowlist`. → **CRITICAL**. Канон: `skills-gate-situational.mdc` · `validate-decompose-tree` (machine). FRONT Design Core при `visible_ui: yes` — отдельный check пакета в step `skills.design`/`design_skills` (отсутствие пакета = CRITICAL `skills_design_core_missing`).
+    Categories: `skills_core_missing` · `skills_situational_unjustified` · `skills_impl_empty` · `skills_allowlist`. → **CRITICAL**. Канон: `skills-gate-situational.mdc` · `validate-decompose-tree` (machine). FRONT при `visible_ui: yes` — check Design groups в step `skills.design`/`design_skills`: отсутствие **D0 Lean Core** = CRITICAL `skills_design_core_missing`; >1 D2 dialect = CRITICAL `skills_design_dialect_conflict`; лишние D1/D3/D4 без surface/pack обоснования = HIGH `skills_design_group_unjustified`.
 
 Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
 

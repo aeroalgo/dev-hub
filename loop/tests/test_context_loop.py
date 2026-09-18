@@ -1490,6 +1490,96 @@ def test_check_after_fingerprint_stall_retries_then_halts(
     assert after2.get("fingerprint_stall_count") == 2
 
 
+def test_check_after_promotes_decompose_before_fingerprint_stall(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verifier-only progress must not be mistaken for a stalled handoff."""
+    ctx = _load_ctx()
+    decompose = "memory-bank/front/plan/demo/yaml/decompose-index.yaml"
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        "epic_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-demo.yaml\n"
+        "  status: pending\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/front/plan/demo/yaml/steps/s01-demo.yaml",
+        "schema: epic-decompose/v1\nstep_id: s01\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: FRONT\n"
+        "mode: DECOMPOSE\n"
+        "epic_id: demo\n"
+        "step_id: DECOMPOSE\n"
+        "---\n\n"
+        "## load_now\n"
+        "1. [decompose-index.yaml](front/plan/demo/yaml/decompose-index.yaml)\n\n"
+        "## Handoff FRONT DECOMPOSE\n",
+    )
+    ctx.save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": "demo",
+            "armed_decompose": decompose,
+            "armed_step": "DECOMPOSE",
+            "role": "FRONT",
+            "active": True,
+            "status": "running",
+        },
+    )
+    monkeypatch.setattr(
+        ctx,
+        "validate_finish_integrity_with_repair",
+        lambda *args, **kwargs: {"ok": True, "diagnostic_codes": [], "errors": []},
+    )
+    monkeypatch.setattr(
+        ctx,
+        "_enforce_capability_checks_for_armed_step",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        "loop.decompose_gate.decompose_verify_pass_ready",
+        lambda *args, **kwargs: {"ok": True},
+    )
+    calls: list[Path] = []
+
+    def promote(cwd: str | Path) -> dict[str, object]:
+        calls.append(Path(cwd))
+        active_context = Path(cwd) / "memory-bank/activeContext.md"
+        active_context.write_text(
+            active_context.read_text(encoding="utf-8").replace(
+                "mode: DECOMPOSE", "mode: IMPLEMENT"
+            ).replace(
+                "## Handoff FRONT DECOMPOSE", "## Handoff FRONT IMPLEMENT"
+            ),
+            encoding="utf-8",
+        )
+        return {"ok": True, "promoted_from": "DECOMPOSE"}
+
+    monkeypatch.setattr(ctx, "_promote_if_ready", promote)
+    before = ctx.fingerprint_context(
+        (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    )
+
+    after = ctx.check_after(tmp_path, fingerprint_before=before)
+
+    assert after.get("ok") is True
+    assert calls == [tmp_path]
+    assert after.get("retry_fingerprint_stall") is not True
+    assert "mode: IMPLEMENT" in (
+        tmp_path / "memory-bank/activeContext.md"
+    ).read_text(encoding="utf-8")
+
+
 def test_check_after_repairs_fingerprint_stall_via_evidence(tmp_path: Path) -> None:
     """Agent finished step (files+cps) but forgot Handoff → auto finalize + advance."""
     ctx = _load_ctx()
@@ -3233,7 +3323,8 @@ def test_build_prompt_audit_includes_canon_checklist(tmp_path: Path) -> None:
     assert "FORBIDDEN: pytest" in prompt
     assert "немедленно останови turn без новых tools" in prompt
     assert "workflow-audit.mdc" not in prompt
-    assert "это чинится в сессии: FAIL → fix → re-verify" not in prompt
+    assert "gate-repair" in prompt
+    assert "повтори тот же AUDIT" in prompt
 
 
 def test_build_prompt_analyze_includes_auto_finish_stop(tmp_path: Path) -> None:

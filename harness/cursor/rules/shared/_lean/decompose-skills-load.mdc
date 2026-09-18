@@ -1,0 +1,22 @@
+---
+description: "DECOMPOSE skills load — copy paths only; Read тел = IMPLEMENT/CREATIVE (shared BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# DECOMPOSE skills load (shared)
+
+**Канон для BACK / FRONT / INTEG DECOMPOSE.** Role deltas (Core lists, FRONT Design groups, eNN `back:`/`front:`) — в role `workflow-decompose.mdc` / skills-gate.
+
+## HARD
+
+1. DECOMPOSE **записывает** repo-relative пути в step `skills.*` (`impl`, FRONT `design`/`design_skills`, INTEG lists).  
+2. Список в step — **единственный** источник обязательных Read тел SKILL.md для **IMPLEMENT** (и Design на **CREATIVE** при UI).  
+3. **FORBIDDEN на DECOMPOSE:** Read / `cat` / `sed` / `wc` тел Core · situational · Design groups SKILL.md «чтобы нарезать».  
+4. **Session Read OK:** Gates · role `skills-gate-situational.mdc` (если есть) · session skills из workflow · plan · templates · этот файл.  
+5. Session skills (`writing-plans` · `brainstorming` · …) **не** класть в `impl` / Design.
+
+## Policy lazy (cross-cut)
+
+Строка/блок **`Policy lazy`** в workflow = inventory on-trigger.  
+**FORBIDDEN:** открывать lazy-path на старте только из-за `@` в lazy-блоке.  
+Read — только при trigger (Replacement / wire ladder / sole-path / Gates).  
+Канон исключения: `mainrule.mdc` §Full linked chain.

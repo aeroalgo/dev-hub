@@ -19,21 +19,54 @@ alwaysApply: false
 
 CLARIFY охватывает UX, component tree, routes, state и API contracts. Вопросы должны снять ambiguity, влияющую на пользовательские journeys, UI states, маршрутизацию или форму API-контракта; backend implementation не реализуется в этом режиме.
 
+**Design skills pack (HARD для UI-scope):** если фича затрагивает visible UI — снять ambiguity **surface / style dialect / image pipeline** и записать `## Design skills pack` (канон @.cursor/rules/front_developer/skills-gate-situational.mdc). DECOMPOSE копирует paths из pack; без pack — defaults по `surface` (обычно только D0 для product UI).
+
 ## Артефакт
 
 `memory-bank/front/clarify/clarify-YYYYMMDD-<slug>.md`
+
+## Design skills — FRONT frontier (когда UI в scope)
+
+Если taxonomy / Grill показывают UI (новый экран, redesign, landing, mock→UI) и pack ещё Partial/Missing — включить в frontier (квота ≤20 общая) **независимые** Q:
+
+| # | Title | MC options (рекомендовать по brief) | Пишет в pack |
+|---|-------|--------------------------------------|--------------|
+| DS1 | **UI surface** | `product_ui` · `marketing_landing` · `portfolio` · `product_redesign` · `marketing_redesign` · `brand_identity` · `mobile_app_mock` · `stitch_export` · `image_to_code_site` | `surface:` |
+| DS2 | **Style dialect** | `none` (D0 + существующий DS) · `minimalist` · `brutalist` · `high_end` · `gpt_awwards` | `dialect:` (XOR ≤1) |
+| DS3 | **Image / asset pipeline** | `none` · `web_refs` · `mobile_refs` · `brandkit` · `image_to_code` · combo | `image_pack:` |
+
+**Skip DS2/DS3**, если brief однозначен (например dashboard в текущем shadcn DS → Recommended: `product_ui` + `none` + `none`) — всё равно **записать pack** в артефакт без лишних Q.
+
+После ответа / auto-resolve — секция:
+
+```markdown
+## Design skills pack
+surface: product_ui
+dialect: none
+image_pack: []
+groups: [D0]
+pin_v1: false
+resolved_paths:
+  - .agents/skills/frontend-design/SKILL.md
+  - .agents/skills/impeccable/SKILL.md
+  - .agents/skills/emil-design-eng/SKILL.md
+```
+
+`resolved_paths` = плоский список по группам из skills-gate (D0 + D1/D2/D3/D4). **FORBIDDEN** оставлять pack без `resolved_paths` при UI-scope.
 
 ## Процесс
 
 1. `FRONT CLARIFY <feature-slug>` → загрузить `activeContext.md` и существующий clarify-артефакт по slug.
 2. **Read** `.agents/skills/grill-me/SKILL.md` → Phase 0 Grill pass (G7 при UI ambiguity).
 3. Shared core: taxonomy scan, frontier rounds ≤4 · ≤20 Q · Recommended, Q→A + Frontier rounds на диске.
+3a. UI-scope → Design skills Q (DS1–DS3) или auto-resolve + запись `## Design skills pack`.
 4. Зафиксировать CRITICAL как resolved или в defer-list с owner/next.
-5. Написать Completion Report в артефакт (строка `Grill:` + `mode=frontier` обязательна).
+5. Написать Completion Report в артефакт (строка `Grill:` + `mode=frontier` + `design_pack=surface/dialect/groups` обязательна при UI).
 
 ## Done When
 
 - [ ] **Grill pass** записан; Completion Report содержит `Grill:` и `mode=frontier`
+- [ ] При UI-scope: `## Design skills pack` с `resolved_paths` на диске
 - [ ] Артефакт создан или обновлён на диске.
 - [ ] Completion Report написан.
 - [ ] Нет открытых CRITICAL без resolve/defer-list.

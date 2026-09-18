@@ -25,6 +25,7 @@ alwaysApply: false
 6. Plan → index tracker; колонка `implement`
 7. `load_now` → `e01-*.yaml` на FINISH
 8. Не читать gap/contracts; не грузить executing-plans
+8a. **Skills:** copy paths в `skills.impl` (и role lists); **FORBIDDEN** Read тел Core/situational SKILL на DECOMPOSE — @.cursor/rules/shared/_lean/decompose-skills-load.mdc
 
 ## Abort
 
@@ -38,3 +39,4 @@ alwaysApply: false
 - Replace без purge при cleanup ≠ n/a → incomplete
 - Непустой `deletes` без `rg`/import-audit cp → incomplete
 - Сжатие batch «ради токенов» → incomplete
+- Read тел Core/situational SKILL.md на DECOMPOSE → incomplete

@@ -9,6 +9,10 @@ alwaysApply: false
 
 Пути: `.agents/skills/<name>/SKILL.md`
 
+**DECOMPOSE vs Read тел (HARD):** канон @.cursor/rules/shared/_lean/decompose-skills-load.mdc —  
+DECOMPOSE = **copy paths** в `skills.impl`; **FORBIDDEN** Read/`cat`/`sed` тел Core/situational SKILL.md.  
+CREATIVE / IMPLEMENT = Read тел **только** по списку из creative-файла / step.
+
 **Core DECOMPOSE/IMPLEMENT** (не здесь — в `workflow-decompose.mdc`):  
 `tdd` · `python-testing-patterns` · `modern-python` · `python-anti-patterns`
 

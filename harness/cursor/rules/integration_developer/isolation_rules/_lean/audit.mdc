@@ -19,7 +19,7 @@ alwaysApply: false
    `source_ref`, evidence и минимальный `bugfix_subject`.
 5. OUT-OF-SCOPE observation пишется только в `replan_candidates[]`; он не
    создаёт finding, audit-shard или изменение текущего plan.
-6. FINISH: `PASS → INTEG QA`; `FAIL → INTEG BUGFIX <subject>`. AUDIT никогда не
+6. FINISH: actionable `FAIL|blocked` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `INTEG QA`. AUDIT никогда не
    выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT.
 
 ## Abort
@@ -35,4 +35,4 @@ alwaysApply: false
 
 ## Verify
 
-`rg -n 'check_matrix|replan_candidates|INTEG QA|INTEG BUGFIX' .cursor/rules/integration_developer/workflow-audit.mdc`
+`rg -n 'check_matrix|replan_candidates|gate-repair|INTEG QA' .cursor/rules/integration_developer/workflow-audit.mdc`

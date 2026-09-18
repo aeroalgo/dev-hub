@@ -10,7 +10,17 @@ alwaysApply: false
 **Когда грузить этот файл:** VAN (создание структуры) или если lean-gate не хватает пути.  
 **Не грузить** на IMPLEMENT/TASK/QA — путь режима уже в `_lean/<mode>.mdc`.
 
-**Корень (все роли):** `activeContext.md`, `tasks.md` (index + progress), `tasks/log/` (хронология: `finalize-step` на sNN; не грузить на IMPLEMENT), `projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `style-guide.md`
+**Корень (все роли):** `activeContext.md`, `tasks.md` (index + progress), `tasks/log/` (хронология: `finalize-step` на sNN; не грузить на IMPLEMENT), `projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `style-guide.md`, `constitution.md`
+
+**Product-слой (все роли, shared workflow):** `memory-bank/product/` — канон: @.cursor/rules/shared/workflow-product-roadmap.mdc
+
+| Файл | Роль |
+|------|------|
+| `product/vision.md` | полный канон идеи (бывш. корневой `контекст-идеи.md`) |
+| `product/phases.md` | сквозные фазы / волны (бывш. `пошаговый-план.md`) |
+| `product/roadmap.md` | lean карта «где мы» — **только** `PRODUCT ROADMAP REBUILD` |
+
+**IMPLEMENT:** `roadmap.md` → `load_if_needed` (ориентация). **FORBIDDEN** full `vision`/`phases` в IMPLEMENT `load_now`. Code-эпики — по-прежнему `{role}/roadmap/queue.yaml`.
 
 **As-built карта (все роли, brownfield VAN):** `memory-bank/architecture/` — `index.md` + shards: `overview` · `services` · `data-flow` · `erd` · `workers` · `containers` · `frontend`. Канон процесса: @.cursor/rules/shared/workflow-van-brownfield.mdc. **Не резать** (§0.0 architecture). Session VAN-лог остаётся в `back|front|integration/van/`.
 

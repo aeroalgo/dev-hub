@@ -13,7 +13,7 @@ alwaysApply: false
 | Command | load_now update |
 |---------|-----------------|
 | `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `decompose-*/index.yaml`; epic complete → `index.yaml` + §Handoff Epic AUDIT (**не** `plan-*.md`, **не** QA напрямую) |
-| `* AUDIT` | audit-артефакт в `load_now`; `check_matrix` + `verdict`; `PASS → * QA`; `FAIL → * BUGFIX <subject>`; AUDIT **не** выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT; out-of-scope → `replan_candidates` (не findings) |
+| `* AUDIT` | audit-артефакт в `load_now`; `check_matrix` + `verdict`; actionable `FAIL` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `* QA`; AUDIT **не** выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT; out-of-scope → `replan_candidates` (не findings) |
 | `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** full plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
 | `* QA` | align after suite |
@@ -29,6 +29,10 @@ alwaysApply: false
 | `* PLAN REFACTOR` | Тот же PLAN lifecycle, но FINISH только после purge+consolidation inventory (twins/clusters, adapter collapse, dead/duplication/test), Deletion + Concept budget, per-epic test refactor и queue reconcile → next `* DECOMPOSE <queue[0]>` |
 | `* CLARIFY` | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` → next `* PLAN` Phase 1 (или continue CLARIFY). Standalone; в сессии PLAN Phase 0 **не** отдельный FINISH CLARIFY |
 | `VAN` / `TASK` | init or shift focus |
+| `PRODUCT VISION` | `product/vision.md` в `load_now`; `load_if_needed` = `product/roadmap.md`; next tip `PRODUCT ROADMAP REBUILD` при смысловом изменении |
+| `PRODUCT PHASES` | `product/phases.md` в `load_now`; next **обязан** `PRODUCT ROADMAP REBUILD` |
+| `PRODUCT ROADMAP REBUILD` | `product/roadmap.md` в `load_now` + `load_if_needed`; Handoff 2–3 строки «волна / режим / next»; **не** full vision/phases в `load_now` |
+| `PRODUCT STATUS` | без обязательного rewrite; при FINISH — только roadmap в `load_if_needed` |
 
 ## graphify update
 

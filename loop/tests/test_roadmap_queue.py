@@ -1445,6 +1445,58 @@ done:
     assert "T-FEAT-2" in ac_text2
 
 
+def test_roadmap_advance_arms_one_aggregate_replan_epic(tmp_path: Path) -> None:
+    from loop.roadmap_cadence import load_cadence, save_cadence, RoadmapCadenceState
+
+    rq = _load_rq()
+    window = [f"T-FEAT-{i}" for i in range(1, 9)]
+    save_cadence(
+        RoadmapCadenceState(
+            phase="replan",
+            counter=4,
+            every_n=4,
+            review_window_n=8,
+            pair_ids=window,
+            feature_history=window,
+        ),
+        cwd=tmp_path,
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/roadmap/queue.yaml",
+        """version: roadmap-queue/v2
+role: back
+queue:
+  - id: T-REPLAN-001
+    epic_id: T-REPLAN-001
+    plan: plan-T-REPLAN-001.md
+    deps: []
+    kind: replan
+  - id: T-FEAT-NEXT
+    epic_id: T-FEAT-NEXT
+    plan: plan-T-FEAT-NEXT.md
+    deps: []
+    kind: feature
+done: []
+""",
+    )
+    _write(tmp_path, "memory-bank/back/plan/T-REPLAN-001/md/plan.md", "# aggregate\n")
+    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n- initial\n\n## Handoff\n")
+
+    armed = rq.roadmap_advance(tmp_path)
+    assert armed["ok"] is True
+    assert armed["armed"] is True
+    assert armed["epic"] == "T-REPLAN-001"
+    assert armed["phase"] == "DECOMPOSE"
+    assert armed["review_window_ids"] == window
+    assert load_cadence(cwd=tmp_path).replan_epic_id == "T-REPLAN-001"
+
+    premature = rq.mark_queue_epic_done(tmp_path, "T-REPLAN-001")
+    assert premature["ok"] is False
+    assert premature["error"] == "mark_queue_epic_not_done"
+    assert load_cadence(cwd=tmp_path).phase == "replan"
+
+
 def test_roadmap_advance_arms_plan_refactor(tmp_path: Path) -> None:
     """cp2: roadmap_advance in refactor phase arms BACK PLAN REFACTOR for refactor epic."""
     from loop.roadmap_cadence import save_cadence, RoadmapCadenceState

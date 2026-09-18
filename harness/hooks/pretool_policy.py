@@ -322,9 +322,9 @@ class AgentPolicyAdapter:
         prompt = tool_input.get("prompt") or ""
 
         if norm == "gate-repair":
-            if not last_verdict_allows_repair(str(cwd), session_id):
+            if not last_verdict_allows_repair(str(cwd), session_id, state=st):
                 deny_reasons.append(
-                    "semantic_repair_without_fail_or_gate_blocker: @gate-repair разрешён только после @verify VERDICT: FAIL/BLOCKED или repairable gate-runtime error"
+                    "semantic_repair_without_fail_or_gate_blocker: @gate-repair разрешён только после @verify VERDICT: FAIL/BLOCKED, actionable AUDIT finding или repairable gate-runtime error"
                 )
 
         if norm in {"verify", "verify-implement"} and agent_enabled("verify", str(cwd) or None):

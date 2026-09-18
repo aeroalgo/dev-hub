@@ -6,6 +6,7 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
 **Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc
+**Skills load (HARD):** @.cursor/rules/shared/_lean/decompose-skills-load.mdc — DECOMPOSE = copy paths; Read тел = IMPLEMENT
 **Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Transition gate:** @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
 **Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)
@@ -53,8 +54,9 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 
 ## Skills gate → каждый `sNN` (HARD)
 
-Канон: `skills-gate-situational.mdc`. Core(4) обязательны если не docs-only.  
-**FORBIDDEN:** оставить template `impl: []` на `code_surface ≠ docs` · session skills в `impl` (writing-plans · brainstorming · executing-plans · breakdown-plan).
+Канон load: @.cursor/rules/shared/_lean/decompose-skills-load.mdc.  
+Канон allowlist: `skills-gate-situational.mdc`. Core(4) обязательны если не docs-only.  
+**FORBIDDEN:** оставить template `impl: []` на `code_surface ≠ docs` · session skills в `impl` (writing-plans · brainstorming · executing-plans · breakdown-plan) · Read тел Core/situational SKILL.md на DECOMPOSE.
 
 Каждый YAML decompose-step обязан хранить результат gate в top-level секции `skills:`: `code_surface` и `impl`. Значения `impl` — repo-relative пути `.agents/skills/<name>/SKILL.md`; этот список — единственный источник обязательных Read для BACK IMPLEMENT.
 

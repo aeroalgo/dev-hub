@@ -199,19 +199,19 @@ bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|tes
 
 ## Roadmap Cadence Lifecycle (`cadence.yaml`)
 
-Ритм дорожной карты координируется файлом состояния `memory-bank/back/roadmap/cadence.yaml` (схема `roadmap-cadence/v1`). Каждые 2 завершённых feature-эпика (`every_n: 2`) автоцикл выполняет полный 4-фазный цикл: `every-2: REPLAN -> Refactor -> Resync -> Reset/Idle`.
+Ритм дорожной карты координируется файлом состояния `memory-bank/back/roadmap/cadence.yaml` (схема `roadmap-cadence/v1`). Каждые 4 завершённых feature-эпика (`every_n: 4`) автоцикл открывает rolling review window из 8 feature-эпиков (`review_window_n: 8`) и выполняет цикл: `REPLAN aggregate -> DECOMPOSE -> IMPLEMENT -> QA -> PLAN REFACTOR -> Resync -> Reset/Idle`.
 
 ```mermaid
 graph LR
-    Idle[idle: Feature Epics] -->|every 2 features| Replan[phase=replan: BACK REPLAN]
-    Replan -->|pair_ids terminal| Refactor[phase=refactor: BACK PLAN REFACTOR]
+    Idle[idle: Feature Epics] -->|every 4 features| Replan[phase=replan: one aggregate BACK REPLAN]
+    Replan -->|aggregate QA PASS| Refactor[phase=refactor: BACK PLAN REFACTOR]
     Refactor -->|refactor done / noop| Resync[phase=resync: Reconcile tail]
     Resync -->|on_resync_done / reset| Idle
 ```
 
 ### Фазы cadence-блока
 1. **`idle`:** штатное выполнение feature-эпиков; счётчик инкрементируется при завершении каждого feature-эпика.
-2. **`replan` (`BACK REPLAN`):** `roadmap_advance` армирует `BACK REPLAN` для завершённой пары `pair_ids`. Действует правило One-hop per ID (запрет replan-of-replan), анализируются только критические gaps, при их отсутствии фиксируется `skip evidence`.
+2. **`replan` (`BACK REPLAN`):** `roadmap_advance` сначала даёт prompt-only/code-only analysis для последних 8 feature-эпиков, затем принимает ровно один `kind: replan` row. Aggregate REPLAN проходит `DECOMPOSE → IMPLEMENT → QA`; replan/refactor/resync не входят в feature counter или review window.
 3. **`refactor` (`BACK PLAN REFACTOR`):** `roadmap_advance` армирует `BACK PLAN REFACTOR` для инвентаризации удаления и консолидации (net LOC ≤ 0, net owners ≤ 0) с формированием `kind: refactor` эпика либо фиксацией `noop evidence`.
 4. **`resync` (`BACK RECONCILE` tail):** автоматический вызов reconcile для всех эпиков очереди `queue.yaml` (`--from-queue`), запись структурированного `ResyncEvidence` в `cadence.yaml`. При обнаружении HIGH drift инвалидируются планы HOW без изменения prompt §Epic. Необработанный HIGH drift fail-closed блокирует запуск feature-эпиков.
 5. **`reset` / `idle`:** `on_resync_done` / `reset_cadence_idle` сбрасывает фазу в `idle` и обнуляет счётчик фич, возобновляя штатный `roadmap_advance`.

@@ -25,10 +25,10 @@
 
 ## Roadmap Cadence Cycle
 
-Каденс-блок дорожной карты (`memory-bank/back/roadmap/cadence.yaml`) выполняется автоматически каждые N (по умолчанию 2) завершённых feature-эпиков в строгом дискретном порядке фаз:
+Каденс-блок дорожной карты (`memory-bank/back/roadmap/cadence.yaml`) выполняется автоматически каждые 4 завершённых feature-эпика и анализирует последние 8 feature-эпиков в строгом порядке фаз:
 
-1. **REPLAN (`phase=replan`):** Выполняется перепланирование для завершённой пары feature-эпиков (`pair_ids`). Действует правило One-hop per ID (запрет повторного перепланирования), анализируются только критические расхождения (critical gaps), при отсутствии которых фиксируется явный `skip` evidence.
-2. **PLAN REFACTOR (`phase=refactor`):** Запускается строго после завершения всех `pair_ids` в фазе replan. Создаётся эпик рефакторинга (`kind: refactor`) в голове очереди либо фиксируется структурированное `noop` evidence.
+1. **REPLAN (`phase=replan`):** Анализирует только `prompt.md` восьми feature-эпиков и кодовую базу, после чего создаёт ровно один aggregate эпик (`kind: replan`). Сам aggregate проходит `DECOMPOSE → IMPLEMENT → QA`.
+2. **PLAN REFACTOR (`phase=refactor`):** Запускается строго после QA PASS aggregate REPLAN-эпика. Создаётся эпик рефакторинга (`kind: refactor`) в голове очереди либо фиксируется структурированное `noop` evidence.
 3. **Resync (`phase=resync`):** Хвост синхронизации дорожной карты. Выполняется reconcile очереди (`--from-queue`) для всех эпиков в `queue.yaml`, фиксируется `ResyncEvidence` на SoT `cadence.yaml`, и при обнаружении HIGH drift инвалидируются устаревшие планы HOW (без мутации неизменяемой секции prompt §Epic). Дальнейшее продвижение фич (resume) блокируется fail-closed при наличии HIGH drift без evidence.
 4. **Reset / Idle (`phase=idle`):** После завершения resync фаза сбрасывается в `idle` (`on_resync_done` / `reset_cadence_idle`), счетчик фич обнуляется, разблокируя дальнейшее продвижение фич в `roadmap_advance`.
 
@@ -89,7 +89,7 @@ timeout 300s bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_int
 `BLOCKED:` | `NEED_HUMAN:` — halt **только** для внешнего/человеческого стопа.
 Incomplete AC текущего эпика (pending cp, `gaps.blocked`, parity FAIL) → не `BLOCKED:`;
 hooks demote ложный `@verify` PASS → FAIL; на **IMPLEMENT** prepare injects `## FIX INCOMPLETE` и loop чинит в том же шаге.
-**QA/AUDIT** — review-only (`code_changed: no`): suite/reviewer fail → qa.yaml `fail|blocked` + `fix_plan[]` (`BACK BUGFIX …`) + `mb-finish`; FORBIDDEN чинить prod/tests в QA-сессии (`FAIL → fix → re-verify`).
+**QA/AUDIT** — review-only parent (`code_changed: no`): QA suite/reviewer fail → qa.yaml `fail|blocked` + `fix_plan[]` (`BACK BUGFIX …`) + `mb-finish`; AUDIT actionable finding → bounded `gate-repair` → повторный AUDIT. FORBIDDEN чинить prod/tests непосредственно в QA/AUDIT parent-сессии.
 `GAPS:` / `**GAPS:**` — **не** stop (часто deferred sNN/eNN notes; путают с INTEG GAP). ARCHIVE — вручную вне loop (не в DONE/REFLECT loop-сессии; finish = EPIC_DONE → chain).
 
 **Lifecycle reducer (post-implement):** `bugfix_done` / `qa_fail` **после** `reflection_done` снова открывают QA **только пока нет более нового `qa_pass`**. Следующий `qa_pass` закрывает окно reopen → `REFLECT` (если reflection stale vs QA) или `DONE`. Иначе исторический `bugfix_done` после `reflection_done` навсегда пинит `phase=QA` при каждом rewrite `qa-*.yaml` (симптом: endless BACK QA при Handoff→REFLECT). Evidence-rehash bugfix **между** `qa_pass` и reflection **не** блокирует `DONE`. Default `_load_dag()` **не** автовыбирает `canary-*` / `*-demo` (только явный `--pipeline`).

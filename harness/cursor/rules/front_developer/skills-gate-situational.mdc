@@ -1,47 +1,96 @@
 ---
-description: "FRONT skills gate — situational allowlist + checklists (DECOMPOSE/IMPLEMENT + CREATIVE)"
+description: "FRONT skills gate — situational allowlist + Design groups (DECOMPOSE/IMPLEMENT + CREATIVE)"
 alwaysApply: false
 ---
 # FRONT — situational skills (shared)
 
-Канон allowlist. **DECOMPOSE / CREATIVE** грузят этот файл и прогоняют свой checklist.  
-**FORBIDDEN:** situational вне таблиц ниже; копировать весь файл в `sNN` / `creative-*` — только выбранные пути / пакеты.
+Канон allowlist. **DECOMPOSE / CREATIVE** грузят **этот** файл и прогоняют свой checklist.  
+**FORBIDDEN:** situational вне таблиц ниже; копировать весь файл в `sNN` / `creative-*` — только выбранные пути / группы.
 
 Пути: `.agents/skills/<name>/SKILL.md`
+
+**DECOMPOSE vs Read тел (HARD):** канон @.cursor/rules/shared/_lean/decompose-skills-load.mdc —  
+DECOMPOSE = **copy paths** в `skills.impl` / `skills.design` (и situational). **FORBIDDEN** Read/`cat`/`sed` тел Impl Core · Design groups · situational SKILL.md.  
+CREATIVE / IMPLEMENT = Read тел **только** по списку из creative-файла / step.
 
 **Impl Core DECOMPOSE/IMPLEMENT** (не здесь — в `workflow-decompose.mdc`):  
 `tdd` · `frontend-testing` · `frontend-patterns` · `next-best-practices` · `vercel-react-best-practices` · `vercel-composition-patterns`
 
 ---
 
-## Design Core (пакет — all-or-nothing)
+## Design skills — группы (не all-or-nothing)
 
-Когда `visible_ui: yes` **или** FRONT CREATIVE (UI batch) — копировать **весь пакет** (Base 4 + Taste 13 = 17 путей). Не дробить пакет.
+**FORBIDDEN:** копировать все 17 taste/design скиллов подряд.  
+**REQUIRED при `visible_ui: yes` / UI CREATIVE:** минимум **D0 Lean Core**; плюс только группы, выбранные clarify / surface map.
 
-### Base (4)
+### Resolution source (приоритет)
+
+1. Clarify-артефакт секция `## Design skills pack` (если есть и `status: done` / pack resolved)
+2. Plan / prompt Chat decisions (явный surface / dialect)
+3. Defaults по **surface** (таблица ниже)
+
+Conflict priority внутри выбранного набора: **существующий DS/тема проекта → clarify pack → brief → D0 → ровно один D2**.
+
+### D0 — Lean Core (всегда при UI)
+
+Обязателен при `visible_ui: yes` или FRONT CREATIVE (UI batch).
 
 - `.agents/skills/frontend-design/SKILL.md`
-- `.agents/skills/emil-design-eng/SKILL.md`
 - `.agents/skills/impeccable/SKILL.md`
-- `.agents/skills/ui-ux-pro-max/SKILL.md`
+- `.agents/skills/emil-design-eng/SKILL.md`
 
-### Taste Skill — Leonxlnx/taste-skill (13)
+### D1 — Marketing / anti-slop
 
-- `.agents/skills/design-taste-frontend/SKILL.md` — default v2
-- `.agents/skills/design-taste-frontend-v1/SKILL.md` — v1 pin
-- `.agents/skills/gpt-taste/SKILL.md`
-- `.agents/skills/image-to-code/SKILL.md`
-- `.agents/skills/redesign-existing-projects/SKILL.md`
-- `.agents/skills/high-end-visual-design/SKILL.md`
-- `.agents/skills/full-output-enforcement/SKILL.md`
-- `.agents/skills/minimalist-ui/SKILL.md`
-- `.agents/skills/industrial-brutalist-ui/SKILL.md`
-- `.agents/skills/stitch-design-taste/SKILL.md`
-- `.agents/skills/imagegen-frontend-web/SKILL.md`
-- `.agents/skills/imagegen-frontend-mobile/SKILL.md`
-- `.agents/skills/brandkit/SKILL.md`
+Только если surface ∈ `marketing_landing` · `portfolio` · `marketing_redesign`.
 
-`visible_ui: no` → `**Design skills:** —` + причина; пакет **не** копировать.
+- `.agents/skills/design-taste-frontend/SKILL.md` — v2 default
+- `.agents/skills/redesign-existing-projects/SKILL.md` — **только** если mode = `redesign_existing`
+
+**FORBIDDEN в D1 default:** `design-taste-frontend-v1` (legacy pin — только явный `pin: v1` в clarify).
+
+### D2 — Style dialect (XOR ≤ 1)
+
+Жёсткий визуальный диалект. **Не** брать два сразу.  
+Default для `product_ui` / существующий DS: **`none`** (только D0 + тема проекта).
+
+| id | skill | Когда |
+|----|-------|--------|
+| `minimalist` | `.agents/skills/minimalist-ui/SKILL.md` | editorial / warm flat / no gradients |
+| `brutalist` | `.agents/skills/industrial-brutalist-ui/SKILL.md` | industrial / tactical / dense telemetry look |
+| `high_end` | `.agents/skills/high-end-visual-design/SKILL.md` | agency / Apple-Linear premium (осторожно: конфликтует с anti-purple) |
+| `gpt_awwards` | `.agents/skills/gpt-taste/SKILL.md` | Awwwards / GSAP cinematic marketing |
+
+### D3 — Image pipeline (subset)
+
+Только если в scope генерация референсов / brand boards / image→code. Иначе **не** копировать.
+
+- `.agents/skills/imagegen-frontend-web/SKILL.md` — web section refs
+- `.agents/skills/imagegen-frontend-mobile/SKILL.md` — mobile mockups (не website code)
+- `.agents/skills/brandkit/SKILL.md` — brand identity boards
+- `.agents/skills/image-to-code/SKILL.md` — image-first → implement
+
+### D4 — Tooling (по триггеру)
+
+- `.agents/skills/stitch-design-taste/SKILL.md` — **только** Google Stitch `DESIGN.md`
+- `.agents/skills/full-output-enforcement/SKILL.md` — meta «не обрезай код» (не вкус); через situational **S06**, не в Design pack по умолчанию
+
+### Surface → groups (defaults)
+
+| `surface` | Groups | Примечание |
+|-----------|--------|------------|
+| `product_ui` | **D0** | dashboard / app shell / admin / DS extension |
+| `marketing_landing` | D0 + D1 | + D2 только если dialect ≠ `none` |
+| `portfolio` | D0 + D1 | + D2 optional |
+| `marketing_redesign` | D0 + D1 + `redesign-existing-projects` | |
+| `product_redesign` | D0 + `redesign-existing-projects` | без D1 |
+| `brand_identity` | D0 + `brandkit` | |
+| `mobile_app_mock` | D0 + `imagegen-frontend-mobile` | images only |
+| `stitch_export` | D0 + `stitch-design-taste` | |
+| `image_to_code_site` | D0 + `image-to-code` (± `imagegen-frontend-web`) | |
+
+`visible_ui: no` → `**Design skills:** —` + причина; группы **не** копировать.
+
+В step/creative после выбора — **плоский список путей** в `skills.design` / `## Skills gate` + комментарий `# surface=… groups=D0,… dialect=…`.
 
 ---
 
@@ -54,34 +103,47 @@ alwaysApply: false
 | S03 | `web-design-guidelines` | ✓ | ✓ |
 | S04 | `vercel-react-view-transitions` | ✓ | ✓ |
 | S05 | `grill-me` | — | ✓ |
+| S06 | `full-output-enforcement` | ✓ | ✓ |
+| S07 | `ui-ux-pro-max` | ✓ | ✓ |
+
+**S06** — полный unabridged output на крупных UI-файлах.  
+**S07** — энциклопедия стилей / systematic UX review (не второй «вкус»; не заменяет D0/D2).
 
 ---
 
 ## Checklist — DECOMPOSE → Impl + Design
 
-На каждый `sNN`: yes → добавь. Cap situational ≤ **4** (+ Impl Core из `workflow-decompose` + Design Core если `yes`).
+На каждый `sNN`: yes → **добавь путь** (не Read SKILL). Cap situational ≤ **4** (+ Impl Core; Design groups не в cap situational).
 
-| # | Вопрос | skill / пакет |
-|---|--------|---------------|
-| 1 | User-facing JSX/TSX / shell / DS / theme UI? → `visible_ui:` yes\|no | Design Core если **yes** |
+| # | Вопрос | skill / группа |
+|---|--------|----------------|
+| 1 | User-facing JSX/TSX / shell / DS / theme UI? → `visible_ui:` yes\|no | **yes** → resolve Design groups (D0 + …) из clarify/`surface` map |
+| 1a | Есть `## Design skills pack` в clarify? | копировать **resolved paths**; иначе defaults по surface |
+| 1b | Dialect / image / stitch в scope? | D2 XOR ≤1 · D3 subset · D4 по триггеру |
 | 2 | E2E / user-visible scenario / PW suite в step? | `playwright-best-practices` |
 | 3 | Новый Playwright spec с нуля? | `playwright-generate-test` |
 | 4 | View Transitions API / transition UX? | `vercel-react-view-transitions` |
 | 5 | Web design / a11y guidelines audit в scope? | `web-design-guidelines` |
+| 6 | Нужен полный unabridged UI dump? | `full-output-enforcement` (S06) |
+| 7 | Systematic style encyclopedia / UX checklist? | `ui-ux-pro-max` (S07) |
 
-**Defaults:** user-visible flow → #2 **yes**; новый e2e файл → +#3; pure lib → `visible_ui: no`, Design —, situational часто пусто.
+**Defaults:** user-visible flow → #2 **yes**; новый e2e файл → +#3; pure lib → `visible_ui: no`, Design —, situational часто пусто; **product_ui** без clarify dialect → **только D0**.
+
+**FAIL:** `visible_ui: yes` без D0; >1 путь из D2; D1 на чистом `product_ui` без marketing surface; D3/D4 без триггера в pack/brief.
 
 ---
 
 ## Checklist — CREATIVE → Skills gate
 
-На каждый CR/batch: yes → добавь. Cap situational ≤ **3** (+ CREATIVE Core из `workflow-creative` + Design Core пакет).
+На каждый CR/batch: yes → добавь. Cap situational ≤ **3** (+ CREATIVE Core; Design groups не в cap).
 
 | # | Вопрос | skill |
 |---|--------|-------|
-| 1 | UI/UX / visual / layout CR? | Design Core (пакет) — обычно **yes** для FRONT CREATIVE |
+| 1 | UI/UX / visual / layout CR? | Design groups по clarify/`surface` (обычно D0+) |
 | 2 | Блокирующие неясности? | `grill-me` |
 | 3 | View Transitions в дизайне? | `vercel-react-view-transitions` |
 | 4 | Web design / a11y guidelines? | `web-design-guidelines` |
+| 5 | Image/brand/stitch в batch? | D3 / D4 по pack |
+| 6 | Unabridged / encyclopedia? | S06 / S07 |
 
-**Defaults:** FRONT CREATIVE UI batch → #1 **yes** (весь Design Core); Architecture-only без UI → #1 **no** + причина в файле.
+**Defaults:** FRONT CREATIVE UI batch → #1 **yes** (минимум D0 + groups из pack); Architecture-only без UI → #1 **no** + причина в файле.

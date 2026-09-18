@@ -11,7 +11,7 @@ Batch обязателен. Формат фазы — в `workflow-creative.mdc`
 ## Gates
 
 1. Компоненты из plan/decompose
-2. **Skills gate:** Core(2) ∪ Design Core (если UI) ∪ situational ≤3; список в `## Skills gate`; Read только его
+2. **Skills gate:** Core(2) ∪ Design groups (если UI: минимум D0 + pack) ∪ situational ≤3; список в `## Skills gate`; Read только его
 3. UI/UX: 2+ варианта + recommended
 4. Один creative-файл; decompose link если от шага
 5. Design tokens / layout / signature задокументированы
