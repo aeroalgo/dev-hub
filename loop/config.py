@@ -310,7 +310,7 @@ class LoopSettings(BaseSettings):
             "LOOP_WORKFLOW_HOOKS": self.workflow_hooks,
             "CODEX_USE_OMNIROUTE": str(int(self.codex_use_omniroute)),
             "OMNIROUTE_API_URL": self.omniroute_api_url,
-            "OMNIROUTE_API_KEY_FILE": self.omniroute_api_key_file,
+            "OMNIROUTE_API_KEY_FILE": os.path.expanduser(self.omniroute_api_key_file),
         }
         if self.codex_bin:
             values["CODEX_BIN"] = self.codex_bin

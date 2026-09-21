@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 from .boundary import BoundaryService
-from .index import Queue, load_queue, phase_artifacts, prepare_step_status, qa_verdict
+from .index import Queue, index_path, load_queue, phase_artifacts, prepare_step_status, qa_verdict, validate_decompose_tree
 from .model import Cursor, CursorStatus, FailureRecord, Transition
 from .store import CommitResult, LoopPaths, StoreTransaction, TransactionPlan, CursorStore
 from .verdict import GateVerdict, MANAGED_GATE_AGENTS
@@ -26,6 +27,9 @@ class LoopEngine:
     def _queue(self, cursor: Cursor) -> Queue:
         return load_queue(self.paths.project, cursor.role, cursor.epic_id)
 
+    def _plan_path(self, cursor: Cursor) -> Path:
+        return index_path(self.paths.project, cursor.role, cursor.epic_id).parent.parent / "md" / "plan.md"
+
     def _phase_after_queue(self, queue: Queue) -> tuple[str, str]:
         audit = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "audit")
         qa = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "qa")
@@ -44,7 +48,16 @@ class LoopEngine:
         return "QA", "qa verdict missing"
 
     def _target(self, cursor: Cursor, queue: Queue | None = None) -> tuple[str, str, str]:
-        active_queue = queue or self._queue(cursor)
+        if queue is None:
+            canonical_index = index_path(self.paths.project, cursor.role, cursor.epic_id)
+            if not canonical_index.is_file():
+                plan = self._plan_path(cursor)
+                if not plan.is_file():
+                    raise FileNotFoundError(f"canonical plan missing: {plan}")
+                return "DECOMPOSE", "DECOMPOSE", f"canonical decompose index pending: {canonical_index}"
+            active_queue = self._queue(cursor)
+        else:
+            active_queue = queue
         if active_queue.pending:
             step = active_queue.pending[0]
             return "IMPLEMENT", step.step_id, f"pending step {step.step_id}"
@@ -66,7 +79,7 @@ class LoopEngine:
         )
 
     def _render_body(self, cursor: Cursor, queue: Queue | None = None) -> str:
-        active_queue = queue or self._queue(cursor)
+        load_path = queue.path if queue is not None else self._plan_path(cursor)
         lines = [
             "---",
             "schema: loop-generated-context/v1",
@@ -80,10 +93,10 @@ class LoopEngine:
             "---",
             "",
             "## load_now",
-            f"1. {active_queue.path.relative_to(self.paths.project).as_posix()} — queue/status",
+            f"1. {load_path.relative_to(self.paths.project).as_posix()} — {'queue/status' if queue is not None else 'source plan'}",
         ]
-        if cursor.step_id and cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR", "BUGFIX"}:
-            step = next((item for item in active_queue.steps if item.step_id == cursor.step_id), None)
+        if queue is not None and cursor.step_id and cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR", "BUGFIX"}:
+            step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
             if step and step.shard:
                 lines.append(f"2. {step.shard} — current step artifact")
         lines.extend(
@@ -111,7 +124,7 @@ class LoopEngine:
         if step_id and step_id != cursor.step_id:
             raise TransitionError(f"finish step mismatch: cursor={cursor.step_id}, received={step_id}")
 
-        queue = self._queue(cursor)
+        queue = validate_decompose_tree(self.paths.project, cursor.role, cursor.epic_id) if cursor.phase == "DECOMPOSE" else self._queue(cursor)
         next_queue = queue
         mutations = []
         if cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
@@ -130,7 +143,10 @@ class LoopEngine:
             if not phase_artifacts(self.paths.project, queue.role, queue.epic_id, "bugfix"):
                 raise TransitionError("cannot finish BUGFIX without a bugfix artifact")
 
-        phase, next_step, target_reason = self._target(cursor, next_queue)
+        if cursor.phase == "DECOMPOSE":
+            phase, next_step, target_reason = "ANALYZE", "ANALYZE", "decompose index created"
+        else:
+            phase, next_step, target_reason = self._target(cursor, next_queue)
         candidate = self._copy_cursor(cursor)
         candidate.phase, candidate.step_id = phase, next_step
         candidate.status = CursorStatus.COMPLETE if phase == "DONE" else CursorStatus.ACTIVE

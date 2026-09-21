@@ -70,6 +70,77 @@ def load_queue(project: Path, role: str, epic_id: str) -> Queue:
     return Queue(path=path, role=normalize_role(role), epic_id=epic_id, steps=tuple(steps))
 
 
+def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
+    queue = load_queue(project, role, epic_id)
+    payload = yaml.safe_load(queue.path.read_text(encoding="utf-8")) or {}
+    if payload.get("schema") != "epic-decompose-index/v1":
+        raise ValueError(f"invalid decompose index schema: {queue.path}")
+    if str(payload.get("plan_id") or "") != epic_id:
+        raise ValueError(f"decompose index plan_id mismatch: expected {epic_id}, got {payload.get('plan_id')!r}")
+    if not queue.steps:
+        raise ValueError(f"decompose index has no steps: {queue.path}")
+
+    expected_role = normalize_role(role)
+    steps_root = (queue.path.parent / "steps").resolve()
+    seen: set[str] = set()
+    required_step_fields = {
+        "schema",
+        "role",
+        "step_id",
+        "plan_id",
+        "title",
+        "next_phase",
+        "goal",
+        "plan_contract",
+        "context",
+        "as_built",
+        "delta",
+        "deletes",
+        "out_of_scope",
+        "skills",
+        "checkpoints",
+        "verify",
+        "tdd",
+    }
+    for position, raw in enumerate(payload["steps"]):
+        missing_index_fields = sorted({"id", "file", "title", "next_phase", "status"}.difference(raw))
+        if missing_index_fields:
+            raise ValueError(f"decompose index step missing fields {missing_index_fields}: {queue.path}")
+        step_id = str(raw.get("id") or raw.get("step_id") or "").strip()
+        if step_id in seen:
+            raise ValueError(f"duplicate decompose step: {step_id}")
+        seen.add(step_id)
+        file_ref = str(raw.get("file") or "").strip()
+        if not file_ref:
+            raise ValueError(f"decompose step {step_id!r} has no file")
+        shard = shard_path(project, queue, queue.steps[position])
+        if shard is None or not shard.is_file():
+            raise FileNotFoundError(f"decompose shard missing: {file_ref} ({queue.path})")
+        if shard.resolve().parent != steps_root:
+            raise ValueError(f"decompose shard outside canonical steps directory: {shard}")
+        shard_payload = yaml.safe_load(shard.read_text(encoding="utf-8")) or {}
+        if not isinstance(shard_payload, dict):
+            raise ValueError(f"invalid decompose shard: {shard}")
+        missing = sorted(required_step_fields.difference(shard_payload))
+        if missing:
+            raise ValueError(f"decompose shard missing fields {missing}: {shard}")
+        if shard_payload.get("schema") != "epic-decompose/v1":
+            raise ValueError(f"invalid decompose shard schema: {shard}")
+        if normalize_role(str(shard_payload.get("role") or "")) != expected_role:
+            raise ValueError(f"decompose shard role mismatch: {shard}")
+        if str(shard_payload.get("step_id") or "") != step_id:
+            raise ValueError(f"decompose shard step_id mismatch: {shard}")
+        if str(shard_payload.get("plan_id") or "") != epic_id:
+            raise ValueError(f"decompose shard plan_id mismatch: {shard}")
+        for field in ("as_built", "delta", "deletes", "out_of_scope", "checkpoints", "verify", "tdd"):
+            if not isinstance(shard_payload.get(field), list):
+                raise ValueError(f"decompose shard field {field!r} must be a list: {shard}")
+        for field in ("plan_contract", "context", "skills"):
+            if not isinstance(shard_payload.get(field), dict):
+                raise ValueError(f"decompose shard field {field!r} must be a mapping: {shard}")
+    return queue
+
+
 def prepare_step_status(queue: Queue, step_id: str, status: str) -> FileMutation:
     payload = yaml.safe_load(queue.path.read_text(encoding="utf-8")) or {}
     changed = False

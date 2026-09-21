@@ -7,7 +7,14 @@ CONFIG_SRC="${ROOT}/omniroute.config.toml"
 CONFIG_DST="${CODEX_HOME}/config.toml"
 PROFILE_SRC="${ROOT}/dev-hub.config.toml"
 PROFILE_DST="${CODEX_HOME}/dev-hub.config.toml"
-KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${CODEX_HOME}/.omniroute_key}"
+CONFIGURED_KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${CODEX_HOME}/.omniroute_key}"
+if [[ "$CONFIGURED_KEY_FILE" == "~" ]]; then
+  KEY_FILE="$HOME"
+elif [[ "$CONFIGURED_KEY_FILE" == "~/"* ]]; then
+  KEY_FILE="${HOME}/${CONFIGURED_KEY_FILE#\~/}"
+else
+  KEY_FILE="$CONFIGURED_KEY_FILE"
+fi
 CLAUDE_SETTINGS="${HOME}/.claude/settings.json"
 PATCHED_CODEX="${CODEX_PATCHED_BIN:-${ROOT}/.build/codex-v0.152.0}"
 

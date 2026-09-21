@@ -150,8 +150,25 @@ def run(args: argparse.Namespace) -> int:
             f"You are operating epic {cursor.epic_id}, role {cursor.role}.\n"
             f"Current phase: {cursor.phase}; step: {cursor.step_id}.\n"
             f"GATE_IDENTITY session_id={cursor.session_id} epic_id={cursor.epic_id} step_id={cursor.step_id}\n"
-            "Read the canonical YAML queue and current artifact. Make the requested changes. "
-            f"When the step is genuinely complete, run `python3 $DEV_HUB/bin/loop.py finish --project {paths.project} --step {cursor.step_id}`. "
+        )
+        if cursor.phase == "DECOMPOSE":
+            prompt += (
+                f"Run {cursor.role.upper()} DECOMPOSE for plan {cursor.epic_id}. "
+                f"Read the plan at {paths.project / 'memory-bank' / cursor.role / 'plan' / cursor.epic_id / 'md' / 'plan.md'}. "
+                "The canonical decompose index does not exist yet by design. "
+                "Create the canonical yaml/decompose-index.yaml and yaml/steps/sNN-*.yaml artifacts, "
+                "run the required validation gates, and do not write production code. "
+            )
+        elif cursor.phase == "ANALYZE":
+            prompt += (
+                f"Run {cursor.role.upper()} ANALYZE for plan {cursor.epic_id}. "
+                "Read the canonical plan and decompose tree, create the required analyze artifact, "
+                "and do not write production code. "
+            )
+        else:
+            prompt += "Read the canonical YAML queue and current artifact. Make the requested changes. "
+        prompt += (
+            f"When the phase is genuinely complete, run `python3 $DEV_HUB/bin/loop.py finish --project {paths.project} --step {cursor.step_id}`. "
             "Do not edit cursor.json or generated activeContext.md. "
             "A managed gate subagent PASS is validated by the boundary hook and may finish this step atomically; prose verdicts are not machine state."
         )

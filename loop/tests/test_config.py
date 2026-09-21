@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from loop.config import LoopSettings
@@ -55,3 +56,14 @@ def test_missing_model_is_fail_closed() -> None:
     assert selection.model is None
     assert selection.source == "missing"
     assert selection.env_name == "PROJECT_LOOP_IMPLEMENT_MODEL"
+
+
+def test_apply_environment_expands_tilde_in_omniroute_key_file(monkeypatch) -> None:
+    monkeypatch.delenv("OMNIROUTE_API_KEY_FILE", raising=False)
+    settings = LoopSettings(omniroute_api_key_file="~/.codex/.omniroute_key")
+
+    settings.apply_environment()
+
+    assert os.environ["OMNIROUTE_API_KEY_FILE"] == str(
+        Path.home() / ".codex" / ".omniroute_key"
+    )

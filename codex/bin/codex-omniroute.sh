@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${HOME}/.codex/.omniroute_key}"
+CONFIGURED_KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${HOME}/.codex/.omniroute_key}"
+if [[ "$CONFIGURED_KEY_FILE" == "~" ]]; then
+  KEY_FILE="$HOME"
+elif [[ "$CONFIGURED_KEY_FILE" == "~/"* ]]; then
+  KEY_FILE="${HOME}/${CONFIGURED_KEY_FILE#\~/}"
+else
+  KEY_FILE="$CONFIGURED_KEY_FILE"
+fi
 OMNIROUTE_API_URL="${OMNIROUTE_API_URL:-http://localhost:20128/v1}"
 CODEX_HOME="${CODEX_HOME:-${HOME}/.codex}"
 PROFILE_NAME="${CODEX_PROFILE:-dev-hub}"

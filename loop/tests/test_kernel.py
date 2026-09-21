@@ -60,6 +60,93 @@ def test_cursor_is_the_only_runtime_state_and_finish_advances_index(tmp_path: Pa
     assert "id: s01" in index and "status: completed" in index
 
 
+def test_new_plan_starts_decompose_before_index_exists(tmp_path: Path) -> None:
+    write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# Plan: E2\n")
+    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+
+    cursor = LoopEngine(paths).start("E2")
+
+    assert cursor.phase == "DECOMPOSE"
+    assert cursor.step_id == "DECOMPOSE"
+    assert cursor.status == CursorStatus.ACTIVE
+    context = paths.active_context.read_text(encoding="utf-8")
+    assert "memory-bank/back/plan/E2/md/plan.md" in context
+
+
+def test_decompose_finish_requires_index_and_hands_off_to_analyze(tmp_path: Path) -> None:
+    write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# Plan: E2\n")
+    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+    engine = LoopEngine(paths)
+    engine.start("E2")
+    write(
+        tmp_path / "memory-bank/back/plan/E2/yaml/decompose-index.yaml",
+        """
+schema: epic-decompose-index/v1
+plan_id: E2
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: pending
+""",
+    )
+
+    write(
+        tmp_path / "memory-bank/back/plan/E2/yaml/steps/s01.yaml",
+        """
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: E2
+title: s01
+next_phase: BACK IMPLEMENT
+goal: outcome
+plan_contract: {}
+context: {}
+as_built: []
+delta: []
+deletes: []
+out_of_scope: []
+skills: {}
+checkpoints: []
+verify: []
+tdd: []
+""",
+    )
+
+    transition = engine.finish(step_id="DECOMPOSE")
+
+    assert transition.phase == "ANALYZE"
+    assert transition.step_id == "ANALYZE"
+    assert engine.store.read().phase == "ANALYZE"
+
+
+def test_decompose_finish_rejects_incomplete_tree(tmp_path: Path) -> None:
+    write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# Plan: E2\n")
+    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+    engine = LoopEngine(paths)
+    engine.start("E2")
+    write(
+        tmp_path / "memory-bank/back/plan/E2/yaml/decompose-index.yaml",
+        """
+schema: epic-decompose-index/v1
+plan_id: E2
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: pending
+""",
+    )
+
+    with pytest.raises(FileNotFoundError, match="decompose shard missing"):
+        engine.finish(step_id="DECOMPOSE")
+
+    assert engine.store.read().phase == "DECOMPOSE"
+
+
 def test_lifecycle_has_one_transition_path(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
