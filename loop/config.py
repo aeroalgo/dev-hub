@@ -142,7 +142,42 @@ class LoopSettings(BaseSettings):
     session_timeout: int = Field(
         default=3600,
         ge=1,
-        validation_alias=AliasChoices("LOOP_SESSION_TIMEOUT"),
+        validation_alias=AliasChoices(
+            "LOOP_SESSION_TIMEOUT",
+            "EPIC_SESSION_TIMEOUT_SEC",
+        ),
+    )
+    session_kill_grace: int = Field(
+        default=30,
+        ge=1,
+        validation_alias=AliasChoices(
+            "LOOP_SESSION_KILL_GRACE",
+            "EPIC_SESSION_KILL_GRACE_SEC",
+        ),
+    )
+    status_heartbeat: int | None = Field(
+        default=30,
+        ge=1,
+        validation_alias=AliasChoices(
+            "LOOP_STATUS_HEARTBEAT",
+            "EPIC_STATUS_HEARTBEAT_SEC",
+        ),
+    )
+    stream_idle_timeout: int | None = Field(
+        default=300,
+        ge=1,
+        validation_alias=AliasChoices(
+            "LOOP_STREAM_IDLE_TIMEOUT",
+            "EPIC_STREAM_IDLE_TIMEOUT_SEC",
+        ),
+    )
+    collaboration_wait_timeout: int | None = Field(
+        default=180,
+        ge=1,
+        validation_alias=AliasChoices(
+            "LOOP_COLLABORATION_WAIT_TIMEOUT",
+            "EPIC_COLLAB_WAIT_TIMEOUT_SEC",
+        ),
     )
     max_attempts: int = Field(
         default=3,
@@ -231,6 +266,20 @@ class LoopSettings(BaseSettings):
             for key, model in value.items()
             if str(model).strip()
         }
+
+    @field_validator(
+        "status_heartbeat",
+        "stream_idle_timeout",
+        "collaboration_wait_timeout",
+        mode="before",
+    )
+    @classmethod
+    def normalize_optional_timeouts(cls, value: object) -> object:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        if isinstance(value, (int, float)) and value <= 0:
+            raise ValueError("optional runtime timeouts must be positive or empty")
+        return value
 
     @classmethod
     def load(

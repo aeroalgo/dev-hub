@@ -16,7 +16,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | `verify-decompose` | DECOMPOSE pre-FINISH | **да** (если gate active в loop) | — |
 | `gate-repair` | после `@verify-*` FAIL/BLOCKED **или actionable AUDIT finding** | **да** (если enabled в loop) | — |
 | `sunset-inventory` | discovery / scan sunset targets (legacy fallbacks, dual-paths, shims) | **да** (если shard `sunset_scope.required: true`) | `@sunset-inventory`, `sunset` |
-| `analyze-verify` | после fix plan/decompose по ANALYZE findings | нет (gate после CRITICAL fix; packed FINDINGS/COVERAGE/ALLOW) | — |
+| `analyze-verify` | ANALYZE pre-FINISH gate | **да** (packed FINDINGS/COVERAGE/ALLOW) | — |
 | `verify` (alias) | pre-FINISH IMPLEMENT / BUGFIX | legacy alias → `verify-implement` / `verify-bugfix` | `@verify` |
 | `reviewer` (alias) | BACK QA | legacy alias → `verify-qa` | `@reviewer` |
 | built-in / др. | когда parent считает нужным | нет | — |
@@ -31,7 +31,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | BACK/FRONT BUGFIX | `verify-bugfix` | `verify` |
 | BACK/FRONT QA | `verify-qa` | `reviewer` |
 | BACK/FRONT DECOMPOSE | `verify-decompose` | — |
-| BACK/FRONT ANALYZE fix | `analyze-verify` | — |
+| BACK/FRONT ANALYZE | `analyze-verify` | — |
 
 ## Политика
 
@@ -43,7 +43,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (`ALLOW READ` с bugfix queue + report; queue SoT статусов, report SoT Changes/Verification; alias `@verify`); FAIL/DENY → fix → retry до PASS |
 | Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: plan.md + decompose-index.yaml; coverage SoT = shards) |
 | После `@verify-*` VERDICT: FAIL или AUDIT finding | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed `- id \| path \| fix` · ALLOW WRITE · VERIFY); repair done/partial → retry тот же verify или AUDIT до PASS |
-| После ANALYZE fix (plan/decompose) | **`@analyze-verify`** (packed); FAIL → fix → retry; PASS → re-ANALYZE или IMPLEMENT gate |
+| Перед FINISH ANALYZE | **`@analyze-verify`** (packed FINDINGS/COVERAGE/ALLOW); FAIL/BLOCKED → `@gate-repair` → retry same `@analyze-verify`; PASS → boundary transition |
 | BACK QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (Suite results + ALLOW + Frozen checklist; alias `@reviewer`); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
 

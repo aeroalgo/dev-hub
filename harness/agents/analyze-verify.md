@@ -95,4 +95,4 @@ WARNINGS:
 - повторный full ANALYZE (это задача parent `BACK ANALYZE`)
 - любые tool calls после финального JSON fence / `VERDICT:`
 
-После `PASS`: runtime atomic `mb-finish analyze` (или parent вызывает тот же CLI). **Ноль** дальнейших tool calls у verify и у parent после `ok: true`.
+После `PASS`: boundary hook атомарно переводит cursor в следующую фазу. **Ноль** дальнейших tool calls у verify и у parent после `ok: true`.

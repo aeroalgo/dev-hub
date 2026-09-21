@@ -139,7 +139,7 @@ evidence:
 ## FORBIDDEN
 
 - Spawn @verify / @verify-implement / nested Agent
-- FINISH / finalize-step / правка activeContext Handoff
+- FINISH / direct cursor mutation / правка activeContext Handoff
 - Правки вне ALLOW WRITE
 - Угадывание path/fix когда parent не дал `| path | fix`
 - `status: done` при незакрытой строке BLOCKERS или red VERIFY

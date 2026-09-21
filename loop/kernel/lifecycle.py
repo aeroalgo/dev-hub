@@ -10,8 +10,10 @@ from .engine import LoopEngine, TransitionError
 from .store import LoopPaths
 from .verdict import (
     MANAGED_GATE_AGENTS,
+    MANAGED_REPAIR_AGENTS,
     extract_json_fence,
     normalize_agent_id,
+    validate_repair_message,
     validate_message,
 )
 
@@ -74,17 +76,17 @@ def _agent_type(payload: dict[str, Any], message: str, prompt: str = "") -> str:
             value = source.get(key)
             if isinstance(value, str) and value.strip():
                 normalized = normalize_agent_id(value)
-                if normalized in MANAGED_GATE_AGENTS:
+                if normalized in MANAGED_GATE_AGENTS or normalized in MANAGED_REPAIR_AGENTS:
                     return normalized
     match = _AGENT_RE.search(f"{message}\n{prompt}")
     if match:
         normalized = normalize_agent_id(match.group(1))
-        if normalized in MANAGED_GATE_AGENTS:
+        if normalized in MANAGED_GATE_AGENTS or normalized in MANAGED_REPAIR_AGENTS:
             return normalized
     candidate, _ = extract_json_fence(message)
     if isinstance(candidate, dict):
         normalized = normalize_agent_id(str(candidate.get("agent_id") or ""))
-        if normalized in MANAGED_GATE_AGENTS:
+        if normalized in MANAGED_GATE_AGENTS or normalized in MANAGED_REPAIR_AGENTS:
             return normalized
     return ""
 
@@ -118,7 +120,30 @@ class SubagentLifecycle:
             f"GATE_IDENTITY session_id={cursor.session_id} "
             f"epic_id={cursor.epic_id} step_id={cursor.step_id}"
         )
+        if agent_type == "gate-repair":
+            return (
+                f"agent_type={agent_type}\n{identity}\n"
+                "Use the GATE_IDENTITY values verbatim and never derive them from a thread, epic, or directory.\n"
+                "The final response must contain exactly one fenced json object with "
+                'schema: "loop-repair-result/v1", agent_id: "gate-repair", '
+                "parent_evidence_id, status (done|partial|fail), "
+                "fixed_blockers, remaining_blockers, and recorded_at.\n"
+                "Validate it with python3 $DEV_HUB/bin/loop.py validate-verdict --project "
+                f"{self.paths.project} --payload '<json>'.\n"
+                "Repair only the concrete BLOCKERS paths in ALLOW WRITE, run the exact VERIFY command, "
+                "never spawn another agent, and never call finish."
+            )
+        required_sections = {
+            "verify-decompose": "ALLOW READ",
+            "analyze-verify": "FINDINGS / COVERAGE / ALLOW READ",
+            "verify-implement": "ALLOW READ",
+            "verify-bugfix": "ALLOW READ",
+            "verify-qa": "Suite results / ALLOW READ",
+        }.get(agent_type, "ALLOW READ")
         validation = (
+            f"Required parent prompt sections for this agent: {required_sections}. "
+            "If any required section is absent, return FAIL with prompt_incomplete:<section> "
+            "and do not invent product blockers.\n"
             "Before the final response, validate the exact JSON payload with: "
             "python3 $DEV_HUB/bin/loop.py validate-verdict --project "
             f"{self.paths.project} --payload '<json>'"
@@ -132,6 +157,60 @@ class SubagentLifecycle:
             "The boundary hook validates this response and atomically advances the loop on PASS."
         )
 
+    def _stop_repair(self, payload: dict[str, Any], cursor) -> HookAction:
+        message = _message(payload)
+        validation = validate_repair_message(message)
+        if not validation.valid or validation.record is None:
+            self.engine.record_event(
+                {
+                    "event": "repair_result_rejected",
+                    "agent_id": "gate-repair",
+                    "phase": cursor.phase,
+                    "step_id": cursor.step_id,
+                    "diagnostic_codes": list(validation.diagnostic_codes),
+                    "errors": list(validation.errors),
+                }
+            )
+            return HookAction(
+                False,
+                False,
+                2,
+                "re-emit valid loop-repair-result/v1 JSON fence",
+                validation.diagnostic_codes,
+            )
+        record = validation.record
+        self.engine.record_event(
+            {
+                "event": "repair_recorded",
+                "agent_id": "gate-repair",
+                "phase": cursor.phase,
+                "step_id": cursor.step_id,
+                "parent_evidence_id": record.parent_evidence_id,
+                "status": record.status,
+                "fixed_blockers": list(record.fixed_blockers),
+                "remaining_blockers": list(record.remaining_blockers),
+                "recorded_at": record.recorded_at,
+            }
+        )
+        return HookAction(
+            True,
+            True,
+            reason=f"repair_recorded:{record.status}",
+            transition={
+                "event": "repair_recorded",
+                "phase": cursor.phase,
+                "step_id": cursor.step_id,
+                "status": cursor.status.value,
+                "changed": True,
+                "metadata": {
+                    "agent_id": "gate-repair",
+                    "repair_status": record.status,
+                    "fixed_blockers": list(record.fixed_blockers),
+                    "remaining_blockers": list(record.remaining_blockers),
+                },
+            },
+        )
+
     def stop(self, payload: dict[str, Any]) -> HookAction:
         message = _message(payload)
         agent_type = _agent_type(payload, message, _prompt(payload))
@@ -141,6 +220,8 @@ class SubagentLifecycle:
         cursor = self.engine.store.read()
         if cursor is None:
             return HookAction(False, False, 2, "cursor_missing", ("cursor_missing",))
+        if agent_type == "gate-repair":
+            return self._stop_repair(payload, cursor)
         # Parse the wire contract first.  Boundary identity is checked by the
         # locked engine so a delayed duplicate from a child that already
         # advanced the cursor is treated as idempotent, not as a fresh retry.

@@ -191,6 +191,12 @@ class StoreTransaction:
     def event_count(self, event: str, key_prefix: str = "") -> int:
         return self.store._event_count_unlocked(event, key_prefix)
 
+    def latest_event(self, event: str) -> dict[str, Any] | None:
+        return self.store._latest_event_unlocked(event)
+
+    def event_with_fields(self, event: str, fields: dict[str, Any]) -> dict[str, Any] | None:
+        return self.store._event_with_fields_unlocked(event, fields)
+
     def mutation(self, path: Path, content: str) -> FileMutation:
         return FileMutation(path.resolve(), content, file_digest(path))
 
@@ -390,6 +396,28 @@ class CursorStore:
                     count += 1
         return count
 
+    def _latest_event_unlocked(self, event: str) -> dict[str, Any] | None:
+        for record in reversed(self._event_records_unlocked()):
+            if record.get("event") == event:
+                return dict(record)
+        return None
+
+    def _latest_event_any_unlocked(self, events: set[str]) -> dict[str, Any] | None:
+        for record in reversed(self._event_records_unlocked()):
+            if record.get("event") in events:
+                return dict(record)
+        return None
+
+    def _event_with_fields_unlocked(self, event: str, fields: dict[str, Any]) -> dict[str, Any] | None:
+        for record in reversed(self._event_records_unlocked()):
+            candidates = [record, *(item for item in record.get("events", []) if isinstance(item, dict))]
+            for item in candidates:
+                if item.get("event") != event:
+                    continue
+                if all(item.get(key) == value for key, value in fields.items()):
+                    return dict(record)
+        return None
+
     def event_seen(self, event: str, key: str) -> bool:
         with _CursorLock(self.paths):
             return self._event_seen_unlocked(event, key)
@@ -397,6 +425,14 @@ class CursorStore:
     def event_count(self, event: str, key_prefix: str = "") -> int:
         with _CursorLock(self.paths):
             return self._event_count_unlocked(event, key_prefix)
+
+    def latest_event(self, event: str) -> dict[str, Any] | None:
+        with _CursorLock(self.paths):
+            return self._latest_event_unlocked(event)
+
+    def latest_event_any(self, events: set[str]) -> dict[str, Any] | None:
+        with _CursorLock(self.paths):
+            return self._latest_event_any_unlocked(events)
 
     def record_event(self, event: dict[str, Any]) -> None:
         def planner(_current: Cursor | None, _context: StoreTransaction) -> TransactionPlan:

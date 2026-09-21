@@ -44,6 +44,11 @@ class SessionSupervisor:
             "exit_code": result.exit_code,
             "log_path": str(result.log_path),
             "timed_out": result.timed_out,
+            "idle_timed_out": result.idle_timed_out,
+            "collaboration_wait_timed_out": result.collaboration_wait_timed_out,
+            "hung": result.hung,
+            "elapsed_sec": result.elapsed_sec,
+            "heartbeat_count": result.heartbeat_count,
             "interrupted": result.interrupted,
             "message": result.message,
         }
@@ -68,7 +73,10 @@ class SessionSupervisor:
             if cursor.status.value == "halted":
                 return SessionRun(SessionOutcome.STATE_CHANGED, None, None, "cursor halted", 1)
             attempt_id = cursor.attempt + 1
-            log_path = self.engine.store.session_log(f"{session_id or cursor.session_id}-attempt-{attempt_id}")
+            log_path = self.engine.store.session_log(
+                f"{session_id or cursor.session_id}-{cursor.phase.lower()}-"
+                f"{cursor.step_id.lower()}-attempt-{attempt_id}"
+            )
             result = self.runtime.run(prompt, model=model, project=project, log_path=log_path, timeout=self.timeout)
             updated = self.engine.store.read()
             if updated is None:
@@ -91,10 +99,17 @@ class SessionSupervisor:
                 outcome = SessionOutcome.FINISH_NOT_COMMITTED
                 reason = "finish_not_committed"
                 code = "finish_not_committed"
-            elif result.timed_out:
+            elif result.timed_out or result.hung:
                 outcome = SessionOutcome.TIMEOUT
-                reason = "session_timeout"
-                code = "session_timeout"
+                if result.idle_timed_out:
+                    reason = "session_idle_timeout"
+                    code = "session_idle_timeout"
+                elif result.collaboration_wait_timed_out:
+                    reason = "collaboration_wait_timeout"
+                    code = "collaboration_wait_timeout"
+                else:
+                    reason = "session_timeout"
+                    code = "session_timeout"
             else:
                 outcome = SessionOutcome.RUNTIME_FAILURE
                 reason = f"runtime_exit_{result.exit_code}"

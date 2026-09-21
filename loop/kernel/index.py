@@ -171,14 +171,125 @@ def shard_path(project: Path, queue: Queue, step: Step) -> Path | None:
     return next((candidate for candidate in candidates if candidate.is_file()), candidates[0])
 
 
+def implement_path(project: Path, role: str, epic_id: str, step: Step) -> Path:
+    filename = Path(step.shard).name if step.shard else f"{step.step_id}.yaml"
+    return project / "memory-bank" / normalize_role(role) / "implement" / epic_id / filename
+
+
 def phase_artifacts(project: Path, role: str, epic_id: str, kind: str) -> list[Path]:
     root = project / "memory-bank" / normalize_role(role) / kind / epic_id
-    return sorted(root.glob("*.yaml")) if root.is_dir() else []
+    if not root.is_dir():
+        return []
+    pattern = "qa-*.yaml" if kind == "qa" else "*.yaml"
+    return sorted(root.glob(pattern))
+
+
+def phase_payload(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, UnicodeError, yaml.YAMLError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def latest_phase_payload(paths: list[Path]) -> tuple[Path | None, dict[str, Any] | None]:
+    for path in reversed(paths):
+        payload = phase_payload(path)
+        if payload is not None:
+            return path, payload
+    return None, None
+
+
+def audit_is_converged(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
+    """Return whether the latest AUDIT artifact authorizes the QA handoff."""
+    path, payload = latest_phase_payload(phase_artifacts(project, role, epic_id, "audit"))
+    if path is None or payload is None:
+        return False, "audit_artifact_missing_or_invalid"
+    if payload.get("schema") != "epic-audit/v2":
+        return False, "audit_schema_invalid"
+    if payload.get("converged") is not True:
+        return False, "audit_not_converged"
+    findings = payload.get("findings")
+    if not isinstance(findings, list):
+        return False, "audit_findings_invalid"
+    if findings:
+        return False, "audit_actionable_findings"
+    matrix = payload.get("check_matrix")
+    if not isinstance(matrix, list) or not matrix:
+        return False, "audit_check_matrix_missing"
+    for row in matrix:
+        if not isinstance(row, dict):
+            return False, "audit_check_matrix_invalid"
+        if not all(str(row.get(field) or "").strip() for field in ("source_ref", "status", "evidence", "verify")):
+            return False, "audit_check_matrix_incomplete"
+        if str(row.get("status") or "").strip().lower() in {"fail", "failed", "blocked"}:
+            return False, "audit_actionable_findings"
+    return True, "audit_converged"
+
+
+def bugfix_queue_path(project: Path, role: str, epic_id: str) -> Path:
+    return project / "memory-bank" / normalize_role(role) / "bugfix" / epic_id / "bugfix-queue.yaml"
+
+
+def bugfix_report_paths(project: Path, role: str, epic_id: str) -> list[Path]:
+    root = bugfix_queue_path(project, role, epic_id).parent
+    return sorted(root.glob("bugfix-*.md")) if root.is_dir() else []
+
+
+def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
+    """Validate the machine SoT that controls BUGFIX completion."""
+    path = bugfix_queue_path(project, role, epic_id)
+    payload = phase_payload(path)
+    if payload is None:
+        return False, "bugfix_queue_missing"
+    if payload.get("schema") != "epic-bugfix-queue/v1":
+        return False, "bugfix_queue_schema_invalid"
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        return False, "bugfix_queue_items_missing"
+    statuses = {str(item.get("status") or "").strip().lower() for item in items if isinstance(item, dict)}
+    if len(statuses) != len(items) or not statuses.issubset({"open", "in_progress", "blocked", "done", "cancelled"}):
+        return False, "bugfix_queue_item_invalid"
+    if sum(status == "in_progress" for status in (str(item.get("status") or "").strip().lower() for item in items if isinstance(item, dict))) > 1:
+        return False, "bugfix_queue_multiple_in_progress"
+    if statuses.intersection({"open", "in_progress", "blocked"}):
+        return False, "bugfix_queue_open"
+    verification = payload.get("verification")
+    if not isinstance(verification, dict) or str(verification.get("status") or "").strip().lower() != "pass":
+        return False, "bugfix_verification_required"
+    if not all(str(verification.get(field) or "").strip() for field in ("command", "last_run_at", "evidence")):
+        return False, "bugfix_verification_required"
+    return True, "bugfix_queue_ready"
+
+
+def bugfix_queue_intake(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
+    """Validate a QA-created queue before BUGFIX has completed it."""
+    path = bugfix_queue_path(project, role, epic_id)
+    payload = phase_payload(path)
+    if payload is None:
+        return False, "bugfix_queue_missing"
+    if payload.get("schema") != "epic-bugfix-queue/v1":
+        return False, "bugfix_queue_schema_invalid"
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        return False, "bugfix_queue_items_missing"
+    statuses = []
+    for item in items:
+        if not isinstance(item, dict):
+            return False, "bugfix_queue_item_invalid"
+        status = str(item.get("status") or "").strip().lower()
+        if status not in {"open", "in_progress", "blocked", "done", "cancelled"}:
+            return False, "bugfix_queue_item_invalid"
+        statuses.append(status)
+    if statuses.count("in_progress") > 1:
+        return False, "bugfix_queue_multiple_in_progress"
+    return True, "bugfix_queue_valid"
 
 
 def qa_verdict(path: Path) -> str | None:
-    try:
-        payload: Any = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError):
+    payload = phase_payload(path)
+    if payload is None:
+        return None
+    if payload.get("schema") != "epic-qa/v1":
         return None
     return str(payload.get("verdict") or payload.get("status") or "").lower() or None

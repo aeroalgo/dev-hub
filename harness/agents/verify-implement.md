@@ -35,12 +35,12 @@ Parent **обязан** передать только:
 
 ## Status contract (HARD) — без deadlock
 
-Канон FINISH: `evidence (status=in_progress) → validate-step → Handoff → @verify-implement → PASS → finalize-step → status=completed`.
+Канон FINISH: `evidence (status=in_progress) → Handoff → @verify-implement → PASS → boundary transition → status=completed`.
 
 | Момент | Ожидаемый `status` в implement YAML |
 |--------|--------------------------------------|
 | Pre-FINISH `@verify-implement` (первый) | **`in_progress`** + все `checkpoints[].status=done` + заполнены evidence (`done`/`files`/`tests`/…) |
-| После `finalize-step` / re-check | `completed` |
+| После boundary transition / re-check | `completed` |
 
 **Incomplete = FAIL (HARD):**
 - Любой `checkpoints[].status != done` → `VERDICT: FAIL` (blocker `checkpoints_pending`)
@@ -53,7 +53,7 @@ Parent **обязан** передать только:
 - совет parent «сначала finalize → completed, потом re-@verify-implement»
 - писать / требовать ручной `status: completed` до `VERDICT: PASS`
 
-`finalize-step` требует `last_verify_verdict=PASS` и **сам** ставит `completed` (+ index). Руками `completed` = нарушение контракта.
+Boundary transition после PASS атомарно ставит `completed` в canonical index. Руками `completed` до PASS = нарушение контракта.
 
 ## System discipline (HARD)
 
@@ -152,7 +152,7 @@ BLOCKERS: (пусто если PASS) id · gap · next_fix
 - `verdict: PASS` при красном VERIFY / cp не все `done` / `gaps` blocked / битом шаблоне step
 - `verdict: PASS` для «blocked is correct» / cutover заблокирован parity FAIL
 - `verdict: FAIL` с blocker `step_status` лишь из‑за `in_progress` на pre-FINISH
-- Совет parent писать `status: completed` руками, вызывать `finalize-step` до PASS, или писать `BLOCKED:` вместо фикса incomplete
+- Совет parent писать `status: completed` руками до PASS или писать `BLOCKED:` вместо фикса incomplete
 - Завершать сессию без валидного JSON fence `loop-gate-verdict/v1` (hooks = протокольный FAIL)
 - Смотреть / FAIL по файлам вне ALLOW∩boundary-state; `git status` по репо; discard чужого dirty (`git checkout --` / `git restore` / `rm`)
 - Брать checklist из parent-packed AC+/AC−/§0.11 вместо decompose shard

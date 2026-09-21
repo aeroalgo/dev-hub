@@ -27,6 +27,8 @@ MANAGED_GATE_AGENTS = frozenset(
         "verify-publish",
     }
 )
+MANAGED_REPAIR_AGENTS = frozenset({"gate-repair"})
+MANAGED_SUBAGENTS = MANAGED_GATE_AGENTS | MANAGED_REPAIR_AGENTS
 AGENT_ALIASES = {
     "verify": "verify-implement",
     "reviewer": "verify-qa",
@@ -291,11 +293,25 @@ def validate_message(
     return validate_boundary(SCHEMA_GATE_VERDICT, payload, identity=identity)
 
 
+def validate_repair_message(message: str | None) -> ValidationResult:
+    payload, diagnostics = extract_json_fence(message)
+    if payload is None:
+        return _result(
+            False,
+            SCHEMA_REPAIR_RESULT,
+            errors=diagnostics,
+            diagnostic_codes=diagnostics,
+        )
+    return validate_boundary(SCHEMA_REPAIR_RESULT, payload)
+
+
 __all__ = [
     "AGENT_ALIASES",
     "BoundaryIdentity",
     "GateVerdict",
     "MANAGED_GATE_AGENTS",
+    "MANAGED_REPAIR_AGENTS",
+    "MANAGED_SUBAGENTS",
     "SCHEMA_GATE_VERDICT",
     "SCHEMA_REPAIR_RESULT",
     "SCHEMA_VALIDATE_RESULT",
@@ -305,4 +321,5 @@ __all__ = [
     "normalize_agent_id",
     "validate_boundary",
     "validate_message",
+    "validate_repair_message",
 ]

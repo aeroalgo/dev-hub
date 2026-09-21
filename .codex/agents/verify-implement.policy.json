@@ -1,7 +1,7 @@
 {
   "name": "verify-implement",
   "policy_fingerprint": "sha256:70af9825c1f47b4b451aa6dda8721d325bb6d44b725289dff0ba5b8640ac54d0",
-  "source_prompt_sha256": "708dccbf09c79b39e220464292b557e61cd324ef6c5dc3624fceb4e11c7449d9",
+  "source_prompt_sha256": "a6ecab7aa52f3b2ddc81620666b132d3afba79e864f5acefa78530c9475df766",
   "disallowedTools": [
     "Write",
     "Edit",
