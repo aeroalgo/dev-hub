@@ -144,9 +144,9 @@ IDEA PIPELINE      →  /idea-pipeline
 
 1. Создайте `.claude/agents/researcher.md` с frontmatter `name`, `description`, tools и `overlay`.
 2. В `overlay` укажите `managed: true`, режим `optional|search|gate`, `requires_model` и defaults `default_loop`/`default_chat`.
-3. Добавьте `PROJECT_AGENT_RESEARCHER_MODEL=sonnet` в `.claude/project.env`.
+3. Добавьте `PROJECT_AGENT_RESEARCHER_MODEL=sonnet` в корневой `.env`.
 4. При необходимости задайте независимые selectors `PROJECT_AGENT_RESEARCHER_MODEL_CHAT=1` и `PROJECT_AGENT_RESEARCHER_MODEL_LOOP=0` (отсутствие сохраняет default loop=1/chat=0).
-5. Выполните `./bin/loop status --json` и проверьте единый cursor.
+5. Выполните `python3 "$DEV_HUB/bin/loop.py" status --json` и проверьте единый cursor.
 6. Не редактируйте `.claude/settings.json`: registry автоматически обнаруживает `.claude/agents/*.md`.
 7. Тест добавляйте только для non-generic gate-поведения; generic managed policy уже покрывается registry/policy tests.
 

@@ -43,15 +43,15 @@ Parent **обязан** передать секции. Если нет — ср�
    - **Обязательно**: проверка render artifact (файл экспорта/видео существует, формат mp4/mov/etc., duration > 0). Нет доказательства → `FAIL`.
 3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `git status*` · `git diff` только по ALLOW/diff paths · `rg …` · `ls` · `head` · `wc` · `python harness/hooks/epic_resolve.py tool-gate check*`. Единственное исключение — ровно один финальный `validate-boundary` command ниже.
+5. Bash только: `git status*` · `git diff` только по ALLOW/diff paths · `rg …` · `ls` · `head` · `wc` · `python3 $DEV_HUB/bin/loop.py scope --project "$PROJECT_ROOT" --json`. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
 6. Evidence (cp done + green VERIFY / AC) согласованы; иначе `FAIL`. Не требуй `status: completed` для PASS.
 
-## Pre-emit validate-boundary (HARD)
+## Pre-emit validate-verdict (HARD)
 
 Перед выводом JSON fence — выполни валидацию boundary через Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-edit","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-edit","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.

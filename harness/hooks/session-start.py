@@ -1,0 +1,17 @@
+from __future__ import annotations
+
+import json
+import sys
+
+from loop_guard import hooks_enabled
+
+
+def main() -> None:
+    if not hooks_enabled():
+        return
+    payload = {"hookSpecificOutput": {"hookEventName": "SessionStart", "continue": True}}
+    print(json.dumps(payload))
+
+
+if __name__ == "__main__":
+    main()

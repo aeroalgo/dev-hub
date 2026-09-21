@@ -72,7 +72,7 @@ M/L: **FORBIDDEN** кодить в PLAN/DECOMPOSE; execute только чере
 | Implement dir | `{role}/implement/<plan>/` | `{role}/refactor/implement/<id>/` |
 | Execute cmd | `* IMPLEMENT` | `* REFACTOR` |
 
-**Epic loop:** `./loop/loop.sh memory-bank/.../refactor/plan/<id>/yaml/decompose-index.yaml MODEL` — `REFACTOR` в `allowed_modes`; один `rNN` на сессию. Канон: `.claude/instructions/epic-loop.md`.
+**Epic loop:** `python3 "$DEV_HUB/bin/loop.py" "$PROJECT_ROOT" <epic-id> [model]` — один cursor и один счётчик попыток. Канон настроек: root `.env` → step model → phase model → default model; детали в `loop/README.md`.
 В промпт REFACTOR epic: FINISH-артефакт = `implement/.../rNN-*.yaml`, не `session-*`.
 
 ## PLAN output

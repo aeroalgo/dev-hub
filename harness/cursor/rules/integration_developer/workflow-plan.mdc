@@ -31,7 +31,7 @@ alwaysApply: false
 4. **Element registry & Acceptance:** ≥400 строк (`wc -l` plan ≥400 иначе дописать; endpoint ↔ fetch)
 5. **Every PLAN:** апсерт row в `roadmap/queue.yaml` + `plan/<epic_id>/md/plan.md` + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering одинаковый и без ID; не читать соседние plan)
 5p. **Independent Test = behavior** — shared/workflow-behavior-first.mdc §5 · Eng spine / `#qa-consumes` ≥3 TM / Review readiness (L2+)
-5a. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration` (`ok: false` → halt PLAN)
+5a. **Queue reconcile (mandatory):** validate the canonical epic index directly; the new loop has no separate roadmap-merge command.
 6. graphify: `.venv/bin/graphify query` (routes/components/endpoints; hub без graph.json → inventory)
 7. FINISH (`code_changed: no`) → next **INTEG DECOMPOSE** (не ROADMAP MERGE)
 
@@ -62,7 +62,7 @@ Gap опционален — не блокирует PLAN. Не читать as 
 4. `contracts/` не обязателен
 5. `tasks.md` append-only (ссылка на queue + каждый эпик)
 5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; нет queue row/reconcile для любого PLAN → FAIL
-5b. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`; `ok: false` → halt PLAN
+5b. **Queue reconcile (mandatory):** validate the canonical epic index directly; `bin/loop.py` owns only cursor transitions and `finish`.
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 6b. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.

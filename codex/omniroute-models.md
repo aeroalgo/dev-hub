@@ -69,7 +69,8 @@ wire_api = "responses"
 codex -c 'model="antigravity/gemini-3.7-flash-high"' …
 ```
 
-Wrapper форсирует `model_provider=omniroute`. `which-codex.sh` сам выбирает wrapper, если в `config.toml` есть OmniRoute и есть key-файл.
+Python loop напрямую выбирает wrapper и форсирует `model_provider=omniroute`.
+Настройки URL и key-файла берутся из корневого `.env` через `LoopSettings`.
 
 Отключить wrapper-routing:
 

@@ -5,9 +5,19 @@ from datetime import datetime, timezone
 
 import _wf
 
+from pathlib import Path
+
+HOOKS = Path(__file__).resolve().parents[2] / "harness" / "hooks"
+if str(HOOKS) not in sys.path:
+    sys.path.insert(0, str(HOOKS))
+
+from loop_guard import hooks_enabled  # noqa: E402
+
 
 def main() -> None:
     payload = json.load(sys.stdin)
+    if not hooks_enabled():
+        return
     root = _wf.workspace_root(payload)
     status = payload.get("status") or ""
     art = _wf.artifacts_dir(root)

@@ -107,22 +107,22 @@ Ineligible findings → в `## CHECKED` как `ok (ineligible:<reason>)`, **н�
 ## System discipline (HARD)
 
 1. Читай только ALLOW / `git diff` / `git status` по scope из prompt.
-2. Bash только: `rg …`, `git diff` только по ALLOW/diff paths, `git status*`, `ls …`, `head …`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. Всё остальное (pytest, vitest, playwright, npm test, compose) — **запрещено**.
+2. Bash только: `rg …`, `git diff` только по ALLOW/diff paths, `git status*`, `ls …`, `head …`. Единственное исключение — ровно один финальный `validate-verdict` command ниже. Всё остальное (pytest, vitest, playwright, npm test, compose) — **запрещено**.
 3. Budget: ≤40 Read calls, ≤40 конкретных файлов в ALLOW READ, ≤16 rg; после validator tool calls запрещены.
 4. Re-read одного и того же неизменённого диапазона — FORBIDDEN.
 
-## Pre-emit validate-boundary (HARD)
+## Pre-emit validate-verdict (HARD)
 
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","step_id":"QA","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","step_id":"QA","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные `session_id`/`epic_id` строго из предоставленного блока `GATE_IDENTITY` (`GATE_IDENTITY session_id=<session_id> epic_id=<epic_id> step_id=QA`), один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|BLOCKED|FAIL` запускать нельзя.
 - **`step_id` всегда литерал `QA`** (FORBIDDEN: угадывать `sNN` с эпика / activeContext / implement step). Значения `session_id` и `epic_id` бери строго из `GATE_IDENTITY`.
 - Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
-- `validate-boundary` — **после** полного `## BLOCKERS` / `## CHECKED` черновика; не раньше завершения матрицы.
+- `validate-verdict` — **после** полного `## BLOCKERS` / `## CHECKED` черновика; не раньше завершения матрицы.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 

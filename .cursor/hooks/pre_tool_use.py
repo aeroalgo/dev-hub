@@ -8,7 +8,7 @@ HOOKS = ROOT / "harness" / "hooks"
 if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))
 
-from _lib import active_context_write_deny_reason  # noqa: E402
+from loop_guard import hooks_enabled  # noqa: E402
 
 
 def _deny(message: str) -> None:
@@ -25,6 +25,9 @@ def _deny(message: str) -> None:
 
 
 def main() -> None:
+    if not hooks_enabled():
+        print(json.dumps({"permission": "allow"}))
+        return
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -46,18 +49,7 @@ def main() -> None:
     if file_path and Path(str(file_path)).name.lower() != "activecontext.md":
         print(json.dumps({"permission": "allow"}))
         return
-    contents = inp.get("contents") or inp.get("new_string") or payload.get("contents") or ""
-    roots = payload.get("workspace_roots") or []
-    cwd = Path(roots[0]).resolve() if roots else ROOT
-    try:
-        reason = active_context_write_deny_reason(
-            cwd, file_path, contents, same_session=False
-        )
-    except Exception:
-        _deny("Не удалось проверить запись в activeContext.md.")
-    if not reason:
-        print(json.dumps({"permission": "allow"}))
-        return
+    reason = "Live loop owns memory-bank/activeContext.md."
     print(
         json.dumps(
             {

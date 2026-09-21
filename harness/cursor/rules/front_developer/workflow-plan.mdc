@@ -21,7 +21,7 @@ alwaysApply: false
 3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
 4. Каждый PLAN → апсерт `roadmap/queue.yaml` + plan + `prompt.md`; multi-epic → N rows/plans/prompts
-4a. **Queue reconcile (same session, every PLAN):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front` (conflict/error → halt)
+4a. **Queue reconcile (same session, every PLAN):** validate the canonical epic index under `memory-bank/front/plan/<epic>/yaml/decompose-index.yaml`; the new loop has no separate roadmap-merge command.
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → Appetite = timebox + cut_list only (не hard cap sNN)
@@ -61,7 +61,7 @@ alwaysApply: false
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани: обязательны апсерт `memory-bank/front/roadmap/queue.yaml` + один/ N `memory-bank/front/plan/<task_id>/md/plan.md` и `md/prompt.md` (Covering одинаковый для multi-epic)
 7. `tasks.md` append-only (ссылка на queue + каждый эпик)
-7a1. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front`; `ok: false` → halt PLAN
+7a1. **Queue reconcile (mandatory):** validate the canonical epic index directly; `bin/loop.py` owns only cursor transitions and `finish`.
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.

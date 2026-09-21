@@ -74,7 +74,7 @@ PYTEST_WORKERS=8 bin/pytest loop/tests -q  # явное переопределе
 | **codex** | ✅ opt-in (`EPIC_RUNTIME=codex`) | `codex login`, `bin/runtime-sync --apply --runtime codex` | [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md) |
 
 **Codex CLI — поддерживается в loop:**
-Запуск через `EPIC_RUNTIME=codex make loop` или `bin/loop --runtime codex`. Подробный гайд по настройке, авторизации и синхронизации: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md).
+Запуск выполняется напрямую через `bin/loop.py`; `make` используется только для `hub-link`. Настройки runtime и OmniRoute находятся в корневом `.env` и читаются через `loop.config.LoopSettings`. Подробный гайд: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md).
 
 ---
 
@@ -201,7 +201,7 @@ ln -sfn ~/PyProject/dev-hub ~/.cursor/plugins/local/dev-hub
 
 DEV_HUB ?= $(shell \
   if [ -f .dev-hub ]; then sed -n '1p' .dev-hub | tr -d '[:space:]'; \
-  elif [ -x ../dev-hub/bin/loop ]; then printf '%s' "../dev-hub"; \
+  elif [ -x ../dev-hub/bin/loop.py ]; then printf '%s' "../dev-hub"; \
   else printf ''; fi)
 
 ifeq ($(strip $(DEV_HUB)),)
@@ -240,11 +240,8 @@ echo '/home/aero/PyProject/dev-hub' > .dev-hub
 | `make hub-link` | Symlinks rules/skills/hooks из хаба |
 | `make hub-unlink` | Убрать symlinks |
 | `make hub-info` | Показать `DEV_HUB`, `PROJECT_ROOT`, состояние links |
-| `make loop ARGS="gpt"` | Запустить loop (перед этим делает hub-link) |
-| `make loop ARGS="decompose-T-013 gpt"` | Loop на конкретный decompose |
-| `make loop-epic EPIC=decompose-T-013 MODEL=gpt` | Loop на эпик |
-| `make loop-status` | Статус текущего epic/step |
-| `make loop-help` | Справка по loop |
+| `python3 "$DEV_HUB/bin/loop.py" …` | Запустить loop с произвольной моделью |
+| `python3 "$DEV_HUB/bin/loop.py" status …` | Статус текущего epic/step |
 | `make cursor-workspace` | Напоминание: открывать только папку продукта |
 
 Примеры:
@@ -252,9 +249,8 @@ echo '/home/aero/PyProject/dev-hub' > .dev-hub
 ```bash
 make hub-info
 make hub-link
-make loop ARGS="gpt"
-make loop-epic EPIC=decompose-v1-portal MODEL=gpt
-make loop-status
+python3 "$DEV_HUB/bin/loop.py" "$PWD" T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max --role front
+python3 "$DEV_HUB/bin/loop.py" status --project "$PWD" --json
 ```
 
 Переопределить хаб на один запуск:
@@ -287,7 +283,7 @@ Make и loop разрешают путь к хабу **в таком поряд�
 
 1. **Переменная окружения** `DEV_HUB=/abs/path/to/dev-hub`
 2. **Файл `.dev-hub`** в корне продукта (одна строка — относительный или абсолютный путь)
-3. **Соседний каталог** `../dev-hub` (если есть `../dev-hub/bin/loop`)
+3. **Соседний каталог** `../dev-hub` (если есть `../dev-hub/bin/loop.py`)
 
 Примеры `.dev-hub`:
 
@@ -314,17 +310,14 @@ Loop **всегда** запускается с указанием продук�
 Из корня **продукта** (после `hub-link`):
 
 ```bash
-make loop ARGS="gpt"
-make loop ARGS="decompose-T-013 gpt"
-make loop-epic EPIC=decompose-T-013 MODEL=gpt
-make loop-status
+python3 "$DEV_HUB/bin/loop.py" "$PWD" T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max --role front
+python3 "$DEV_HUB/bin/loop.py" status --project "$PWD" --json
 ```
 
 Или напрямую из любого места:
 
 ```bash
-~/PyProject/dev-hub/bin/loop ~/PyProject/my-product gpt
-~/PyProject/dev-hub/bin/loop ~/PyProject/my-product decompose-T-013 gpt
+python3 ~/PyProject/dev-hub/bin/loop.py ~/PyProject/my-product T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max --role front
 ```
 
 ### Куда пишется runtime
@@ -341,7 +334,7 @@ make loop-status
 
 - **cwd сессии** = dev-hub (видит `.claude/agents`, hooks, settings)
 - **продукт** подключается через `--add-dir $PROJECT_ROOT`
-- Symlink `.claude` в продукт для loop **не нужен** — достаточно `hub-link` для Cursor и `bin/loop` для CLI
+- Symlink `.claude` в продукт для loop **не нужен** — достаточно `hub-link` для Cursor и `bin/loop.py` для CLI
 
 ---
 
@@ -375,7 +368,7 @@ make hub-unlink
 Когда вы правите хаб (эпики `T-HUB-*`):
 
 - Открывайте папку **`dev-hub`** в Cursor
-- `PROJECT_ROOT=dev-hub` при loop: `./bin/loop . gpt`
+- `PROJECT_ROOT=dev-hub` при loop: `python3 ./bin/loop.py . T-HUB-... <model>`
 - Артефакты — в `dev-hub/memory-bank/`
 
 Не смешивайте hub-эпики с product `memory-bank/`.
@@ -411,12 +404,13 @@ python3 -m loop.context_loop dashboard-render [--days 7] [--format html|json|bot
 ```
 dev-hub/
   .cursor/rules · templates    # workflow rules (BACK PLAN, …)
-  .claude/                     # hooks, agents, skills, project.env
+  .claude/                     # settings, agents, skills, commands
+  .env                         # local loop settings (ignored)
   .agents/skills/              # общие skills
-  loop/                        # автоцикл, context_loop.py
+  loop/                        # single-cursor kernel
   runtime/<project>/           # loop state per product
   projects/<slug>/             # optional env overrides (см. projects/README.md)
-  bin/loop · bin/hub-link      # CLI entrypoints
+  bin/loop.py · bin/hub-link   # CLI entrypoints
   make/product.mk              # shared Make targets для продуктов
   workspaces/                  # заготовки; multi-root не рекомендуем
 ```

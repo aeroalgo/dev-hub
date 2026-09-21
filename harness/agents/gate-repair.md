@@ -91,12 +91,12 @@ Managed: `capability_checks`, CLI validate) — **не** подменяй и н�
 7. Часть строк не закрыта → `status: partial` + оставшиеся id в `remaining_blockers`.
 8. **FORBIDDEN:** spawn Agent/verify, FINISH, invent work вне BLOCKERS, «починил кажется» без VERIFY, frontend tests, повторный full-suite сверх одной команды VERIFY.
 
-## Pre-emit validate-boundary (HARD)
+## Pre-emit validate (HARD)
 
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-repair-result/v1 --json '{"schema":"loop-repair-result/v1","agent_id":"gate-repair","parent_evidence_id":"<parent_evidence_id>","status":"done|partial|fail","fixed_blockers":[],"remaining_blockers":[],"recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate --project "$PROJECT_ROOT" --schema loop-repair-result/v1 --payload '{"schema":"loop-repair-result/v1","agent_id":"gate-repair","parent_evidence_id":"<parent_evidence_id>","status":"done|partial|fail","fixed_blockers":[],"remaining_blockers":[],"recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные списки blockers, фактический статус (`done`/`partial`/`fail`), `parent_evidence_id` из prompt / `GATE_IDENTITY` context и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `done|partial|fail` запускать нельзя.

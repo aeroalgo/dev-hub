@@ -302,15 +302,11 @@ for sub in agents skills commands instructions rules; do
     link_one ".claude/$sub" "$DEV_HUB/.claude/$sub"
   fi
 done
-for f in settings.json project.env; do
+for f in settings.json; do
   if [[ -e "$DEV_HUB/.claude/$f" ]]; then
     link_one ".claude/$f" "$DEV_HUB/.claude/$f"
   fi
 done
-# optional local overrides (do not overwrite existing)
-if [[ -e "$DEV_HUB/.claude/project.env.local" && ! -e "$PRODUCT_ROOT/.claude/project.env.local" ]]; then
-  link_one ".claude/project.env.local" "$DEV_HUB/.claude/project.env.local"
-fi
 mkdir -p "$PRODUCT_ROOT/.claude/runtime" "$PRODUCT_ROOT/.claude/worktrees"
 
 # Ensure .dev-hub exists for Make

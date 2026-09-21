@@ -1,55 +1,55 @@
-# Как запускать loop с разными runtime
+# Запуск loop
 
-Этот файл содержит однострочные команды для запуска loop из корня репозитория. Формат команды: `runtime + epic + model`. Команда использует текущий каталог как `PROJECT_ROOT`.
+Loop запускается только Python-скриптом `bin/loop.py`. `make` используется
+только для подключения проекта (`make hub-link` / `make hub-unlink`).
 
-## Codex через OmniRoute
-
-Команда запускает указанный эпик и передаёт OmniRoute ID как позиционную модель:
-
-```bash
-./bin/loop codex decompose-T-HUB-XXX 'cx/gpt-5.6-luna-xhigh'
-```
-
-Codex runtime использует OmniRoute, если в `~/.codex/config.toml` настроен провайдер `omniroute` и существует `~/.codex/.omniroute_key`.
-
-Root-модель Codex может быть произвольной моделью OmniRoute. Managed subagent
-берёт свою модель из `codex/agents.config.toml`; root-модель не передаётся
-child автоматически. Для моделей, которые возвращают flat function-call имена,
-patched Codex transport нормализует их в native collaboration namespace.
-
-## Claude Code
-
-Эта команда использует Claude Code runtime и передаёт выбранную модель:
+Из корня продукта:
 
 ```bash
-./bin/loop claude decompose-T-HUB-XXX 'antigravity/claude-sonnet-4-6'
+EPIC_RUNTIME=codex python3 "$DEV_HUB/bin/loop.py" \
+  "$PWD" T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max \
+  --role front
 ```
 
-## Служебные команды
-
-Показать состояние loop:
+Эквивалентно в явном формате:
 
 ```bash
-./bin/loop . --status
+python3 "$DEV_HUB/bin/loop.py" run \
+  --project "$PWD" \
+  --epic T-054-skyro-quality-dashboard-ui \
+  --role front \
+  --runtime codex \
+  --model cx/gpt-5.6-luna-max
 ```
 
-Показать справку:
+Служебные команды:
 
 ```bash
-./bin/loop . --help
+python3 "$DEV_HUB/bin/loop.py" status --project "$PWD" --json
+python3 "$DEV_HUB/bin/loop.py" doctor --project "$PWD" --json
+python3 "$DEV_HUB/bin/loop.py" halt --project "$PWD" --reason "manual stop"
 ```
 
-Запустить loop для другого репозитория можно из его корня, вызвав абсолютный путь к `bin/loop`:
+## Настройки и выбор модели
 
-```bash
-~/PyProject/dev-hub/bin/loop codex decompose-T-HUB-XXX \
-  'cx/gpt-5.6-luna-xhigh'
-```
+Loop читает корневой `.env` через `pydantic-settings`. `.claude/` содержит
+только Claude Code integration и не является источником настроек цикла.
 
-## Приоритет модели
+При каждом запуске сессии модель выбирается заново в таком порядке:
 
-Явный `--model` из команды имеет приоритет над `PROJECT_LOOP_<PHASE>_MODEL`. Если `--model` не передан, применяется phase override из `.claude/project.env`. Если нет ни CLI, ни phase env — loop останавливается с `model_required` (тихий default запрещён).
+1. явный `--model` или legacy-позиционная модель;
+2. `LOOP_STEP_MODELS` — JSON-карта (`{"S01":"...","QA":"..."}`);
+3. phase-модель (`LOOP_MODEL_IMPLEMENT`, `LOOP_MODEL_QA`, …);
+4. `LOOP_MODEL`.
 
-Если OmniRoute ограничивает выбранную модель или заменяет её, loop останавливается с `model_substitution`, а не продолжает работу на другой модели.
+Старые имена `PROJECT_LOOP_<PHASE>_MODEL` поддерживаются как совместимый
+alias. Если модель не найдена, loop останавливается с `model_required`; тихого
+fallback на случайную/default-модель нет.
 
-Подробности: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md), [`loop/README.md`](loop/README.md).
+Workflow hooks получают `LOOP_ACTIVE=1` только от `bin/loop.py` и поэтому
+работают внутри loop-сессии. В обычном Claude/Codex чате hook-dispatch делает
+no-op.
+
+Модель передаётся без локального whitelist. Ограничение доступности модели
+проверяет сам выбранный runtime и его аккаунт; ошибка runtime выводится вместе
+с `epic`, `role`, `phase`, `step`, `attempt`, `cursor_path` и `session_log`.

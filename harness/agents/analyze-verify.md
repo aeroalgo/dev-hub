@@ -37,14 +37,14 @@ Parent **обязан** передать секции. Нет секции → `
 
 0. **Первый Read** = latest `analyze-*.yaml` из ALLOW (если указан) или путь из prompt.
 1. Для каждого CRITICAL id из FINDINGS: Read plan/decompose refs → доказательство fix **или** blocker `finding_open:<id>`.
-2. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-boundary` command ниже. Без pytest, без implement shards.
-3. После ≤6 Read — **pre-emit validate-boundary** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
+2. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже. Без pytest, без implement shards.
+3. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 4. **Первая строка текста = `VERDICT:`**
 
-## Pre-emit validate-boundary (HARD)
+## Pre-emit validate-verdict (HARD)
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"analyze-verify","verdict":"PASS|FAIL","step_id":"ANALYZE","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"analyze-verify","verdict":"PASS|FAIL","step_id":"ANALYZE","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.

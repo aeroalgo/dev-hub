@@ -183,8 +183,7 @@ fi
 for name in \
   .cursor/rules .cursor/templates .agents AGENTS.md CLAUDE.md \
   .claude/agents .claude/skills .claude/commands \
-  .claude/instructions .claude/rules .claude/settings.json .claude/project.env \
-  .claude/project.env.local
+  .claude/instructions .claude/rules .claude/settings.json .claude/project.env
 do
   dest="$PRODUCT_ROOT/$name"
   if [[ -L "$dest" ]]; then

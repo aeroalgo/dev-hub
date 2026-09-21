@@ -16,7 +16,7 @@ By-command routing / graphify: .cursor/rules/shared/finish-doc-router.mdc
 
 **Канон курсора:** `$PROJECT_ROOT/memory-bank/activeContext.md` + `plan/<epic>/yaml/decompose-index.yaml` + implement step.
 **Anti-mix (HARD):** product-артефакты только в `$PROJECT_ROOT/memory-bank`; hub `T-HUB-*` только в `dev-hub/memory-bank`. Claude cwd=hub → всегда `--cwd "$PROJECT_ROOT"`.  
-Runner: `./loop/loop.sh` (context-first; cursor = `$PROJECT_ROOT/memory-bank/activeContext.md`).
+Runner: `python3 "$DEV_HUB/bin/loop.py" finish --project "$PROJECT_ROOT" --step <step-id>` (cursor = hub runtime `cursor.json`).
 
 ## Порядок (обязательно)
 

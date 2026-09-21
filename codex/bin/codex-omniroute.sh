@@ -2,6 +2,7 @@
 set -euo pipefail
 
 KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${HOME}/.codex/.omniroute_key}"
+OMNIROUTE_API_URL="${OMNIROUTE_API_URL:-http://localhost:20128/v1}"
 CODEX_HOME="${CODEX_HOME:-${HOME}/.codex}"
 PROFILE_NAME="${CODEX_PROFILE:-dev-hub}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -53,4 +54,7 @@ if [[ -f "${CODEX_HOME}/${PROFILE_NAME}.config.toml" ]]; then
   fi
 fi
 
-exec "$REAL_CODEX" "${PROFILE_ARGS[@]}" -c 'model_provider="omniroute"' "$@"
+exec "$REAL_CODEX" "${PROFILE_ARGS[@]}" \
+  -c 'model_provider="omniroute"' \
+  -c "model_providers.omniroute.base_url=\"${OMNIROUTE_API_URL}\"" \
+  "$@"

@@ -12,6 +12,8 @@ agent_trace/
 projects/**/*.env.local
 *.env
 *.env.local
+!.env.example
+!loop/.env.example
 codex/.build/
 .DS_Store
 .spec-kit/

@@ -21,7 +21,7 @@ alwaysApply: false
 3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
 4. Каждый PLAN → апсерт `roadmap/queue.yaml` + plan + `prompt.md`; multi-epic → N rows/plans/prompts (`## Covering` один текст, оси без ID; без roadmap md / без `roadmap/prompt-*`)
-4a. **Queue reconcile (same session, every PLAN):** после апсерта queue обязательно `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back` (conflict/error → halt)
+4a. **Queue reconcile (same session, every PLAN):** validate the canonical epic index under `memory-bank/back/plan/<epic>/yaml/decompose-index.yaml`; the new loop has no separate roadmap-merge command.
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → Appetite = timebox + cut_list only (не hard cap sNN)
@@ -62,9 +62,7 @@ alwaysApply: false
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): обязательны апсерт `memory-bank/back/roadmap/queue.yaml` + `memory-bank/back/plan/<epic_id>/md/plan.md` и `md/prompt.md` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`). Для multi-epic — N queue rows, N plan dirs и N `prompt.md` (Covering одинаковый).
 7. `tasks.md` append-only (ссылка на план / roadmap queue + эпики; без sNN-чеклиста)
-7a1. **Queue reconcile (same session, every PLAN):** после апсерта queue обязательно:
-    `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`
-    Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**. Нельзя завершить PLAN без канонического queue.
+7a1. **Queue reconcile (same session, every PLAN):** validate the canonical epic index directly. The loop owns only cursor transitions and `finish`; no separate roadmap-merge command exists.
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + `roadmap/queue.yaml` + first/sole plan + `md/prompt.md` (нет prompt → FAIL)
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом CRITICAL без resolve/defer-list.
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.

@@ -1,6 +1,7 @@
 # projects/
 
-Optional per-slug environment overrides for dev-hub projects.
+Optional per-slug environment overrides for dev-hub projects. The loop's base
+configuration is the hub root `.env`.
 
 currently unused. Intended structure:
 

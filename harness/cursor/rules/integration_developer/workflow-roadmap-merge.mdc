@@ -15,7 +15,7 @@ alwaysApply: false
 1. `OK INTEG ROADMAP MERGE`
 1a. Gates + Алгоритм
 2. Inventory `roadmap/queue.yaml` (+ leftover `roadmap/batches/` / legacy `plan/roadmap-*`)
-3. CLI: `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
+3. This legacy recovery command is removed. Validate or repair the canonical `decompose-index.yaml` directly, then use `bin/loop.py finish` for the transition.
 4. Conflict/unknown deps/cycle → halt + JSON (не silent fix)
 5. `tasks.md` + `activeContext.md` (load_now = canon + first plan)
 6. **FINISH:** finish-block (`code_changed: no` если только memory-bank); next = `INTEG DECOMPOSE <first-id>`

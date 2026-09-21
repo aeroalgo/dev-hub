@@ -34,6 +34,6 @@ alwaysApply: false
 8. `tasks.md` append-only
 9. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`, artifact: `gap-*.md`)
 10. New chat / **program-loop**: G-F→B → BACK *; G-B→F → FRONT *; затем **`INTEG GAP CLOSE`** `@implement`  
-    Авто: `.claude/instructions/program-loop.md` + `./loop/loop.sh --phase GAP_FANOUT` (снаружи сессии; без `--gap`/`--track`)
+    Переход выполняется через единый Python runner после подготовки артефакта: `python3 "$DEV_HUB/bin/loop.py" finish --project "$PROJECT_ROOT" --step GAP`.
 
 **Не путать:** GAP CLOSE = verify+rewire; PLAN/DECOMPOSE/IMPLEMENT = wire (gap не вход)

@@ -70,7 +70,7 @@ Full replacement mode used for dev-hub dogfooding and complete environment repli
 
 #### What full mode does:
 - Symlinks `.cursor/rules`, `.cursor/templates`, `.agents`, `CLAUDE.md`, and `harness/` directly to dev-hub
-- Symlinks all active `.claude/` subdirectories (`agents`, `skills`, `commands`, `instructions`, `rules`) and root files (`settings.json`, `project.env`)
+- Symlinks all active `.claude/` subdirectories (`agents`, `skills`, `commands`, `instructions`, `rules`) and the Claude `settings.json`; loop settings stay in the hub root `.env`.
 - Sets up `.claude/runtime` and `.claude/worktrees`
 - Replaces configuration with hub-managed symlinks
 

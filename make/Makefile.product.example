@@ -13,7 +13,7 @@
 
 DEV_HUB ?= $(shell \
   if [ -f .dev-hub ]; then sed -n '1p' .dev-hub | tr -d '[:space:]'; \
-  elif [ -x ../dev-hub/bin/loop ]; then printf '%s' "../dev-hub"; \
+  elif [ -x ../dev-hub/bin/loop.py ]; then printf '%s' "../dev-hub"; \
   else printf ''; fi)
 
 ifeq ($(strip $(DEV_HUB)),)

@@ -40,15 +40,15 @@ Parent **обязан** передать только:
 1. Read plan + step shards из ALLOW по мере нужды.
 2. Проверь наличие и полноту coverage-полей **в YAML-контракте** (не в prompt).
 3. GAPS с `status: blocked` или неустранёнными блокирующими зазорами → `FAIL`.
-4. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-boundary` command ниже.
+4. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
 5. **FORBIDDEN pytest / product code paths / test runners.** Только проверка plan/decompose yaml/md.
-6. После ≤6 Read — **pre-emit validate-boundary** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
+6. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 7. **Первая строка текста = `VERDICT:`**
 
-## Pre-emit validate-boundary (HARD)
+## Pre-emit validate-verdict (HARD)
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.

@@ -95,12 +95,13 @@ To run the loop with Codex runtime:
 
 3. Invoke loop with `EPIC_RUNTIME=codex` and OmniRoute model ids:
    ```bash
-   EPIC_RUNTIME=codex PROJECT_LOOP_IMPLEMENT_MODEL=cx/gpt-5.6-luna-xhigh make loop
-   # or directly via CLI:
-   bin/loop --runtime codex /path/to/product
+   EPIC_RUNTIME=codex python3 "$DEV_HUB/bin/loop.py" \
+     --project /path/to/product --runtime codex \
+     --epic <epic-id> --model cx/gpt-5.6-luna-xhigh
    ```
 
-   `which-codex.sh` auto-selects `codex-omniroute.sh` when `~/.codex/config.toml` contains the OmniRoute provider and key file exists.
+   `bin/loop.py` selects `codex-omniroute.sh` automatically while
+   `CODEX_USE_OMNIROUTE=1` is enabled in the hub root `.env`.
 
    `CODEX_ALLOW_UNPATCHED=1` bypasses the transport guard and is intended only
    for deliberate non-agent smoke tests.

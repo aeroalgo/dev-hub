@@ -69,7 +69,7 @@ timeout -k 10s 300s make test
 
 - Cursor rules и hooks;
 - Claude Code role commands и subagents;
-- `loop/loop.sh` и prompt из `loop/context_loop.py`;
+- Python entrypoint `bin/loop.py` и prompt из `loop/kernel/cli.py`;
 - BACK, FRONT и INTEG IMPLEMENT/TASK/BUGFIX/QA/REFACTOR;
 - CI и локального запуска.
 

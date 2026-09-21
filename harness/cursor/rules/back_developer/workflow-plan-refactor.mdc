@@ -64,7 +64,7 @@ Epic success: **net LOC ≤ 0** and **net public symbols / owners ≤ 0**, or an
    - `## QA consumes draft`
    - `## Review readiness`
 10. For each epic, make the target state measurable: files/symbols to delete or merge, code and test net-delta expectation, concept-budget deltas, behavior-freeze contract, targeted tests per step, full-suite command reserved for BACK QA, and AC− proving no legacy/duplicate owner/path remains.
-11. Reconcile `memory-bank/back/roadmap/queue.yaml` with `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`. On conflict, unknown dependency, empty active queue, or `ok: false`, halt PLAN.
+11. Reconcile the plan artifacts directly. The new loop consumes `memory-bank/back/plan/<epic>/yaml/decompose-index.yaml`; it has no separate roadmap-merge command.
 12. FINISH with the ordinary PLAN doc-router. Handoff must load the canonical queue, the first plan, its prompt, and the clarify artifact if one was created. Next: `BACK DECOMPOSE <queue[0]>`.
 
 ## Cadence-блок (Kind I) и порядок исполнения

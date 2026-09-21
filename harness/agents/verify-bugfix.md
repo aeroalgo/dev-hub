@@ -47,16 +47,16 @@ Parent **обязан** передать только:
      - Hub (dev-hub self-test): `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …` из VERIFY.
      - Managed projects: верификация выполняется строго через stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest / unmanaged commands.
    - Inspect: `git diff -- <ALLOW path>` · `rg …` · `ls` · `head` · `wc`.
-   - Единственное исключение — ровно один финальный `validate-boundary` command ниже.
+   - Единственное исключение — ровно один финальный `validate-verdict` command ниже.
    - **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout; unmanaged / generic raw test runner execution for managed projects without capability_checks; `git status` / whole-repo `git diff` без path filter; FAIL/BLOCKERS по файлам вне ALLOW. Red → `FAIL`.
 5. Budget: ≤12 Read calls, ≤10 конкретных файлов в ALLOW READ; после validator tool calls запрещены.
 
-## Pre-emit validate-boundary (HARD)
+## Pre-emit validate-verdict (HARD)
 
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","step_id":"BUGFIX","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","step_id":"BUGFIX","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные `session_id`/`epic_id` строго из предоставленного блока `GATE_IDENTITY` (`GATE_IDENTITY session_id=<session_id> epic_id=<epic_id> step_id=BUGFIX`), один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.

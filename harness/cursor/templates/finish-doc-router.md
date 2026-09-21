@@ -86,7 +86,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 Порядок: `## load_now` → **один** `## Handoff …` → `## done — do NOT load` (опционально, один).  
 Писать **после** `@verify` PASS и **до** sync decompose как часть того же FINISH.
 
-Канон курсора и переходов: `memory-bank/activeContext.md` · `memory-bank/**/plan/<epic>/yaml/decompose-index.yaml` · implement step YAML · context-first runner `./loop/loop.sh`
+Канон курсора и переходов: `runtime/<project>/epic/cursor.json` · `memory-bank/**/plan/<epic>/yaml/decompose-index.yaml` · implement step YAML · Python runner `bin/loop.py`
 `- **Следующий:**` = human hint в Handoff; next step выбирает модель по activeContext + decompose index.
 
 ```markdown

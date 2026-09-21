@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
-import time
+from pathlib import Path
 
+from ..config import LoopSettings
+from ..config import activate_loop_process
 from .engine import LoopEngine, TransitionError
+from .boundary import BoundaryService
 from .runtime import runtime_for
+from .session import SessionOutcome, SessionSupervisor
 from .store import LoopPaths
+from .verdict import SCHEMA_GATE_VERDICT, validate_boundary
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="single-cursor loop")
-    parser.add_argument("command", nargs="?", default="run", choices=("run", "start", "finish", "halt", "status", "doctor"))
-    parser.add_argument("model_pos", nargs="?")
+    parser.add_argument("command", nargs="?", default="run", choices=("run", "start", "finish", "halt", "status", "doctor", "scope", "validate", "validate-verdict"))
     parser.add_argument("--project", "--cwd", dest="project")
     parser.add_argument("--epic")
     parser.add_argument("--role", default="back")
@@ -22,10 +25,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--model")
     parser.add_argument("--step")
     parser.add_argument("--reason", default="manual halt")
-    parser.add_argument("--timeout", type=int, default=int(os.environ.get("LOOP_SESSION_TIMEOUT", "3600")))
-    parser.add_argument("--max-attempts", type=int, default=int(os.environ.get("LOOP_MAX_ATTEMPTS", "3")))
-    parser.add_argument("--max-steps", type=int, default=int(os.environ.get("LOOP_MAX_STEPS", "100")))
-    parser.add_argument("--backoff", type=float, default=float(os.environ.get("LOOP_RETRY_BACKOFF", "2")))
+    parser.add_argument("--payload")
+    parser.add_argument("--schema")
+    parser.add_argument("--timeout", type=int)
+    parser.add_argument("--max-attempts", type=int)
+    parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--backoff", type=float)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--status", action="store_true")
     return parser
@@ -38,11 +43,43 @@ def _print(value: object, as_json: bool = True) -> None:
         print(value)
 
 
-def _normalize_legacy_args(argv: list[str]) -> list[str]:
-    commands = {"run", "start", "finish", "halt", "status", "doctor"}
-    if len(argv) >= 2 and argv[0] not in commands and not argv[0].startswith("-"):
-        return ["run", "--epic", argv[0], "--model", argv[1], *argv[2:]]
-    return argv
+def _report_failure(
+    args: argparse.Namespace,
+    cursor,
+    *,
+    reason: str,
+    status: str,
+    attempt: int,
+    runtime: str,
+    model: str,
+    cursor_path: Path,
+    result=None,
+) -> None:
+    payload = {
+        "ok": False,
+        "error": reason,
+        "status": status,
+        "runtime": runtime,
+        "model": model,
+        "epic_id": cursor.epic_id,
+        "role": cursor.role,
+        "phase": cursor.phase,
+        "step_id": cursor.step_id,
+        "attempt": attempt,
+        "cursor_path": str(cursor_path),
+    }
+    if result is not None:
+        payload["exit_code"] = result.exit_code
+        payload["session_log"] = str(result.log_path)
+        if result.message:
+            payload["detail"] = result.message
+    if args.json:
+        _print(payload, True)
+        return
+    print("loop error:", file=sys.stderr)
+    for key in ("error", "runtime", "model", "epic_id", "role", "phase", "step_id", "attempt", "status", "exit_code", "detail", "session_log", "cursor_path"):
+        if key in payload:
+            print(f"  {key}: {payload[key]}", file=sys.stderr)
 
 
 def _epic(args: argparse.Namespace, engine: LoopEngine) -> str:
@@ -56,19 +93,24 @@ def _epic(args: argparse.Namespace, engine: LoopEngine) -> str:
 
 def run(args: argparse.Namespace) -> int:
     paths = LoopPaths.for_project(args.project)
+    settings = LoopSettings.load(hub_root=paths.hub, project_root=paths.project)
+    settings.apply_environment()
     engine = LoopEngine(paths)
     epic_id = _epic(args, engine)
     cursor = engine.start(epic_id, args.role)
     if cursor.status.value == "complete":
         _print(engine.status(), args.json)
         return 0
-    model = args.model or args.model_pos or os.environ.get("LOOP_MODEL") or os.environ.get("PROJECT_LOOP_MODEL")
-    if not model:
-        _print({"ok": False, "error": "model is required: use --model or LOOP_MODEL"}, True)
-        return 2
-    runtime_name = args.runtime or os.environ.get("EPIC_RUNTIME", "claude")
-    runtime = runtime_for(runtime_name)
-    for _ in range(max(1, args.max_steps)):
+    cli_model = args.model
+    runtime_name = args.runtime or settings.runtime
+    runtime = runtime_for(runtime_name, settings=settings)
+    timeout = args.timeout if args.timeout is not None else settings.session_timeout
+    max_attempts = args.max_attempts if args.max_attempts is not None else settings.max_attempts
+    max_steps = args.max_steps if args.max_steps is not None else settings.max_steps
+    backoff = args.backoff if args.backoff is not None else settings.retry_backoff
+    supervisor = SessionSupervisor(engine, runtime, timeout=timeout, max_attempts=max_attempts, backoff=backoff)
+    model = ""
+    for _ in range(max(1, max_steps)):
         cursor = engine.store.read()
         if cursor is None:
             raise TransitionError("cursor disappeared")
@@ -76,47 +118,65 @@ def run(args: argparse.Namespace) -> int:
             return 0
         if cursor.status.value == "halted":
             return 1
+        activate_loop_process(project_root=paths.project, session_id=cursor.session_id)
+        selection = settings.model_for(
+            phase=cursor.phase,
+            step_id=cursor.step_id,
+            role=cursor.role,
+            cli_model=cli_model,
+        )
+        model = selection.model
+        if not model:
+            _print(
+                {
+                    "ok": False,
+                    "error": "model_required",
+                    "reason": f"set {selection.env_name} or pass --model",
+                    **selection.as_dict(),
+                },
+                args.json,
+            )
+            return 2
+        engine.record_event(
+            {
+                "event": "model_selected",
+                "phase": cursor.phase,
+                "step_id": cursor.step_id,
+                "model": model,
+                "model_source": selection.source,
+            }
+        )
         prompt = (
             f"You are operating epic {cursor.epic_id}, role {cursor.role}.\n"
             f"Current phase: {cursor.phase}; step: {cursor.step_id}.\n"
+            f"GATE_IDENTITY session_id={cursor.session_id} epic_id={cursor.epic_id} step_id={cursor.step_id}\n"
             "Read the canonical YAML queue and current artifact. Make the requested changes. "
-            f"When the step is genuinely complete, run `bin/loop finish --project {paths.project} --step {cursor.step_id}`. "
-            "Do not edit cursor.json or generated activeContext.md."
+            f"When the step is genuinely complete, run `python3 $DEV_HUB/bin/loop.py finish --project {paths.project} --step {cursor.step_id}`. "
+            "Do not edit cursor.json or generated activeContext.md. "
+            "A managed gate subagent PASS is validated by the boundary hook and may finish this step atomically; prose verdicts are not machine state."
         )
-        session_id = cursor.session_id or f"session-{cursor.revision}"
-        result = runtime.run(prompt, model=model, project=paths.project, log_path=engine.store.session_log(session_id), timeout=args.timeout)
-        updated = engine.store.read()
-        if updated is None:
-            raise TransitionError("cursor disappeared after session")
-        if updated.revision > cursor.revision:
-            if updated.status.value == "complete":
-                return 0
+        prompt = f"{prompt}\n\n{engine.boundary.context(cursor)}"
+        session_run = supervisor.run_step(prompt, model=model, project=paths.project, session_id=cursor.session_id)
+        if session_run.outcome == SessionOutcome.COMMITTED:
+            return 0
+        if session_run.outcome == SessionOutcome.STATE_CHANGED and session_run.result is not None:
             continue
-        if result.interrupted or result.exit_code in (130, 143):
-            engine.halt("user_interrupt")
-            return 130
-        if result.ok:
-            reason = "finish_not_committed"
-            retry = engine.retry(reason)
-            if retry.attempt >= args.max_attempts:
-                engine.halt(reason)
-                return 1
-            time.sleep(args.backoff * (2 ** max(0, retry.attempt - 1)))
-            continue
-        reason = "session_timeout" if result.timed_out else f"runtime_exit_{result.exit_code}"
-        retry = engine.retry(reason)
-        if retry.attempt >= args.max_attempts:
-            engine.halt(reason)
-            return 1
-        time.sleep(args.backoff * (2 ** max(0, retry.attempt - 1)))
-    engine.halt("max_steps_exceeded")
+        transition = session_run.transition
+        status = transition.status.value if transition is not None else "halted"
+        attempt = transition.attempt if transition is not None else cursor.attempt
+        _report_failure(args, cursor, reason=session_run.reason, status=status, attempt=attempt, runtime=runtime_name, model=model, cursor_path=paths.cursor, result=session_run.result)
+        return session_run.return_code
+    halted = engine.halt("max_steps_exceeded")
+    _report_failure(args, cursor, reason="max_steps_exceeded", status=halted.status.value, attempt=halted.attempt, runtime=runtime_name, model=model, cursor_path=paths.cursor)
     return 1
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(_normalize_legacy_args(list(sys.argv[1:] if argv is None else argv)))
+    args = _parser().parse_args(list(sys.argv[1:] if argv is None else argv))
     try:
         paths = LoopPaths.for_project(args.project)
+        settings = LoopSettings.load(hub_root=paths.hub, project_root=paths.project)
+        settings.apply_environment()
         engine = LoopEngine(paths)
         if args.status or args.command == "status":
             _print(engine.status(), args.json)
@@ -125,6 +185,25 @@ def main(argv: list[str] | None = None) -> int:
             result = engine.doctor()
             _print(result, args.json)
             return 0 if result.get("ok") else 1
+        if args.command in {"validate", "validate-verdict"}:
+            if not args.payload:
+                _print({"ok": False, "error": "--payload is required"}, True)
+                return 2
+            schema = SCHEMA_GATE_VERDICT if args.command == "validate-verdict" else args.schema
+            if not schema:
+                _print({"ok": False, "error": "--schema is required"}, True)
+                return 2
+            result = validate_boundary(schema, args.payload)
+            _print(result.as_dict(), True)
+            return 0 if result.valid else 2
+        if args.command == "scope":
+            cursor = engine.store.read()
+            if cursor is None:
+                _print({"ok": False, "error": "cursor_missing"}, True)
+                return 2
+            result = BoundaryService(paths).scope(cursor)
+            _print(result, args.json)
+            return 0 if result["ok"] else 1
         if args.command == "start":
             cursor = engine.start(_epic(args, engine), args.role)
             _print(cursor.to_dict(), args.json)

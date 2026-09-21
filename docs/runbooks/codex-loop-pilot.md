@@ -27,7 +27,7 @@ To probe your installed Codex CLI version:
 codex --version
 ```
 
-If your installed version is below `0.152.0`, update the Codex CLI before proceeding. The runtime sync and doctor checks (`bin/loop doctor` / `python3 -m loop.runner doctor`) enforce this minimum version constraint.
+If your installed version is below `0.152.0`, update the Codex CLI before proceeding. The Python loop doctor check (`python3 bin/loop.py doctor`) verifies the project cursor and canonical index.
 
 ---
 
@@ -117,7 +117,7 @@ Before launching the loop with Codex, perform a runtime sync check to verify con
 
 Configure environment variables governing Codex execution:
 
-- `EPIC_RUNTIME`: Set to `codex` to activate the Codex harness (`EPIC_RUNTIME=codex`). Defaults to `claude`.
+- `EPIC_RUNTIME`: Set to `codex` to activate the Codex harness (`EPIC_RUNTIME=codex`). Defaults to `claude`; the value can be kept in the hub root `.env`.
 - `CODEX_API_KEY`: (Optional) API key for Codex endpoints if not authenticated via CLI session.
 - `PROJECT_ROOT`: Absolute path to the product repository being operated on.
 
@@ -125,10 +125,10 @@ Configure environment variables governing Codex execution:
 
 ## 8. Launch
 
-Execute the loop runner with `EPIC_RUNTIME=codex`:
+Execute the Python loop runner with `EPIC_RUNTIME=codex`:
 
 ```bash
-EPIC_RUNTIME=codex ./bin/loop /path/to/target-project
+EPIC_RUNTIME=codex python3 ./bin/loop.py /path/to/target-project <epic-id> <omniroute-model>
 ```
 
 Or using explicit `PROJECT_ROOT`:
@@ -136,14 +136,10 @@ Or using explicit `PROJECT_ROOT`:
 ```bash
 export PROJECT_ROOT=/path/to/target-project
 export EPIC_RUNTIME=codex
-./bin/loop
+python3 ./bin/loop.py --project "$PROJECT_ROOT" --epic <epic-id> --model <omniroute-model>
 ```
 
-Or via Make target:
-
-```bash
-EPIC_RUNTIME=codex make loop
-```
+`make` is used only for project linking: `make hub-link`.
 
 ---
 
@@ -153,7 +149,7 @@ EPIC_RUNTIME=codex make loop
 | :--- | :--- | :--- |
 | `codex: command not found` (exit 127) | Codex binary missing or not in `$PATH` | Install `codex` binary and ensure `$PATH` includes its location. |
 | `Runtime sync drift detected` | Registry and runtime adapter definitions out of sync | Run `bin/runtime-sync --apply --runtime codex` to resync. |
-| `Doctor preflight failure` | Doctor runtime checks failed during startup | Run `bin/loop --cwd "$PROJECT_ROOT" doctor --json` (or `python3 -m loop.runner doctor --json`) to inspect failed runtime assertions. |
+| `Doctor preflight failure` | Doctor runtime checks failed during startup | Run `python3 bin/loop.py --project "$PROJECT_ROOT" doctor --json` to inspect the cursor and index. |
 | `Authentication error / Token expired` | Codex session unauthenticated or expired | Execute `codex login` or refresh `CODEX_API_KEY`. |
 | `RuntimeConfigError: EPIC_RUNTIME=invalid` | Invalid runtime specified | Ensure `EPIC_RUNTIME` is set to `codex` or `claude`. |
 
@@ -169,7 +165,7 @@ Complete the sign-off checklist below prior to certifying a Codex rollout pilot:
 | 2 | Check Auth | `codex login` / `echo $CODEX_API_KEY` | Valid active session or key present | |
 | 3 | Hub Link Setup | `./bin/hub-link /path/to/target-project` | `.dev-hub` path file created in target project | |
 | 4 | Runtime Sync Check | `bin/runtime-sync --check --runtime codex` | Reports sync OK without drift | |
-| 5 | Active Pilot Loop Run | `EPIC_RUNTIME=codex ./bin/loop /path/to/target-project` | Loop executes target epic steps using Codex runtime | |
+| 5 | Active Pilot Loop Run | `EPIC_RUNTIME=codex python3 ./bin/loop.py /path/to/target-project <epic-id> <model>` | Loop executes target epic steps using OmniRoute-backed Codex | |
 | 6 | Verify Gate Parity Check | Check step implementation & verify output | Verify gate executes and reports PASS on step completion | |
-| 7 | Fallback Parity Check | `EPIC_RUNTIME=claude ./bin/loop /path/to/target-project` | Fallback to default `claude` runtime runs without regression | |
+| 7 | Fallback Parity Check | `EPIC_RUNTIME=claude python3 ./bin/loop.py /path/to/target-project <epic-id> <model>` | Fallback to Claude runtime runs without regression | |
 | 8 | Final Sign-off | Review logs & artifact output | All checks pass; runbook sign-off recorded | |

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import os
-import tempfile
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from .store import FileMutation
 
 
 @dataclass(frozen=True)
@@ -69,7 +70,7 @@ def load_queue(project: Path, role: str, epic_id: str) -> Queue:
     return Queue(path=path, role=normalize_role(role), epic_id=epic_id, steps=tuple(steps))
 
 
-def update_step_status(queue: Queue, step_id: str, status: str) -> None:
+def prepare_step_status(queue: Queue, step_id: str, status: str) -> FileMutation:
     payload = yaml.safe_load(queue.path.read_text(encoding="utf-8")) or {}
     changed = False
     for raw in payload.get("steps", []):
@@ -79,16 +80,10 @@ def update_step_status(queue: Queue, step_id: str, status: str) -> None:
             break
     if not changed:
         raise ValueError(f"step {step_id!r} not found in {queue.path}")
-    fd, name = tempfile.mkstemp(prefix=f".{queue.path.name}.", dir=queue.path.parent)
-    temp = Path(name)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False))
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temp, queue.path)
-    finally:
-        temp.unlink(missing_ok=True)
+    current = queue.path.read_text(encoding="utf-8")
+    content = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+    expected_hash = "sha256:" + hashlib.sha256(current.encode("utf-8")).hexdigest()
+    return FileMutation(queue.path.resolve(), content, expected_hash)
 
 
 def shard_path(project: Path, queue: Queue, step: Step) -> Path | None:

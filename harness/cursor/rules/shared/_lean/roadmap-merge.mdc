@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Канон:** `memory-bank/<role>/roadmap/queue.yaml` (yaml-only, `roadmap-queue/v2`)
 **Алгоритм:** @.cursor/rules/shared/workflow-roadmap-merge.mdc
-**CLI:** `context_loop.py roadmap-merge`
+**CLI:** отдельный `roadmap-merge` удалён; используется `bin/loop.py finish`.
 
 ## Gates
 

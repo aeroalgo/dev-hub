@@ -36,13 +36,9 @@ MERGE = reconcile (перенос done, topo deps, опциональный impo
 
 ## CLI
 
-```bash
-python loop/context_loop.py --cwd "$PWD" roadmap-merge --role back
-python loop/context_loop.py --cwd "$PWD" roadmap-merge --role back --dry-run
-# md mirror только явно: --write-md (не рекомендуется)
-```
-
-Реализация: `loop/roadmap_queue.py::roadmap_merge` · PLAN upsert: `roadmap_upsert_batch`.
+Этот legacy CLI удалён. Канонический `decompose-index.yaml` редактируется
+workflow-операцией, а переход выполняется единственным runner:
+`python3 "$DEV_HUB/bin/loop.py" finish --project "$PROJECT_ROOT" --step <step-id>`.
 
 ## Процесс агента
 

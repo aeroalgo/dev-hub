@@ -4,10 +4,13 @@ import sys
 from pathlib import Path
 
 import _wf
+from loop_guard import hooks_enabled
 
 
 def main() -> None:
     payload = json.load(sys.stdin)
+    if not hooks_enabled():
+        return
     root = _wf.workspace_root(payload)
     fp = payload.get("file_path") or ""
     if not fp or _wf.should_skip_track(fp):
