@@ -38,8 +38,12 @@ Managed gate-субагент завершает ответ ровно одни�
 `loop-gate-verdict/v1`. `SubagentStop` проверяет его через Pydantic, сверяет
 `session_id`, `epic_id`, `step_id` и `agent_id` с курсором и передаёт запись в
 `LoopEngine.accept_verdict`. Только `PASS` под lock меняет очередь и курсор;
-`FAIL`/`BLOCKED` записываются как verdict-событие. Повторный callback
-идемпотентен, а три некорректных JSON-ответа переводят курсор в `HALTED`.
+`FAIL`/`BLOCKED` обычно записываются как verdict-событие для recovery. Исключение —
+`verify-qa: FAIL`: если последний `qa-*.yaml` имеет `verdict: fail|failed|blocked`
+и `bugfix-queue.yaml` проходит intake-проверку, boundary атомарно переводит
+курсор `QA → BUGFIX`. После завершения BUGFIX следующий валидный gate возвращает
+его в QA и требует новый QA artifact. Повторный callback идемпотентен, а три
+некорректных JSON-ответа переводят курсор в `HALTED`.
 
 Проверка payload до финального ответа агента:
 
@@ -66,14 +70,15 @@ supervisor. Если ни один источник не задан, запус�
 | `LOOP_SESSION_TIMEOUT` | `3600` сек | общий предел одной сессии |
 | `LOOP_STATUS_HEARTBEAT` | `30` сек | период `SESSION_HEARTBEAT` с `elapsed` и `idle_for` |
 | `LOOP_STREAM_IDLE_TIMEOUT` | `300` сек | таймаут отсутствия реального tool/command прогресса |
-| `LOOP_COLLABORATION_WAIT_TIMEOUT` | `180` сек | предел ожидания native Codex subagent |
+| `LOOP_COLLABORATION_WAIT_TIMEOUT` | выключен | необязательный предел ожидания native Codex subagent |
 | `LOOP_SESSION_KILL_GRACE` | `30` сек | время на graceful stop перед `SIGKILL` |
 
 Heartbeat виден в обычном выводе и сохраняется в `session-*.log`. При idle или
 общем timeout процесс завершается, результат получает отдельный диагностический
 код, а `SessionSupervisor` выполняет обычный bounded retry; это не маскируется
 под пользовательский interrupt. Пустое значение отключает соответствующий
-необязательный watchdog.
+необязательный watchdog. По умолчанию ожидание native Codex subagent ограничено
+только общим `LOOP_SESSION_TIMEOUT`.
 
 Hooks активны только когда процесс запущен через `bin/loop.py`: он выставляет
 `LOOP_ACTIVE=1` и `EPIC_LOOP=1`. Hook entrypoints без этих маркеров ничего не

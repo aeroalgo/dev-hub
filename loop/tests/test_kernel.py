@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from loop.kernel.engine import LoopEngine, TransitionError
-from loop.kernel.cli import _gate_protocol, _phase_gate_agent
+from loop.kernel.cli import _bugfix_gate_paths, _gate_protocol, _gate_recovery_prompt, _phase_gate_agent
 from loop.kernel.analyze import analyze_required_before_implement, index_content_fingerprint
 from loop.kernel.index import Step, implement_path
 from loop.kernel.lifecycle import SubagentLifecycle
@@ -351,6 +351,281 @@ def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: 
     assert f"GATE_IDENTITY session_id={analyze_cursor.session_id} epic_id=E1 step_id=ANALYZE" in analyze_prompt
 
 
+def test_verify_qa_prompt_injects_frozen_checklist_and_suite(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    engine.rewind("QA")
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml",
+        """schema: epic-qa/v1
+verdict: fail
+checklist_sha256: abc123
+verify_scope: full
+suite:
+  - 'bin/pytest -q --tb=line (10 passed)'
+ac_plus:
+  - 'pipeline works'
+ac_minus:
+  - 'no fallback'
+section_011:
+  - 'no orphan refs'
+""",
+    )
+    cursor = engine.store.read()
+    assert cursor is not None
+    prompt = _gate_protocol(cursor, tmp_path, "verify-qa")
+
+    assert "suite_scope: full" in prompt
+    assert "Suite results:" in prompt
+    assert "bin/pytest -q --tb=line (10 passed)" in prompt
+    assert "## Frozen QA checklist" in prompt
+    assert "checklist_sha256: abc123" in prompt
+    assert "### AC+" in prompt and "- pipeline works" in prompt
+    assert "### AC−" in prompt and "- no fallback" in prompt
+    assert "### §0.11" in prompt and "- no orphan refs" in prompt
+    assert "### Prior blockers" in prompt
+
+
+def test_verify_bugfix_prompt_packs_contract_paths_under_limit(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    engine.rewind("BUGFIX")
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml",
+        "schema: epic-qa/v1\nverdict: fail\n",
+    )
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md",
+        "# BUGFIX\n\nAC+: fixed.\nAC−: regression covered.\n",
+    )
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+source_qa: memory-bank/back/qa/E1/qa-20260921-fail.yaml
+items:
+  - id: BF-001
+    status: open
+    targets:
+      - backend/core/settings.py
+      - backend/tests/core/test_settings.py
+""",
+    )
+    write(tmp_path / "backend/core/settings.py", "value = 1\n")
+    write(tmp_path / "backend/tests/core/test_settings.py", "def test_settings(): pass\n")
+
+    cursor = engine.store.read()
+    assert cursor is not None
+    packed, report_ready = _bugfix_gate_paths(tmp_path, "back", "E1")
+    prompt = _gate_protocol(cursor, tmp_path, "verify-bugfix")
+
+    assert report_ready
+    assert len(packed) <= 10
+    assert "memory-bank/back/bugfix/E1/bugfix-queue.yaml" in prompt
+    assert "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md" in prompt
+    assert "memory-bank/back/qa/E1/qa-20260921-fail.yaml" in prompt
+    assert "backend/core/settings.py" in prompt
+    assert "memory-bank/back/plan/E1" not in prompt
+
+
+def test_qa_fail_verdict_routes_to_bugfix_atomically(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: open
+""",
+    )
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    transition = engine.accept_verdict(
+        GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-qa",
+            verdict="FAIL",
+            step_id="QA",
+            session_id=cursor.session_id,
+            epic_id=cursor.epic_id,
+            recorded_at="2026-09-21T00:00:00+00:00",
+        ),
+        expected_agent_id="verify-qa",
+    )
+
+    assert transition.event == "qa_failed"
+    assert transition.phase == "BUGFIX"
+    assert engine.store.read().phase == "BUGFIX"
+
+
+def test_legacy_closed_bugfix_item_routes_to_qa_after_pass(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(
+        tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
+        """schema: epic-decompose-index/v1
+epic_id: E1
+steps:
+  - id: s01
+    file: s01-one.yaml
+    status: completed
+  - id: s02
+    file: s02-two.yaml
+    status: completed
+""",
+    )
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    engine.rewind("BUGFIX")
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(tmp_path / "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md", "# BUGFIX\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: closed
+verification:
+  status: pass
+  command: bin/pytest -q
+  last_run_at: 2026-09-21T00:00:00Z
+  evidence: 1 passed
+""",
+    )
+
+    transition = _finish_via_gate(engine)
+
+    assert transition.phase == "QA"
+    assert engine.store.read().phase == "QA"
+
+
+def test_recorded_qa_fail_reconciles_after_artifacts_are_created(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    verdict = GateVerdict(
+        schema=SCHEMA_GATE_VERDICT,
+        agent_id="verify-qa",
+        verdict="FAIL",
+        step_id="QA",
+        session_id=cursor.session_id,
+        epic_id=cursor.epic_id,
+        recorded_at="2026-09-21T00:00:00+00:00",
+    )
+
+    recorded = engine.accept_verdict(verdict, expected_agent_id="verify-qa")
+    assert recorded.event == "verdict_recorded"
+    assert engine.store.read().phase == "QA"
+
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: open
+""",
+    )
+
+    reconciled = engine.finish(step_id="QA")
+    assert reconciled.event == "qa_failed"
+    assert reconciled.phase == "BUGFIX"
+
+
+def test_resume_reconciles_recorded_qa_fail_without_second_gate(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    verdict = GateVerdict(
+        schema=SCHEMA_GATE_VERDICT,
+        agent_id="verify-qa",
+        verdict="FAIL",
+        step_id="QA",
+        session_id=cursor.session_id,
+        epic_id=cursor.epic_id,
+        recorded_at="2026-09-21T00:00:00+00:00",
+    )
+    engine.accept_verdict(verdict, expected_agent_id="verify-qa")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: open
+""",
+    )
+    engine.halt("user_interrupt")
+
+    resumed = engine.start("E1")
+    assert resumed.phase == "BUGFIX"
+    assert resumed.status == CursorStatus.ACTIVE
+
+
 def test_gate_repair_result_is_validated_and_recorded(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -516,6 +791,40 @@ def test_phase_finish_requires_evidence_and_halt_is_terminal(tmp_path: Path) -> 
         engine.finish(step_id="AUDIT")
 
 
+def test_start_resumes_halted_cursor_at_saved_phase(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    before_halt = engine.store.read()
+    assert before_halt is not None and before_halt.phase == "QA"
+    halted = engine.halt("user_interrupt")
+
+    resumed = engine.start("E1")
+
+    assert halted.phase == "QA"
+    assert resumed.phase == "QA"
+    assert resumed.step_id == "QA"
+    assert resumed.status == CursorStatus.ACTIVE
+    assert resumed.session_id != before_halt.session_id
+    assert resumed.phase_epoch == before_halt.phase_epoch + 1
+
+
 def test_cursor_transaction_recovers_after_projection_write_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -675,6 +984,51 @@ def test_subagent_fail_or_blocked_is_recorded_without_finishing(tmp_path: Path) 
 
     events = paths.events.read_text(encoding="utf-8")
     assert events.count('"event": "verdict_recorded"') == 2
+
+
+def test_content_fail_recovery_prompt_requires_gate_repair(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    engine.accept_verdict(
+        GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-implement",
+            verdict="FAIL",
+            step_id=cursor.step_id,
+            session_id=cursor.session_id,
+            epic_id=cursor.epic_id,
+            recorded_at="2026-09-21T00:00:00+00:00",
+        ),
+        expected_agent_id="verify-implement",
+    )
+
+    current = engine.store.read()
+    assert current is not None
+    recovery = _gate_recovery_prompt(current, engine)
+    assert "gate-repair" in recovery
+    assert "BLOCKERS" in recovery
+    assert "Classify the verifier's concrete finding first" in recovery
+    assert engine.store.latest_event("verdict_recorded")["phase"] == "IMPLEMENT"
+
+
+def test_legacy_verdict_event_still_gets_gate_repair_recovery(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    engine.record_event(
+        {
+            "event": "verdict_recorded",
+            "agent_id": "verify-implement",
+            "verdict": "FAIL",
+            "session_id": cursor.session_id,
+            "epic_id": cursor.epic_id,
+            "step_id": cursor.step_id,
+        }
+    )
+
+    recovery = _gate_recovery_prompt(cursor, engine)
+    assert "gate-repair" in recovery
 
 
 def test_subagent_invalid_verdict_has_atomic_retry_budget(tmp_path: Path) -> None:
@@ -853,17 +1207,19 @@ def test_codex_can_explicitly_disable_omniroute(monkeypatch: pytest.MonkeyPatch)
     assert CodexRuntime().executable() == shutil.which("codex")
 
 
-def test_codex_command_is_headless_and_bypasses_nested_sandbox(tmp_path: Path) -> None:
+def test_codex_command_uses_native_headless_contract(tmp_path: Path) -> None:
     command = CodexRuntime().command("do work", model="model", project=tmp_path)
 
-    assert command[1:5] == [
+    assert command[1:7] == [
         "exec",
         "--json",
-        "--ephemeral",
         "--dangerously-bypass-approvals-and-sandbox",
+        "--dangerously-bypass-hook-trust",
+        "--cd",
+        str(tmp_path),
     ]
-    assert "--dangerously-bypass-hook-trust" in command
-    assert command[command.index("--enable") + 1] == "multi_agent"
+    assert "--ephemeral" not in command
+    assert "--enable" not in command
     assert command[-1] == "do work"
 
 
@@ -947,6 +1303,33 @@ def test_codex_renders_subagent_state_and_json_verdict() -> None:
     assert "subagent verify-implement id=thread-1 status=completed" in rendered
     assert "loop-gate-verdict/v1" in rendered
     assert '"verdict":"PASS"' in rendered
+
+
+def test_codex_does_not_submit_intermediate_child_message_as_verdict(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    runtime = CodexRuntime()
+    runtime._progress_started(tmp_path, "")
+    rendered = runtime._progress_line(
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "wait",
+                    "agents_states": {
+                        "thread-1": {"status": "completed", "message": "Проверяю файлы и формирую verdict."}
+                    },
+                },
+            }
+        )
+    )
+
+    assert rendered is not None
+    assert "verdict hook error" not in rendered
+    assert "verdict_json_fence_missing" not in rendered
+    assert '"event": "verdict_rejected"' not in paths.events.read_text(encoding="utf-8")
 
 
 def test_codex_subagent_pass_is_applied_to_new_kernel(tmp_path: Path) -> None:

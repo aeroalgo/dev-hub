@@ -138,7 +138,7 @@ class SubagentLifecycle:
             "analyze-verify": "FINDINGS / COVERAGE / ALLOW READ",
             "verify-implement": "ALLOW READ",
             "verify-bugfix": "ALLOW READ",
-            "verify-qa": "Suite results / ALLOW READ",
+            "verify-qa": "Suite results / ALLOW READ / Frozen QA checklist + checklist_sha256",
         }.get(agent_type, "ALLOW READ")
         validation = (
             f"Required parent prompt sections for this agent: {required_sections}. "

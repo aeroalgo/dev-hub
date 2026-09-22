@@ -569,7 +569,11 @@ class CodexRuntime(Runtime):
             if resolved_agent in MANAGED_SUBAGENTS:
                 agent_id = resolved_agent
                 normalized_agent = resolved_agent
-        if "loop-gate-verdict/v1" not in message and "loop-repair-result/v1" not in message and normalized_agent not in MANAGED_SUBAGENTS:
+        if (
+            not isinstance(payload, dict)
+            and "loop-gate-verdict/v1" not in message
+            and "loop-repair-result/v1" not in message
+        ):
             return None
         key = (thread_id, message)
         if key in self._processed_verdicts:
@@ -594,7 +598,7 @@ class CodexRuntime(Runtime):
                     f"{transition.get('phase')}/{transition.get('step_id')}; re-verify required"
                 )
             verdict = metadata.get("verdict") or transition.get("event")
-            suffix = "" if verdict == "PASS" else "; repair required before finish"
+            suffix = "" if verdict == "PASS" or transition.get("event") == "qa_failed" else "; repair required before finish"
             return (
                 f"    verdict {agent_id}={verdict} -> "
                 f"{transition.get('phase')}/{transition.get('step_id')}{suffix}"
@@ -755,11 +759,8 @@ class CodexRuntime(Runtime):
             binary,
             "exec",
             "--json",
-            "--ephemeral",
             "--dangerously-bypass-approvals-and-sandbox",
             "--dangerously-bypass-hook-trust",
-            "--enable",
-            "multi_agent",
             "--cd",
             str(project),
         ]

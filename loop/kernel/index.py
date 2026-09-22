@@ -248,7 +248,7 @@ def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, st
     if not isinstance(items, list) or not items:
         return False, "bugfix_queue_items_missing"
     statuses = {str(item.get("status") or "").strip().lower() for item in items if isinstance(item, dict)}
-    if len(statuses) != len(items) or not statuses.issubset({"open", "in_progress", "blocked", "done", "cancelled"}):
+    if len(statuses) != len(items) or not statuses.issubset({"open", "in_progress", "blocked", "done", "closed", "cancelled"}):
         return False, "bugfix_queue_item_invalid"
     if sum(status == "in_progress" for status in (str(item.get("status") or "").strip().lower() for item in items if isinstance(item, dict))) > 1:
         return False, "bugfix_queue_multiple_in_progress"
@@ -278,7 +278,7 @@ def bugfix_queue_intake(project: Path, role: str, epic_id: str) -> tuple[bool, s
         if not isinstance(item, dict):
             return False, "bugfix_queue_item_invalid"
         status = str(item.get("status") or "").strip().lower()
-        if status not in {"open", "in_progress", "blocked", "done", "cancelled"}:
+        if status not in {"open", "in_progress", "blocked", "done", "closed", "cancelled"}:
             return False, "bugfix_queue_item_invalid"
         statuses.append(status)
     if statuses.count("in_progress") > 1:

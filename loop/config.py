@@ -172,7 +172,7 @@ class LoopSettings(BaseSettings):
         ),
     )
     collaboration_wait_timeout: int | None = Field(
-        default=180,
+        default=None,
         ge=1,
         validation_alias=AliasChoices(
             "LOOP_COLLABORATION_WAIT_TIMEOUT",
@@ -229,11 +229,6 @@ class LoopSettings(BaseSettings):
             "LOOP_OMNIROUTE_API_KEY_FILE", "OMNIROUTE_API_KEY_FILE"
         ),
     )
-    codex_allow_unpatched: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("CODEX_ALLOW_UNPATCHED"),
-    )
-
     @field_validator(
         "model",
         "decompose_model",

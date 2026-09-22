@@ -12,16 +12,13 @@ Codex CLI integration contract for `loop/runtime_adapters/codex.py`.
 2. **OmniRoute (recommended for this hub):**
    ```bash
    ./codex/bin/setup-omniroute.sh
-   ./codex/bin/codex-omniroute.sh exec --ephemeral --dangerously-bypass-approvals-and-sandbox "say hi"
+   ./codex/bin/codex-omniroute.sh exec --json --cd "$PWD" "say hi"
    ```
 
-   OmniRoute/Gemini can flatten the Responses namespace tool
-   `multi_agent_v1.spawn_agent` to `multi_agent_v1_spawn_agent` or emit a
-   legacy unnamespaced alias. The adapter normalizes these identities before
-   Codex dispatch. Setup patches the running OmniRoute image's compiled
-   response seam and writes a marker; the wrapper then accepts the stock Codex
-   binary only with that seam fixed. Set `CODEX_BUILD_PATCHED=1` to build the
-   pinned Codex-side adapter instead.
+   The wrapper always uses the installed stock Codex binary (or
+   `CODEX_BIN_REAL`) and only supplies the OmniRoute provider configuration.
+   The loop's native multi-agent protocol is enabled by the installed Codex
+   feature set; no Codex source patch or custom binary is required.
 
    `codex/dev-hub.config.toml` contains only Codex CLI configuration fields.
    The setup installs it as `~/.codex/dev-hub.config.toml`; the wrapper loads it
@@ -102,6 +99,3 @@ To run the loop with Codex runtime:
 
    `bin/loop.py` selects `codex-omniroute.sh` automatically while
    `CODEX_USE_OMNIROUTE=1` is enabled in the hub root `.env`.
-
-   `CODEX_ALLOW_UNPATCHED=1` bypasses the transport guard and is intended only
-   for deliberate non-agent smoke tests.

@@ -184,6 +184,36 @@ class LoopEngine:
     def _required_gate_agent(phase: str) -> str | None:
         return _PHASE_GATE_AGENTS.get(str(phase or "").upper())
 
+    def _qa_failure_ready(self, cursor: Cursor) -> bool:
+        artifacts = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "qa")
+        qa_status = qa_verdict(artifacts[-1]) if artifacts else None
+        queue_intake, _ = bugfix_queue_intake(self.paths.project, cursor.role, cursor.epic_id)
+        queue_ready, queue_reason = bugfix_queue_state(self.paths.project, cursor.role, cursor.epic_id)
+        return (
+            cursor.phase == "QA"
+            and qa_status in {"fail", "failed", "blocked"}
+            and queue_intake
+            and not queue_ready
+            and queue_reason == "bugfix_queue_open"
+        )
+
+    @staticmethod
+    def _pending_qa_failure(transaction: StoreTransaction, cursor: Cursor) -> dict[str, Any] | None:
+        event = transaction.latest_event("verdict_recorded")
+        if event is None:
+            return None
+        expected = {
+            "session_id": cursor.session_id,
+            "epic_id": cursor.epic_id,
+            "step_id": cursor.step_id,
+            "agent_id": "verify-qa",
+            "verdict": "FAIL",
+            "verdict_phase_epoch": str(cursor.phase_epoch),
+        }
+        if all(str(event.get(field) or "") == value for field, value in expected.items()):
+            return event
+        return None
+
     def _require_gate_pass(
         self,
         cursor: Cursor,
@@ -308,6 +338,64 @@ class LoopEngine:
                 if current.epic_id != epic_id or current.role != role:
                     raise TransitionError("cursor already owns another epic; finish or halt it first")
                 return TransactionPlan(current, {"event": "start_duplicate"}, changed=False)
+            if current and current.status == CursorStatus.HALTED and current.epic_id == epic_id and current.role == role:
+                candidate = self._copy_cursor(current)
+                candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
+                candidate.status = CursorStatus.ACTIVE
+                candidate.attempt = 0
+                candidate.failure = None
+                candidate.phase_epoch += 1
+                queue = None if candidate.phase == "DECOMPOSE" else self._queue(candidate)
+                pending_qa_failure = self._pending_qa_failure(transaction, current)
+                if pending_qa_failure and self._qa_failure_ready(candidate):
+                    route_key = (
+                        f"{candidate.phase_epoch}:{candidate.epic_id}:{candidate.step_id}:"
+                        f"qa-failure-resume:{pending_qa_failure.get('key') or 'recorded'}"
+                    )
+                    route_event = {
+                        "event": "qa_failed",
+                        "key": route_key,
+                        "source": "resume-reconcile",
+                        "agent_id": "verify-qa",
+                        "verdict": "FAIL",
+                        "session_id": candidate.session_id,
+                        "epic_id": candidate.epic_id,
+                        "step_id": candidate.step_id,
+                        "verdict_step_id": candidate.step_id,
+                        "verdict_phase_epoch": candidate.phase_epoch,
+                        "recorded_at": pending_qa_failure.get("recorded_at") or "",
+                        "reconciled_from": pending_qa_failure.get("key"),
+                        "route": "BUGFIX",
+                    }
+                    gate_pass = GateVerdict(
+                        schema="loop-gate-verdict/v1",
+                        agent_id="verify-qa",
+                        verdict="FAIL",
+                        step_id=candidate.step_id,
+                        session_id=candidate.session_id,
+                        epic_id=candidate.epic_id,
+                        recorded_at=pending_qa_failure.get("recorded_at") or "1970-01-01T00:00:00+00:00",
+                    )
+                    return self._finish_plan(
+                        candidate,
+                        transaction,
+                        step_id=candidate.step_id,
+                        reason="resume-reconcile:verify-qa:FAIL",
+                        event=route_event,
+                        gate_pass=gate_pass,
+                    )
+                return TransactionPlan(
+                    candidate,
+                    {
+                        "event": "resume",
+                        "epic_id": candidate.epic_id,
+                        "role": candidate.role,
+                        "phase": candidate.phase,
+                        "step_id": candidate.step_id,
+                        "reason": "resume halted cursor at saved phase",
+                    },
+                    (transaction.mutation(self.paths.active_context, self._render_body(candidate, queue)),),
+                )
             candidate = Cursor(
                 epic_id=epic_id,
                 role=role,
@@ -383,6 +471,44 @@ class LoopEngine:
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cursor does not exist; run start first")
+            pending_qa_failure = self._pending_qa_failure(transaction, current)
+            if pending_qa_failure and self._qa_failure_ready(current):
+                route_key = (
+                    f"{current.phase_epoch}:{current.epic_id}:{current.step_id}:"
+                    f"qa-failure-finish:{pending_qa_failure.get('key') or 'recorded'}"
+                )
+                route_event = {
+                    "event": "qa_failed",
+                    "key": route_key,
+                    "source": "finish-reconcile",
+                    "agent_id": "verify-qa",
+                    "verdict": "FAIL",
+                    "session_id": current.session_id,
+                    "epic_id": current.epic_id,
+                    "step_id": current.step_id,
+                    "verdict_step_id": current.step_id,
+                    "verdict_phase_epoch": current.phase_epoch,
+                    "recorded_at": pending_qa_failure.get("recorded_at") or "",
+                    "reconciled_from": pending_qa_failure.get("key"),
+                    "route": "BUGFIX",
+                }
+                gate_pass = GateVerdict(
+                    schema="loop-gate-verdict/v1",
+                    agent_id="verify-qa",
+                    verdict="FAIL",
+                    step_id=current.step_id,
+                    session_id=current.session_id,
+                    epic_id=current.epic_id,
+                    recorded_at=pending_qa_failure.get("recorded_at") or "1970-01-01T00:00:00+00:00",
+                )
+                return self._finish_plan(
+                    current,
+                    transaction,
+                    step_id=step_id,
+                    reason="finish-reconcile:verify-qa:FAIL",
+                    event=route_event,
+                    gate_pass=gate_pass,
+                )
             return self._finish_plan(current, transaction, step_id=step_id, reason=reason, event={"event": "finish"})
 
         result = self.store.transact(planner)
@@ -404,8 +530,38 @@ class LoopEngine:
             duplicate = (
                 transaction.event_with_fields("verdict_accepted", duplicate_fields)
                 or transaction.event_with_fields("verdict_recorded", duplicate_fields)
+                or transaction.event_with_fields("qa_failed", duplicate_fields)
             )
             if duplicate:
+                if record.verdict == "FAIL" and current.phase == "QA" and self._qa_failure_ready(current):
+                    route_key = (
+                        f"{current.phase_epoch}:{record.session_id}:{record.epic_id}:{record.step_id}:"
+                        f"qa-failure-reconcile:{record.recorded_at}"
+                    )
+                    if not transaction.event_seen("qa_failed", route_key):
+                        route_event = {
+                            "event": "qa_failed",
+                            "key": route_key,
+                            "source": "verdict-reconcile",
+                            "agent_id": record.agent_id,
+                            "verdict": record.verdict,
+                            "session_id": record.session_id,
+                            "epic_id": record.epic_id,
+                            "step_id": record.step_id,
+                            "verdict_step_id": record.step_id,
+                            "verdict_phase_epoch": current.phase_epoch,
+                            "recorded_at": record.recorded_at,
+                            "reconciled_from": duplicate.get("key"),
+                            "route": "BUGFIX",
+                        }
+                        return self._finish_plan(
+                            current,
+                            transaction,
+                            step_id=record.step_id,
+                            reason="verdict-reconcile:verify-qa:FAIL",
+                            event=route_event,
+                            gate_pass=record,
+                        )
                 return TransactionPlan(current, {"event": "verdict_duplicate"}, changed=False)
             if current.step_id != record.step_id:
                 stale_duplicate_fields = dict(duplicate_fields)
@@ -413,6 +569,7 @@ class LoopEngine:
                 stale_duplicate = (
                     transaction.event_with_fields("verdict_accepted", stale_duplicate_fields)
                     or transaction.event_with_fields("verdict_recorded", stale_duplicate_fields)
+                    or transaction.event_with_fields("qa_failed", stale_duplicate_fields)
                 )
                 if stale_duplicate:
                     return TransactionPlan(current, {"event": "verdict_duplicate"}, changed=False)
@@ -420,7 +577,11 @@ class LoopEngine:
                 f"{current.phase_epoch}:{record.session_id}:{record.epic_id}:"
                 f"{record.step_id}:{record.agent_id}:{record.verdict}:{record.recorded_at}"
             )
-            if transaction.event_seen("verdict_accepted", key) or transaction.event_seen("verdict_recorded", key):
+            if (
+                transaction.event_seen("verdict_accepted", key)
+                or transaction.event_seen("verdict_recorded", key)
+                or transaction.event_seen("qa_failed", key)
+            ):
                 return TransactionPlan(current, {"event": "verdict_duplicate", "key": key}, changed=False)
             if record.agent_id not in MANAGED_GATE_AGENTS:
                 raise TransitionError(f"unsupported gate agent: {record.agent_id}")
@@ -443,6 +604,7 @@ class LoopEngine:
                 "event": "verdict_accepted" if record.verdict == "PASS" else "verdict_recorded",
                 "key": key,
                 "source": source,
+                "phase": current.phase,
                 "agent_id": record.agent_id,
                 "verdict": record.verdict,
                 "session_id": record.session_id,
@@ -454,6 +616,18 @@ class LoopEngine:
                 "evidence_sha256": record.evidence_sha256,
             }
             if record.verdict != "PASS":
+                if current.phase == "QA" and record.verdict == "FAIL":
+                    if self._qa_failure_ready(current):
+                        event["event"] = "qa_failed"
+                        event["route"] = "BUGFIX"
+                        return self._finish_plan(
+                            current,
+                            transaction,
+                            step_id=record.step_id,
+                            reason=f"{source}:{record.agent_id}:FAIL",
+                            event=event,
+                            gate_pass=record,
+                        )
                 return TransactionPlan(None, event)
             return self._finish_plan(
                 current,

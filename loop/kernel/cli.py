@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -11,7 +12,14 @@ from ..config import activate_loop_process
 from .engine import LoopEngine, TransitionError
 from .boundary import BoundaryService
 from .analyze import latest_analyze_with_path
-from .index import bugfix_queue_path, bugfix_report_paths, implement_path, load_queue
+from .index import (
+    bugfix_queue_path,
+    bugfix_report_paths,
+    implement_path,
+    load_queue,
+    phase_artifacts,
+    phase_payload,
+)
 from .runtime import runtime_for
 from .session import SessionOutcome, SessionSupervisor
 from .store import LoopPaths
@@ -54,9 +62,15 @@ def _print_step_banner(*, runtime: str, model: str, model_source: str, cursor, s
     print(f"│ attempt: {cursor.attempt + 1} | session: {cursor.session_id}")
     heartbeat = f"{settings.status_heartbeat}s" if settings.status_heartbeat is not None else "off"
     idle = f"{settings.stream_idle_timeout}s" if settings.stream_idle_timeout is not None else "off"
+    collaboration = (
+        f"{settings.collaboration_wait_timeout}s"
+        if settings.collaboration_wait_timeout is not None
+        else "off"
+    )
     print(
         f"│ limits: timeout={settings.session_timeout}s | heartbeat={heartbeat} | "
-        f"idle_timeout={idle} | kill_grace={settings.session_kill_grace}s"
+        f"idle_timeout={idle} | collab_wait={collaboration} | "
+        f"kill_grace={settings.session_kill_grace}s"
     )
     print("└────────────────────────────────────────────────────────────")
 
@@ -95,7 +109,10 @@ def _phase_instruction(cursor, project: Path) -> str:
     if cursor.phase == "BUGFIX":
         return (
             f"Run {role} BUGFIX for {epic}. Read bugfix-queue.yaml first, take only the first open or "
-            "in_progress item, fix the root cause with regression evidence, and update the queue. "
+            "in_progress item, fix the root cause with regression evidence, update the queue, and create or "
+            "update one bugfix-*.md report with concrete changed paths, AC+/AC− evidence, and verification "
+            "before spawning verify-bugfix. Mark a completed queue item as done; do not introduce a new "
+            "status value such as closed. "
         )
     if cursor.phase == "QA":
         return (
@@ -125,6 +142,122 @@ def _relative_paths(project: Path, paths: list[Path]) -> str:
         if value not in values:
             values.append(value)
     return "\n".join(f"- {value}" for value in values)
+
+
+def _qa_prompt_items(payload: dict[str, object], key: str) -> list[str]:
+    value = payload.get(key)
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if isinstance(item, (str, int, float)) and str(item).strip()]
+
+
+def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
+    qa_artifacts = phase_artifacts(project, cursor.role, cursor.epic_id, "qa")
+    qa_path = qa_artifacts[-1] if qa_artifacts else None
+    payload = phase_payload(qa_path) if qa_path is not None else None
+    if qa_path is None or payload is None:
+        return [
+            "suite_scope: full",
+            "Suite results:",
+            "- missing: parent must provide the exact suite command and observed result",
+            "## Frozen QA checklist",
+            "checklist_sha256: <missing>",
+            "### AC+",
+            "- none",
+            "### AC−",
+            "- none",
+            "### §0.11",
+            "- none",
+            "### Prior blockers",
+            "- none",
+        ], [qa_path] if qa_path is not None else []
+
+    verify_scope = str(payload.get("verify_scope") or "full").strip().lower()
+    suite_scope = str(payload.get("suite_scope") or ("targeted" if verify_scope == "prior_only" else "full"))
+    lines = [f"suite_scope: {suite_scope}", "Suite results:"]
+    suite = _qa_prompt_items(payload, "suite")
+    lines.extend(f"- {item}" for item in suite or ["missing: parent must provide the exact suite command and observed result"])
+    lines.extend(
+        [
+            "## Frozen QA checklist",
+            f"checklist_sha256: {str(payload.get('checklist_sha256') or '<missing>')}",
+        ]
+    )
+    for heading, key in (("AC+", "ac_plus"), ("AC−", "ac_minus"), ("§0.11", "section_011"), ("Prior blockers", "prior_blockers")):
+        lines.append(f"### {heading}")
+        items = _qa_prompt_items(payload, key)
+        lines.extend(f"- {item}" for item in items or ["none"])
+    return lines, [qa_path]
+
+
+def _bugfix_gate_paths(project: Path, role: str, epic_id: str) -> tuple[list[Path], bool]:
+    """Pack the bounded evidence set required by verify-bugfix.
+
+    The verifier needs the queue, its report, the source QA artifact, and the
+    concrete files named by the queue. Plan/index shards are not part of this
+    gate contract and can make ALLOW READ exceed the protocol limit.
+    """
+    queue_path = bugfix_queue_path(project, role, epic_id)
+    paths: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path: Path | None) -> None:
+        if path is None or len(paths) >= 10:
+            return
+        resolved = path.resolve()
+        key = str(resolved)
+        if key not in seen:
+            seen.add(key)
+            paths.append(path)
+
+    add(queue_path)
+    reports = bugfix_report_paths(project, role, epic_id)
+    for report in reports:
+        add(report)
+
+    payload = phase_payload(queue_path)
+    if isinstance(payload, dict):
+        source_qa = payload.get("source_qa")
+        if isinstance(source_qa, str) and source_qa.strip():
+            source_path = Path(source_qa.strip())
+            add(source_path if source_path.is_absolute() else project / source_path)
+
+    for report in reports:
+        try:
+            report_lines = report.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        in_target_section = False
+        for line in report_lines:
+            normalized = line.strip().lower()
+            if "target files" in normalized or normalized in {"## changed files", "### changed files"}:
+                in_target_section = True
+                continue
+            if in_target_section and normalized.startswith("#"):
+                in_target_section = False
+            if not in_target_section or not line.lstrip().startswith("-"):
+                continue
+            for target in re.findall(r"`([^`]+)`", line):
+                if "/" not in target or target.startswith(("http://", "https://")):
+                    continue
+                target_path = Path(target.strip())
+                add(target_path if target_path.is_absolute() else project / target_path)
+
+    if isinstance(payload, dict):
+        items = payload.get("items")
+        if isinstance(items, list):
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                targets = item.get("targets")
+                if not isinstance(targets, list):
+                    continue
+                for target in targets:
+                    if isinstance(target, str) and target.strip():
+                        target_path = Path(target.strip())
+                        add(target_path if target_path.is_absolute() else project / target_path)
+
+    return paths, bool(reports)
 
 
 def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
@@ -199,9 +332,15 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
             ]
         )
     elif gate_agent == "verify-bugfix":
-        paths = [bugfix_queue_path(project, cursor.role, cursor.epic_id), *bugfix_report_paths(project, cursor.role, cursor.epic_id), *paths]
+        paths, report_ready = _bugfix_gate_paths(project, cursor.role, cursor.epic_id)
         lines.extend(
             [
+                (
+                    "BUGFIX gate precondition: create or update bugfix-queue.yaml and one bugfix-*.md "
+                    "report before spawning verify-bugfix."
+                    if not report_ready
+                    else "BUGFIX gate evidence is packed below; do not add plan/index/step paths to ALLOW READ."
+                ),
                 "Required sections in the verify-bugfix spawn prompt:",
                 "ALLOW READ:",
                 _relative_paths(project, paths),
@@ -209,14 +348,12 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
             ]
         )
     elif gate_agent == "verify-qa":
-        qa_root = role_root / "qa" / cursor.epic_id
-        qa_artifacts = sorted(qa_root.glob("qa-*.yaml")) if qa_root.is_dir() else []
-        paths = [*qa_artifacts[-1:], bugfix_queue_path(project, cursor.role, cursor.epic_id), *paths]
+        qa_context, qa_paths = _qa_gate_context(project, cursor)
+        paths = [*qa_paths, bugfix_queue_path(project, cursor.role, cursor.epic_id), *paths]
         lines.extend(
             [
                 "Required sections in the verify-qa spawn prompt:",
-                "Suite results:",
-                "- Include the exact parent-run command and its observed result; the verifier must not rerun the suite.",
+                *qa_context,
                 "ALLOW READ:",
                 _relative_paths(project, paths),
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
@@ -226,8 +363,10 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
         [
             "",
             "Recovery protocol:",
-            "1. A valid PASS is the only result that can cross the gate; do not call finish separately after a PASS.",
-            "2. A content FAIL or BLOCKED with concrete product blockers requires gate-repair. Spawn gate-repair with:",
+            "1. A valid PASS crosses the gate atomically; do not call finish separately after a PASS.",
+            "1a. verify-qa FAIL is a product QA result, not a gate-repair request. When the QA artifact is FAIL/BLOCKED and bugfix-queue.yaml is valid, the boundary routes QA to BUGFIX atomically.",
+            "1b. verify-qa BLOCKED, or QA FAIL without a valid QA artifact/queue, requires the parent to fix the missing contract/artifact and respawn verify-qa; do not invent a blocker.",
+            "2. A content FAIL or BLOCKED for other gates with concrete product blockers requires gate-repair. Spawn gate-repair with:",
             "BLOCKERS:",
             "- <blocker_id> | <concrete_file> | <concrete_fix>",
             "ALLOW WRITE:",
@@ -250,7 +389,18 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
     )
     if event is None:
         return ""
-    if str(event.get("phase") or "") != cursor.phase or str(event.get("step_id") or "") != cursor.step_id:
+    event_phase = str(event.get("phase") or event.get("source_phase") or "")
+    if event_phase and event_phase != cursor.phase:
+        return ""
+    if str(event.get("step_id") or "") != cursor.step_id:
+        return ""
+    if not event_phase and not all(
+        str(event.get(field) or "") == expected
+        for field, expected in (
+            ("session_id", cursor.session_id),
+            ("epic_id", cursor.epic_id),
+        )
+    ):
         return ""
     event_name = str(event.get("event") or "")
     if event_name in {"verdict_transition_rejected", "verdict_rejected"}:
@@ -267,11 +417,22 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
         )
     if event_name == "verdict_recorded" and str(event.get("verdict") or "") in {"FAIL", "BLOCKED"}:
         agent = str(event.get("agent_id") or "the verifier")
+        if cursor.phase == "QA" and str(event.get("verdict") or "") == "FAIL":
+            return (
+                f"\nRecovery state: {agent} returned FAIL, but the QA failure could not be routed to BUGFIX yet. "
+                "Write/update the canonical qa-*.yaml with verdict: fail and eligible blockers, create or merge "
+                "bugfix-queue.yaml, then call the generated Handoff finish command once. The boundary will reconcile "
+                "the recorded FAIL and route QA to BUGFIX atomically; only respawn verify-qa if the artifact or queue "
+                "is invalid. Do not send a product QA failure to gate-repair.\n"
+            )
         return (
             f"\nRecovery state: {agent} already returned {event.get('verdict')}. "
-            "Do not finish or merely summarize the failure. Immediately spawn gate-repair with the "
-            "structured BLOCKERS, concrete ALLOW WRITE, exact VERIFY, and optional ALLOW READ sections. "
-            "Wait for loop-repair-result/v1, then respawn the same verifier with the same exact identity.\n"
+            "Do not finish or merely summarize the failure. Classify the verifier's concrete finding first: "
+            "prompt/contract failures (prompt_incomplete, missing or oversized ALLOW READ, missing artifact, "
+            "schema, session or transition mismatch) are fixed by the parent and sent back to the same verifier; "
+            "a concrete product or repairable runtime blocker requires gate-repair with structured BLOCKERS, "
+            "concrete ALLOW WRITE, exact VERIFY, and optional ALLOW READ. After gate-repair, wait for "
+            "loop-repair-result/v1 and respawn the same verifier with the same exact identity.\n"
         )
     return ""
 

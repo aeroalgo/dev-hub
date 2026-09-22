@@ -58,6 +58,10 @@ def test_missing_model_is_fail_closed() -> None:
     assert selection.env_name == "PROJECT_LOOP_IMPLEMENT_MODEL"
 
 
+def test_native_collaboration_wait_has_no_default_timeout() -> None:
+    assert LoopSettings().collaboration_wait_timeout is None
+
+
 def test_apply_environment_expands_tilde_in_omniroute_key_file(monkeypatch) -> None:
     monkeypatch.delenv("OMNIROUTE_API_KEY_FILE", raising=False)
     settings = LoopSettings(omniroute_api_key_file="~/.codex/.omniroute_key")
