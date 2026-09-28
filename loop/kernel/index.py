@@ -10,6 +10,9 @@ import yaml
 from .store import FileMutation
 
 
+SUPPORTED_ROLES = ("back", "front", "integration")
+
+
 @dataclass(frozen=True)
 class Step:
     step_id: str
@@ -34,7 +37,7 @@ def normalize_role(role: str) -> str:
     value = str(role or "").strip().lower()
     if value == "integ":
         value = "integration"
-    if value not in {"back", "front", "integration"}:
+    if value not in SUPPORTED_ROLES:
         raise ValueError(f"unsupported role: {role!r}")
     return value
 
@@ -43,6 +46,48 @@ def index_path(project: Path, role: str, epic_id: str) -> Path:
     if not epic_id or Path(epic_id).name != epic_id:
         raise ValueError(f"invalid epic id: {epic_id!r}")
     return project / "memory-bank" / normalize_role(role) / "plan" / epic_id / "yaml" / "decompose-index.yaml"
+
+
+def plan_path(project: Path, role: str, epic_id: str) -> Path:
+    return index_path(project, role, epic_id).parent.parent / "md" / "plan.md"
+
+
+def discover_epic_roles(project: Path, epic_id: str) -> list[str]:
+    if not epic_id or Path(epic_id).name != epic_id:
+        raise ValueError(f"invalid epic id: {epic_id!r}")
+    found: list[str] = []
+    for role in SUPPORTED_ROLES:
+        if plan_path(project, role, epic_id).is_file() or index_path(project, role, epic_id).is_file():
+            found.append(role)
+    return found
+
+
+def resolve_epic_role(project: Path, epic_id: str, role: str | None = "auto") -> str:
+    requested = str(role or "auto").strip().lower()
+    if requested in {"", "auto"}:
+        found = discover_epic_roles(project, epic_id)
+        if not found:
+            raise FileNotFoundError(
+                "canonical plan missing: searched "
+                f"memory-bank/{{back,front,integration}}/plan/{epic_id}/md/plan.md"
+            )
+        if len(found) > 1:
+            raise ValueError(
+                f"ambiguous epic {epic_id!r} found in roles {found}; pass --role explicitly"
+            )
+        return found[0]
+    normalized = normalize_role(requested)
+    plan = plan_path(project, normalized, epic_id)
+    index = index_path(project, normalized, epic_id)
+    if plan.is_file() or index.is_file():
+        return normalized
+    elsewhere = discover_epic_roles(project, epic_id)
+    if elsewhere:
+        raise FileNotFoundError(
+            f"canonical plan missing: {plan} "
+            f"(epic exists under role(s) {elsewhere}; pass --role {elsewhere[0]})"
+        )
+    raise FileNotFoundError(f"canonical plan missing: {plan}")
 
 
 def load_queue(project: Path, role: str, epic_id: str) -> Queue:

@@ -8,6 +8,16 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from .inventory import (
+    INVENTORY_AGENT_ALIASES,
+    INVENTORY_SCHEMA_MODELS,
+    MANAGED_INVENTORY_AGENTS,
+    SCHEMA_SUNSET_INVENTORY,
+    SunsetReport,
+    inventory_schema_for_agent,
+    normalize_inventory_agent_id,
+)
+
 
 SCHEMA_GATE_VERDICT = "loop-gate-verdict/v1"
 SCHEMA_REPAIR_RESULT = "loop-repair-result/v1"
@@ -28,18 +38,33 @@ MANAGED_GATE_AGENTS = frozenset(
     }
 )
 MANAGED_REPAIR_AGENTS = frozenset({"gate-repair"})
-MANAGED_SUBAGENTS = MANAGED_GATE_AGENTS | MANAGED_REPAIR_AGENTS
+MANAGED_SUBAGENTS = MANAGED_GATE_AGENTS | MANAGED_REPAIR_AGENTS | MANAGED_INVENTORY_AGENTS
 AGENT_ALIASES = {
     "verify": "verify-implement",
     "reviewer": "verify-qa",
     "explore": "explorer",
+    **INVENTORY_AGENT_ALIASES,
 }
+REPAIR_RESULT_ONLY_FIELDS = frozenset(
+    {
+        "parent_evidence_id",
+        "recorded_at",
+        "agent_id",
+        "status",
+        "fixed_blockers",
+        "remaining_blockers",
+        "schema",
+    }
+)
 _JSON_FENCE_RE = re.compile(r"```\s*json[^\n`]*\n(.*?)\n\s*```", re.IGNORECASE | re.DOTALL)
+_PROMPT_INCOMPLETE_RE = re.compile(r"^prompt_incomplete:(?P<section>.+)$", re.IGNORECASE)
 
 
 def normalize_agent_id(value: str | None) -> str:
     normalized = str(value or "").strip().lower()
-    return AGENT_ALIASES.get(normalized, normalized)
+    if normalized in AGENT_ALIASES:
+        return AGENT_ALIASES[normalized]
+    return normalize_inventory_agent_id(normalized)
 
 
 class GateVerdict(BaseModel):
@@ -172,7 +197,7 @@ def _result(
     *,
     errors: list[str] | tuple[str, ...] = (),
     diagnostic_codes: list[str] | tuple[str, ...] = (),
-    record: GateVerdict | None = None,
+    record: BaseModel | None = None,
 ) -> ValidationResult:
     return ValidationResult(
         valid=valid,
@@ -209,6 +234,7 @@ def validate_boundary(
     schema_models: dict[str, type[BaseModel]] = {
         SCHEMA_GATE_VERDICT: GateVerdict,
         SCHEMA_REPAIR_RESULT: RepairResult,
+        **INVENTORY_SCHEMA_MODELS,
     }
     model = schema_models.get(schema_id)
     if model is None:
@@ -293,7 +319,39 @@ def validate_message(
     return validate_boundary(SCHEMA_GATE_VERDICT, payload, identity=identity)
 
 
-def validate_repair_message(message: str | None) -> ValidationResult:
+def repair_contract_errors(
+    record: RepairResult,
+    *,
+    session_id: str | None = None,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    errors: list[str] = []
+    codes: list[str] = []
+    if session_id and record.parent_evidence_id != session_id:
+        errors.append(
+            "parent_evidence_id must equal GATE_IDENTITY session_id "
+            f"(expected {session_id!r}, received {record.parent_evidence_id!r})"
+        )
+        codes.append("repair_wrong_parent_evidence_id")
+    for blocker in record.remaining_blockers:
+        match = _PROMPT_INCOMPLETE_RE.match(blocker.strip())
+        if match is None:
+            continue
+        section = match.group("section").strip().lower().replace(" ", "_")
+        if section in REPAIR_RESULT_ONLY_FIELDS or section.replace("-", "_") in REPAIR_RESULT_ONLY_FIELDS:
+            errors.append(
+                "parent_evidence_id and other result-only fields are never missing prompt sections; "
+                f"copy GATE_IDENTITY session_id into parent_evidence_id and repair BLOCKERS "
+                f"(forbidden remaining_blocker {blocker!r})"
+            )
+            codes.append("repair_invented_prompt_incomplete")
+    return tuple(errors), tuple(codes)
+
+
+def validate_repair_message(
+    message: str | None,
+    *,
+    session_id: str | None = None,
+) -> ValidationResult:
     payload, diagnostics = extract_json_fence(message)
     if payload is None:
         return _result(
@@ -302,7 +360,44 @@ def validate_repair_message(message: str | None) -> ValidationResult:
             errors=diagnostics,
             diagnostic_codes=diagnostics,
         )
-    return validate_boundary(SCHEMA_REPAIR_RESULT, payload)
+    result = validate_boundary(SCHEMA_REPAIR_RESULT, payload)
+    if not result.valid or result.record is None:
+        return result
+    if not isinstance(result.record, RepairResult):
+        return result
+    errors, codes = repair_contract_errors(result.record, session_id=session_id)
+    if errors:
+        return _result(
+            False,
+            SCHEMA_REPAIR_RESULT,
+            errors=errors,
+            diagnostic_codes=codes,
+        )
+    return result
+
+
+def validate_inventory_message(
+    message: str | None,
+    *,
+    agent_id: str,
+) -> ValidationResult:
+    schema_id = inventory_schema_for_agent(agent_id)
+    if schema_id is None:
+        return _result(
+            False,
+            SCHEMA_VALIDATE_RESULT,
+            errors=(f"unsupported inventory agent: {agent_id!r}",),
+            diagnostic_codes=("inventory_agent_unknown",),
+        )
+    payload, diagnostics = extract_json_fence(message)
+    if payload is None:
+        return _result(
+            False,
+            schema_id,
+            errors=diagnostics,
+            diagnostic_codes=diagnostics,
+        )
+    return validate_boundary(schema_id, payload)
 
 
 __all__ = [
@@ -310,16 +405,22 @@ __all__ = [
     "BoundaryIdentity",
     "GateVerdict",
     "MANAGED_GATE_AGENTS",
+    "MANAGED_INVENTORY_AGENTS",
     "MANAGED_REPAIR_AGENTS",
     "MANAGED_SUBAGENTS",
+    "REPAIR_RESULT_ONLY_FIELDS",
     "SCHEMA_GATE_VERDICT",
     "SCHEMA_REPAIR_RESULT",
+    "SCHEMA_SUNSET_INVENTORY",
     "SCHEMA_VALIDATE_RESULT",
     "RepairResult",
+    "SunsetReport",
     "ValidationResult",
     "extract_json_fence",
     "normalize_agent_id",
+    "repair_contract_errors",
     "validate_boundary",
+    "validate_inventory_message",
     "validate_message",
     "validate_repair_message",
 ]

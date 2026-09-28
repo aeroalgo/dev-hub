@@ -33,8 +33,30 @@ else
   exit 127
 fi
 
+# Detect primary subcommand (first non-option arg).
+PRIMARY=""
+for arg in "$@"; do
+  if [[ "$arg" == -* ]]; then
+    continue
+  fi
+  PRIMARY="$arg"
+  break
+done
+
+# --profile is rejected by app-server / login / doctor / etc.
+PROFILE_SUPPORTED=0
+case "$PRIMARY" in
+  ""|exec|review|resume|queue|archive|delete|unarchive|fork|mcp|sandbox)
+    PROFILE_SUPPORTED=1
+    ;;
+  debug)
+    # only some debug subcommands accept --profile; skip for safety
+    PROFILE_SUPPORTED=0
+    ;;
+esac
+
 PROFILE_ARGS=()
-if [[ -f "${CODEX_HOME}/${PROFILE_NAME}.config.toml" ]]; then
+if [[ "$PROFILE_SUPPORTED" == "1" && -f "${CODEX_HOME}/${PROFILE_NAME}.config.toml" ]]; then
   profile_requested=0
   for arg in "$@"; do
     if [[ "$arg" == "--profile" || "$arg" == "-p" ]]; then

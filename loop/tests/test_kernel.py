@@ -19,7 +19,8 @@ from loop.kernel.model import CursorStatus, RuntimeResult
 from loop.kernel.runtime import CodexRuntime, Runtime
 from loop.kernel.session import SessionOutcome, SessionSupervisor
 from loop.kernel.store import CursorStore, LoopPaths
-from loop.kernel.verdict import BoundaryIdentity, GateVerdict, SCHEMA_GATE_VERDICT, SCHEMA_REPAIR_RESULT, validate_boundary, validate_message
+from loop.kernel.verdict import BoundaryIdentity, GateVerdict, SCHEMA_GATE_VERDICT, SCHEMA_REPAIR_RESULT, SCHEMA_SUNSET_INVENTORY, validate_boundary, validate_message
+from loop.kernel.inventory import read_sunset_sidecar
 from loop.config import LoopSettings
 
 
@@ -106,6 +107,32 @@ def test_new_plan_starts_decompose_before_index_exists(tmp_path: Path) -> None:
     assert cursor.status == CursorStatus.ACTIVE
     context = paths.active_context.read_text(encoding="utf-8")
     assert "memory-bank/back/plan/E2/md/plan.md" in context
+
+
+def test_start_auto_resolves_front_epic_role(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(tmp_path / "memory-bank/front/plan/T-060-ui/md/plan.md", "# Plan: T-060-ui\n")
+    cursor = LoopEngine(paths).start("T-060-ui")
+    assert cursor.role == "front"
+    assert cursor.phase == "DECOMPOSE"
+    assert cursor.epic_id == "T-060-ui"
+
+
+def test_start_auto_rejects_ambiguous_epic_roles(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(tmp_path / "memory-bank/back/plan/SHARED/md/plan.md", "# back\n")
+    write(tmp_path / "memory-bank/front/plan/SHARED/md/plan.md", "# front\n")
+    with pytest.raises(ValueError, match="ambiguous epic"):
+        LoopEngine(paths).start("SHARED")
+    cursor = LoopEngine(paths).start("SHARED", role="front")
+    assert cursor.role == "front"
+
+
+def test_start_explicit_role_hints_when_plan_lives_elsewhere(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(tmp_path / "memory-bank/front/plan/T-060-ui/md/plan.md", "# Plan: T-060-ui\n")
+    with pytest.raises(FileNotFoundError, match="pass --role front"):
+        LoopEngine(paths).start("T-060-ui", role="back")
 
 
 def test_rewind_forces_analyze_even_after_implementation_progress(tmp_path: Path) -> None:
@@ -339,6 +366,8 @@ def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: 
     assert "ALLOW READ:" in prompt
     assert "gate-repair" in prompt
     assert "loop-repair-result/v1" in prompt
+    assert f"PARENT_EVIDENCE_ID={cursor.session_id}" in prompt
+    assert "prompt_incomplete:parent_evidence_id" in prompt
     assert "verdict session mismatch" in prompt
     assert "T-004-mode-a-live-ready-analyze-verify" not in prompt
     engine.rewind("ANALYZE")
@@ -634,7 +663,7 @@ def test_gate_repair_result_is_validated_and_recorded(tmp_path: Path) -> None:
     payload = {
         "schema": SCHEMA_REPAIR_RESULT,
         "agent_id": "gate-repair",
-        "parent_evidence_id": "evidence-1",
+        "parent_evidence_id": cursor.session_id,
         "status": "done",
         "fixed_blockers": ["B1"],
         "remaining_blockers": [],
@@ -654,6 +683,204 @@ def test_gate_repair_result_is_validated_and_recorded(tmp_path: Path) -> None:
     assert action.transition["metadata"]["repair_status"] == "done"
     assert '"event": "repair_recorded"' in paths.events.read_text(encoding="utf-8")
     assert engine.store.read().session_id == cursor.session_id
+
+
+def test_gate_repair_rejects_invented_parent_evidence_prompt_incomplete(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_REPAIR_RESULT,
+        "agent_id": "gate-repair",
+        "parent_evidence_id": cursor.session_id,
+        "status": "fail",
+        "fixed_blockers": [],
+        "remaining_blockers": ["prompt_incomplete:parent_evidence_id"],
+        "recorded_at": "2026-09-18T19:00:00+00:00",
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "gate-repair",
+            "last_assistant_message": message,
+        }
+    )
+
+    assert not action.ok
+    assert "repair_invented_prompt_incomplete" in action.diagnostic_codes
+    assert "parent_evidence_id" in action.reason
+    assert '"event": "repair_result_rejected"' in paths.events.read_text(encoding="utf-8")
+    assert "repair_recorded" not in paths.events.read_text(encoding="utf-8")
+
+
+def test_gate_repair_start_context_binds_parent_evidence_id(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    lifecycle = SubagentLifecycle(paths)
+    context = lifecycle.start_context(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "gate-repair",
+            "prompt": "agent_type=gate-repair\nBLOCKERS:\n- x",
+        }
+    )
+    assert context is not None
+    assert f"PARENT_EVIDENCE_ID={cursor.session_id}" in context
+    assert f'parent_evidence_id: "{cursor.session_id}"' in context
+    assert "FORBIDDEN remaining_blockers: prompt_incomplete:parent_evidence_id" in context
+    assert "never a missing parent prompt section" in context
+
+
+def test_sunset_inventory_is_validated_persisted_and_does_not_advance(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    before = engine.store.read()
+    assert before is not None
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_SUNSET_INVENTORY,
+        "boundary_id": "E1-s01",
+        "new_sot": "loop/kernel/inventory.py",
+        "forbidden_for_parent": ["design_suggestions"],
+        "diagnostic_codes": [],
+        "ok": True,
+        "items": [
+            {
+                "kind": "A",
+                "symbol": "OldParser",
+                "path": "loop/old.py",
+                "start_line": 10,
+                "end_line": 12,
+                "excerpt": "class OldParser:\n    pass\n",
+                "mark": "REPLACE",
+                "role": "legacy parser",
+            }
+        ],
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "sunset-inventory",
+            "last_assistant_message": message,
+        }
+    )
+
+    assert action.ok
+    assert action.transition["event"] == "inventory_recorded"
+    assert action.transition["metadata"]["item_count"] == 1
+    assert action.transition["metadata"]["ok"] is True
+    after = engine.store.read()
+    assert after is not None
+    assert after.phase == before.phase
+    assert after.step_id == before.step_id
+    assert after.session_id == cursor.session_id
+    assert '"event": "inventory_recorded"' in paths.events.read_text(encoding="utf-8")
+
+    report = read_sunset_sidecar(paths, session_id=cursor.session_id, step_id=cursor.step_id)
+    assert report is not None
+    assert report.schema_id == SCHEMA_SUNSET_INVENTORY
+    assert report.boundary_id == "E1-s01"
+    assert report.ok is True
+    assert len(report.items) == 1
+    assert report.items[0].kind == "A"
+
+
+def test_sunset_alias_uses_same_inventory_branch(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_SUNSET_INVENTORY,
+        "boundary_id": "alias-boundary",
+        "new_sot": "loop/kernel/inventory.py",
+        "forbidden_for_parent": [],
+        "diagnostic_codes": [],
+        "ok": True,
+        "items": [],
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "sunset",
+            "last_assistant_message": message,
+        }
+    )
+    assert action.ok
+    assert action.transition["metadata"]["agent_id"] == "sunset-inventory"
+    report = read_sunset_sidecar(paths, session_id=cursor.session_id, step_id=cursor.step_id)
+    assert report is not None
+    assert report.boundary_id == "alias-boundary"
+
+
+def test_sunset_inventory_rejects_gate_verdict_schema(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    LoopEngine(paths).start("E1")
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_GATE_VERDICT,
+        "agent_id": "verify-implement",
+        "verdict": "PASS",
+        "step_id": "s01",
+        "session_id": "sess",
+        "epic_id": "E1",
+        "recorded_at": "2026-09-18T19:00:00+00:00",
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "sunset-inventory",
+            "last_assistant_message": message,
+        }
+    )
+    assert not action.ok
+    assert action.exit_code == 2
+    assert "loop-sunset-inventory/v1" in action.reason
+
+
+def test_sunset_inventory_start_context_binds_schema_contract(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    lifecycle = SubagentLifecycle(paths)
+    context = lifecycle.start_context(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "sunset-inventory",
+            "prompt": "agent_type=sunset-inventory\nALLOW READ:\n- loop/old.py",
+        }
+    )
+    assert context is not None
+    assert f"session_id={cursor.session_id}" in context
+    assert "loop-sunset-inventory/v1" in context
+    assert "READ-ONLY inventory extraction" in context
+    assert "Never spawn another agent" in context
+
+
+def test_native_validator_accepts_sunset_inventory_schema(tmp_path: Path) -> None:
+    result = validate_boundary(
+        SCHEMA_SUNSET_INVENTORY,
+        {
+            "schema": SCHEMA_SUNSET_INVENTORY,
+            "boundary_id": "B1",
+            "new_sot": "loop/kernel/inventory.py",
+            "forbidden_for_parent": [],
+            "diagnostic_codes": [],
+            "ok": True,
+            "items": [],
+        },
+    )
+    assert result.valid
+    assert result.schema_id == SCHEMA_SUNSET_INVENTORY
 
 
 def test_finish_requires_verify_pass_and_fail_requires_repair(tmp_path: Path) -> None:

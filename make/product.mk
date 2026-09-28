@@ -44,6 +44,6 @@ loop:
 	exec env EPIC_RUNTIME="$$runtime" python3 "$(DEV_HUB)/bin/loop.py" run \
 		--project "$(PROJECT_ROOT)" \
 		--epic "$$epic" \
-		--role back \
+		--role auto \
 		--runtime "$$runtime" \
 		--model "$$model"

@@ -18,8 +18,10 @@ from .index import (
     index_path,
     load_queue,
     phase_artifacts,
+    plan_path,
     prepare_step_status,
     qa_verdict,
+    resolve_epic_role,
     validate_decompose_tree,
 )
 from .model import Cursor, CursorStatus, FailureRecord, Transition
@@ -64,7 +66,7 @@ class LoopEngine:
         )
 
     def _plan_path(self, cursor: Cursor) -> Path:
-        return index_path(self.paths.project, cursor.role, cursor.epic_id).parent.parent / "md" / "plan.md"
+        return plan_path(self.paths.project, cursor.role, cursor.epic_id)
 
     def _phase_after_queue(self, queue: Queue) -> tuple[str, str]:
         audit = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "audit")
@@ -332,7 +334,9 @@ class LoopEngine:
                 transition_event["qa_artifact_digest"] = file_digest(qa_artifacts[-1])
         return TransactionPlan(candidate, transition_event, tuple(mutations))
 
-    def start(self, epic_id: str, role: str = "back") -> Cursor:
+    def start(self, epic_id: str, role: str = "auto") -> Cursor:
+        role = resolve_epic_role(self.paths.project, epic_id, role)
+
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current and current.status in {CursorStatus.ACTIVE, CursorStatus.RETRY}:
                 if current.epic_id != epic_id or current.role != role:

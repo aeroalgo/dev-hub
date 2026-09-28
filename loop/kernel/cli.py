@@ -31,7 +31,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("command", nargs="?", default="run", choices=("run", "start", "finish", "halt", "rewind", "status", "doctor", "scope", "validate", "validate-verdict"))
     parser.add_argument("--project", "--cwd", dest="project")
     parser.add_argument("--epic")
-    parser.add_argument("--role", default="back")
+    parser.add_argument("--role", default="auto", help="back|front|integration|auto (discover under memory-bank/*/plan/<epic>)")
     parser.add_argument("--runtime", choices=("claude", "codex"), default=None)
     parser.add_argument("--model")
     parser.add_argument("--step")
@@ -367,6 +367,9 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
             "1a. verify-qa FAIL is a product QA result, not a gate-repair request. When the QA artifact is FAIL/BLOCKED and bugfix-queue.yaml is valid, the boundary routes QA to BUGFIX atomically.",
             "1b. verify-qa BLOCKED, or QA FAIL without a valid QA artifact/queue, requires the parent to fix the missing contract/artifact and respawn verify-qa; do not invent a blocker.",
             "2. A content FAIL or BLOCKED for other gates with concrete product blockers requires gate-repair. Spawn gate-repair with:",
+            "agent_type=gate-repair",
+            f"GATE_IDENTITY session_id={cursor.session_id} epic_id={cursor.epic_id} step_id={cursor.step_id}",
+            f"PARENT_EVIDENCE_ID={cursor.session_id}",
             "BLOCKERS:",
             "- <blocker_id> | <concrete_file> | <concrete_fix>",
             "ALLOW WRITE:",
@@ -375,7 +378,8 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
             "- one exact verification command or typed capability check",
             "ALLOW READ:",
             "- optional concrete context files only",
-            "Wait for one fenced loop-repair-result/v1 result, then rerun this same verifier. Do not finish between repair and re-verify.",
+            "PARENT_EVIDENCE_ID is copied by gate-repair into result parent_evidence_id; it is not a prompt section the child can mark prompt_incomplete.",
+            "Wait for one accepted fenced loop-repair-result/v1 result (boundary rejects invented prompt_incomplete:parent_evidence_id), then rerun this same verifier. Do not finish between repair and re-verify. Do not silently DIY the ALLOW WRITE fixes and skip a valid repair cycle unless gate-repair already recorded done/partial.",
             "3. Protocol failures such as prompt_incomplete, verdict session mismatch, or verdict_transition_rejected are parent handoff failures. Fix the exact GATE_IDENTITY or required sections and respawn the same verifier; do not invent a product blocker and do not send protocol failures to gate-repair.",
             "4. AUDIT has no separate verify agent: an actionable audit finding follows the same gate-repair BLOCKERS/ALLOW WRITE/VERIFY contract, then the parent reruns AUDIT until audit.yaml is converged with no findings.",
         ]
@@ -411,9 +415,16 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
             "for prompt/session/transition errors and do not finish.\n"
         )
     if event_name == "repair_recorded":
+        remaining = event.get("remaining_blockers") or []
+        remaining_text = ", ".join(str(item) for item in remaining) if remaining else "(none)"
         return (
-            f"\nRecovery state: gate-repair reported {event.get('status')}. "
-            "Re-run the same verifier now with the same GATE_IDENTITY. Do not finish before a fresh PASS.\n"
+            f"\nRecovery state: gate-repair reported {event.get('status')} "
+            f"(remaining_blockers: {remaining_text}). "
+            "If status is done or partial, re-run the same verifier now with the same GATE_IDENTITY. "
+            "If status is fail with concrete product remaining_blockers, either respawn gate-repair "
+            "with the same BLOCKERS/ALLOW WRITE/VERIFY or apply those exact ALLOW WRITE fixes yourself, "
+            "then re-run the same verifier. Do not finish before a fresh PASS. "
+            "Never treat prompt_incomplete:parent_evidence_id as a completed repair cycle.\n"
         )
     if event_name == "verdict_recorded" and str(event.get("verdict") or "") in {"FAIL", "BLOCKED"}:
         agent = str(event.get("agent_id") or "the verifier")

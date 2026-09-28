@@ -29,8 +29,8 @@ import json
 wrapper = json.loads(os.environ["WRAPPER_JSON"])
 wrapper_literal = json.dumps(wrapper)
 
-old = 'function QP(t,e){let r=pn("cliExecutable");if(r&&r.trim().length>0)return r;let n=rh(e),o=(e??process.platform)==="win32"?"codex.exe":"codex";return Ga.Uri.joinPath(t,`${n}/${o}`).fsPath}'
-new = f'function QP(t,e){{let r=process.env.CODEX_OMNIROUTE_WRAPPER||{wrapper_literal};if((e??process.platform)!=="win32"&&r.trim().length>0)return r;let n=pn("cliExecutable");if(n&&n.trim().length>0)return n;let o=(e??process.platform)==="win32"?"codex.exe":"codex";return Ga.Uri.joinPath(t,`${{rh(e)}}/${{o}}`).fsPath}}'
+old = 'function yI(t,e){let r=mn("cliExecutable");if(r&&r.trim().length>0)return r;let n=fh(e),o=(e??process.platform)==="win32"?"codex.exe":"codex";return za.Uri.joinPath(t,`${n}/${o}`).fsPath}'
+new = f'function yI(t,e){{let r=process.env.CODEX_OMNIROUTE_WRAPPER||{wrapper_literal};if((e??process.platform)!=="win32"&&r.trim().length>0)return r;let n=mn("cliExecutable");if(n&&n.trim().length>0)return n;let o=(e??process.platform)==="win32"?"codex.exe":"codex";return za.Uri.joinPath(t,`${{fh(e)}}/${{o}}`).fsPath}}'
 marker = 'process.env.CODEX_OMNIROUTE_WRAPPER||'
 
 patched = 0

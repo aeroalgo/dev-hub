@@ -573,6 +573,7 @@ class CodexRuntime(Runtime):
             not isinstance(payload, dict)
             and "loop-gate-verdict/v1" not in message
             and "loop-repair-result/v1" not in message
+            and "loop-sunset-inventory/v1" not in message
         ):
             return None
         key = (thread_id, message)
@@ -596,6 +597,12 @@ class CodexRuntime(Runtime):
                 return (
                     f"    repair {agent_id}={metadata['repair_status']} -> "
                     f"{transition.get('phase')}/{transition.get('step_id')}; re-verify required"
+                )
+            if transition.get("event") == "inventory_recorded":
+                return (
+                    f"    inventory {agent_id} ok={metadata.get('ok')} "
+                    f"items={metadata.get('item_count')} -> "
+                    f"{transition.get('phase')}/{transition.get('step_id')}"
                 )
             verdict = metadata.get("verdict") or transition.get("event")
             suffix = "" if verdict == "PASS" or transition.get("event") == "qa_failed" else "; repair required before finish"
