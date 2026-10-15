@@ -345,7 +345,74 @@ items:
         _finish_via_gate(engine)
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
     _finish_via_gate(engine)
+    assert engine.store.read().phase == "CONTEXT_SYNC"
+    with pytest.raises(TransitionError, match="context-sync"):
+        engine.finish(step_id="CONTEXT_SYNC")
+    write(
+        tmp_path / "memory-bank/back/context-sync/E1/sync-20260921-e1.md",
+        "# Context sync — E1\n\n## Changes\n\n| File | Action |\n|------|--------|\n| techContext.md | no-op |\n",
+    )
+    engine.finish(step_id="CONTEXT_SYNC")
     assert engine.store.read().status == CursorStatus.COMPLETE
+
+
+def test_context_sync_finish_advances_roadmap_queue_to_next_epic(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(tmp_path / "memory-bank/back/plan/E1/md/plan.md", "# E1\n")
+    write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# E2\n")
+    write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        """version: roadmap-queue/v2
+role: back
+queue:
+- id: T-E1
+  epic_id: E1
+  kind: feature
+  plan: plan-E1.md
+- id: T-E2
+  epic_id: E2
+  kind: feature
+  plan: plan-E2.md
+done: []
+batches: {}
+""",
+    )
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+epic_id: E1
+plan_id: E1
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    _finish_via_gate(engine)
+    assert engine.store.read().phase == "CONTEXT_SYNC"
+    write(
+        tmp_path / "memory-bank/back/context-sync/E1/sync-20260921-e1.md",
+        "# Context sync — E1\n",
+    )
+    engine.finish(step_id="CONTEXT_SYNC")
+    cursor = engine.store.read()
+    assert cursor is not None
+    assert cursor.status == CursorStatus.ACTIVE
+    assert cursor.epic_id == "E2"
+    assert cursor.phase == "DECOMPOSE"
+    queue_doc = (tmp_path / "memory-bank/back/roadmap/queue.yaml").read_text(encoding="utf-8")
+    assert "epic_id: E1" in queue_doc
+    assert "done:" in queue_doc
+    assert queue_doc.index("done:") < queue_doc.index("epic_id: E1") or "E1" in queue_doc.split("done:")[1]
 
 
 def test_phase_gate_agents_cover_all_machine_checked_modes() -> None:
@@ -354,6 +421,7 @@ def test_phase_gate_agents_cover_all_machine_checked_modes() -> None:
     assert _phase_gate_agent("BUGFIX") == "verify-bugfix"
     assert _phase_gate_agent("QA") == "verify-qa"
     assert _phase_gate_agent("AUDIT") is None
+    assert _phase_gate_agent("CONTEXT_SYNC") is None
 
 
 def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: Path) -> None:
@@ -549,6 +617,60 @@ verification:
   command: bin/pytest -q
   last_run_at: 2026-09-21T00:00:00Z
   evidence: 1 passed
+""",
+    )
+
+    transition = _finish_via_gate(engine)
+
+    assert transition.phase == "QA"
+    assert engine.store.read().phase == "QA"
+
+
+def test_multi_done_bugfix_queue_routes_to_qa_after_pass(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(
+        tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
+        """schema: epic-decompose-index/v1
+epic_id: E1
+steps:
+  - id: s01
+    file: s01-one.yaml
+    status: completed
+  - id: s02
+    file: s02-two.yaml
+    status: completed
+""",
+    )
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    engine.rewind("BUGFIX")
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(tmp_path / "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md", "# BUGFIX\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: done
+  - id: BF-002
+    status: done
+verification:
+  status: pass
+  command: bin/pytest -q
+  last_run_at: 2026-10-05T00:00:00Z
+  evidence: 184 passed
 """,
     )
 

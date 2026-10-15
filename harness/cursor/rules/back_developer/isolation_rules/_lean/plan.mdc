@@ -15,6 +15,7 @@ alwaysApply: false
 0. Phase 0 orchestration: при триггерах — clarify artifact + Completion Report до Phase 1; skip taxonomy-clear → `§Product probe` note
 1. `tasks.md` прочитан; level зафиксирован
 2. L2 substep → L2 scope, не L4 по умолчанию
+2b. **Context Pack (L2+):** до Technology axiom прочитаны `techContext.md` · `systemPatterns.md` · `projectbrief.md` · `architecture/index.md`; если существует `memory-bank/product/` — **все его файлы**; в `plan.md` есть `## Context consumed`. **FAIL** только если `product/` **есть** и пропущен. Нет каталога → `product/: n/a`, не FAIL. FINISH `load_now` без monolith product (только plan/prompt/queue + clarify)
 3. Сначала сохранён/апсёртнут канонический roadmap row, затем план в path выше + `md/prompt.md` (файл начинается с `## Epic` + `## Covering`; без шапки Role/Deps/ID); при research — roadmap + полный plan **и** prompt на **каждый** эпик (Covering одинаковый; **весь** prompt без ID эпиков / путей чужих plan; не один mega-plan)
 4. `tasks.md` append-only со ссылкой (roadmap + каждый эпик)
 4a. Brownfield replace → секция **`## Replacement / sunset`** таблицы **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: `workflow-legacy-fallback-cleanup.mdc`. DECOMPOSE нарежет `deletes` + purge sNN
@@ -41,3 +42,5 @@ alwaysApply: false
 - Нет `md/prompt.md` / файл не начинается с `## Epic` / Chat decisions пустой без `n/a` → halt
 - В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps / пути чужих plan → halt
 - Агент читает соседние `plan/` из-за prompt → halt
+- L2+ без Context Pack / без `## Context consumed` → halt
+- `memory-bank/product/` существует, но не прочитан → halt (нет каталога → OK)

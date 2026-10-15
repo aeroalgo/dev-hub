@@ -1,0 +1,19 @@
+---
+description: "EVAL CLARIFY gates — lean load"
+alwaysApply: false
+---
+# EVAL CLARIFY gates (lean)
+
+## Load
+1. `memory-bank/niche/<slug>/clarify.md` если есть
+2. `grill-me` SKILL целиком
+3. optional: index.yaml
+
+## Forbidden
+- Полный validation-mechanism monolith без jump
+- Запись steps/*.yaml
+- >20 Q без Completion Report halt
+
+## Done when
+- clarify.md с Completion Report
+- next EVAL STEP назван

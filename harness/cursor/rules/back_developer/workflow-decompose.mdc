@@ -22,8 +22,9 @@ alwaysApply: false
 ## Hot path
 
 1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
-2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
-2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: shared/workflow-behavior-first.mdc §3a
+1a. **Effort probe (HARD):** до нарезки — таблица outcomes→hours + `effort_class` / `sNN_cap` / `sNN_target` в `decompose-index.yaml`. Канон: shared/workflow-behavior-first.mdc §3a Effort probe
+2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp — count ≈ `sNN_target`, **≤ `sNN_cap`**
+2a. **Granularity:** SoT = Effort probe (`sNN_cap`: S→3 · M→5 · L→8); outcome-first — schema+CLI / harness+loop / docs+Kind I / audit-хвост сливать; apply≠purge отдельно. **FORBIDDEN** добивать до 5–8. `>cap` или `>9` → justification в index. Канон: shared/workflow-behavior-first.mdc §3a
 2b. **TDD внутри шага (HARD):** TDD = процесс внутри `sNN`, *не* отдельный shard. `s01-*-red-tests` как самостоятельный шаг — **FORBIDDEN**. Failing tests + impl + green = один `sNN` с cp: `[tdd red, impl, green]`. Поле `tdd:` шага = список pytest-имён; шаг = одна production capability.
 2c. **Test scope (HARD):** в каждом `sNN` записывай только targeted `verify` по `files`/`delta`/`plan_contract`; full suite не добавляй в `verify` или `checkpoints[].verify`. Полный suite — отдельный **BACK QA** outcome после IMPLEMENT.
 3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
@@ -33,7 +34,7 @@ alwaysApply: false
 6. FINISH → **BACK ANALYZE** (обязателен; **нет** ANALYZE deferred → IMPLEMENT)
 
 → anti-dilution: shared/workflow-behavior-first.mdc §1 · §1a · §3a
-→ count в plan = floor, не ceiling (и не повод раздувать до 10–12)
+→ plan outline count = hint; Effort probe = SoT cap (не раздувать до 5–8 / 10–12)
 
 ---
 
@@ -41,7 +42,7 @@ alwaysApply: false
 
 DECOMPOSE = **максимально подробная** нарезка **по coverage** (FR/AC/Stages/Replacement), не по числу файлов. Артефакты **без** telegraph/200-line economy. Chat MAY be brief.
 
-**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; target band **5–8** sNN (L3/L4 ≤9). Канон: shared/workflow-behavior-first.mdc §3a.
+**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; число шагов = Effort probe (`sNN_target`≤`sNN_cap`); **5–8 не min**. Канон: shared/workflow-behavior-first.mdc §3a.
 
 **TDD — процесс внутри шага, не отдельный shard (HARD):** failing tests + impl + green = один `sNN`. `s01-*-red-tests` как самостоятельный шаг без production behavior — **FORBIDDEN**. Checkpoints: `[tdd red, impl, green]` внутри одного шага. Поле `tdd:` = список pytest-имён, которые должны стать green.
 
@@ -71,8 +72,8 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 **Процесс**:
 1. `OK BACK DECOMPOSE - [plan_id]` → Gates + skills-gate + **Hot path**
 2. Прочитай план (L3–4: все shards) — AC±/FR/NFR/этапы/ADR/тесты/§0.11/Outcome
-3. Index: четыре coverage-секции
-4. Нарежь `sNN` (+ `needs_creative` hard-stop на open CR)
+3. Index: четыре coverage-секции + **Effort probe** (`effort_class` / `sNN_cap` / `sNN_target`)
+4. Нарежь `sNN` ≤ `sNN_cap` (+ `needs_creative` hard-stop на open CR)
 5. Каждый `sNN` по `templates/decompose/epic-step.yaml` + skills gate
 5z. `validate-decompose-tree` exit 0 · schema `epic-decompose/v1` only
 5y. Advisory: `verify-decompose-creative` → `ready: true` или CREATIVE

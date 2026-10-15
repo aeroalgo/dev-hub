@@ -35,7 +35,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--runtime", choices=("claude", "codex"), default=None)
     parser.add_argument("--model")
     parser.add_argument("--step")
-    parser.add_argument("--phase", choices=("DECOMPOSE", "ANALYZE", "AUDIT", "QA", "BUGFIX"))
+    parser.add_argument("--phase", choices=("DECOMPOSE", "ANALYZE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC"))
     parser.add_argument("--reason", default="manual halt")
     parser.add_argument("--payload")
     parser.add_argument("--schema")
@@ -118,7 +118,17 @@ def _phase_instruction(cursor, project: Path) -> str:
         return (
             f"Run {role} QA for {epic}. Run the required full verification checks, complete the entire "
             "check matrix, create one canonical qa-*.yaml artifact, and create or merge the bugfix queue "
-            "when the verdict is FAIL or BLOCKED. "
+            "when the verdict is FAIL or BLOCKED. On PASS the next loop phase is CONTEXT_SYNC (not ARCHIVE). "
+        )
+    if cursor.phase == "CONTEXT_SYNC":
+        return (
+            f"Run {role} CONTEXT SYNC for {epic}. Read QA pass evidence and plan Technology axiom / "
+            "Context consumed, then diff-only update root canon (techContext, productContext, systemPatterns; "
+            "projectbrief only if in/out changed). Write memory-bank/"
+            f"{cursor.role}/context-sync/{epic}/sync-YYYYMMDD-<slug>.md even on full no-op. "
+            "Do not edit product/vision|phases|roadmap, plan shards, or production code. "
+            "Next after finish: mark epic done in roadmap/queue.yaml; if queue has a next epic with plan, "
+            "loop arms it automatically; otherwise DONE → operator ARCHIVE NOW. "
         )
     if cursor.phase == "AUDIT":
         return (

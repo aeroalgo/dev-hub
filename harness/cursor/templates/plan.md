@@ -13,6 +13,18 @@
 - deps: T-xxx / gap ref
 - refs: …
 
+## Context consumed
+
+> L2+ PLAN Context Pack (до Technology axiom). Канон: workflow-plan Hot path 2c.
+
+| Path | Что вошло в axiom / Deps / FR |
+|------|-------------------------------|
+| `memory-bank/techContext.md` | … |
+| `memory-bank/systemPatterns.md` | … |
+| `memory-bank/projectbrief.md` | … |
+| `memory-bank/architecture/index.md` | … |
+| `memory-bank/product/…` | … (если каталог есть — все файлы прочитаны; иначе `n/a`) |
+
 → `plan/<plan_id>/yaml/decompose-index.yaml` (после DECOMPOSE)
 
 ## Delivery closure
@@ -242,7 +254,7 @@ Brownfield: в конце очереди заложить `sNN-legacy-fallback-p
 ## Appetite
 
 > Бюджет эпика (Shape Up): **время** и **что вырезать первым**, не потолок числа `sNN`.  
-> **FORBIDDEN:** лимит/circuit-breaker на число шагов decompose («стоп если >N sNN») — конфликтует с Maximal detail (дырка в coverage → добавить sNN; count в §нарезка — advisory floor).  
+> **FORBIDDEN:** (a) лимит как оправдание дыры в coverage («стоп если >N sNN» при непокрытом FR); (b) добивание outline до min 5–8. Count в §нарезка = **hint**; финальный cap = DECOMPOSE Effort probe (`sNN_cap`, behavior-first §3a).  
 > Loop не форсирует эти поля.
 
 | Поле | Значение / пример | Описание |

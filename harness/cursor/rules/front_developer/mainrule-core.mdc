@@ -21,7 +21,7 @@ alwaysApply: false
 ## ПЕРЕХОДЫ
 
 ```text
-VAN → PLAN(I1) → DECOMPOSE → ANALYZE → CREATIVE? → IMPLEMENT* → AUDIT → QA → REPLAN(I2/I3) ↺ → FINAL REVIEW → DONE → ARCHIVE
+VAN → PLAN(I1) → DECOMPOSE → ANALYZE → CREATIVE? → IMPLEMENT* → AUDIT → QA → CONTEXT SYNC → REPLAN(I2/I3) ↺ → FINAL REVIEW → DONE → ARCHIVE
                  ↘ RECONCILE (hotfix drift)                         ↘ BUGFIX from QA
 ```
 

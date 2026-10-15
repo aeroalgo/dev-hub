@@ -15,7 +15,7 @@ alwaysApply: false
 2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; eNN.goal = user-visible outcome из plan registry (не wire-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (INTEG) + BACK §Maximal detail / §Outcome preserve
 2a1. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; surrogate-only verify = incomplete. shared/workflow-behavior-first.mdc
 2a1a. **Test scope (HARD):** каждый `eNN` содержит только targeted `verify` по своему `files`/`delta`; full suite в shard запрещён и передаётся **INTEG QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
-2a2. **Granularity:** не layer-first micro-split одного element; audit/docs хвосты — один eNN. Band 5–8 не режет Element registry. §3a behavior-first
+2a2. **Effort probe + Granularity:** index `effort_probe` / `effort_class` (anti-micro-split; XL→cut); **не** схлопывать Element registry (1 element = 1 eNN); audit/docs хвосты — один eNN. §3a behavior-first
 3. Step: §UI, §Data, §API today, §Contract lean, §BACK/FRONT/DB, `deletes`, §0.11, §Verify
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify`; непустой `deletes` → ≥1 `rg`/import-audit cp
 3a1. **Schema (HARD):** `schema: epic-decompose/v1` + `role: integ` + list `as_built`/`delta` — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** invented schemas. FINISH: `validate-decompose-tree` fail-closed
@@ -30,7 +30,9 @@ alwaysApply: false
 ## Abort
 
 - Layer-first нарезка → wrong
+- Нет Effort probe в index → incomplete
 - Micro-ladder одного element (schema→cli→wire как отдельные eNN) → incomplete
+- Effort XL без multi-epic/cut justification → incomplete
 - §Contract пуст или с полным TS/Pydantic → incomplete
 - Нет Requirements/Stages coverage / Outcome map / Replacement cleanup / intent compressed до «подключить API» → incomplete
 - Dilution: FR nouns не в produces/files → incomplete

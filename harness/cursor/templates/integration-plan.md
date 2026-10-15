@@ -10,6 +10,18 @@
 
 → [yaml/decompose-index.yaml](<plan_id>/yaml/decompose-index.yaml)
 
+## Context consumed
+
+> L2+/portal PLAN Context Pack (до Element registry / Technology axiom). Канон: workflow-plan Hot path 2c.
+
+| Path | Что вошло в wire / Deps / FR |
+|------|------------------------------|
+| `memory-bank/techContext.md` | … |
+| `memory-bank/systemPatterns.md` | … |
+| `memory-bank/projectbrief.md` | … |
+| `memory-bank/architecture/index.md` | … |
+| `memory-bank/product/…` | … (если каталог есть — все файлы прочитаны; иначе `n/a`) |
+
 ## Суть
 
 Master-план wire **всего портала** (или указанного section): каждый route, UI-элемент, API-вызов к БД. Движение — по элементам страниц, не по слоям BACK/FRONT.

@@ -1,0 +1,25 @@
+---
+description: "EVAL step gates — lean load"
+alwaysApply: false
+---
+# EVAL STEP gates (lean)
+
+## Load
+1. `memory-bank/activeContext.md` (slug если есть)
+2. `memory-bank/niche/<slug>/index.yaml` (создай skeleton при отсутствии)
+3. prior shards из `depends_on` текущего step (catalog)
+4. `eval/catalog/steps.yaml` — **только** текущий step блок
+5. Skills — только paths из step.`skills` (Read тел)
+6. validation-mechanism: jump § из step.`consumes` (не весь файл без нужды)
+
+## Forbidden
+- BACK/FRONT IMPLEMENT из EVAL step
+- Все marketing skills сразу
+- Выдуманные volume/CPC как факт
+- ПДн физлиц в yaml
+- Пропуск записи `steps/<step_id>.yaml`
+
+## Done when
+- shard записан со `status`
+- index обновлён
+- чат: verdict + metrics + next_steps

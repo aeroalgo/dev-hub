@@ -23,6 +23,7 @@ alwaysApply: false
 | `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
 | `FRONT AUDIT` | @.cursor/rules/front_developer/workflow-audit.mdc |
 | `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |
+| `FRONT CONTEXT SYNC` | @.cursor/rules/front_developer/workflow-context-sync.mdc — после QA PASS: обновить корневой канон |
 | `FRONT ARCHIVE NOW` | @.cursor/rules/front_developer/workflow-archive.mdc |
 | `FRONT TASK` | @.cursor/rules/front_developer/workflow-task.mdc |
 | `FRONT BUGFIX` | @.cursor/rules/front_developer/workflow-bugfix.mdc |

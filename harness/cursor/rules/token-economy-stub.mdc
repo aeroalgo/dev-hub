@@ -30,7 +30,7 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 
 **`load_now` OK для полного plan:** когда следующий режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
 
-**PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + .cursor/rules/token-economy-core.mdc §0.0.
+**PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + .cursor/rules/token-economy-core.mdc §0.0. **L2+ Context Pack:** techContext · systemPatterns · projectbrief · architecture · **`product/` если каталог есть** (нет → `n/a`); `## Context consumed` в plan.
 
 Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `plan/<epic>/yaml/decompose-index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
 

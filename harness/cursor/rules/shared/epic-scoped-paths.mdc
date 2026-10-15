@@ -87,6 +87,7 @@ alwaysApply: false
 ### Не переносить
 
 - `reflection/**` — остаётся в `{role}/reflection/`
+- `context-sync/**` — остаётся в `{role}/context-sync/` (корневой канон уже обновлён; audit trail)
 - `architecture/**`, `tasks.md`, `tasks/log/**`, `activeContext.md`, код `apps/` / `tests/`
 - Чужие эпики / ad-hoc файлы без этого `epic_id`
 

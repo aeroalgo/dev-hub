@@ -1,0 +1,10 @@
+schema: niche-eval-index/v1
+slug: REPLACE_SLUG
+segment: b2c
+arena: ""
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+steps: {}
+# steps.<step_id>: { status, as_of, path }
+decision: null
+confidence: null

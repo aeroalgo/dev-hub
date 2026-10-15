@@ -17,7 +17,7 @@ alwaysApply: false
 4. Covered row ⇒ measurable `verify` (не map-only / не surrogate-only для product FR)
 4a. **Test scope (HARD):** каждый `sNN` содержит только targeted `verify` по своему `files`/`delta`; full pytest suite в shard запрещён и передаётся **BACK QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
 5. Titles outcome-first; matrix/lifecycle/existing-services → отдельные sNN **только при отдельном outcome** (не micro-ladder schema→CLI→wire)
-5a. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; audit-хвост / docs+Kind I / core+CLI — сливать. shared/workflow-behavior-first.mdc §3a
+5a. **Effort probe + Granularity:** index содержит `effort_probe` / `effort_class` / `sNN_cap` / `sNN_target`; `sNN_count ≤ sNN_cap`; S→cap3 (FAIL если S и count≥5); **FORBIDDEN** min-5; audit-хвост / docs+Kind I / core+CLI — сливать. shared/workflow-behavior-first.mdc §3a
 6. Каждый `sNN`: `epic-decompose/v1` + `role: back` + list `as_built`/`delta` + `deletes` + `plan_contract` + `skills.code_surface` + Core(4) ∪ situational ≤6 (или `omit_justification` на каждый omitted default)
 6a. **Skills HARD:** `code_surface ≠ docs` ⇒ `impl` не `[]` + Core(4); surface defaults ∈ impl|omit_justification; template empty-impl = FAIL; DECOMPOSE = **copy paths** only (@.cursor/rules/shared/_lean/decompose-skills-load.mdc) — Read тел SKILL на DECOMPOSE = incomplete
 7. Brownfield ≠ n/a → `deletes` + `*-legacy-fallback-purge` (+ Kind I)
@@ -28,8 +28,9 @@ alwaysApply: false
 ## Abort (incomplete)
 
 - Нет Requirements/Stages/Outcome/Replacement · dilution · optional_sot ladder gap
-- Micro-ladder / `>9` sNN без justification · audit-* как пачка отдельных sNN без outcome
-- Отказ добавить sNN «слишком много шагов» при непокрытом FR/AC → incomplete (coverage > band)
+- Micro-ladder / нет Effort probe / `sNN_count > sNN_cap` без justification / `effort_class=S` ∧ count≥5 / sNN&lt;0.5ч · audit-* пачкой без outcome
+- Отказ добавить sNN «слишком много шагов» при непокрытом FR/AC → incomplete (coverage > cap)
+- Добивание sNN «чтобы было 5–8» → incomplete (`effort_cap_violation`)
 - CRITICAL>0 · schema ≠ `epic-decompose/v1` · **skills:** empty impl на code · Core partial · situational unjustified / >6 / вне allowlist · Read тел Core/situational SKILL на DECOMPOSE
 - `ANALYZE deferred` · short `plan_id` без slug · код/тесты реализации
 - `needs_creative` open CR без hard-stop · `impl:` с session skills (writing-plans/…)

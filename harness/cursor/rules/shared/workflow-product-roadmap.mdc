@@ -37,13 +37,14 @@ alwaysApply: false
 
 ## SoT (три файла)
 
-| Файл | Роль | Объём | Пишет |
-|------|------|-------|-------|
-| `memory-bank/product/vision.md` | что / зачем / Mode A·D / запреты | полный | `PRODUCT VISION` |
-| `memory-bank/product/phases.md` | волны F* / когда что / ресурсы | полный | `PRODUCT PHASES` |
-| `memory-bank/product/roadmap.md` | lean карта «сейчас / next» | ≤80 строк | **только** `PRODUCT ROADMAP REBUILD` |
+| Файл | Роль | Объём | Пишет | Читает |
+|------|------|-------|-------|--------|
+| `memory-bank/product/vision.md` | что / зачем / Mode A·D / запреты | полный | `PRODUCT VISION` | `* PLAN` Context Pack (L2+) |
+| `memory-bank/product/phases.md` | волны F* / когда что / ресурсы | полный | `PRODUCT PHASES` | `* PLAN` Context Pack (L2+) |
+| `memory-bank/product/roadmap.md` | lean карта «сейчас / next» | ≤80 строк | **только** `PRODUCT ROADMAP REBUILD` | `* PLAN` Context Pack; IMPLEMENT `load_if_needed` |
+| `memory-bank/product/*` (прочие) | validation / eval / oss / pack | полный | ad-hoc / product docs | `* PLAN` Context Pack (L2+ весь каталог) |
 
-**FORBIDDEN:** править `roadmap.md` руками как SoT · класть полный `vision`/`phases` в IMPLEMENT `load_now` · дублировать code-queue длинным текстом в roadmap.
+**FORBIDDEN:** править `roadmap.md` руками как SoT · класть полный `vision`/`phases` в IMPLEMENT `load_now` · дублировать code-queue длинным текстом в roadmap · **пропуск `product/` в L2+ `* PLAN`, если каталог существует** (нет `product/` → OK).
 
 **Code queue (отдельный слой):** `memory-bank/back|front|integration/roadmap/queue.yaml` — нарезается из product roadmap через `* PLAN`, не заменяет product-слой.
 

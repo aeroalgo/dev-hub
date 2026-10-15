@@ -1,0 +1,22 @@
+---
+description: "EVAL assemble/status/finish gates — lean load"
+alwaysApply: false
+---
+# EVAL ASSEMBLE/STATUS/FINISH gates (lean)
+
+## Load
+1. `memory-bank/niche/<slug>/index.yaml`
+2. existing `steps/*.yaml`
+3. для FINISH — `activeContext.md`
+
+## Forbidden
+- Skills marketing на STATUS/ASSEMBLE/FINISH
+- Менять metrics в shards (только читать; ASSEMBLE пишет report.md)
+- Ставить global confidence без gate.yaml
+
+## Done when
+| Команда | Done |
+|---------|------|
+| STATUS | таблица steps + одна next-команда |
+| ASSEMBLE | `report.md` создан/обновлён |
+| FINISH | activeContext Handoff обновлён |

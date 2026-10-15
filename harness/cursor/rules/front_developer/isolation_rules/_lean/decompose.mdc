@@ -15,7 +15,7 @@ alwaysApply: false
 2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; goals связаны с Goal/UX плана (не scaffolding-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (FRONT) + BACK §Maximal detail / §Outcome preserve
 2a1. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; surrogate-only verify для product FR = incomplete. shared/workflow-behavior-first.mdc
 2a1a. **Test scope (HARD):** каждый `sNN` содержит только targeted `verify` по своему `files`/`delta`; full suite в shard запрещён и передаётся **FRONT QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
-2a2. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; micro-ladder / audit-хвост пачкой = incomplete. §3a behavior-first
+2a2. **Effort probe + Granularity:** index `effort_probe` / `effort_class` / `sNN_cap` / `sNN_target`; count ≤ cap; S→3 (FAIL S∧count≥5); **FORBIDDEN** min-5; micro-ladder / audit-хвост пачкой = incomplete. §3a behavior-first
 3. Шаг = один FRONT IMPLEMENT; `step_id`, files, `deletes`, `needs_creative`, `visible_ui`, `tdd`
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify` (не mega-cp = весь экран); непустой `deletes` → ≥1 `rg`/import-audit cp
 3a1. **Schema (HARD):** `schema: epic-decompose/v1` + `role: front` + list `as_built`/`delta` — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** invented schemas (`epic-decompose-shard/*`, …). FINISH: `validate-decompose-tree` fail-closed
@@ -38,8 +38,8 @@ alwaysApply: false
 - Replace UI без `deletes`/follow-up в queue → incomplete
 - Replace без `*-legacy-fallback-purge` при cleanup ≠ n/a → incomplete
 - Непустой `deletes` без `rg`/import-audit cp → incomplete
-- Отказ добавить sNN «слишком много шагов» при непокрытом AC/NFR → incomplete (coverage > band)
-- Micro-ladder / `>9` без justification → incomplete
+- Отказ добавить sNN «слишком много шагов» при непокрытом AC/NFR → incomplete (coverage > cap)
+- Нет Effort probe / `sNN_count > sNN_cap` / S∧count≥5 / добивание min-5 / micro-ladder → incomplete (`effort_cap_violation`)
 - `sNN` без Impl Core (6) → incomplete
 - `sNN` без `visible_ui` → incomplete
 - `visible_ui: yes` без D0 (Lean Core) в `skills.design` → incomplete

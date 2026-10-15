@@ -1,0 +1,31 @@
+---
+description: "EVAL CLARIFY — ambiguity рубрик/источников/метрик до шага"
+alwaysApply: false
+---
+### Команда: EVAL CLARIFY
+**Контекст:** @.cursor/rules/eval/mainrule-core.mdc  
+**Gates:** @.cursor/rules/eval/isolation_rules/_lean/clarify.mdc  
+**Shared clarify (Policy lazy):** @.cursor/rules/shared/workflow-clarify-core.mdc  
+
+**Скиллы (HARD):**
+- @.agents/skills/grill-me/SKILL.md — Phase 0
+
+---
+
+## Когда
+
+- Неясно: какой источник для pay/search, регион, CPL ceiling, b2c vs b2b  
+- CRITICAL перед массовым EVAL SEARCH/PRICE  
+- Не для сбора прайсов (это `EVAL PRICE`)
+
+## Процесс
+
+1. `OK EVAL CLARIFY - <slug>`  
+2. Артефакт: `memory-bank/niche/<slug>/clarify.md`  
+3. Grill + ≤20 Q / ≤4 rounds (shared core)  
+4. Completion Report → next `EVAL <STEP>`
+
+## FORBIDDEN
+
+- Писать steps/*.yaml из clarify (только решения/рубрики)  
+- Уходить в BACK PLAN без запроса кода  

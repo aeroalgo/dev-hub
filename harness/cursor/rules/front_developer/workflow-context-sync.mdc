@@ -1,0 +1,20 @@
+---
+description: "Режим FRONT CONTEXT SYNC — после QA PASS обновить корневой канон по evidence UI-эпика"
+alwaysApply: false
+---
+### Команда: FRONT CONTEXT SYNC
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc  
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/context-sync.mdc  
+**Канон:** @.cursor/rules/shared/workflow-context-sync.mdc
+
+**Вход:** `FRONT CONTEXT SYNC <epic_id>` (или epic из `activeContext`).
+
+## Hot path
+
+1. `OK FRONT CONTEXT SYNC` → Gates + shared Hot path  
+2. Evidence: QA pass + plan axiom / Context consumed + текущий корень  
+3. Diff-only write allowlist (`techContext` · `productContext` · `systemPatterns` · опц. `projectbrief` / `style-guide` при UI tone)  
+4. Artifact: `memory-bank/front/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md`  
+5. **FINISH:** finish-block (`code_changed: no`); next → `FRONT ARCHIVE NOW <epic>` (или next PLAN из queue)
+
+**Верификация**: gates + sync report + no writes вне allowlist

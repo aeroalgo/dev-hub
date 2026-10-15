@@ -20,6 +20,7 @@ PHASES = (
     "AUDIT",
     "QA",
     "BUGFIX",
+    "CONTEXT_SYNC",
 )
 
 PHASE_ENV_NAMES = {
@@ -33,10 +34,10 @@ def _clean_optional(value: str | None) -> str | None:
 
 
 def _phase_key(phase: str | None, step_id: str | None) -> str | None:
-    step = str(step_id or "").strip().upper()
+    step = str(step_id or "").strip().upper().replace(" ", "_")
     if step in PHASES:
         return step
-    value = str(phase or "").strip().upper()
+    value = str(phase or "").strip().upper().replace(" ", "_")
     if value == "DONE" or re.search(r"\bDONE\b", value):
         return None
     for candidate in PHASES:
@@ -136,6 +137,12 @@ class LoopSettings(BaseSettings):
         default=None,
         validation_alias=AliasChoices(
             "LOOP_MODEL_BUGFIX", "PROJECT_LOOP_BUGFIX_MODEL"
+        ),
+    )
+    context_sync_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "LOOP_MODEL_CONTEXT_SYNC", "PROJECT_LOOP_CONTEXT_SYNC_MODEL"
         ),
     )
 
@@ -240,6 +247,7 @@ class LoopSettings(BaseSettings):
         "audit_model",
         "qa_model",
         "bugfix_model",
+        "context_sync_model",
         "codex_bin",
         "claude_path",
         "codex_omniroute_wrapper",

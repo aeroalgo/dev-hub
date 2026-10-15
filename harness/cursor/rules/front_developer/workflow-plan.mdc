@@ -17,6 +17,7 @@ alwaysApply: false
 
 1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`
 2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
+2c. **PLAN Context Pack (L2+, mandatory Read до Technology axiom):** `techContext.md` · `systemPatterns.md` (+ `domain/SP-*` если есть) · `projectbrief.md` · `architecture/index.md` (+ релевантный shard если не stub) · **`memory-bank/product/` если каталог существует** — Read все файлы (SUSPENSION: inventory не lean); **если `product/` нет — skip, не halt**. В `plan.md` секция `## Context consumed` (path → что вошло в axiom/Deps/FR/design; `product/: n/a` если каталога нет). **FORBIDDEN** пропуск `product/` **только когда каталог есть**. FINISH `load_now` не раздувать — monoliths остаются в PLAN-сессии.
 3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `#qa-consumes` ≥3 TM → Review readiness (no pending Required) · E2E + design direction
 3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
@@ -25,7 +26,7 @@ alwaysApply: false
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → Appetite = timebox + cut_list only (не hard cap sNN)
-→ outline / advisory floor: target band **5–8** sNN (L3/L4 ≤9); не раздувать draft до 10–12 «на всякий» — shared/workflow-behavior-first.mdc §3a
+→ outline sNN = **hint** (не min 5–8); финальный count задаёт DECOMPOSE Effort probe (`sNN_cap`) — не раздувать draft до 10–12 «на всякий» — shared/workflow-behavior-first.mdc §3a
 
 ---
 
@@ -49,6 +50,7 @@ alwaysApply: false
 1c. Если вход = research / audit / multi-P / ≥2 UI-surface → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan на весь research
 1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные ID при multi-epic)
+2c. **Context Pack (L2+):** Read Hot path 2c (techContext · systemPatterns · projectbrief · architecture · **`product/` если есть**) до Technology axiom; иначе halt. Нет `product/` → OK (`n/a`).
 3. Skills по UI (design stack + next); skills list в каждом `plan/<task_id>/md/plan.md`
 3a. **Roadmap path (HARD, every PLAN):**
     - single-epic: апсерт одной row в `memory-bank/front/roadmap/queue.yaml` + `batches.<slug>`
@@ -67,4 +69,4 @@ alwaysApply: false
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
 8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
 
-**Верификация**: gates + AC + E2E в плане + CREATIVE need + queue row/reconcile + multi-epic FAIL-checks + brownfield sunset (если replace) + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без ID / без шапки Role·Deps; без чтения соседних plan; без файла → FAIL)
+**Верификация**: gates + AC + E2E в плане + CREATIVE need + queue row/reconcile + multi-epic FAIL-checks + brownfield sunset (если replace) + L2+ Context Pack (`## Context consumed`; `product/` если каталог есть) + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без ID / без шапки Role·Deps; без чтения соседних plan; без файла → FAIL)

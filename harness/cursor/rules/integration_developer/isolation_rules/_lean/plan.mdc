@@ -15,6 +15,7 @@ alwaysApply: false
 0. Phase 0 orchestration: при триггерах — clarify artifact + Completion Report до Phase 1; skip taxonomy-clear → `§Product probe` note
 1. Scope: portal | journey | section
 2. Inventory: routes + UI + back/front implement as-built
+2b. **Context Pack (L2+/portal):** до Element registry / Technology axiom прочитаны `techContext.md` · `systemPatterns.md` · `projectbrief.md` · `architecture/index.md`; если существует `memory-bank/product/` — **все его файлы**; в `plan.md` есть `## Context consumed`. **FAIL** только если `product/` **есть** и пропущен. Нет каталога → `product/: n/a`, не FAIL. FINISH `load_now` без monolith product (только plan/prompt/queue + clarify)
 3. Сначала сохранён/апсёртнут канонический roadmap row, затем план + `md/prompt.md` (начинается с `## Epic` + `## Covering`; без шапки Role/Deps/ID); multi-epic — N rows/plans/prompts
 3a. §0.11; mocks в Element registry; brownfield replace mock/legacy → `## Replacement / sunset` **A+B+C** (DECOMPOSE → `deletes` + purge). Канон: `workflow-legacy-fallback-cleanup.mdc`
 4. Plan: все секции @.cursor/templates/integration-plan.md; Rollout без status-checkboxes; research multi-axis → не один mega-plan
@@ -34,3 +35,5 @@ alwaysApply: false
 - Phase 0 halt → не начинать Phase 1
 - Нет `md/prompt.md` / файл не начинается с `## Epic` / есть H1 `# Outcome prompt` / шапка Role·Deps / ID эпиков / пути чужих plan → halt
 - Агент читает соседние `plan/` из-за prompt → halt
+- L2+/portal без Context Pack / без `## Context consumed` → halt
+- `memory-bank/product/` существует, но не прочитан → halt (нет каталога → OK)

@@ -1,0 +1,22 @@
+---
+description: "BACK CONTEXT SYNC gates — QA pass → root canon refresh"
+alwaysApply: false
+---
+# CONTEXT SYNC — gates (BACK)
+
+**Артефакт:** `memory-bank/back/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md`  
+**Канон:** @.cursor/rules/shared/workflow-context-sync.mdc
+
+## Gates
+
+1. `epic_id` известен (аргумент или activeContext).
+2. QA pass для эпика существует **или** явный `force` после PASS в чате.
+3. Write только allowlist: `techContext.md` · `productContext.md` · `systemPatterns.md` (+ `domain/SP-*`) · `projectbrief.md` (редко) · sync artifact.  
+   **FORBIDDEN:** код · plan/decompose/implement · `product/vision|phases|roadmap`.
+4. Sync report обязателен (включая полный `no-op`).
+5. FINISH → next `BACK ARCHIVE NOW` или next PLAN; graphify skip.
+
+## Abort
+
+- Нет epic / нет QA pass без force → halt  
+- Write вне allowlist → FAIL  

@@ -14,7 +14,8 @@ alwaysApply: false
 |---------|-----------------|
 | `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `plan/<epic>/yaml/decompose-index.yaml`; epic complete → validated YAML index + §Handoff Epic AUDIT (**не** полный plan, **не** QA напрямую) |
 | `* AUDIT` | audit-артефакт в `load_now`; `check_matrix` + `verdict`; actionable `FAIL` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `* QA`; AUDIT **не** выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT; out-of-scope → `replan_candidates` (не findings) |
-| `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** full plan |
+| `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **pass** → next `* CONTEXT SYNC <epic_id>` (до ARCHIVE); **не** full plan |
+| `* CONTEXT SYNC` | sync-артефакт `memory-bank/{role}/context-sync/<epic_id>/sync-*.md` в `load_now` (+ qa link); обновлён корневой канон (diff-only) или явный no-op; loop mark-done в `roadmap/queue.yaml` + auto-arm next epic если есть; иначе next → `* ARCHIVE NOW <epic>` / ROADMAP_DONE; graphify skip |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
 | `* QA` | align after suite |
 | `* ARCHIVE NOW` | clear epic load_now |
@@ -36,7 +37,7 @@ alwaysApply: false
 
 ## graphify update
 
-После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/ARCHIVE.
+После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/CONTEXT SYNC/ARCHIVE.
 
 ## Forbidden at FINISH
 

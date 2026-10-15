@@ -25,7 +25,7 @@ alwaysApply: false
 
 Как BACK: нарезать без сужения Goal/UX/NFR плана. В YAML index и `plan_refs`/`plan_contract` — **Outcome map (plan → steps)**. Каждый `sNN.goal` — user-visible / UX outcome, не только «создать компонент».
 
-**Maximal detail (HARD):** как BACK `workflow-decompose.mdc` §Maximal detail — обязательны **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый AC/NFR/этап UX плана → sNN; brownfield replace → `deletes`); decompose artifacts без telegraph; **Maximal detail ≠ maximal step count** — target **5–8** sNN (≤9 L3/L4), shared/workflow-behavior-first.mdc §3a; черновик count в plan — floor, не ceiling. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон формулировок: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve (роль FRONT) + **§Replacement cleanup ниже**.
+**Maximal detail (HARD):** как BACK `workflow-decompose.mdc` §Maximal detail — обязательны **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый AC/NFR/этап UX плана → sNN; brownfield replace → `deletes`); decompose artifacts без telegraph; **Maximal detail ≠ maximal step count** — **Effort probe** (`sNN_target`≤`sNN_cap`; S→3 · M→5 · L→8; **5–8 не min**), shared/workflow-behavior-first.mdc §3a; plan outline — hint, не контракт. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон формулировок: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve (роль FRONT) + **§Replacement cleanup ниже**.
 
 ---
 

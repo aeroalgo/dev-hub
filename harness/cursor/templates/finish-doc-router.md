@@ -51,7 +51,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 ## tasks.md Index
 
 - IMPLEMENT sNN: **не** трогать руками — пишет `finalize-step` (`tasks/log` всегда; Active-строка только при смене фазы эпика)
-- PLAN / DECOMPOSE / QA / ARCHIVE: обновить колонки **Step**, **Status** и **Progress** для T-xxx
+- PLAN / DECOMPOSE / QA / CONTEXT SYNC / ARCHIVE: обновить колонки **Step**, **Status** и **Progress** для T-xxx
 - last-5: только при смене фазы, не на каждый sNN
 
 ## Delivery log
@@ -62,7 +62,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 | YYYY-MM-DD | T-xxx | BACK IMPLEMENT sNN | [sNN-slug.yaml](back/implement/.../sNN-slug.yaml) |
 ```
 
-**Когда руками:** FINISH PLAN / DECOMPOSE / CREATIVE / QA / BUGFIX / TASK / ARCHIVE.
+**Когда руками:** FINISH PLAN / DECOMPOSE / CREATIVE / QA / CONTEXT SYNC / BUGFIX / TASK / ARCHIVE.
 **Пропуск агентом:** checkbox внутри шага; IMPLEMENT sNN (хук).
 
 ## Shard checkbox / implement (ORDER — до decompose completed)
@@ -115,9 +115,9 @@ QA (обязателен всегда — pass и blocked). Роль: `BACK` | `
 Без эпика: путь плоско `memory-bank/back/qa/qa-….yaml`. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc.
 
 **pass** — добавить:
-- **Следующий:** BACK IMPLEMENT sNN+1 | ARCHIVE NOW
+- **Следующий:** `BACK CONTEXT SYNC <epic_id>` → затем `ARCHIVE NOW`
 - **Кратко:** suite green; scope подтверждён
-- **New chat:** yes → следующий IMPLEMENT или ARCHIVE NOW
+- **New chat:** yes → `BACK CONTEXT SYNC <epic_id>`
 
 **fail | blocked** — добавить (обязательно):
 - **Следующий:** `BACK BUGFIX` (первая строка Fix plan) → затем повторный `BACK QA`
@@ -215,3 +215,19 @@ BUGFIX завершён. Повторная валидация эпики.
 Для FRONT/INTEG — заменить префикс (`FRONT QA`, `INTEG BUGFIX`, пути `front/` / `integration/`).
 
 Подставить реальные T-xxx, plan_id, subject, paths.
+
+---
+
+CONTEXT SYNC (после QA pass). Роль: `BACK` | `FRONT` | `INTEG`.
+
+```markdown
+## Handoff BACK CONTEXT SYNC <epic_id>
+
+- **Предыдущий:** BACK QA — pass
+- **Артефакт:** memory-bank/back/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md
+- **Root updates:** techContext | productContext | systemPatterns | no-op (см. report)
+- **code_changed:** no
+- **Следующий:** next epic из `roadmap/queue.yaml` (loop auto-arm) | `BACK ARCHIVE NOW <epic_id>` если queue пуст
+- **New chat:** yes → next DECOMPOSE / ARCHIVE
+```
+

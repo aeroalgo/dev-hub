@@ -56,7 +56,7 @@ alwaysApply: false
 | `feature_ui` | страница, компонент, UX | `dev-hub-software` | **DECIDE** → FRONT VAN → FRONT CREATIVE → FRONT PLAN → FRONT IMPLEMENT → FRONT QA |
 | `feature_api` | эндпоинт, сервис, БД | `dev-hub-software` | **DECIDE** → BACK VAN → BACK CREATIVE → BACK PLAN → BACK IMPLEMENT → BACK QA |
 | `content` | гайды, SEO-тексты, хабы | `dev-hub-software` | **DECIDE** → CONTENT PLAN → CONTENT WRITE → CONTENT LAUNCH |
-| `growth` | ads, email, retention | `dev-hub-software` | **DECIDE** → MARKETING PLAN → MARKETING * |
+| `growth` | ads, email, retention, оценка ниши/спроса/чека | `dev-hub-software` | **DECIDE** → `EVAL FRAME`…`EVAL GATE` (см. eval/mainrule) → при сигнале smoke/LANDING; MARKETING * archived — не звать |
 | `initiative` | новая инициатива, multi-sprint | `dev-hub-software` | **DECIDE** → PM INIT → PM DISCOVER → PM PLAN → ROADMAP → BACKLOG |
 | `video_production` | сценарий, видеоролик, сториборд, монтаж, публикация видео | `video-production` | **DECIDE** → SCRIPT PLAN → SCRIPT DECOMPOSE → VISUAL STORYBOARD → POST EDIT → POST PUBLISH |
 | `content_factory` | конвейер контента, короткие видео, рилсы, shorts | `video-production` | **DECIDE** → SCRIPT PLAN → SCRIPT DECOMPOSE → VISUAL STORYBOARD → POST EDIT → POST PUBLISH |

@@ -42,7 +42,12 @@ Managed gate-субагент завершает ответ ровно одни�
 `verify-qa: FAIL`: если последний `qa-*.yaml` имеет `verdict: fail|failed|blocked`
 и `bugfix-queue.yaml` проходит intake-проверку, boundary атомарно переводит
 курсор `QA → BUGFIX`. После завершения BUGFIX следующий валидный gate возвращает
-его в QA и требует новый QA artifact. Повторный callback идемпотентен, а три
+его в QA и требует новый QA artifact. При QA PASS курсор идёт в `CONTEXT_SYNC`
+(нужен `context-sync/<epic>/sync-*.md`), затем loop **marks the epic done** in
+`memory-bank/<role>/roadmap/queue.yaml` and, if the queue still has a head with
+`plan.md`, **arms the next epic** (usually `DECOMPOSE`). Empty queue / no queue
+file → `DONE`. ARCHIVE остаётся операторской командой после финального DONE.
+Cadence pause только при `LOOP_RESPECT_CADENCE=1`. Повторный callback идемпотентен, а три
 некорректных JSON-ответа переводят курсор в `HALTED`.
 
 Проверка payload до финального ответа агента:

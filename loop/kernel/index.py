@@ -225,7 +225,12 @@ def phase_artifacts(project: Path, role: str, epic_id: str, kind: str) -> list[P
     root = project / "memory-bank" / normalize_role(role) / kind / epic_id
     if not root.is_dir():
         return []
-    pattern = "qa-*.yaml" if kind == "qa" else "*.yaml"
+    if kind == "qa":
+        pattern = "qa-*.yaml"
+    elif kind == "context-sync":
+        pattern = "sync-*.md"
+    else:
+        pattern = "*.yaml"
     return sorted(root.glob(pattern))
 
 
@@ -292,12 +297,17 @@ def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, st
     items = payload.get("items")
     if not isinstance(items, list) or not items:
         return False, "bugfix_queue_items_missing"
-    statuses = {str(item.get("status") or "").strip().lower() for item in items if isinstance(item, dict)}
-    if len(statuses) != len(items) or not statuses.issubset({"open", "in_progress", "blocked", "done", "closed", "cancelled"}):
-        return False, "bugfix_queue_item_invalid"
-    if sum(status == "in_progress" for status in (str(item.get("status") or "").strip().lower() for item in items if isinstance(item, dict))) > 1:
+    statuses: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            return False, "bugfix_queue_item_invalid"
+        status = str(item.get("status") or "").strip().lower()
+        if status not in {"open", "in_progress", "blocked", "done", "closed", "cancelled"}:
+            return False, "bugfix_queue_item_invalid"
+        statuses.append(status)
+    if statuses.count("in_progress") > 1:
         return False, "bugfix_queue_multiple_in_progress"
-    if statuses.intersection({"open", "in_progress", "blocked"}):
+    if any(status in {"open", "in_progress", "blocked"} for status in statuses):
         return False, "bugfix_queue_open"
     verification = payload.get("verification")
     if not isinstance(verification, dict) or str(verification.get("status") or "").strip().lower() != "pass":

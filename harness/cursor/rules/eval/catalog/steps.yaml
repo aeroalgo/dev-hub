@@ -1,0 +1,306 @@
+# EVAL step catalog — обогащаемый SoT шагов
+# schema: niche-eval-catalog/v1
+# Правки: добавляй sources/metrics/skills; не ломай step_id без миграции shards.
+
+schema: niche-eval-catalog/v1
+default_pipeline:
+  - frame
+  - hypothesis
+  - pain
+  - pay
+  - price
+  - search
+  - match
+  - compete
+  - ads
+  - economics
+  - gate
+  # optional after gate:
+  - talk
+  - landing
+  - smoke
+  - scale
+
+steps:
+  frame:
+    command: EVAL FRAME
+    title: Рамка ниши
+    consumes: "validation-mechanism §2 · §7.1/1"
+    depends_on: []
+    allow_fetch: false
+    skills:
+      - .agents/skills/product-discovery/SKILL.md
+      - .agents/skills/brainstorming/SKILL.md
+    inputs:
+      required: [arena_or_product]
+      optional: [geo, segment_hint, urls]
+    outputs: [segment, arena, geo, edge_actor_draft, payer_draft]
+    gate: "segment и arena названы; иначе insufficient"
+    next: [hypothesis]
+    enrich_notes: "Сюда же позже: язык ниши, ограничения ops"
+
+  hypothesis:
+    command: EVAL HYPOTHESIS
+    title: Карточка гипотезы
+    consumes: "validation-mechanism §3.1 · §7.1/4b"
+    depends_on: [frame]
+    allow_fetch: false
+    skills:
+      - .agents/skills/product-discovery/SKILL.md
+      - .agents/skills/grill-me/SKILL.md
+    inputs:
+      required: [friction_or_offer]
+      optional: [workaround, pattern_id, substitute_type, custom_delta]
+    outputs: [friction, edge_actor, payer, workaround, offer_hypothesis, pattern_id, substitute_type, custom_delta, commodity_verdict_draft]
+    gate: |
+      friction + кто + arena; одна жалоба без кто → insufficient;
+      для product/оффер-гипотез: substitute_type + custom_delta обязательны
+      (иначе commodity_verdict_draft=unknown → GATE later fail-closed)
+    next: [pain, pay]
+    enrich_notes: "P1…P8 optional; полка vs кастом — validation-mechanism §7.1/4b"
+
+  pain:
+    command: EVAL PAIN
+    title: Боль × повтор
+    consumes: "validation-mechanism §3.3/1-2 · §7.1/3"
+    depends_on: [hypothesis]
+    allow_fetch: true
+    skills:
+      - .agents/skills/customer-research/SKILL.md
+      - .agents/skills/community-marketing/SKILL.md
+      - .agents/skills/social/SKILL.md
+    inputs:
+      required: [evidence_items_min_2]
+      optional: [tg, threads, reviews, forums]
+    outputs: [pain_sources_n, pain_mention_refs, repeat_ok]
+    gate: "≥2 независимых источника → repeat_ok; иначе status insufficient/low"
+    next: [pay, search]
+    enrich_notes: "Добавлять площадки в sources[] по мере пайплайна"
+
+  pay:
+    command: EVAL PAY
+    title: Сигнал «уже платят»
+    consumes: "validation-mechanism §3.3/3 · §7.1/4b · §7.2"
+    depends_on: [hypothesis]
+    allow_fetch: true
+    skills:
+      - .agents/skills/offers/SKILL.md
+      - .agents/skills/pricing/SKILL.md
+      - .agents/skills/competitor-analysis/SKILL.md
+    inputs:
+      required: [pay_signal_examples]
+      optional: [reviews_paid, ads_screens, mom_test_past, substitute_type, custom_delta, commodity_verdict, live_fetch_sources, hh_query]
+    outputs: [pay_signal_kind, pay_signal_ok, evidence_refs, substitute_type, custom_delta, commodity_verdict, custom_edge_ok]
+    gate: |
+      хотя бы один валидный pay_signal_kind; иначе pay_signal_ok=false;
+      commodity_verdict=commodity → custom_edge_ok=false (полка выигрывает);
+      hybrid без pay на custom → custom_edge_ok=false;
+      custom_only + pay_ok → custom_edge_ok=true
+    next: [price, economics, gate]
+    enrich_notes: "B2B: HH/org (live-fetch адаптер hh или ручной импорт); B2C: костыль/прайс/отзыв/ads; полка ≠ willingness платить за кастом"
+
+  price:
+    command: EVAL PRICE
+    title: Средний чек / вилка цен
+    consumes: "validation-mechanism §7.2 · §7.3 avg_market_check · §7.6/9"
+    depends_on: [frame]
+    allow_fetch: true
+    skills:
+      - .agents/skills/pricing/SKILL.md
+      - .agents/skills/competitor-analysis/SKILL.md
+      - .agents/skills/serp-analysis/SKILL.md
+    inputs:
+      required: [price_samples]
+      optional: [currency, unit, region, live_fetch_sources, avito_query]
+    outputs: [avg_market_check, price_p25, price_p75, sample_n, outliers_n, commodity_avg, custom_avg]
+    gate: |
+      sample_n≥3 для ok; 1–2 → estimate+insufficient для ceiling;
+      price_samples с tier commodity|custom — не смешивать в один avg без тега
+    next: [economics, pay]
+    enrich_notes: "Live-fetch адаптер Авито (T-009) или ручной paste/CSV + tier на sample; доп. витрины (Услуги/WB) в бэклоге"
+
+  search:
+    command: EVAL SEARCH
+    title: Поисковый спрос
+    consumes: "validation-mechanism §7.1/5 · search_demand"
+    depends_on: [hypothesis]
+    allow_fetch: true
+    skills:
+      - .agents/skills/keyword-research/SKILL.md
+      - .agents/skills/seo-cluster/SKILL.md
+      - .agents/skills/serp-analysis/SKILL.md
+    inputs:
+      required: [seed_phrases_or_wordstat_export]
+      optional: [region, trends_export, related, live_fetch_sources, wordstat_phrases]
+    outputs: [search_demand, search_volume, trend, intent_mix, channel_fit_hint]
+    gate: "нельзя выдумывать volume; нет данных → insufficient"
+    next: [match, ads]
+    enrich_notes: "Live-fetch адаптер официального API Wordstat (T-009) или ручной экспорт; Trends/Keys.so later"
+
+  match:
+    command: EVAL MATCH
+    title: Match боль ↔ запрос ↔ оффер
+    consumes: "validation-mechanism §7.1/6 · KeywordPack/LandingMap · §7.1/4b"
+    depends_on: [pain, search]
+    allow_fetch: false
+    skills:
+      - .agents/skills/keyword-research/SKILL.md
+      - .agents/skills/seo-content-brief/SKILL.md
+      - .agents/skills/offers/SKILL.md
+    inputs:
+      required: [pain_phrases_or_pain_shard, search_shard_or_phrases]
+      optional: [offer_hypothesis, commodity_phrase_hints]
+    outputs: [keyword_pack, landing_map, ads_safe_candidates, do_not_bid]
+    gate: |
+      есть ≥1 узкий commercial cluster; широкое only → do_not_bid;
+      commodity / «купить готовую форму» без custom intent → do_not_bid
+    next: [compete, ads, economics, landing]
+    enrich_notes: "commodity phrases не биддить"
+
+  ads:
+    command: EVAL ADS
+    title: Реклама / CPC / след конкурентов
+    consumes: "validation-mechanism §7.1/7-8 · ads_competitor"
+    depends_on: [search]
+    allow_fetch: true
+    skills:
+      - .agents/skills/ads/SKILL.md
+      - .agents/skills/ad-creative/SKILL.md
+      - .agents/skills/serp-analysis/SKILL.md
+    inputs:
+      required: [phrases_or_match_shard]
+      optional: [direct_forecast, auction_notes, competitor_ads]
+    outputs: [cpc_est, ads_competitor_seen, competition_density]
+    gate: "cpc_est без источника → estimate:true; выдумка FORBIDDEN"
+    next: [economics, compete]
+    enrich_notes: "Директ прогноз / публичные объявления"
+
+  economics:
+    command: EVAL ECONOMICS
+    title: Unit economics до трафика
+    consumes: "validation-mechanism §7.1/7 · §7.3 L0 cost"
+    depends_on: [price, ads]
+    allow_fetch: false
+    skills:
+      - .agents/skills/pricing/SKILL.md
+      - .agents/skills/ads/SKILL.md
+      - .agents/skills/analytics/SKILL.md
+    inputs:
+      required: [avg_or_price_shard, cpc_or_ads_shard]
+      optional: [margin, cr_landing_est, cr_to_pay]
+    outputs: [cpl_est, cpl_ceiling, economics_ok, assumptions]
+    gate: "без ceiling → insufficient; economics_ok явный bool"
+    next: [gate, landing]
+    enrich_notes: "Формула ceiling = f(check, margin, CR)"
+
+  compete:
+    command: EVAL COMPETE
+    title: Конкуренты, SERP и organic presence
+    consumes: "validation-mechanism §7.1/8 · §7.3 · §7.6/10–11 · eval-pipeline COMPETE"
+    depends_on: [match]
+    allow_fetch: true
+    skills:
+      - .agents/skills/competitor-analysis/SKILL.md
+      - .agents/skills/serp-analysis/SKILL.md
+      - .agents/skills/seo-competitor-pages/SKILL.md
+    inputs:
+      required: [serp_rows]
+      optional: [offline_presence, notes, live_fetch_sources, serp_queries, presence_queries]
+    outputs: [organic_density, presence_gap, serp_landing_quality, narrative_assessment, gaps, competitors_found]
+    gate: |
+      Обязательный этап аудита, но НЕ является гейтом (не останавливает аудит и не меняет gate.decision).
+      Whitespace и dense — оба информативны и ведут к дальнейшему анализу спроса/денег.
+      Требует ≥1 валидную SERP строку с качеством (weak|adequate|strong); иначе status=insufficient.
+    next: [ads, economics, gate]
+    enrich_notes: "Dual-mode (T-009): live fetch адаптеры (SERP DataForSEO provider, 2GIS presence, HH vacancies) или import-first (T-011 paste SERP rows + offline presence). Обработчик шага детерминирован без прямого сетевого I/O (fetch через outbox job). Полка/substitute оценивается в PAY/HYPOTHESIS, не заменяет SERP presence."
+
+  gate:
+    command: EVAL GATE
+    title: Сводка L0 → decision
+    consumes: "validation-mechanism §3.3 · §7.1/4b · §7.5 · §8"
+    depends_on: [hypothesis, pain, pay]
+    allow_fetch: false
+    skills:
+      - .agents/skills/grill-me/SKILL.md
+    inputs:
+      required: [prior_shards]
+      optional: [search, economics, match, compete]
+    outputs: [confidence, decision, economics_ok_ref, custom_edge_ok, reasons]
+    gate: |
+      low: нет боли/повтора/pay;
+      stop: commodity_verdict=commodity или custom_edge_ok=false при product-оффере;
+      med: боль+повтор+pay+custom_edge_ok (+ желательно match/economics);
+      high: только если talk/smoke дали pay/book — иначе FORBIDDEN
+    next: [talk, landing, assemble]
+    enrich_notes: "decision: stop|talk|smoke|scale; shelf vs custom — HARD kill"
+
+  talk:
+    command: EVAL TALK
+    title: Mom Test синтез (L1)
+    consumes: "validation-mechanism §7.3 L1 · §7.1/11"
+    depends_on: [gate]
+    allow_fetch: false
+    skills:
+      - .agents/skills/discovery-interview-prep/SKILL.md
+      - .agents/skills/customer-research/SKILL.md
+    inputs:
+      required: [interview_notes]
+      optional: [touch_list]
+    outputs: [talks_n, past_paid_share, willing_next_step]
+    gate: "talks_n≥5 для med→high претензии; меньше — local only"
+    next: [landing, smoke, gate]
+    enrich_notes: ""
+
+  landing:
+    command: EVAL LANDING
+    title: Smoke landing copy/spec
+    consumes: "validation-mechanism §7.1/10 · LandingMap"
+    depends_on: [match, gate]
+    allow_fetch: false
+    skills:
+      - .agents/skills/landing-page-copywriter/SKILL.md
+      - .agents/skills/copywriting/SKILL.md
+      - .agents/skills/cro/SKILL.md
+    inputs:
+      required: [landing_map_or_primary_query]
+      optional: [offer, proof]
+    outputs: [landing_spec, headline, subhead, cta, minus_themes]
+    gate: "только если gate decision smoke|scale или явный override; ads_safe"
+    next: [smoke]
+    enrich_notes: "Не фабрика страниц"
+
+  smoke:
+    command: EVAL SMOKE
+    title: Фактические метрики теста (L2)
+    consumes: "validation-mechanism §7.3 L2"
+    depends_on: [landing]
+    allow_fetch: false
+    skills:
+      - .agents/skills/analytics/SKILL.md
+      - .agents/skills/cro/SKILL.md
+      - .agents/skills/ads/SKILL.md
+    inputs:
+      required: [campaign_or_analytics_export]
+      optional: [leads_quality_notes]
+    outputs: [cpc_fact, cpl_fact, cr_landing, lead_quality, pay_or_book]
+    gate: "без факта трафика → insufficient"
+    next: [scale, gate]
+    enrich_notes: ""
+
+  scale:
+    command: EVAL SCALE
+    title: Scale gen / кластеры
+    consumes: "validation-mechanism §7.1/12 · §7.3 L3"
+    depends_on: [smoke]
+    allow_fetch: false
+    skills:
+      - .agents/skills/programmatic-seo/SKILL.md
+      - .agents/skills/seo-programmatic/SKILL.md
+      - .agents/skills/seo-content-brief/SKILL.md
+    inputs:
+      required: [smoke_ok_clusters]
+      optional: [keyword_pack]
+    outputs: [clusters_live_plan, kill_list, repeatable_hint]
+    gate: "smoke cpl_fact≤ceiling и pay_or_book; иначе blocked"
+    next: [assemble]
+    enrich_notes: "Programmatic only after smoke"

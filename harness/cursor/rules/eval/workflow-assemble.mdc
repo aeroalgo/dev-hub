@@ -1,0 +1,50 @@
+---
+description: "EVAL STATUS / ASSEMBLE / FINISH — сводка shards и отчёт ниши"
+alwaysApply: false
+---
+### Команды: EVAL STATUS · EVAL ASSEMBLE · EVAL FINISH
+**Контекст:** @.cursor/rules/eval/mainrule-core.mdc  
+**Gates:** @.cursor/rules/eval/isolation_rules/_lean/assemble.mdc  
+**Каталог:** @.cursor/rules/eval/catalog/steps.yaml  
+
+**Скиллы:** none (не грузить marketing skills)
+
+---
+
+## EVAL STATUS
+
+1. `OK EVAL STATUS - <slug>`  
+2. Прочитай `memory-bank/niche/<slug>/index.yaml` + список `steps/*.yaml`  
+3. Таблица: step · status · as_of · gaps  
+4. Рекомендуй **одну** next команду (первый missing required в default_pipeline catalog)  
+5. Не пиши report.md
+
+---
+
+## EVAL ASSEMBLE
+
+1. `OK EVAL ASSEMBLE - <slug>`  
+2. Load все ok/insufficient shards  
+3. Write `memory-bank/niche/<slug>/report.md`:
+   - гипотеза / сегмент  
+   - сводка metrics по шагам  
+   - decision из `gate` если есть, иначе «GATE pending»  
+   - gaps и next  
+4. Не поднимай confidence сам — только цитируй `gate.yaml`
+
+---
+
+## EVAL FINISH
+
+1. Обнови `memory-bank/activeContext.md` Handoff:
+   - current: `EVAL / <slug> / <last_step|ASSEMBLE>`  
+   - load_now: `niche/<slug>/index.yaml` (+ report.md если был)  
+2. Краткий итог в чат  
+3. `code_changed: no`
+
+---
+
+## Default pipeline order (подсказка next)
+
+См. `catalog/steps.yaml` → `default_pipeline`.  
+B2C типично: frame → hypothesis → pain → pay|price → search → match → economics → compete → gate → (talk|landing|smoke|scale).

@@ -28,7 +28,7 @@ alwaysApply: false
 4. Exploratory browser если live app; иначе `skip: no live app`
 5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список.
 5a. **fail|blocked:** до FINISH создать/merge `memory-bank/front/bugfix/<epic_id>/bugfix-queue.yaml`; Handoff `load_now` обязан включать queue — `finish-doc-router.md`.
-6. FINISH: finish-block (`code_changed: no`); next-mode — `memory-bank/activeContext.md` + decompose index
+6. FINISH: finish-block (`code_changed: no`); next-mode — `memory-bank/activeContext.md` + decompose index; **pass** → `* CONTEXT SYNC <epic_id>`
 
 ## Abort
 

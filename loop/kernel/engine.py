@@ -27,6 +27,7 @@ from .index import (
 from .model import Cursor, CursorStatus, FailureRecord, Transition
 from .store import CommitResult, LoopPaths, StoreTransaction, TransactionPlan, CursorStore, file_digest
 from .verdict import GateVerdict, MANAGED_GATE_AGENTS
+from .roadmap import prepare_advance_after_context_sync
 
 
 class TransitionError(RuntimeError):
@@ -86,7 +87,10 @@ class LoopEngine:
                 return "QA", "bugfix exists; re-qa required"
             return "BUGFIX", "qa failed"
         if verdict in {"pass", "passed", "complete", "completed"}:
-            return "DONE", "qa passed"
+            sync = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "context-sync")
+            if sync:
+                return "DONE", "context sync complete"
+            return "CONTEXT_SYNC", "qa passed; context sync required"
         return "QA", "qa verdict missing"
 
     def _target(self, cursor: Cursor, queue: Queue | None = None) -> tuple[str, str, str]:
@@ -148,6 +152,7 @@ class LoopEngine:
             "AUDIT": "audit",
             "QA": "qa",
             "BUGFIX": "bugfix",
+            "CONTEXT_SYNC": "context-sync",
         }
         artifact_kind = phase_directories.get(cursor.phase)
         next_load_number = 2
@@ -307,6 +312,13 @@ class LoopEngine:
             queue_ready, queue_reason = bugfix_queue_state(self.paths.project, queue.role, queue.epic_id)
             if not queue_ready:
                 raise TransitionError(f"cannot finish BUGFIX: {queue_reason}")
+        elif cursor.phase == "CONTEXT_SYNC":
+            sync = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "context-sync")
+            if not sync:
+                raise TransitionError(
+                    "cannot finish CONTEXT_SYNC without sync-*.md under "
+                    f"memory-bank/{queue.role}/context-sync/{queue.epic_id}/"
+                )
 
         if cursor.phase == "DECOMPOSE":
             phase, next_step, target_reason = "ANALYZE", "ANALYZE", "decompose index created"
@@ -318,7 +330,6 @@ class LoopEngine:
         candidate.attempt = 0
         candidate.failure = None
         candidate.phase_epoch += 1
-        mutations.append(transaction.mutation(self.paths.active_context, self._render_body(candidate, next_queue)))
         transition_event = {
             **event,
             "reason": reason,
@@ -328,6 +339,45 @@ class LoopEngine:
             "step_id": next_step,
             "target_reason": target_reason,
         }
+        render_queue = next_queue
+
+        if cursor.phase == "CONTEXT_SYNC" and phase == "DONE":
+            try:
+                advance = prepare_advance_after_context_sync(
+                    self.paths.project,
+                    role=cursor.role,
+                    epic_id=cursor.epic_id,
+                )
+            except ValueError as exc:
+                raise TransitionError(f"cannot finish CONTEXT_SYNC: {exc}") from exc
+            if advance.queue_body and advance.queue_path is not None:
+                mutations.append(transaction.mutation(advance.queue_path, advance.queue_body))
+            transition_event["roadmap_marked"] = advance.marked
+            transition_event["roadmap_skipped"] = advance.skipped
+            if advance.blocked_reason:
+                transition_event["roadmap_blocked"] = advance.blocked_reason
+            if advance.next_epic_id and not advance.complete:
+                candidate.epic_id = advance.next_epic_id
+                candidate.role = cursor.role
+                candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
+                try:
+                    phase, next_step, target_reason = self._target(candidate)
+                except FileNotFoundError as exc:
+                    raise TransitionError(f"cannot advance roadmap: {exc}") from exc
+                candidate.phase, candidate.step_id = phase, next_step
+                candidate.status = CursorStatus.ACTIVE
+                transition_event["phase"] = phase
+                transition_event["step_id"] = next_step
+                transition_event["target_reason"] = f"roadmap advance → {advance.next_epic_id}: {target_reason}"
+                transition_event["next_epic_id"] = advance.next_epic_id
+                transition_event["next_kind"] = advance.next_kind
+                render_queue = None
+                try:
+                    render_queue = self._queue(candidate)
+                except Exception:
+                    render_queue = None
+
+        mutations.append(transaction.mutation(self.paths.active_context, self._render_body(candidate, render_queue)))
         if cursor.phase == "BUGFIX":
             qa_artifacts = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "qa")
             if qa_artifacts:
@@ -422,7 +472,7 @@ class LoopEngine:
 
     def rewind(self, phase: str, *, reason: str = "manual rewind") -> Transition:
         target_phase = str(phase or "").strip().upper()
-        if target_phase not in {"DECOMPOSE", "ANALYZE", "AUDIT", "QA", "BUGFIX"}:
+        if target_phase not in {"DECOMPOSE", "ANALYZE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC"}:
             raise TransitionError(f"unsupported rewind phase: {phase!r}")
 
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:

@@ -1,0 +1,13 @@
+schema: niche-eval-step/v1
+step_id: REPLACE_STEP
+slug: REPLACE_SLUG
+segment: b2c
+as_of: YYYY-MM-DD
+status: insufficient
+inputs: []
+metrics: {}
+verdict: ""
+confidence_local: low
+gaps: []
+next_steps: []
+sources: []

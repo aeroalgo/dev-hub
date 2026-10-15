@@ -28,6 +28,7 @@ alwaysApply: false
 | `INTEG IMPLEMENT` | @.cursor/rules/integration_developer/workflow-implement.mdc |
 | `INTEG AUDIT` | @.cursor/rules/integration_developer/workflow-audit.mdc |
 | `INTEG QA` | @.cursor/rules/integration_developer/workflow-qa.mdc |
+| `INTEG CONTEXT SYNC` | @.cursor/rules/integration_developer/workflow-context-sync.mdc — после QA PASS: обновить корневой канон |
 | `INTEG ARCHIVE NOW` | @.cursor/rules/integration_developer/workflow-archive.mdc |
 | `INTEG TASK` | @.cursor/rules/integration_developer/workflow-task.mdc |
 | `INTEG BUGFIX` | @.cursor/rules/integration_developer/workflow-bugfix.mdc |

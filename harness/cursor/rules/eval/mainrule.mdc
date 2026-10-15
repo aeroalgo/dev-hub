@@ -1,0 +1,58 @@
+---
+description: "EVAL — индекс команд оценки ниши (шаги pipeline, не BACK/FRONT)"
+alwaysApply: false
+---
+# EVAL WORKFLOW — ИНДЕКС
+
+Папка: `.cursor/rules/eval/`  
+**Роутер:** @.cursor/rules/mainrule.mdc  
+**Core:** @.cursor/rules/eval/mainrule-core.mdc  
+**Каталог шагов (обогащаемый):** @.cursor/rules/eval/catalog/steps.yaml  
+**Канон поведения:** `memory-bank/product/validation-mechanism.md` (§3 gate · §7 B2C)  
+**Карта для людей:** `memory-bank/product/eval-pipeline.md`
+
+**Не путать с BACK *:** здесь нет кода продукта / TDD / queue эпиков.  
+EVAL = собрать/принять данные → tool calls → метрики → вердикт шага → shard.
+
+## Happy path (шаговые команды)
+
+Один runtime: @.cursor/rules/eval/workflow-step.mdc  
+Конкретный STEP и skills — из `catalog/steps.yaml`.
+
+| Команда | step_id | Зачем |
+|---------|---------|--------|
+| `EVAL FRAME` | frame | арена, гео, сегмент b2c\|b2b |
+| `EVAL HYPOTHESIS` | hypothesis | карточка гипотезы |
+| `EVAL PAIN` | pain | боль × повтор multi-source |
+| `EVAL PAY` | pay | сигнал «уже платят» без своего заказа |
+| `EVAL PRICE` | price | вилки чека / прайсы услуг |
+| `EVAL SEARCH` | search | спрос в поиске (Вордстат/Trends/…) |
+| `EVAL MATCH` | match | боль ↔ запросы ↔ угол (KeywordPack/LandingMap) |
+| `EVAL ADS` | ads | CPC/рекламный след / конкуренция в Ads |
+| `EVAL ECONOMICS` | economics | CPL ceiling, economics_ok |
+| `EVAL COMPETE` | compete | выдача, офферы, gap |
+| `EVAL GATE` | gate | сводка L0 → confidence + decision |
+| `EVAL TALK` | talk | синтез Mom Test (L1) |
+| `EVAL LANDING` | landing | smoke copy / LandingSpec |
+| `EVAL SMOKE` | smoke | фактические метрики теста (L2) |
+| `EVAL SCALE` | scale | какие кластеры масштабировать (L3) |
+
+## Оркестрация / сессия
+
+| Команда | Процесс |
+|---------|---------|
+| `EVAL STATUS` | @.cursor/rules/eval/workflow-assemble.mdc — какие shards есть, next |
+| `EVAL ASSEMBLE` | тот же — склеить отчёт ниши из shards |
+| `EVAL FINISH` | тот же — handoff activeContext |
+| `EVAL CLARIFY` | @.cursor/rules/eval/workflow-clarify.mdc — ambiguity рубрики/источников |
+
+## Gates
+
+- Step: @.cursor/rules/eval/isolation_rules/_lean/step.mdc  
+- Assemble/Status/Finish: @.cursor/rules/eval/isolation_rules/_lean/assemble.mdc  
+- Clarify: @.cursor/rules/eval/isolation_rules/_lean/clarify.mdc  
+
+## Обогащение pipeline
+
+Новый источник/парсер/метрика → строка в `catalog/steps.yaml` (+ при необходимости секция в `eval-pipeline.md`).  
+**Не** плодить отдельный workflow-файл на каждый мелкий источник без нового `step_id`.

@@ -1,0 +1,64 @@
+---
+description: "CONTEXT SYNC — после QA PASS обновить корневой memory-bank канон (tech/product/patterns) по evidence эпика"
+alwaysApply: false
+---
+# CONTEXT SYNC — shared
+
+**Команды:** `BACK CONTEXT SYNC` · `FRONT CONTEXT SYNC` · `INTEG CONTEXT SYNC`  
+**Вход:** `<epic_id>` из аргумента или `activeContext` (обязателен).  
+**Когда:** сразу после `* QA` **PASS** (до `ARCHIVE NOW` / next PLAN).  
+**Не путать с:** `* RECONCILE` (plan↔code drift, read-only) · `PRODUCT *` (vision/phases/roadmap SoT).
+
+**Role wrappers:**  
+- @.cursor/rules/back_developer/workflow-context-sync.mdc  
+- @.cursor/rules/front_developer/workflow-context-sync.mdc  
+- @.cursor/rules/integration_developer/workflow-context-sync.mdc  
+
+**Gates:** `{role}/isolation_rules/_lean/context-sync.mdc`
+
+---
+
+## Hot path
+
+1. Confirm `epic_id` + role; QA artifact для эпика со статусом **pass** (или явный `force` в чате после PASS — иначе halt).
+2. **Load evidence (lean):**  
+   - `activeContext.md`  
+   - QA: `memory-bank/{role}/qa/<epic_id>/qa-*.yaml` (последний pass)  
+   - plan jumps: Technology axiom · `## Context consumed` · Delivery closure (не весь plan monolith без нужды)  
+   - `plan/<epic>/yaml/decompose-index.yaml` (status)  
+   - текущие: `techContext.md` · `productContext.md` · `systemPatterns.md` · `projectbrief.md`  
+   - опц. `pyproject.toml` / layout stubs если стек в axiom  
+3. **Diff-only reconcile** — что **реально** изменилось эпиком vs текущий корень. Нет выдумок.
+4. Write allowlist (только при реальном diff):  
+   | Файл | Когда писать |  
+   |------|--------------|  
+   | `techContext.md` | стек / layout / deps / follow-up queue сдвинулись |  
+   | `productContext.md` | только блок wedge / now / delivery status |  
+   | `systemPatterns.md` (+ `domain/SP-*.md` если новый SP) | новый устойчивый паттерн в эпике |  
+   | `projectbrief.md` | сдвиг in/out scope |  
+   | `constitution.md` / `style-guide.md` | только явный MUST/tone из epic; иначе **no-op** |  
+   **FORBIDDEN:** `product/vision|phases|roadmap` · plan/decompose/implement · код.  
+5. Artifact: `memory-bank/{role}/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md` (шаблон `.cursor/templates/context-sync.md`).
+6. **FINISH:** `code_changed: no` (docs-only MB); `load_now` = sync artifact + qa link; next = `* ARCHIVE NOW <epic>` или next epic PLAN из queue.  
+   graphify: **skip**.
+
+---
+
+## Done when
+
+- [ ] Sync report записан (даже при полном `no-op`)
+- [ ] Корневые файлы обновлены **только** по evidence или явно `no-op` в отчёте
+- [ ] Handoff: `CONTEXT_SYNC_DONE` + next ARCHIVE / PLAN
+
+## Abort
+
+- Нет `epic_id` → halt  
+- Нет QA pass (и нет `force`) → halt; next = `* QA`  
+- Попытка править код / plan shards / `product/vision` → FAIL  
+- «Обновить всё наугад» без diff → FAIL  
+
+## Happy-path tip
+
+```text
+* QA PASS → * CONTEXT SYNC <epic_id> → * ARCHIVE NOW <epic_id>
+```

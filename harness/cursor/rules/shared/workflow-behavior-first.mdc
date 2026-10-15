@@ -112,22 +112,52 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 
 ## 3a. DECOMPOSE granularity — outcome-first (HARD)
 
-**Проблема:** нарезка «один слой ladder / один файл / один audit = один sNN» раздувает эпик (часто 11–15 шагов) без роста coverage. Portfolio norm ≈ **5–8** sNN; fat-хвост — anti-pattern.
+**Проблема:** нарезка «один слой ladder / один файл / один audit = один sNN» раздувает эпик (часто 11–15 шагов) без роста coverage; одновременно «band 5–8» ошибочно читают как **нижнюю цель** и добирают пустые шаги. Fat-хвост и micro-ladder — anti-pattern.
 
-**Одной фразой:** *Maximal detail = полнота coverage и глубина внутри sNN, не максимальное число sNN.*
+**Одной фразой:** *Maximal detail = полнота coverage и глубина внутри sNN, не максимальное число sNN. Число sNN якорится на Effort probe (часы × outcomes × rollback), не на LOC и не на «попасть в 5–8».*
 
-### Band (BACK / FRONT `sNN`)
+### Effort probe (HARD — до нарезки `sNN`/`eNN`)
+
+**Когда:** каждый `BACK|FRONT DECOMPOSE` (и INTEG — для оценки объёма / anti-micro-split; **не** для схлопывания Element registry).
+
+**Где:** секция `effort_probe:` (или `## Effort probe`) в `yaml/decompose-index.yaml` **до** финального списка steps. Без probe → DECOMPOSE incomplete.
+
+Заполнить таблицу **по наблюдаемым outcomes** (не по файлам / не по слоям ladder):
+
+| Outcome (поведение) | hours_mid | hours_range | confidence | notes |
+|---------------------|-----------|-------------|------------|-------|
+| … | 3 | 2–4 | med | … |
+
+Затем агрегаты в index:
+
+| Field | Rule |
+|-------|------|
+| `effort_hours_total` | sum `hours_mid` |
+| `effort_class` | **S** ≤4ч · **M** ≤16ч · **L** ≤40ч · **XL** >40ч |
+| `independent_outcomes` | число строк таблицы (observables) |
+| `split_seams` | только швы с **разным rollback** (часто 0–1); flaky/live ≠ автоматический новый sNN |
+| `sNN_cap` | S→**3** · M→**5** · L→**8** · XL→**STOP** (сначала multi-epic / Appetite cut — не 12 sNN) |
+| `sNN_target` | `clamp(independent_outcomes + split_seams, 1, sNN_cap)` |
+
+**1 sNN ≈ 2–6 ч** осмысленной работы (код + targeted verify).  
+LOC — только sanity («~200 строк vs ~2к»), **не** вход в формулу и не коэффициент.
+
+**XL:** stop-and-split эпик (multi-epic / cut_list); FORBIDDEN набивать sNN вместо разрезания эпика.
+
+### Band (BACK / FRONT `sNN`) — cap от effort, не пол «5»
 
 | | |
 |---|---|
-| Target | **5–8** sNN |
-| L3/L4 + migrate/enforce | **до 8–9** |
-| Soft FAIL | **`>9`** без justification в `index.md` (blast radius / apply≠purge / отдельный enforce) |
-| HARD FAIL | отказ добавить sNN из‑за «много шагов», если FR/AC/NFR/sunset непокрыт |
+| **SoT count** | `sNN_target` / `sNN_cap` из Effort probe |
+| Typical M | часто 3–5; **5–8** = потолок для среднего L, **не** нижняя цель |
+| L + migrate/enforce | до **8–9** только с justification (blast / apply≠purge) **и** ≤ cap (L=8; выше → justification + не XL-маскировка) |
+| Soft FAIL | `sNN_count > sNN_cap` без justification в index; или `>9` без blast/enforce justification |
+| HARD FAIL | нет Effort probe · `effort_class=S` и `sNN_count ≥ 5` · sNN с estimate &lt; **0.5ч** · добивание шагов «чтобы было ≥5» · отказ добавить sNN при непокрытом FR/AC |
+| Plan outline `~N sNN` | **hint**, не контракт; DECOMPOSE **не** копирует outline 1:1 |
 
-Plan outline / Appetite `~N sNN` = **floor**, не ceiling и **не** повод резать до 10–12 «на всякий».
+**Никогда** не добирать sNN до нижней границы band.
 
-**INTEG `eNN`:** band **не** схлопывает Element registry (1 element = 1 eNN). Запрет тот же: **не** layer-first micro-split одного element; audit/docs хвосты — один eNN.
+**INTEG `eNN`:** Effort probe **обязателен** (hours / class / anti-micro-split одного element). Cap **не** схлопывает Element registry (**1 element = 1 eNN**). Запрет: layer-first micro-split одного element; audit/docs хвосты — один eNN. При XL — резать portal batch / multi-epic, не «лишние layer eNN».
 
 ### Сливать по умолчанию
 
@@ -139,6 +169,7 @@ Plan outline / Appetite `~N sNN` = **floor**, не ceiling и **не** пово�
 | audit-* хвост | **один** sNN (несколько cp / TM), не s08…s15 audit |
 | docs + Kind I rewrite | один instruction surface pass |
 | Hub TDD / pytest (managed: capability_checks) | внутри шага `tdd`/`checkpoints`, не финальный «ещё tests» sNN без нового behavior |
+| harness-only / env-only / docs-only / purge-checklist без нового behavior | с соседним outcome того же SoT |
 
 ### Не сливать
 
@@ -148,14 +179,18 @@ Plan outline / Appetite `~N sNN` = **floor**, не ceiling и **не** пово�
 | migrate **apply** ≠ **purge** | apply → green → fail-closed purge |
 | enforce / rg-gate при большом blast radius | отдельный verify, что старый путь DENY |
 | wire с несовместимыми rollback | нельзя откатить одним шагом |
+| outcome &gt; ~1д mid-estimate | дробить **outcome**, не добавлять layer-соседей |
 
-### FORBIDDEN (micro-ladder)
+### FORBIDDEN (micro-ladder + fake sizing)
 
 - schema → core → CLI → harness-wire → loop-wire → docs → tests → purge как **восемь** sNN без отдельных outcome
 - отдельный sNN на каждый `finish_<mode>` / каждый audit finding class без отдельного product outcome
 - «лимит шагов» как оправдание дыры в Requirements/Stages/Replacement coverage
+- «band 5–8» как **min** / добивание пустых sNN
+- Effort probe с ровными «всем по 4ч» без notes (подогнанный estimate) — переписать честно
+- коэффициент от LOC → число sNN
 
-Category finding (ANALYZE): `layout_dilution` соседствует; granularity = `step_granularity` (слишком много sNN без justification / micro-ladder).
+Category finding (ANALYZE): `layout_dilution` · `step_granularity` · **`effort_cap_violation`** (нет probe / count>cap / S≥5 sNN / micro-ladder).
 
 ---
 

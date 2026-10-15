@@ -25,7 +25,7 @@ Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
 **Нет файла** `.cursor/rules/mainrule-core.mdc` — core только внутри `*_developer/`.
 
-Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP` (алиас `INTEGRATION GAP`), `INTEG GAP CLOSE` (алиас `INTEGRATION GAP CLOSE`), `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`.
+Multi-word: `ARCHIVE NOW`, `CONTEXT SYNC`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP` (алиас `INTEGRATION GAP`), `INTEG GAP CLOSE` (алиас `INTEGRATION GAP CLOSE`), `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`.
 
 ## Step 0 — graphify (parity with Cursor `mainrule.mdc`)
 
@@ -33,7 +33,7 @@ Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP
 
 **Обязателен** для: `IMPLEMENT` (если `files:` неполные / широкий поиск) · `TASK` · `BUGFIX` · `REFACTOR` · `QA` · **`SECURITY` execute** (`@aNN` / `S` one-shot); также `PM DISCOVER`, `TL SYNC DEV`; **brownfield** `BACK/FRONT/INTEG VAN`.
 
-**Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `REFLECT` · `ARCHIVE NOW` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают. IMPLEMENT + полный `files:` / `delta_paths_*` — query skip.
+**Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `REFLECT` · `ARCHIVE NOW` · `CONTEXT SYNC` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают. IMPLEMENT + полный `files:` / `delta_paths_*` — query skip.
 
 **CLI (не в PATH):** всегда из **корня репо** (cwd = root; Shell `working_directory` = root). Канон только `<repo>/graphify-out/` — HARD RULE в @.cursor/rules/graphify.mdc.
 
@@ -112,6 +112,7 @@ Fallback на Read/Grep — только после ориентации по г
 | FRONT BUGFIX | `.cursor/rules/front_developer/workflow-bugfix.mdc` |
 | INTEG GAP | `.cursor/rules/integration_developer/workflow-gap.mdc` |
 | ARCHIVE NOW | `{role_dir}workflow-archive.mdc` |
+| CONTEXT SYNC | `{role_dir}workflow-context-sync.mdc` |
 | ROADMAP MERGE | `{role_dir}workflow-roadmap-merge.mdc` |
 | SECURITY · SECURITY PLAN · SECURITY DECOMPOSE | `{role_dir}workflow-security.mdc` |
 | REFACTOR · REFACTOR PLAN · REFACTOR DECOMPOSE | `{role_dir}workflow-refactor.mdc` |

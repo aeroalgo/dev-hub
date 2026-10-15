@@ -67,6 +67,11 @@ entrypoint, выбери текущую фазу, затем последова�
 - Коммиты и PR выполняй только по явному запросу.
 - Комментарии в коде добавляй только по запросу.
 
+## EVAL (оценка ниши)
+
+Команды `EVAL FRAME|SEARCH|PRICE|GATE|…` — не BACK. Индекс: `.cursor/rules/eval/mainrule.mdc`.  
+Карта: `memory-bank/product/eval-pipeline.md`. Артефакты: `memory-bank/niche/<slug>/`.
+
 ## Root classification & Testing
 
 - Hub (dev-hub self-test) / **BACK**: Python tests — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.

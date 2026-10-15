@@ -25,7 +25,7 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 Не ужимать portal/journey intent плана до «wire endpoint». В YAML index и `plan_refs` — **Outcome map**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
 
-**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Maximal detail ≠ layer-first micro-split** одного element; band 5–8 **не** схлопывает registry (1 element = 1 eNN). Канон: shared/workflow-behavior-first.mdc §3a. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон coverage: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
+**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Maximal detail ≠ layer-first micro-split** одного element. **Effort probe** обязателен (hours/class; XL → multi-epic/cut), но **не** схлопывает registry (**1 element = 1 eNN**). Канон: shared/workflow-behavior-first.mdc §3a. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон coverage: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
 
 ---
 

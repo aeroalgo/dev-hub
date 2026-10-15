@@ -23,6 +23,7 @@ alwaysApply: false
 | `BACK IMPLEMENT` | @.cursor/rules/back_developer/workflow-implement.mdc |
 | `BACK AUDIT` | @.cursor/rules/back_developer/workflow-audit.mdc |
 | `BACK QA` | @.cursor/rules/back_developer/workflow-qa.mdc |
+| `BACK CONTEXT SYNC` | @.cursor/rules/back_developer/workflow-context-sync.mdc — после QA PASS: обновить techContext/productContext/systemPatterns |
 | `BACK ARCHIVE NOW` | @.cursor/rules/back_developer/workflow-archive.mdc |
 | `BACK TASK` | @.cursor/rules/back_developer/workflow-task.mdc |
 | `BACK BUGFIX` | @.cursor/rules/back_developer/workflow-bugfix.mdc |

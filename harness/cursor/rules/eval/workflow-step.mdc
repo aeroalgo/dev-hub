@@ -1,0 +1,56 @@
+---
+description: "EVAL <STEP> — hot path оценки одного шага pipeline"
+alwaysApply: false
+---
+### Команда: EVAL \<STEP\>
+**Контекст:** @.cursor/rules/eval/mainrule-core.mdc  
+**Gates:** @.cursor/rules/eval/isolation_rules/_lean/step.mdc  
+**Каталог:** @.cursor/rules/eval/catalog/steps.yaml  
+**Индекс:** @.cursor/rules/eval/mainrule.mdc  
+
+**Канон:** `memory-bank/product/validation-mechanism.md` (jump по `consumes` шага в catalog)
+
+---
+
+## Hot path
+
+1. `OK EVAL <STEP> - <slug>`  
+2. Read Gates + Core  
+3. Найди STEP в `catalog/steps.yaml` → `skills`, `inputs`, `outputs`, `gate`, `allow_fetch`  
+4. Load: `activeContext.md` (если slug в handoff) · `memory-bank/niche/<slug>/index.yaml` · prior shards из `depends_on`  
+5. **Policy lazy:** Read тел только `skills[]` этого STEP  
+6. Ingest: данные из сообщения / путей / tool results; зафиксируй в `inputs`  
+7. Evaluate: skills-метод + tools (считай метрики)  
+8. Gate шага: fail-closed → `status: insufficient` + `gaps`  
+9. Write `steps/<step_id>.yaml` (+ optional `.md`) · patch `index.yaml`  
+10. Чат: metrics summary · verdict · `next_steps` из catalog/логики  
+11. FINISH шага: `code_changed: no` (если только memory-bank/niche); handoff не обязателен до `EVAL FINISH`
+
+---
+
+## Вход
+
+```text
+EVAL SEARCH my-niche
+EVAL PRICE my-niche
+  (ниже / во вложении: таблица прайсов, URL, CSV)
+```
+
+Без slug → спросить один раз (не из квоты clarify).  
+Без данных на шаге, где `inputs.required` — `insufficient`, не выдумывать.
+
+---
+
+## Skills
+
+Только список из catalog для текущего `step_id`.  
+**FORBIDDEN:** грузить все marketing skills пачкой.
+
+---
+
+## Верификация
+
+- shard schema ok  
+- `status` согласован с наличием данных  
+- estimates помечены  
+- `next_steps` не ведут в BACK без явного запроса кода  

@@ -1,0 +1,91 @@
+---
+description: "EVAL core — контракт шага: данные → tools → метрики → shard (не код)"
+alwaysApply: false
+---
+# EVAL — CORE
+
+## 1. Назначение
+
+Оценка ниши по шагам pipeline: входные данные (вставка, файлы, tool results) → расчёт/сведение → typed shard + вердикт.  
+Позже тот же `step_id` + schema станет джобой в Niche Audit.
+
+## 2. Пути артефактов
+
+```text
+memory-bank/niche/<slug>/
+  index.yaml                 # niche meta + список steps status
+  steps/<step_id>.yaml       # machine shard (обязателен на EVAL <STEP>)
+  steps/<step_id>.md         # короткий human-вывод (опционально, если вердикт длинный)
+  report.md                  # пишет EVAL ASSEMBLE
+```
+
+Slug: латиница/цифры/дефис из арены или явный аргумент команды.
+
+## 3. Контракт shard (минимум)
+
+```yaml
+schema: niche-eval-step/v1
+step_id: search          # = catalog id
+slug: aiva-b2c
+segment: b2c             # b2c | b2b
+as_of: 2026-10-04
+status: ok | insufficient | blocked
+inputs:
+  - kind: paste|file|tool|prior_shard
+    ref: "..."
+metrics: {}              # поля по catalog.outputs
+verdict: ""              # 1–5 предложений
+confidence_local: low|med|high   # только по данным ЭТОГО шага
+gaps: []                 # что дособрать
+next_steps: []           # рекомендуемые EVAL-команды
+sources: []              # URL / имена площадок / «operator paste»
+```
+
+**FORBIDDEN:** выдавать `status: ok` и сильные метрики без опоры на inputs/sources.  
+**FORBIDDEN:** `confidence` ниши целиком на шаге кроме `gate` (там поле `confidence` глобальное).
+
+## 4. Runtime шага (HARD)
+
+1. Распознать `EVAL <STEP> <slug>` (+ данные в сообщении / путях).  
+2. Read Gates + Core + строку STEP из `catalog/steps.yaml`.  
+3. Read **тел** SKILL.md только из `skills:` этого step (Policy lazy).  
+4. Ingest inputs (принять paste/файлы; при необходимости tool: Read/Shell/Web*).  
+5. Считать/нормализовать через tools (не «на глаз» ключевые цифры, если можно посчитать).  
+6. Применить рубрику `gate` шага (fail-closed → `insufficient`).  
+7. Write `steps/<step_id>.yaml` (+ md при необходимости).  
+8. Обновить `index.yaml` status шага.  
+9. В чат: вердикт + ключевые metrics + `next_steps`.
+
+## 5. Tools (ожидаемое поведение)
+
+| Класс | Примеры | Когда |
+|-------|---------|--------|
+| Load | Read файлов пользователя, prior shards | всегда |
+| Compute | Shell/python для медиан, долей, фильтра выбросов | PRICE, ECONOMICS, SEARCH агрегаты |
+| Fetch | WebSearch/WebFetch — только если пользователь просит или catalog `allow_fetch: true` | осторожно, цитировать URL |
+| Write | shard + index | конец шага |
+
+Цифры в `metrics` должны быть воспроизводимы из `inputs`/`sources` или явно помечены `estimate: true`.
+
+## 6. Связь с каноном продукта
+
+| Шаг | validation-mechanism |
+|-----|----------------------|
+| pain, pay, hypothesis | §3 gate элементы |
+| search, match, price, ads, economics, landing, smoke, scale | §7 B2C |
+| gate | §3.3 + §7.5 decision |
+
+Сегмент `b2b`: pay-сигнал может опираться на HH/org; `b2c` — костыли/прайсы/отзывы/ads (§7.2).
+
+## 7. FORBIDDEN
+
+- Путать с `BACK IMPLEMENT` / писать prod-код из EVAL  
+- Fabricate объёмы Вордстата / CPC «из модели» как факт  
+- `high` глобальный вне `EVAL GATE` после L1/L2 правил §7  
+- ПДн физлиц в shards (телефоны, личные адреса)  
+- Один шаг «закрыл всю нишу» без `EVAL GATE` / `ASSEMBLE` когда просят полное решение  
+
+## 8. Обогащение
+
+Новые площадки/парсеры/поля → правь `catalog/steps.yaml` и `memory-bank/product/eval-pipeline.md`.  
+Сохраняй `schema: niche-eval-step/v1` или бампь версию явно.
