@@ -7,6 +7,11 @@ from typing import Any
 
 from .boundary import BoundaryService
 from .analyze import analyze_required_before_implement
+from .creative import (
+    creative_finish_ready,
+    phase_for_pending_step,
+    resolve_creative_step,
+)
 from .index import (
     Queue,
     audit_is_converged,
@@ -109,7 +114,8 @@ class LoopEngine:
             if gate["required"]:
                 return "ANALYZE", "ANALYZE", f"ANALYZE gate: {gate['reason']}"
             step = active_queue.pending[0]
-            return "IMPLEMENT", step.step_id, f"pending step {step.step_id}"
+            phase, reason = phase_for_pending_step(self.paths.project, active_queue, step)
+            return phase, step.step_id, reason
         phase, reason = self._phase_after_queue(active_queue)
         return phase, phase, reason
 
@@ -149,6 +155,7 @@ class LoopEngine:
         ]
         phase_directories = {
             "ANALYZE": "analyze",
+            "CREATIVE": "creative",
             "AUDIT": "audit",
             "QA": "qa",
             "BUGFIX": "bugfix",
@@ -161,12 +168,17 @@ class LoopEngine:
                 f"{next_load_number}. memory-bank/{cursor.role}/{artifact_kind}/{cursor.epic_id}/ — current phase artifacts"
             )
             next_load_number += 1
-        if queue is not None and cursor.step_id and cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
+        if queue is not None and cursor.step_id and cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR", "CREATIVE"}:
             step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
             if step and step.shard:
-                lines.append(f"{next_load_number}. {step.shard} — current step artifact")
+                shard_rel = step.shard
+                if not shard_rel.startswith("memory-bank/"):
+                    shard_candidate = queue.path.parent / "steps" / Path(step.shard).name
+                    if shard_candidate.is_file():
+                        shard_rel = shard_candidate.relative_to(self.paths.project).as_posix()
+                lines.append(f"{next_load_number}. {shard_rel} — current step artifact")
                 next_load_number += 1
-            if step:
+            if step and cursor.phase != "CREATIVE":
                 lines.append(
                     f"{next_load_number}. {implement_path(self.paths.project, queue.role, queue.epic_id, step).relative_to(self.paths.project).as_posix()} — implement artifact"
                 )
@@ -282,6 +294,15 @@ class LoopEngine:
                 raise TransitionError(
                     f"cannot finish {cursor.phase}: ANALYZE gate {gate['reason']}"
                 )
+        if cursor.phase == "CREATIVE":
+            step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
+            if step is None:
+                raise TransitionError(
+                    f"cannot finish CREATIVE: step {cursor.step_id!r} missing from decompose index"
+                )
+            ready, creative_reason = creative_finish_ready(self.paths.project, queue, step)
+            if not ready:
+                raise TransitionError(f"cannot finish CREATIVE: {creative_reason}")
         if cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
             index_mutation = prepare_step_status(queue, cursor.step_id, "completed")
             mutations.append(index_mutation)
@@ -322,6 +343,13 @@ class LoopEngine:
 
         if cursor.phase == "DECOMPOSE":
             phase, next_step, target_reason = "ANALYZE", "ANALYZE", "decompose index created"
+        elif cursor.phase == "CREATIVE":
+            phase, next_step, target_reason = self._target(cursor, next_queue)
+            if phase == "CREATIVE":
+                raise TransitionError(
+                    "cannot finish CREATIVE: open creative gate still routes to CREATIVE "
+                    "(close needs_creative on the work shard before finish)"
+                )
         else:
             phase, next_step, target_reason = self._target(cursor, next_queue)
         candidate = self._copy_cursor(cursor)
@@ -472,7 +500,15 @@ class LoopEngine:
 
     def rewind(self, phase: str, *, reason: str = "manual rewind") -> Transition:
         target_phase = str(phase or "").strip().upper()
-        if target_phase not in {"DECOMPOSE", "ANALYZE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC"}:
+        if target_phase not in {
+            "DECOMPOSE",
+            "ANALYZE",
+            "CREATIVE",
+            "AUDIT",
+            "QA",
+            "BUGFIX",
+            "CONTEXT_SYNC",
+        }:
             raise TransitionError(f"unsupported rewind phase: {phase!r}")
 
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
@@ -482,7 +518,17 @@ class LoopEngine:
             candidate = self._copy_cursor(current)
             candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
             candidate.phase = target_phase
-            candidate.step_id = target_phase
+            if target_phase == "CREATIVE":
+                if queue is None:
+                    raise TransitionError("cannot rewind to CREATIVE without decompose index")
+                creative_step = resolve_creative_step(self.paths.project, queue)
+                if creative_step is None:
+                    if not queue.pending:
+                        raise TransitionError("cannot rewind to CREATIVE: no pending step")
+                    creative_step = queue.pending[0]
+                candidate.step_id = creative_step.step_id
+            else:
+                candidate.step_id = target_phase
             candidate.status = CursorStatus.ACTIVE
             candidate.attempt = 0
             candidate.failure = None
@@ -492,8 +538,8 @@ class LoopEngine:
                 "reason": reason,
                 "source_phase": current.phase,
                 "source_step_id": current.step_id,
-                "phase": target_phase,
-                "step_id": target_phase,
+                "phase": candidate.phase,
+                "step_id": candidate.step_id,
             }
             return TransactionPlan(
                 candidate,

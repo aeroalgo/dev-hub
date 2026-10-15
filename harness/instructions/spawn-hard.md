@@ -71,21 +71,27 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 
 ## Gate Verdict Contract (JSON Fenced Block) — machine SoT
 
-Субагенты `verify-implement`, `verify-bugfix`, `verify-qa`, `verify-decompose` (и их алиасы `verify`, `reviewer`) **ОБЯЗАНЫ** включить в финальный ответ fenced JSON:
+Субагенты `verify-implement`, `verify-bugfix`, `verify-qa`, `verify-decompose`, `analyze-verify` (и алиасы) **ОБЯЗАНЫ**:
+
+1. Bash `validate-verdict` на **точный** финальный JSON до `valid: true` (пишет pre-emit stamp; без stamp SubagentStop → reject).
+2. В финальный ответ — ровно один fenced JSON **без лишних ключей**:
 
 ```json
 {
   "schema": "loop-gate-verdict/v1",
   "agent_id": "verify-implement",
   "verdict": "PASS",
-  "reason": "AC+ and AC- satisfied",
-  "evidence_sha256": "..."
+  "step_id": "s01",
+  "session_id": "<session_id>",
+  "epic_id": "<epic_id>",
+  "recorded_at": "<iso8601>"
 }
 ```
 
-- Поле **`schema`** (не `schema_version`).
+- Allowed keys only: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
+- FORBIDDEN: `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
 - `verdict`: `PASS` | `FAIL` | `BLOCKED` (BLOCKED только verify-qa/reviewer).
-- Текстовая строка `VERDICT: …` — **optional** human summary; **не** machine input (hooks читают JSON fence → sidecar).
+- `VERDICT: …` — optional human summary **после** fence; **не** machine input.
 
 Отчёт: на русском.
 
@@ -103,7 +109,7 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 | Event | Эффект |
 |-------|--------|
 | PreToolUse Agent | HARD RULE на все Agent; strip worktree/model на overlay; deny неполного prompt на verify/reviewer/explorer |
-| SubagentStop | verify-implement/verify-bugfix/verify-qa/verify-decompose без valid JSON fence → block (+ incomplete counter) |
+| SubagentStop | verify-* / analyze-verify: invalid fence, forbidden keys, или нет matching pre-emit stamp после validate-verdict → block (+ schema retry / halt) |
 | Stop | FINISH без verify / QA без verify-qa (reviewer) / QA без Handoff → block; **исключение:** no-VERDICT retries исчерпаны + Handoff `NEED_HUMAN: verify_no_verdict` → allow stop |
 
 State: `.claude/runtime/spawn-gate/<session>.json` (gitignore).

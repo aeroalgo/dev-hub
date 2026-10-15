@@ -111,18 +111,20 @@ Ineligible findings → в `## CHECKED` как `ok (ineligible:<reason>)`, **н�
 3. Budget: ≤40 Read calls, ≤40 конкретных файлов в ALLOW READ, ≤16 rg; после validator tool calls запрещены.
 4. Re-read одного и того же неизменённого диапазона — FORBIDDEN.
 
-## Pre-emit validate-verdict (HARD)
+## Pre-emit validate-verdict (HARD — machine-enforced)
 
-Перед финальным текстом — **один** Bash:
+Без успешного `validate-verdict` граница **отклонит** fence (`pre_emit_validate_missing` / `pre_emit_validate_mismatch`). Пропускать Bash нельзя.
 
 ```bash
-python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","step_id":"QA","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS","step_id":"QA","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
-- Это шаблон: перед запуском подставь реальные `session_id`/`epic_id` строго из предоставленного блока `GATE_IDENTITY` (`GATE_IDENTITY session_id=<session_id> epic_id=<epic_id> step_id=QA`), один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|BLOCKED|FAIL` запускать нельзя.
-- **`step_id` всегда литерал `QA`** (FORBIDDEN: угадывать `sNN` с эпика / activeContext / implement step). Значения `session_id` и `epic_id` бери строго из `GATE_IDENTITY`.
-- Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
-- `validate-verdict` — **после** полного `## BLOCKERS` / `## CHECKED` черновика; не раньше завершения матрицы.
+- Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
+- `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
+- Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
+- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
+- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 

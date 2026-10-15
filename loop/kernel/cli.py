@@ -23,6 +23,7 @@ from .index import (
 from .runtime import runtime_for
 from .session import SessionOutcome, SessionSupervisor
 from .store import LoopPaths
+from .pre_emit import write_pre_emit_stamp
 from .verdict import SCHEMA_GATE_VERDICT, validate_boundary
 
 
@@ -35,7 +36,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--runtime", choices=("claude", "codex"), default=None)
     parser.add_argument("--model")
     parser.add_argument("--step")
-    parser.add_argument("--phase", choices=("DECOMPOSE", "ANALYZE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC"))
+    parser.add_argument(
+        "--phase",
+        choices=("DECOMPOSE", "ANALYZE", "CREATIVE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC"),
+    )
     parser.add_argument("--reason", default="manual halt")
     parser.add_argument("--payload")
     parser.add_argument("--schema")
@@ -99,6 +103,15 @@ def _phase_instruction(cursor, project: Path) -> str:
             "Read the canonical plan and decompose tree, create exactly one completed "
             f"analyze artifact under memory-bank/{cursor.role}/analyze/{epic}/ "
             "with metrics.critical_count=0 when the plan is implementable, and do not write production code. "
+        )
+    if cursor.phase == "CREATIVE":
+        return (
+            f"Run {role} CREATIVE for plan {epic} step {cursor.step_id}. "
+            "Resolve the open design CR (needs_creative) for this work shard: write "
+            f"memory-bank/{cursor.role}/creative/{epic}/creative-*.md, then rewire the shard to "
+            "`needs_creative: yes (CR-…) — **closed**` (index `yes (CR-…) ✅`) and keep the same "
+            "step pending — do not mark it completed and do not write production code. "
+            "FORBIDDEN: spawn verify agents for CREATIVE. Finish only after the gate is closed. "
         )
     if cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
         return (
@@ -418,11 +431,27 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
         return ""
     event_name = str(event.get("event") or "")
     if event_name in {"verdict_transition_rejected", "verdict_rejected"}:
+        codes = event.get("diagnostic_codes") or []
+        errors = event.get("errors") or []
+        detail = ""
+        if codes or errors:
+            detail = (
+                " Last reject diagnostic_codes="
+                + ",".join(str(code) for code in codes)
+                + "; errors="
+                + " | ".join(str(error)[:160] for error in errors[:3])
+                + "."
+            )
         return (
             "\nRecovery state: the previous gate handoff was rejected by the boundary. "
-            "This is a protocol error, not a product blocker. Fix the exact parent prompt sections "
-            "and the exact GATE_IDENTITY values, then respawn the same verifier. Do not call gate-repair "
-            "for prompt/session/transition errors and do not finish.\n"
+            "This is a protocol error, not a product blocker. "
+            "The child MUST Bash `validate-verdict` on the exact final JSON until valid:true "
+            "(pre-emit stamp), emit only allowed keys "
+            "(schema,agent_id,verdict,step_id,session_id,epic_id,recorded_at,evidence_sha256), "
+            "and keep GATE_IDENTITY verbatim."
+            f"{detail} "
+            "Then respawn the same verifier. Do not call gate-repair "
+            "for prompt/session/transition/schema errors and do not finish.\n"
         )
     if event_name == "repair_recorded":
         remaining = event.get("remaining_blockers") or []
@@ -578,12 +607,21 @@ def run(args: argparse.Namespace) -> int:
         )
         prompt += _phase_instruction(cursor, paths.project)
         gate_agent = _phase_gate_agent(cursor.phase)
-        prompt += (
-            "When the phase work is genuinely complete, spawn the required gate before any finish attempt. "
-            "Do not edit cursor.json or generated activeContext.md. "
-            "A managed gate subagent PASS is validated by the boundary hook and finishes this phase atomically; "
-            "a direct finish without the required PASS is rejected and prose verdicts are not machine state."
-        )
+        if cursor.phase == "CREATIVE":
+            prompt += (
+                "When CREATIVE is complete (artifact written and needs_creative closed on the same step), "
+                "finish with `python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step "
+                f"{cursor.step_id}`. Do not edit cursor.json or generated activeContext.md. "
+                "CREATIVE has no verifier gate — do not spawn verify-* agents. "
+                "Do not mark the step completed; IMPLEMENT owns that after code lands."
+            )
+        else:
+            prompt += (
+                "When the phase work is genuinely complete, spawn the required gate before any finish attempt. "
+                "Do not edit cursor.json or generated activeContext.md. "
+                "A managed gate subagent PASS is validated by the boundary hook and finishes this phase atomically; "
+                "a direct finish without the required PASS is rejected and prose verdicts are not machine state."
+            )
         if gate_agent:
             prompt += (
                 f" This phase requires exactly one {gate_agent} pre-finish gate before finish. "
@@ -593,7 +631,8 @@ def run(args: argparse.Namespace) -> int:
         elif cursor.phase == "AUDIT":
             prompt += " AUDIT has no verifier gate: actionable findings require gate-repair and a repeated AUDIT before QA."
             prompt += _gate_protocol(cursor, paths.project, None)
-        prompt += _gate_recovery_prompt(cursor, engine)
+        if cursor.phase != "CREATIVE":
+            prompt += _gate_recovery_prompt(cursor, engine)
         prompt = f"{prompt}\n\n{engine.boundary.context(cursor)}"
         if not args.json:
             _print_step_banner(
@@ -648,7 +687,17 @@ def main(argv: list[str] | None = None) -> int:
                 _print({"ok": False, "error": "--schema is required"}, True)
                 return 2
             result = validate_boundary(schema, args.payload)
-            _print(result.as_dict(), True)
+            output = result.as_dict()
+            if result.valid and args.project:
+                try:
+                    raw = json.loads(args.payload) if isinstance(args.payload, str) else args.payload
+                except (TypeError, json.JSONDecodeError):
+                    raw = None
+                if isinstance(raw, dict):
+                    stamp = write_pre_emit_stamp(paths, raw)
+                    if stamp is not None:
+                        output["pre_emit_stamp"] = stamp.as_dict()
+            _print(output, True)
             return 0 if result.valid else 2
         if args.command == "scope":
             cursor = engine.store.read()

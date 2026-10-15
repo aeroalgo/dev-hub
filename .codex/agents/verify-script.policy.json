@@ -1,7 +1,7 @@
 {
   "name": "verify-script",
   "policy_fingerprint": "sha256:75e28445cba59eb6680e3deb10ceed99aca8b4d642a125b4cf8764564d8c5ac5",
-  "source_prompt_sha256": "63a60fe7e74163af98ad1c568945a470cdb6d7ef811fab12169239902a712fc9",
+  "source_prompt_sha256": "13691c0b3eb9ef036b70fad98ddfcd01bff90d58027abff0d545ae2fb457c558",
   "disallowedTools": [
     "Write",
     "Edit",

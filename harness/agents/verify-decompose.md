@@ -45,14 +45,20 @@ Parent **обязан** передать только:
 6. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 7. **Первая строка текста = `VERDICT:`**
 
-## Pre-emit validate-verdict (HARD)
+## Pre-emit validate-verdict (HARD — machine-enforced)
+
+Без успешного `validate-verdict` граница **отклонит** fence (`pre_emit_validate_missing` / `pre_emit_validate_mismatch`). Пропускать Bash нельзя.
 
 ```bash
-python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
-- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
-- Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
+- Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
+- `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
+- Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
+- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
+- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
 
 ## Gate Output (JSON fence HARD)
 

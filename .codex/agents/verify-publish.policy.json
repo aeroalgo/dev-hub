@@ -1,7 +1,7 @@
 {
   "name": "verify-publish",
   "policy_fingerprint": "sha256:1de4a4077067173dbb7bd2a11f988133b574299e2fa450204ae08d9208ad250b",
-  "source_prompt_sha256": "4c4287afc54fe162dbd508bf341492d5fa62977161cf95610865181b0060b4f7",
+  "source_prompt_sha256": "ddd7405ce79a69015eebf41c560566f77b0ffd608e40cf5a5433f9a321ccaf95",
   "disallowedTools": [
     "Write",
     "Edit",

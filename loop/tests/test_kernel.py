@@ -1255,8 +1255,8 @@ def test_finish_recovers_index_and_context_from_prepared_transaction(tmp_path: P
     assert "step_id: s02" in paths.active_context.read_text(encoding="utf-8")
 
 
-def _verdict_message(cursor, *, agent_id: str = "verify-implement", verdict: str = "PASS") -> str:
-    payload = {
+def _verdict_payload(cursor, *, agent_id: str = "verify-implement", verdict: str = "PASS") -> dict:
+    return {
         "schema": SCHEMA_GATE_VERDICT,
         "agent_id": agent_id,
         "verdict": verdict,
@@ -1265,6 +1265,20 @@ def _verdict_message(cursor, *, agent_id: str = "verify-implement", verdict: str
         "epic_id": cursor.epic_id,
         "recorded_at": "2026-09-18T19:00:00+00:00",
     }
+
+
+def _verdict_message(
+    cursor,
+    *,
+    agent_id: str = "verify-implement",
+    verdict: str = "PASS",
+    paths: LoopPaths | None = None,
+) -> str:
+    payload = _verdict_payload(cursor, agent_id=agent_id, verdict=verdict)
+    if paths is not None:
+        from loop.kernel.pre_emit import write_pre_emit_stamp
+
+        write_pre_emit_stamp(paths, payload)
     return "```json\n" + json.dumps(payload) + "\n```"
 
 
@@ -1298,7 +1312,7 @@ def test_subagent_pass_finishes_once_and_duplicate_is_idempotent(tmp_path: Path)
     payload = {
         "cwd": str(tmp_path),
         "agent_type": "verify-implement",
-        "last_assistant_message": _verdict_message(cursor),
+        "last_assistant_message": _verdict_message(cursor, paths=paths),
     }
 
     accepted = lifecycle.stop(payload)
@@ -1323,7 +1337,7 @@ def test_subagent_fail_or_blocked_is_recorded_without_finishing(tmp_path: Path) 
             {
                 "cwd": str(tmp_path),
                 "agent_type": "verify-implement",
-                "last_assistant_message": _verdict_message(cursor, verdict=verdict),
+                "last_assistant_message": _verdict_message(cursor, verdict=verdict, paths=paths),
             }
         )
         assert action.ok
@@ -1417,7 +1431,7 @@ def test_subagent_stop_hook_accepts_pydantic_verdict(tmp_path: Path) -> None:
     payload = {
         "cwd": str(tmp_path),
         "agent_type": "verify-implement",
-        "last_assistant_message": _verdict_message(cursor),
+        "last_assistant_message": _verdict_message(cursor, paths=paths),
     }
     result = subprocess.run(
         [sys.executable, str(Path(__file__).parents[2] / "harness/hooks/subagent-stop.py")],
@@ -1466,6 +1480,8 @@ def test_subagent_start_hook_injects_cursor_identity(tmp_path: Path) -> None:
     context = hook_payload["hookSpecificOutput"]["additionalContext"]
     assert f"GATE_IDENTITY session_id={cursor.session_id} epic_id=E1 step_id=s01" in context
     assert "validate-verdict" in context
+    assert "pre-emit stamp" in context
+    assert "FORBIDDEN keys" in context
 
 
 def test_native_validator_command_validates_gate_payload(tmp_path: Path) -> None:
@@ -1487,9 +1503,64 @@ def test_native_validator_command_validates_gate_payload(tmp_path: Path) -> None
         text=True,
         capture_output=True,
         check=False,
+        env={
+            **os.environ,
+            "DEV_HUB": str(paths.hub),
+            "HUB_ROOT": str(paths.hub),
+            "PROJECT_ROOT": str(tmp_path),
+        },
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["valid"] is True
+    body = json.loads(result.stdout)
+    assert body["valid"] is True
+    assert body["pre_emit_stamp"]["payload_sha256"]
+    accepted = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-implement",
+            "last_assistant_message": message,
+        }
+    )
+    assert accepted.ok
+
+
+def test_gate_verdict_without_pre_emit_stamp_is_rejected(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-implement",
+            "last_assistant_message": _verdict_message(cursor),
+        }
+    )
+    assert action.ok is False
+    assert "pre_emit_validate_missing" in action.diagnostic_codes
+    assert "pre-emit stamp missing" in action.reason
+    assert engine.store.read().step_id == "s01"
+
+
+def test_gate_verdict_pre_emit_stamp_mismatch_is_rejected(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    stamped = _verdict_payload(cursor, verdict="PASS")
+    from loop.kernel.pre_emit import write_pre_emit_stamp
+
+    write_pre_emit_stamp(paths, stamped)
+    mutated = dict(stamped)
+    mutated["verdict"] = "FAIL"
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-implement",
+            "last_assistant_message": "```json\n" + json.dumps(mutated) + "\n```",
+        }
+    )
+    assert action.ok is False
+    assert "pre_emit_validate_mismatch" in action.diagnostic_codes
+    assert engine.store.read().step_id == "s01"
 
 
 def test_native_validator_accepts_repair_result_schema(tmp_path: Path) -> None:
@@ -1688,7 +1759,7 @@ def test_codex_subagent_pass_is_applied_to_new_kernel(tmp_path: Path) -> None:
     runtime = CodexRuntime()
     runtime._progress_started(tmp_path, "")
     runtime._collab_lifecycle = SubagentLifecycle(paths)
-    message = _verdict_message(cursor)
+    message = _verdict_message(cursor, paths=paths)
 
     rendered = runtime._progress_line(
         json.dumps(

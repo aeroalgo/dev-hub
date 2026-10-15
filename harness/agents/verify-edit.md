@@ -46,16 +46,20 @@ Parent **обязан** передать секции. Если нет — ср�
 5. Bash только: `git status*` · `git diff` только по ALLOW/diff paths · `rg …` · `ls` · `head` · `wc` · `python3 $DEV_HUB/bin/loop.py scope --project "$PROJECT_ROOT" --json`. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
 6. Evidence (cp done + green VERIFY / AC) согласованы; иначе `FAIL`. Не требуй `status: completed` для PASS.
 
-## Pre-emit validate-verdict (HARD)
+## Pre-emit validate-verdict (HARD — machine-enforced)
 
-Перед выводом JSON fence — выполни валидацию boundary через Bash:
+Без успешного `validate-verdict` граница **отклонит** fence (`pre_emit_validate_missing` / `pre_emit_validate_mismatch`). Пропускать Bash нельзя.
 
 ```bash
-python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-edit","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-edit","verdict":"PASS","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
-- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
-- Только при `valid: true` формируй финальный вывод.
+- Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
+- `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
+- Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
+- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
+- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 

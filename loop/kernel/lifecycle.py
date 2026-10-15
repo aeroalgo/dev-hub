@@ -13,9 +13,11 @@ from .inventory import (
     write_inventory_sidecar,
 )
 from .store import LoopPaths
+from .pre_emit import schema_reject_reason, verify_pre_emit_stamp
 from .verdict import (
     MANAGED_GATE_AGENTS,
     MANAGED_REPAIR_AGENTS,
+    SCHEMA_GATE_VERDICT,
     extract_json_fence,
     normalize_agent_id,
     validate_inventory_message,
@@ -185,9 +187,14 @@ class SubagentLifecycle:
             f"Required parent prompt sections for this agent: {required_sections}. "
             "If any required section is absent, return FAIL with prompt_incomplete:<section> "
             "and do not invent product blockers.\n"
-            "Before the final response, validate the exact JSON payload with: "
+            "HARD PRE-EMIT (machine-enforced): before the final fence you MUST run "
             "python3 $DEV_HUB/bin/loop.py validate-verdict --project "
-            f"{self.paths.project} --payload '<json>'"
+            f"{self.paths.project} --payload '<exact-final-json>' "
+            "until valid:true. That command writes a pre-emit stamp. SubagentStop DENIES "
+            "any fence without a matching stamp for the exact same JSON bytes. "
+            "Allowed keys only: schema,agent_id,verdict,step_id,session_id,epic_id,"
+            "recorded_at,evidence_sha256. FORBIDDEN keys: evidence,blockers,touched_paths,"
+            "evidence_id,reason,findings,gate,status,checkpoints. Put narrative AFTER the fence."
         )
         return (
             f"agent_type={agent_type}\n{identity}\n"
@@ -195,7 +202,7 @@ class SubagentLifecycle:
             '`schema: "loop-gate-verdict/v1"`, `agent_id`, `verdict` (PASS|FAIL|BLOCKED), '
             "step_id, session_id, epic_id, and recorded_at.\n"
             f"{validation}\n"
-            "The boundary hook validates this response and atomically advances the loop on PASS."
+            "The boundary hook re-validates the fence and atomically advances the loop on PASS."
         )
 
     def _stop_repair(self, payload: dict[str, Any], cursor) -> HookAction:
@@ -367,6 +374,7 @@ class SubagentLifecycle:
         # locked engine so a delayed duplicate from a child that already
         # advanced the cursor is treated as idempotent, not as a fresh retry.
         validation = validate_message(message)
+        fence_payload, _ = extract_json_fence(message)
         if not validation.valid or validation.record is None:
             retry_number, halted = self.engine.reject_verdict(
                 agent_id=agent_type,
@@ -381,13 +389,47 @@ class SubagentLifecycle:
                     f"schema_retry_exhausted:{agent_type}",
                     validation.diagnostic_codes,
                 )
+            reason = schema_reject_reason(
+                schema_id=SCHEMA_GATE_VERDICT,
+                retry_number=retry_number,
+                max_retries=2,
+                diagnostic_codes=validation.diagnostic_codes,
+                errors=validation.errors,
+                payload=fence_payload if isinstance(fence_payload, dict) else None,
+            )
             return HookAction(
                 False,
                 False,
                 2,
-                f"re-emit valid loop-gate-verdict/v1 JSON fence (retry {retry_number}/2)",
+                reason,
                 validation.diagnostic_codes,
             )
+
+        assert isinstance(fence_payload, dict)
+        stamp_ok, stamp_errors, stamp_codes = verify_pre_emit_stamp(self.paths, fence_payload)
+        if not stamp_ok:
+            retry_number, halted = self.engine.reject_verdict(
+                agent_id=agent_type,
+                diagnostic_codes=stamp_codes,
+                errors=stamp_errors,
+            )
+            if halted:
+                return HookAction(
+                    False,
+                    False,
+                    2,
+                    f"schema_retry_exhausted:{agent_type}",
+                    stamp_codes,
+                )
+            reason = schema_reject_reason(
+                schema_id=SCHEMA_GATE_VERDICT,
+                retry_number=retry_number,
+                max_retries=2,
+                diagnostic_codes=stamp_codes,
+                errors=stamp_errors,
+                payload=fence_payload,
+            )
+            return HookAction(False, False, 2, reason, stamp_codes)
 
         try:
             transition = self.engine.accept_verdict(
