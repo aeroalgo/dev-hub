@@ -123,12 +123,13 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
 - Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
 - Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
-- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
+- Fence language: **только** `json`.
+- После fence — ноль tool calls.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
-Твой финальный ответ **обязан** содержать fenced JSON блок. Hook читает **только** его. Открывающая строка = ` ```json `.
+Финальный ответ = ровно один fenced JSON (`emit_exactly`). Открывающая строка = ` ```json `.
 
 ```json
 {
@@ -144,7 +145,7 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"BLOCKED"` | `"FAIL"`.
-- `step_id`: всегда литерал `"QA"` (не `sNN` из плана или эпика).
+- `step_id`: всегда литерал `"QA"`.
 - `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).

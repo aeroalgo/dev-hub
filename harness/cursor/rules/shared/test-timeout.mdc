@@ -40,9 +40,23 @@ timeout -k 10s 300s python tests/test_*.py
 timeout -k 10s 300s npm test
 # Managed project capability check:
 timeout -k 10s 300s make test
+# BACK QA live smoke (живой uvicorn + HTTP; не ASGI/mocks):
+timeout -k 10s 300s bash scripts/live_smoke.sh
+# BACK QA live smoke against already-running server:
+timeout -k 10s 300s env BASE_URL=http://127.0.0.1:8000 bash scripts/live_smoke.sh --no-start
+# BACK QA live smoke extended (POST audit + poll; live FR / runbook):
+timeout -k 10s 300s env LIVE_SMOKE_LEVEL=extended bash scripts/live_smoke.sh
 ```
 
-**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита; `timeout 300s` **без** `-k`/`--kill-after` (не добивает hang); применение hub runner команд к managed capability-контрактам; **`FRONT` / `FRONT QA` запускает `bin/pytest` или backend suite** (wrong stack → `suite_wrong_stack`).
+**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита; `timeout 300s` **без** `-k`/`--kill-after` (не добивает hang); применение hub runner команд к managed capability-контрактам; **`FRONT` / `FRONT QA` запускает `bin/pytest` или backend suite** (wrong stack → `suite_wrong_stack`); засчитывать in-process `ASGITransport` e2e как live_smoke.
+
+## Live smoke (BACK QA)
+
+- **Что:** black-box HTTP к реально запущенному API (uvicorn). SoT скрипт: `scripts/live_smoke.sh`. Операторский сценарий: `docs/runbook-mode-a-live.md`.
+- **Где обязательно:** BACK QA (`_lean/qa.mdc` §2c). Не замена full pytest suite.
+- **Не путать** с `backend/tests/e2e/*` (ASGI + моки) и с behavior smoke (wire FR).
+- Missing deps → §Environment bootstrap в `role-core-contract.mdc`, затем повтор в том же QA-прогоне.
+- Лимит: тот же внешний `timeout -k 10s 300s` на процесс скрипта (включая подъём/остановку сервера).
 
 В implement/QA step поле `tests:` содержит исполняемую команду в backticks (для hub) или `capability_checks` (для managed), а результат фиксируется в `verification_results` и sidecar evidence.
 
@@ -53,6 +67,7 @@ timeout -k 10s 300s make test
   - **BACK** hub — `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k`. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
   - **FRONT QA** (parent-only) — full **frontend** suite: Vitest run + types/lint + Playwright (команды Frontend block выше). **FORBIDDEN:** `bin/pytest`. Evidence только pytest → FAIL (`suite_wrong_stack`).
   - Managed — capability `test.full` **своей** роли/surface (front ≠ backend).
+- **live_smoke (BACK QA HARD, отдельно от suite):** `timeout -k 10s 300s bash scripts/live_smoke.sh` — после full suite в том же QA-прогоне; evidence обязателен.
 - **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
 - если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full** (FRONT=frontend parent-only; BACK=hub pytest / managed capability).
 

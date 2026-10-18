@@ -36,9 +36,25 @@ completed implement-шарды. Исходный prompt, предыдущие it
 
 ## Вердикт и переход
 
-- Нет `fail|blocked` → `verdict: PASS` → `FRONT QA`.
-- Есть `fail|blocked` → actionable finding → `gate-repair` с blockers/ALLOW WRITE/VERIFY → повторный FRONT AUDIT. В BUGFIX из AUDIT не переходить.
-- Только после повторной проверки без actionable findings (`converged: true`) → `FRONT QA`.
+- Нет `fail|blocked` → `verdict: PASS` / `converged: true` → `loop.py finish` → `FRONT QA`.
+- Есть `fail|blocked` → actionable finding → **обязателен** `@gate-repair`
+  (`- id | path | fix` + ALLOW WRITE + VERIFY из matrix) → затем **повторный**
+  FRONT AUDIT. В BUGFIX из AUDIT не переходить.
+- **FAIL процесса:** записать `verdict: FAIL` и выйти без `gate-repair` и без
+  валидного `finish` → loop `finish_not_committed` / `retry_exhausted`. Это не
+  «честный stop»; это незакрытая фаза.
+- **FORBIDDEN:** spawn `parent-driven-audit` / любых не-канонических agent types
+  (см. `harness/instructions/spawn-hard.md`). AUDIT не имеет отдельного
+  verify-субагента; канон repair = только `gate-repair`.
+- При `unknown agent_type` / `agent thread limit` → close children, не retry тем
+  же invalid type; spawn `gate-repair` или parent чинит ALLOW WRITE paths сам,
+  потом снова AUDIT.
+- Evidence runtime (Playwright) в matrix: если findings ссылаются на старый s04
+  `null`/`socket hang up`, VERIFY у `gate-repair` **должен перепрогнать** эти
+  команды сейчас (после `e2e-preflight`/bench), а не копировать stale лог.
+- Negative purge `rg` без совпадений → exit code **1** = **PASS** (пусто), не FAIL.
+- Только после повторной проверки без actionable findings (`converged: true`) →
+  `FRONT QA`.
 - AUDIT не создаёт audit-shards, не запускает DECOMPOSE/IMPLEMENT и не объявляет
   `EPIC DONE`.
 - После зелёного QA переход к следующей итерации или final review выбирает

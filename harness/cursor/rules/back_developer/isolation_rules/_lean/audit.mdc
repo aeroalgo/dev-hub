@@ -18,7 +18,7 @@ alwaysApply: false
    `source_ref`, evidence и минимальный `bugfix_subject`.
 5. OUT-OF-SCOPE observation пишется только в `replan_candidates[]`; он не
    создаёт finding, audit-shard или изменение текущего plan.
-6. FINISH: actionable `FAIL|blocked` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `BACK QA`. AUDIT никогда не
+6. FINISH: actionable `FAIL|blocked` → **обязан** `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `loop finish` → `BACK QA`. Сессия с `verdict: FAIL` без repair/finish = `finish_not_committed`. **FORBIDDEN** spawn `parent-driven-audit` / invent gate. AUDIT никогда не
    выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT.
 
 ## Abort
@@ -34,4 +34,4 @@ alwaysApply: false
 
 ## Verify
 
-`rg -n 'check_matrix|replan_candidates|gate-repair|BACK QA' .cursor/rules/back_developer/workflow-audit.mdc`
+`rg -n 'check_matrix|replan_candidates|gate-repair|parent-driven-audit|BACK QA' .cursor/rules/back_developer/workflow-audit.mdc`

@@ -12,19 +12,24 @@
 
 ## HARD READ RULE
 
-До анализа, изменений и основной работы прочитай только entrypoint текущего
-runtime, затем `.cursor/rules/mainrule.mdc` и всю выбранную role/mode chain
-с Gates и `@`-ссылками.
+До анализа, изменений и основной работы:
+
+- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** прочитай
+  `.cursor/rules/shared/_lean/implement-bootstrap.mdc` и следуй его Read order
+  (Gates → scope-lock → role `## Hot path` → shard). **Не** грузи
+  `mainrule.mdc` monolith на старте code-phase.
+- **PLAN / DECOMPOSE / VAN / прочие:** entrypoint → `.cursor/rules/mainrule.mdc`
+  → выбранная role/mode chain с Gates и `@`-ссылками.
 
 **EXCEPT Policy lazy:** не читай тела файлов из блока/строки `Policy lazy`
 на старте только из-за `@` — только по trigger (см. `mainrule.mdc` §Full linked
-chain). На **DECOMPOSE** не читай тела Core/situational/Design SKILL.md —
-только copy paths в step (`shared/_lean/decompose-skills-load.mdc`).
+chain / implement-bootstrap). На **DECOMPOSE** не читай тела Core/situational/Design
+SKILL.md — только copy paths в step (`shared/_lean/decompose-skills-load.mdc`).
 
 ## Workflow router
 
-По таблице router выбери текущую команду, роль и режим. Затем прочитай только
-выбранную role/mode chain, её Gates и связанные `@`-ссылки.
+По таблице router выбери текущую команду, роль и режим. Для code-phase — bootstrap;
+иначе — role/mode chain и Gates.
 
 Не загружай workflow или skills заранее и не выбирай другую роль или режим.
 Пути и имена файлов определяются каноническими workflow, index и skills.

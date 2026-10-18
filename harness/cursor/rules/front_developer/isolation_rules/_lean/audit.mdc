@@ -18,9 +18,8 @@ alwaysApply: false
    `source_ref`, evidence и минимальный `bugfix_subject`.
 5. OUT-OF-SCOPE observation пишется только в `replan_candidates[]`; он не
    создаёт finding, audit-shard или изменение текущего plan.
-6. FINISH: actionable `FAIL|blocked` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `FRONT QA`. AUDIT никогда не
-   выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT.
-7. Frontend suite / Vitest / Playwright в AUDIT — **FORBIDDEN** (QA only; parent-only).
+6. FINISH: actionable `FAIL|blocked` → **обязан** `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `loop finish` → `FRONT QA`. Сессия с `verdict: FAIL` без repair/finish = `finish_not_committed`. AUDIT никогда не выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT.
+7. Frontend suite / Vitest / Playwright **как AUDIT parent suite** — **FORBIDDEN**. Их гоняет `gate-repair` VERIFY (и позже QA), не «ручной отчёт по старому s04 логу».
 
 ## Abort
 

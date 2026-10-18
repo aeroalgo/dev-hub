@@ -4,8 +4,9 @@ alwaysApply: false
 ---
 # IMPLEMENT — gates
 
+**Bootstrap (HARD):** @.cursor/rules/shared/_lean/implement-bootstrap.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Load:** cheatsheet + этот файл + scope-lock на старте. Full workflow / индекс роли / token-economy-core — не грузить. Канон: @.cursor/rules/mainrule.mdc §Full linked chain.
+**Load:** bootstrap → этот файл (Gates) → scope-lock → `## Hot path` role workflow. Full workflow / индекс роли / mainrule monolith / token-economy-core — не грузить.
 
 **Артефакт:**  
 - с эпиком: `memory-bank/back/implement/<epic_id>/sNN-<slug>.yaml` — `<epic_id>` = stem plan **со slug** (тот же, что у `plan/<epic_id>/`)  
@@ -28,6 +29,8 @@ alwaysApply: false
 5d. **`wire_complete` (HARD):** если decompose `wire_complete_required: true` **или** step закрывает machine boundary / SoT / cutover — в implement yaml блок `wire_complete` (`call_sites`, `enforce_path`, `dual_path_rg`, `instruction_rg`, **`deny_old_proven: true`**) green до `completed`. Machine: `validate-step` / mb-finish fail-closed. Канон: shared/_lean/anti-minimal-done.mdc · behavior-first §9. Optional SoT / «модуль есть» без DENY old = FAIL
 6. §0.11: missing counterpart = bug; после deletes — нет живых callers на удалённое
 7. Green: только затронутые; полный suite → BACK QA
+7a. **Env bootstrap:** при fail targeted runner из‑за missing deps — установить в проектный `.venv` / frontend deps (@.cursor/rules/shared/role-core-contract.mdc §Environment bootstrap) и повторить; не skip.
+7b. **Live smoke** — **не** gate IMPLEMENT (только targeted pytest). Живой uvicorn+HTTP = **BACK QA** (`live_smoke`). При API-шаге допустим локальный sanity curl, но PASS IMPLEMENT без live_smoke ок.
 8. **FINISH:** @.cursor/rules/shared/finish-block.mdc — грузить **перед FINISH**, не на старте. **Порядок:** Write `implement-*/sNN-*.yaml` → Handoff → `@verify-implement` (legacy alias `@verify`) → PASS; step+Handoff **до** decompose completed (5 точек там)
 8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
 

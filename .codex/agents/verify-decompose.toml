@@ -35,7 +35,6 @@ Parent **обязан** передать только:
 4. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
 5. **FORBIDDEN pytest / product code paths / test runners.** Только проверка plan/decompose yaml/md.
 6. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
-7. **Первая строка текста = `VERDICT:`**
 
 ## Pre-emit validate-verdict (HARD — machine-enforced)
 
@@ -71,23 +70,6 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - Поле `verdict` может быть `"PASS"` или `"FAIL"`.
 - Hook / runtime парсит **именно fenced JSON** с полем `"schema":"loop-gate-verdict/v1"`.
 
-## Формат отчёта (обязательный)
-
-```
-VERDICT: PASS|FAIL
-
-COVERAGE CHECK:
-- Requirements coverage: PASS|FAIL — evidence
-- Stages coverage: PASS|FAIL — evidence
-- Outcome map: PASS|FAIL — evidence
-- Replacement cleanup: PASS|FAIL — evidence
-
-BLOCKERS:
-- <id/issue>: <description>  # только при FAIL
-
-WARNINGS:
-- <optional non-blocking>
-```
 
 ## FORBIDDEN
 

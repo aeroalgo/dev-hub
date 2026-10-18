@@ -191,6 +191,9 @@ class StoreTransaction:
     def event_count(self, event: str, key_prefix: str = "") -> int:
         return self.store._event_count_unlocked(event, key_prefix)
 
+    def event_match_count(self, event: str, fields: dict[str, Any]) -> int:
+        return self.store._event_match_count_unlocked(event, fields)
+
     def latest_event(self, event: str) -> dict[str, Any] | None:
         return self.store._latest_event_unlocked(event)
 
@@ -396,6 +399,17 @@ class CursorStore:
                     count += 1
         return count
 
+    def _event_match_count_unlocked(self, event: str, fields: dict[str, Any]) -> int:
+        count = 0
+        for record in self._event_records_unlocked():
+            candidates = [record, *(item for item in record.get("events", []) if isinstance(item, dict))]
+            for item in candidates:
+                if item.get("event") != event:
+                    continue
+                if all(item.get(key) == value for key, value in fields.items()):
+                    count += 1
+        return count
+
     def _latest_event_unlocked(self, event: str) -> dict[str, Any] | None:
         for record in reversed(self._event_records_unlocked()):
             if record.get("event") == event:
@@ -425,6 +439,10 @@ class CursorStore:
     def event_count(self, event: str, key_prefix: str = "") -> int:
         with _CursorLock(self.paths):
             return self._event_count_unlocked(event, key_prefix)
+
+    def event_match_count(self, event: str, fields: dict[str, Any]) -> int:
+        with _CursorLock(self.paths):
+            return self._event_match_count_unlocked(event, fields)
 
     def latest_event(self, event: str) -> dict[str, Any] | None:
         with _CursorLock(self.paths):

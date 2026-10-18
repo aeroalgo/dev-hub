@@ -6,14 +6,30 @@ import shutil
 import subprocess
 import sys
 import threading
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from loop.kernel.engine import LoopEngine, TransitionError
-from loop.kernel.cli import _bugfix_gate_paths, _gate_protocol, _gate_recovery_prompt, _phase_gate_agent
+from loop.kernel.cli import (
+    _audit_finish_protocol,
+    _bugfix_gate_paths,
+    _gate_protocol,
+    _gate_recovery_prompt,
+    _phase_gate_agent,
+    _phase_instruction,
+)
+from loop.kernel.verdict import extract_json_fence
 from loop.kernel.analyze import analyze_required_before_implement, index_content_fingerprint
-from loop.kernel.index import Step, implement_path
+from loop.kernel.index import (
+    Step,
+    _load_yaml_mapping,
+    implement_path,
+    normalize_decompose_list_fields,
+    repair_yaml_double_quoted_escapes,
+    validate_decompose_tree,
+)
 from loop.kernel.lifecycle import SubagentLifecycle
 from loop.kernel.model import CursorStatus, RuntimeResult
 from loop.kernel.runtime import CodexRuntime, Runtime
@@ -27,6 +43,29 @@ from loop.config import LoopSettings
 def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _seed_implement(root: Path, *, step_id: str, filename: str, epic_id: str = "E1") -> None:
+    write(
+        root / f"memory-bank/back/implement/{epic_id}/{filename}",
+        f"""
+schema: epic-implement/v1
+role: back
+step_id: {step_id}
+plan_id: {epic_id}
+status: in_progress
+done:
+  - seeded evidence
+files: []
+deletes: []
+tests: []
+integration_check: []
+checkpoints:
+  - id: cp1
+    criterion: seeded
+    status: pending
+""",
+    )
 
 
 def seed_project(root: Path) -> LoopPaths:
@@ -43,6 +82,8 @@ steps:
 """)
     write(root / "memory-bank/back/plan/E1/yaml/s01-one.yaml", "step_id: s01\n")
     write(root / "memory-bank/back/plan/E1/yaml/s02-two.yaml", "step_id: s02\n")
+    _seed_implement(root, step_id="s01", filename="s01-one.yaml")
+    _seed_implement(root, step_id="s02", filename="s02-two.yaml")
     write(
         root / "memory-bank/back/analyze/E1/analyze-20260921-pass.yaml",
         "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
@@ -219,10 +260,108 @@ steps:
 """,
     )
 
-    with pytest.raises(FileNotFoundError, match="decompose shard missing"):
+    with pytest.raises(TransitionError, match="cannot finish DECOMPOSE: invalid yaml tree"):
         _finish_via_gate(engine)
 
     assert engine.store.read().phase == "DECOMPOSE"
+
+
+def test_repair_yaml_double_quoted_escapes_doubles_unknown() -> None:
+    raw = 'verify:\n  - "timeout -k 10s 300s rg \\\\.token path"\n'
+    # already valid \\. — no change
+    fixed, count = repair_yaml_double_quoted_escapes(raw)
+    assert count == 0 and fixed == raw
+
+    bad = 'verify:\n  - "timeout -k 10s 300s rg \\.token path"\n'
+    fixed, count = repair_yaml_double_quoted_escapes(bad)
+    assert count == 1
+    assert r"\\." in fixed or "\\\\." in fixed
+    import yaml
+
+    payload = yaml.safe_load(fixed)
+    assert payload["verify"][0].endswith("rg \\.token path")
+
+
+def test_load_yaml_mapping_rewrites_invalid_double_quoted_escapes(tmp_path: Path) -> None:
+    path = tmp_path / "shard.yaml"
+    path.write_text(
+        'schema: epic-decompose/v1\nverify:\n  - "rg \\.css design-system/"\n',
+        encoding="utf-8",
+    )
+    payload = _load_yaml_mapping(path)
+    assert payload["verify"][0] == "rg \\.css design-system/"
+    assert r"\\." in path.read_text(encoding="utf-8") or "\\\\." in path.read_text(encoding="utf-8")
+
+
+def _minimal_decompose_shard(*, step_id: str, plan_id: str, verify_line: str) -> str:
+    return f"""
+schema: epic-decompose/v1
+role: back
+step_id: {step_id}
+plan_id: {plan_id}
+title: {step_id}
+next_phase: BACK IMPLEMENT
+goal: outcome
+plan_contract: {{}}
+context: {{}}
+as_built: []
+delta: []
+deletes: []
+out_of_scope: []
+skills: {{}}
+checkpoints: []
+verify:
+  - {verify_line}
+tdd: []
+"""
+
+
+def test_normalize_tdd_bool_to_list(tmp_path: Path) -> None:
+    path = tmp_path / "s01.yaml"
+    path.write_text(
+        "schema: epic-decompose/v1\ntdd: true\nverify:\n  - ok\n",
+        encoding="utf-8",
+    )
+    payload = normalize_decompose_list_fields(path, _load_yaml_mapping(path))
+    assert payload["tdd"] == []
+    assert "tdd: []" in path.read_text(encoding="utf-8")
+    assert "tdd: true" not in path.read_text(encoding="utf-8")
+
+
+def test_validate_decompose_tree_repairs_escapes_and_purges_orphans(tmp_path: Path) -> None:
+    write(tmp_path / "memory-bank/back/plan/E-Y/md/plan.md", "# Plan\n")
+    write(
+        tmp_path / "memory-bank/back/plan/E-Y/yaml/decompose-index.yaml",
+        """
+schema: epic-decompose-index/v1
+plan_id: E-Y
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: pending
+""",
+    )
+    steps = tmp_path / "memory-bank/back/plan/E-Y/yaml/steps"
+    write(
+        steps / "s01.yaml",
+        _minimal_decompose_shard(
+            step_id="s01",
+            plan_id="E-Y",
+            verify_line='"timeout -k 10s 300s rg \\.token path"',
+        ),
+    )
+    write(steps / "s01-orphan.yaml", "schema: epic-decompose/v1\nstep_id: orphan\n")
+
+    queue = validate_decompose_tree(tmp_path, "back", "E-Y")
+    assert queue.steps[0].step_id == "s01"
+    assert not (steps / "s01-orphan.yaml").exists()
+    text = (steps / "s01.yaml").read_text(encoding="utf-8")
+    assert "rg" in text
+    import yaml
+
+    assert yaml.safe_load(text)["verify"][0].endswith("rg \\.token path")
 
 
 def test_loop_holds_at_analyze_until_zero_critical_artifact_exists(tmp_path: Path) -> None:
@@ -424,6 +563,82 @@ def test_phase_gate_agents_cover_all_machine_checked_modes() -> None:
     assert _phase_gate_agent("CONTEXT_SYNC") is None
 
 
+def test_extract_json_fence_accepts_schema_tagged_and_prefers_loop_schema() -> None:
+    tagged = (
+        "notes\n"
+        "```loop-gate-verdict/v1\n"
+        '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS",'
+        '"step_id":"QA","session_id":"s1","epic_id":"E1","recorded_at":"2026-01-01T00:00:00Z"}\n'
+        "```\n"
+    )
+    payload, codes = extract_json_fence(tagged)
+    assert codes == ()
+    assert payload is not None
+    assert payload["verdict"] == "PASS"
+
+    mixed = (
+        "```json\n{\"helper\": true}\n```\n"
+        "```json\n"
+        '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS",'
+        '"step_id":"QA","session_id":"s1","epic_id":"E1","recorded_at":"2026-01-01T00:00:00Z"}\n'
+        "```\n"
+    )
+    payload2, codes2 = extract_json_fence(mixed)
+    assert codes2 == ()
+    assert payload2 is not None
+    assert payload2["schema"] == "loop-gate-verdict/v1"
+
+
+def test_audit_prompt_forbids_parent_driven_audit_and_requires_finish(tmp_path: Path) -> None:
+    """AUDIT must finish via loop.py — never invent parent-driven-audit as a gate."""
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    # Force AUDIT identity without walking the full epic (helpers only need cursor fields).
+    cursor = replace(
+        cursor,
+        phase="AUDIT",
+        step_id="AUDIT",
+        phase_epoch=cursor.phase_epoch + 1,
+    )
+
+    instruction = _phase_instruction(cursor, tmp_path)
+    finish = _audit_finish_protocol(cursor)
+    assert "FORBIDDEN" in instruction
+    assert "parent-driven-audit" in instruction
+    assert "finish --project" in instruction and "AUDIT" in instruction
+    assert f"finish --project <cwd> --step {cursor.step_id}" in finish
+    assert "agent_type=parent-driven-audit" not in finish
+    assert "do not spawn any gate first" in finish
+    assert "gate-repair" in finish
+    # Managed-gate protocol must not invent a fake AUDIT verifier.
+    with pytest.raises(ValueError, match="parent-driven-audit"):
+        _gate_protocol(cursor, tmp_path, None)
+
+
+def test_implement_prompt_requires_workflow_bootstrap_and_forbids_full_pytest(tmp_path: Path) -> None:
+    """IMPLEMENT must force implement-bootstrap + Gates; full bin/pytest -q is forbidden."""
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    cursor = replace(cursor, phase="IMPLEMENT", step_id="s01")
+
+    instruction = _phase_instruction(cursor, tmp_path)
+
+    assert "HARD bootstrap BEFORE any exploration" in instruction
+    assert ".cursor/rules/shared/_lean/implement-bootstrap.mdc" in instruction
+    assert "do not load mainrule.mdc monolith" in instruction
+    assert "memory-bank/activeContext.md" in instruction
+    assert ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc" in instruction
+    assert ".cursor/rules/shared/workflow-implement-scope-lock.mdc" in instruction
+    assert "## Hot path" in instruction
+    assert ".cursor/rules/back_developer/workflow-implement.mdc" in instruction
+    assert "`bin/pytest -q`" in instruction
+    assert "Full suite is QA only" in instruction
+    assert f"memory-bank/{cursor.role}/implement/{cursor.epic_id}/" in instruction
+    assert "without an implement- prefix" in instruction
+
+
 def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -436,7 +651,15 @@ def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: 
     assert "loop-repair-result/v1" in prompt
     assert f"PARENT_EVIDENCE_ID={cursor.session_id}" in prompt
     assert "prompt_incomplete:parent_evidence_id" in prompt
-    assert "verdict session mismatch" in prompt
+    assert "stale_verdict_ignored" in prompt
+    assert "Parent discipline (HARD" in prompt
+    assert "fork_context=false" in prompt
+    assert "evidence_sha256 is OPTIONAL" in prompt
+    assert "epic_resolve.py" in prompt
+    assert "FORBIDDEN parent busywork" in prompt
+    assert "For loop-gate-verdict/v1 only" in prompt
+    assert "FORBIDDEN to put session_id/epic_id/step_id keys in the repair fence" in prompt
+    assert "repair_result_rejected" in prompt
     assert "T-004-mode-a-live-ready-analyze-verify" not in prompt
     engine.rewind("ANALYZE")
     analyze_cursor = engine.store.read()
@@ -730,6 +953,110 @@ items:
     assert reconciled.phase == "BUGFIX"
 
 
+def test_qa_fail_finish_routes_from_artifacts_without_verdict_recorded(tmp_path: Path) -> None:
+    """Codex may never persist verify-qa verdict_recorded; artifact SoT must still finish→BUGFIX."""
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: open
+""",
+    )
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    assert engine._qa_failure_ready(cursor)
+
+    transition = engine.finish(step_id="QA")
+    assert transition.event == "qa_failed"
+    assert transition.phase == "BUGFIX"
+    assert engine.store.read().phase == "BUGFIX"
+
+
+def test_session_auto_finish_audit_when_converged_without_explicit_finish(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "AUDIT"
+    auto = engine.try_session_auto_finish(cursor)
+    assert auto is not None and auto.changed
+    assert engine.store.read().phase == "QA"
+
+
+def test_session_auto_finish_salvages_qa_pass_from_pre_emit_stamp(tmp_path: Path) -> None:
+    """Agent exits after validate-verdict but with a broken fence — stamp still machine-closes."""
+    from loop.kernel.pre_emit import write_pre_emit_stamp
+
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
+    )
+    engine.finish(step_id="AUDIT")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    payload = {
+        "schema": SCHEMA_GATE_VERDICT,
+        "agent_id": "verify-qa",
+        "verdict": "PASS",
+        "step_id": "QA",
+        "session_id": cursor.session_id,
+        "epic_id": cursor.epic_id,
+        "recorded_at": "2026-09-21T00:00:00+00:00",
+    }
+    assert write_pre_emit_stamp(paths, payload) is not None
+    auto = engine.try_session_auto_finish(cursor)
+    assert auto is not None and auto.changed
+    assert engine.store.read().phase == "CONTEXT_SYNC"
+
+
 def test_resume_reconciles_recorded_qa_fail_without_second_gate(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -807,6 +1134,123 @@ def test_gate_repair_result_is_validated_and_recorded(tmp_path: Path) -> None:
     assert engine.store.read().session_id == cursor.session_id
 
 
+def test_gate_repair_accepts_gate_identity_and_narrative_extras(tmp_path: Path) -> None:
+    """LLM often copies GATE_IDENTITY / VERIFY narrative into the repair fence.
+
+    Those extras used to cause schema_extra_forbidden → finish_not_committed loops.
+    """
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_REPAIR_RESULT,
+        "agent_id": "gate-repair",
+        "parent_evidence_id": cursor.session_id,
+        "status": "done",
+        "repair_status": "done",
+        "fixed_blockers": ["dynamic-module-import"],
+        "remaining_blockers": [],
+        "blockers": ["dynamic-module-import"],
+        "session_id": cursor.session_id,
+        "epic_id": cursor.epic_id,
+        "step_id": cursor.step_id,
+        "changed_paths": ["tests/back/test_plane_probe.py"],
+        "verification": {
+            "command": "python3 -m pytest tests/back/test_plane_probe.py -q",
+            "exit_code": 0,
+            "result": "1 passed",
+        },
+        "recorded_at": "2026-10-17T20:00:00+00:00",
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "gate-repair",
+            "last_assistant_message": message,
+        }
+    )
+
+    assert action.ok, action.reason
+    assert action.transition["metadata"]["repair_status"] == "done"
+    assert action.transition["metadata"]["fixed_blockers"] == ["dynamic-module-import"]
+    assert '"event": "repair_recorded"' in paths.events.read_text(encoding="utf-8")
+    assert "schema_extra_forbidden" not in paths.events.read_text(encoding="utf-8")
+
+
+def test_stale_repair_after_session_rotate_is_ignored_not_exit2(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    old_session = cursor.session_id
+    engine.retry("force_rotate")
+    after = engine.store.read()
+    assert after is not None
+    assert after.session_id != old_session
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_REPAIR_RESULT,
+        "agent_id": "gate-repair",
+        "parent_evidence_id": old_session,
+        "status": "done",
+        "fixed_blockers": ["B1"],
+        "remaining_blockers": [],
+        "recorded_at": "2026-09-18T19:00:00+00:00",
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "gate-repair",
+            "last_assistant_message": message,
+        }
+    )
+    assert action.ok
+    assert action.continue_session
+    assert action.exit_code == 0
+    assert "stale_repair_ignored" in action.reason
+    events = paths.events.read_text(encoding="utf-8")
+    assert "stale_repair_ignored" in events
+    assert "repair_recorded" not in events
+
+
+def test_stale_verdict_after_session_rotate_is_ignored_not_exit2(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    old_session = cursor.session_id
+    engine.retry("force_rotate")
+    after = engine.store.read()
+    assert after is not None
+    lifecycle = SubagentLifecycle(paths)
+    payload = {
+        "schema": SCHEMA_GATE_VERDICT,
+        "agent_id": "verify-implement",
+        "verdict": "FAIL",
+        "step_id": "s01",
+        "session_id": old_session,
+        "epic_id": "E1",
+        "recorded_at": "2026-09-18T19:00:00+00:00",
+    }
+    message = chr(96) * 3 + "json\n" + json.dumps(payload) + "\n" + chr(96) * 3
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-implement",
+            "last_assistant_message": message,
+        }
+    )
+    assert action.ok
+    assert action.continue_session
+    assert action.exit_code == 0
+    assert "stale_verdict_ignored" in action.reason
+    events = paths.events.read_text(encoding="utf-8")
+    assert "stale_verdict_ignored" in events
+    assert '"verdict": "FAIL"' not in events or "verdict_recorded" not in events
+
+
 def test_gate_repair_rejects_invented_parent_evidence_prompt_incomplete(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -855,6 +1299,35 @@ def test_gate_repair_start_context_binds_parent_evidence_id(tmp_path: Path) -> N
     assert f'parent_evidence_id: "{cursor.session_id}"' in context
     assert "FORBIDDEN remaining_blockers: prompt_incomplete:parent_evidence_id" in context
     assert "never a missing parent prompt section" in context
+    assert "--schema loop-repair-result/v1" in context
+    assert "Do NOT use validate-verdict for repair results" in context
+    assert "FORBIDDEN fence keys: session_id, epic_id, step_id" in context
+    assert "Do NOT put session_id, epic_id, or step_id into the repair JSON fence" in context
+
+
+def test_repair_result_rejected_recovery_prompt_respawns_gate_repair(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    engine.record_event(
+        {
+            "event": "repair_result_rejected",
+            "agent_id": "gate-repair",
+            "phase": cursor.phase,
+            "step_id": cursor.step_id,
+            "session_id": cursor.session_id,
+            "epic_id": cursor.epic_id,
+            "diagnostic_codes": ["schema_extra_forbidden"],
+            "errors": ["Extra inputs are not permitted: session_id"],
+        }
+    )
+    recovery = _gate_recovery_prompt(cursor, engine)
+    assert "repair_result_rejected" in recovery
+    assert "Respawn gate-repair" in recovery
+    assert "finish_not_committed" in recovery
+    assert "loop-repair-result/v1" in recovery
+    assert "FORBIDDEN repair keys" in recovery
+    assert "schema_extra_forbidden" in recovery
 
 
 def test_sunset_inventory_is_validated_persisted_and_does_not_advance(tmp_path: Path) -> None:
@@ -1079,10 +1552,23 @@ def test_retry_is_bounded_by_one_counter(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
     engine.start("E1")
+    before = engine.store.read()
+    assert before is not None
+    old_session = before.session_id
+    old_epoch = before.phase_epoch
     first = engine.retry("runtime_exit_1")
-    second = engine.retry("runtime_exit_2")
+    mid = engine.store.read()
+    assert mid is not None
     assert first.attempt == 1
+    assert mid.session_id != old_session
+    assert mid.phase_epoch == old_epoch + 1
+    assert mid.status == CursorStatus.ACTIVE
+    second = engine.retry("runtime_exit_2")
+    after = engine.store.read()
+    assert after is not None
     assert second.attempt == 2
+    assert after.session_id != mid.session_id
+    assert after.phase_epoch == old_epoch + 2
     payload = json.loads(paths.cursor.read_text(encoding="utf-8"))
     assert set(payload) == {
         "schema",
@@ -1100,28 +1586,78 @@ def test_retry_is_bounded_by_one_counter(tmp_path: Path) -> None:
     }
 
 
-def test_session_supervisor_commits_failure_and_halt_atomically(tmp_path: Path) -> None:
+def test_session_supervisor_soft_retry_rotates_session_not_same_identity(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    before = engine.start("E1")
+    old_session = before.session_id
+
+    class OkNoFinishRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult("test", 0, log_path)
+
+    run = SessionSupervisor(engine, OkNoFinishRuntime(), timeout=1, max_attempts=3, backoff=0).run_step(
+        "work", model="test", project=tmp_path, session_id=old_session
+    )
+    assert run.outcome == SessionOutcome.SESSION_ROTATED
+    after = engine.store.read()
+    assert after is not None
+    assert after.session_id != old_session
+    assert after.attempt == 1
+    assert after.status == CursorStatus.ACTIVE
+    assert after.phase_epoch == before.phase_epoch + 1
+
+
+
+def test_bugfix_partial_exit_progress_continues_without_halt(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
     engine.start("E1")
-
-    class FailingRuntime:
-        def run(self, prompt, *, model, project, log_path, timeout):
-            return RuntimeResult("test", 17, log_path, message="runtime failed")
-
-    run = SessionSupervisor(engine, FailingRuntime(), timeout=1, max_attempts=1, backoff=0).run_step(
-        "work", model="test", project=tmp_path, session_id="session-1"
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
+        """schema: epic-audit/v2
+converged: true
+findings: []
+check_matrix:
+  - source_ref: plan:E1
+    status: pass
+    evidence: implementation evidence
+    verify: targeted check
+""",
     )
-
-    assert run.outcome == SessionOutcome.RUNTIME_FAILURE
-    assert run.transition is not None
+    engine.finish(step_id="AUDIT")
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: done
+  - id: BF-002
+    status: open
+""",
+    )
+    engine.finish(step_id="QA")
     cursor = engine.store.read()
-    assert cursor is not None
-    assert cursor.status == CursorStatus.HALTED
-    assert cursor.failure is not None
-    assert cursor.failure.category == "session"
-    assert cursor.failure.code == "retry_exhausted"
-    assert cursor.failure.details["exit_code"] == 17
+    assert cursor is not None and cursor.phase == "BUGFIX"
+
+    class OkRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult("test", 0, log_path)
+
+    run = SessionSupervisor(engine, OkRuntime(), timeout=1, max_attempts=1, backoff=0).run_step(
+        "work", model="test", project=tmp_path, session_id=cursor.session_id
+    )
+    assert run.outcome == SessionOutcome.PROGRESS_CONTINUE
+    assert run.reason == "bugfix_items_remaining"
+    after = engine.store.read()
+    assert after is not None
+    assert after.phase == "BUGFIX"
+    assert after.status == CursorStatus.ACTIVE
+    assert after.attempt == 0
+    assert after.failure is None
 
 
 def test_phase_finish_requires_evidence_and_halt_is_terminal(tmp_path: Path) -> None:
@@ -1371,7 +1907,10 @@ def test_content_fail_recovery_prompt_requires_gate_repair(tmp_path: Path) -> No
     recovery = _gate_recovery_prompt(current, engine)
     assert "gate-repair" in recovery
     assert "BLOCKERS" in recovery
-    assert "Classify the verifier's concrete finding first" in recovery
+    assert "product/content result" in recovery
+    assert "evidence_sha256" in recovery
+    assert "Do not finish" in recovery
+    assert "Classify the verifier's concrete finding" in recovery
     assert engine.store.latest_event("verdict_recorded")["phase"] == "IMPLEMENT"
 
 
@@ -1398,6 +1937,9 @@ def test_subagent_invalid_verdict_has_atomic_retry_budget(tmp_path: Path) -> Non
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
     engine.start("E1")
+    before = engine.store.read()
+    assert before is not None
+    old_session = before.session_id
     lifecycle = SubagentLifecycle(paths)
     payload = {"cwd": str(tmp_path), "agent_type": "verify-implement", "last_assistant_message": "no json"}
 
@@ -1407,11 +1949,187 @@ def test_subagent_invalid_verdict_has_atomic_retry_budget(tmp_path: Path) -> Non
     assert first.exit_code == second.exit_code == third.exit_code == 2
     assert "retry 1/2" in first.reason
     assert "retry 2/2" in second.reason
-    assert third.reason == "schema_retry_exhausted:verify-implement"
-    assert engine.store.read().status == CursorStatus.HALTED
+    assert third.reason.startswith("step_restarted:verify-implement")
+    after = engine.store.read()
+    assert after is not None
+    assert after.status == CursorStatus.ACTIVE
+    assert after.attempt == 0
+    assert after.session_id != old_session
+    assert after.step_id == before.step_id
     events = paths.events.read_text(encoding="utf-8")
     assert events.count('"event": "verdict_rejected"') == 3
+    assert '"event": "step_restarted"' in events
+    assert '"event": "halt"' not in events
+
+
+def test_three_verify_fail_and_repair_cycles_restart_step(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    old_session = cursor.session_id
+
+    def fail_verdict(recorded_at: str) -> GateVerdict:
+        return GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-implement",
+            verdict="FAIL",
+            step_id=cursor.step_id,
+            session_id=engine.store.read().session_id,
+            epic_id=cursor.epic_id,
+            recorded_at=recorded_at,
+        )
+
+    for index in range(3):
+        engine.record_event(
+            {
+                "event": "repair_recorded",
+                "agent_id": "gate-repair",
+                "phase": "IMPLEMENT",
+                "step_id": cursor.step_id,
+                "status": "done",
+                "fixed_blockers": [],
+                "remaining_blockers": [],
+                "recorded_at": f"2026-09-21T00:0{index}:00+00:00",
+            }
+        )
+        if index < 2:
+            engine.accept_verdict(fail_verdict(f"2026-09-21T01:0{index}:00+00:00"), expected_agent_id="verify-implement")
+        else:
+            transition = engine.accept_verdict(
+                fail_verdict(f"2026-09-21T01:0{index}:00+00:00"),
+                expected_agent_id="verify-implement",
+            )
+            assert transition.event == "step_restarted"
+
+    after = engine.store.read()
+    assert after is not None
+    assert after.status == CursorStatus.ACTIVE
+    assert after.session_id != old_session
+    assert after.attempt == 0
+    assert after.step_id == cursor.step_id
+
+
+def test_session_attempts_exhausted_restarts_step(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    before = engine.start("E1")
+    old_session = before.session_id
+
+    class OkNoFinishRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult("test", 0, log_path)
+
+    run = SessionSupervisor(engine, OkNoFinishRuntime(), timeout=1, max_attempts=1, backoff=0).run_step(
+        "work", model="test", project=tmp_path, session_id=before.session_id
+    )
+    assert run.outcome == SessionOutcome.STEP_RESTARTED
+    after = engine.store.read()
+    assert after is not None
+    assert after.status == CursorStatus.ACTIVE
+    assert after.attempt == 0
+    assert after.session_id != old_session
+    assert after.phase == before.phase
+    assert after.step_id == before.step_id
+    assert "step_restarted" in (paths.events.read_text(encoding="utf-8"))
+
+
+def test_session_supervisor_commits_failure_and_halt_atomically(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+
+    class FailingRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult("test", 17, log_path, message="runtime failed")
+
+    # max_attempts=1 → first failure exhausts budget → step restart (not halt yet)
+    run = SessionSupervisor(engine, FailingRuntime(), timeout=1, max_attempts=1, backoff=0).run_step(
+        "work", model="test", project=tmp_path, session_id="session-1"
+    )
+    assert run.outcome == SessionOutcome.STEP_RESTARTED
+    cursor = engine.store.read()
+    assert cursor is not None
+    assert cursor.status == CursorStatus.ACTIVE
+    assert cursor.failure is None
+
+
+def test_session_supervisor_rate_limit_halts_without_retry(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    before = engine.start("E1")
+
+    class RateLimitedRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult(
+                "codex",
+                1,
+                log_path,
+                message=(
+                    "exceeded retry limit, last status: 429 Too Many Requests, "
+                    "request id: 8ca19edb-1073-4e89-9fb2-01b06948a5a7"
+                ),
+            )
+
+    run = SessionSupervisor(engine, RateLimitedRuntime(), timeout=1, max_attempts=3, backoff=0).run_step(
+        "work", model="test", project=tmp_path, session_id=before.session_id
+    )
+    assert run.outcome == SessionOutcome.RUNTIME_FAILURE
+    assert "provider_rate_limited" in run.reason
+    cursor = engine.store.read()
+    assert cursor is not None
+    assert cursor.status == CursorStatus.HALTED
+    assert cursor.session_id == before.session_id
+    assert cursor.attempt == before.attempt
+    assert cursor.failure is not None
+    assert cursor.failure.code == "provider_rate_limited"
+    assert cursor.failure.retryable is False
+    events = paths.events.read_text(encoding="utf-8")
+    assert '"event": "retry"' not in events
+    assert '"event": "step_restarted"' not in events
     assert '"event": "halt"' in events
+
+
+def test_session_supervisor_soft_retry_sleeps_backoff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    slept: list[float] = []
+
+    def fake_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    monkeypatch.setattr("loop.kernel.session.time.sleep", fake_sleep)
+
+    class OkNoFinishRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult("test", 0, log_path)
+
+    run = SessionSupervisor(engine, OkNoFinishRuntime(), timeout=1, max_attempts=3, backoff=2.0).run_step(
+        "work", model="test", project=tmp_path
+    )
+    assert run.outcome == SessionOutcome.SESSION_ROTATED
+    assert slept == [2.0]
+
+
+def test_session_supervisor_step_restart_uses_longer_backoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    slept: list[float] = []
+    monkeypatch.setattr("loop.kernel.session.time.sleep", lambda seconds: slept.append(seconds))
+
+    class FailingRuntime:
+        def run(self, prompt, *, model, project, log_path, timeout):
+            return RuntimeResult("test", 17, log_path, message="runtime failed")
+
+    run = SessionSupervisor(engine, FailingRuntime(), timeout=1, max_attempts=1, backoff=2.0).run_step(
+        "work", model="test", project=tmp_path
+    )
+    assert run.outcome == SessionOutcome.STEP_RESTARTED
+    # attempt=1 exhausted, step_restart → backoff * max(attempt, max_attempts) * 2 = 2 * 1 * 2
+    assert slept == [4.0]
 
 
 def test_subagent_stop_hook_accepts_pydantic_verdict(tmp_path: Path) -> None:
@@ -1560,7 +2278,64 @@ def test_gate_verdict_pre_emit_stamp_mismatch_is_rejected(tmp_path: Path) -> Non
     )
     assert action.ok is False
     assert "pre_emit_validate_mismatch" in action.diagnostic_codes
+    assert "EMIT_EXACTLY=" in action.reason
     assert engine.store.read().step_id == "s01"
+
+
+def test_gate_verdict_recorded_at_may_differ_from_pre_emit_stamp(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    stamped = _verdict_payload(cursor, verdict="PASS")
+    from loop.kernel.pre_emit import write_pre_emit_stamp
+
+    write_pre_emit_stamp(paths, stamped)
+    emitted = dict(stamped)
+    emitted["recorded_at"] = "2026-10-15T21:42:50+00:00"
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-implement",
+            "last_assistant_message": "```json\n" + json.dumps(emitted) + "\n```",
+        }
+    )
+    assert action.ok is True
+    assert action.transition is not None
+    assert engine.store.read().step_id == "s02"
+
+
+def test_validate_verdict_returns_emit_exactly(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    payload = _verdict_payload(cursor, verdict="PASS")
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(Path(__file__).parents[2] / "bin/loop.py"),
+            "validate-verdict",
+            "--project",
+            str(tmp_path),
+            "--payload",
+            json.dumps(payload),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+        env={
+            **os.environ,
+            "DEV_HUB": str(paths.hub),
+            "HUB_ROOT": str(paths.hub),
+            "PROJECT_ROOT": str(tmp_path),
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    body = json.loads(result.stdout)
+    assert body["valid"] is True
+    assert body["emit_exactly"]["verdict"] == "PASS"
+    assert body["emit_exactly"]["session_id"] == cursor.session_id
+    assert body["binding_sha256"]
+    assert body["pre_emit_stamp"]["payload"]["agent_id"] == "verify-implement"
 
 
 def test_native_validator_accepts_repair_result_schema(tmp_path: Path) -> None:
@@ -1640,6 +2415,18 @@ def test_codex_command_uses_native_headless_contract(tmp_path: Path) -> None:
     ]
     assert "--ephemeral" not in command
     assert "--enable" not in command
+    assert "-c" not in command
+    assert command[-1] == "do work"
+
+
+def test_codex_command_passes_effort_override_before_exec(tmp_path: Path) -> None:
+    command = CodexRuntime(effort="medium").command("do work", model="agy/gemini-3.8-flash-tiered", project=tmp_path)
+
+    assert command[1:3] == ["-c", 'model_reasoning_effort="medium"']
+    assert command[3] == "exec"
+    assert "--model" in command
+    assert command[command.index("--model") + 1] == "agy/gemini-3.8-flash-tiered"
+    assert command.index("-c") < command.index("exec")
     assert command[-1] == "do work"
 
 

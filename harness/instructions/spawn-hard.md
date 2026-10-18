@@ -69,12 +69,23 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 **FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов; ≤10 default, ≤40 для verify-qa/reviewer).
    **FAIL:** секции без перевода строки / без этих заголовков.
 
+## Codex / parent spawn (HARD)
+
+- `spawn_agent` для gate: `agent_type`/`subagent_type` = canonical gate id **и** `fork_context=false` (self-contained prompt с GATE_IDENTITY + ALLOW READ).
+- **FORBIDDEN:** full-history fork вместе с `agent_type` (Codex: «Full-history forked agents inherit the parent agent type»).
+- **FORBIDDEN:** invent agent types вне таблицы выше (`parent-driven-audit`, `managed-audit`, ad-hoc names). Для FRONT/BACK **AUDIT** канон = parent пишет `audit.yaml`; при `fail|blocked` → только `@gate-repair` (не выдуманный audit-verify). AUDIT **не** имеет `verify-implement` / `parent-driven-audit`.
+- Перед новым `spawn_agent`: **close** completed children. `agent thread limit reached` → close → spawn; не крутить wait бесконечно.
+- Parent **не** ищет `epic_resolve.py` / hub scripts в product tree; только `python3 $DEV_HUB/bin/loop.py …`.
+- Parent **не** гоняет `validate`/`validate-verdict` без `--payload '<json>'` и **не** требует `evidence_sha256`.
+- После boundary-accepted `FAIL` → `gate-repair`, не повторный verify «из‑за схемы».
+- Для CRM e2e / shared-token FAIL: repair обязан чинить **runtime delivery** (`crm/scripts/e2e-preflight.sh`, `crm/crm/hooks.py` → `frappe-bench/apps/crm`, `bench start`), а не крутить spawn audit-gate.
+
 ## Gate Verdict Contract (JSON Fenced Block) — machine SoT
 
 Субагенты `verify-implement`, `verify-bugfix`, `verify-qa`, `verify-decompose`, `analyze-verify` (и алиасы) **ОБЯЗАНЫ**:
 
-1. Bash `validate-verdict` на **точный** финальный JSON до `valid: true` (пишет pre-emit stamp; без stamp SubagentStop → reject).
-2. В финальный ответ — ровно один fenced JSON **без лишних ключей**:
+1. Bash `validate-verdict` до `valid: true` (пишет pre-emit stamp + `emit_exactly`; без stamp SubagentStop → reject).
+2. В финальный ответ — ровно один fenced `` ```json `` = `emit_exactly` (кроме `recorded_at`); **без лишних ключей**. Parent: `handoff REJECTED` ≠ PASS.
 
 ```json
 {
@@ -91,18 +102,17 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 - Allowed keys only: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
 - FORBIDDEN: `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
 - `verdict`: `PASS` | `FAIL` | `BLOCKED` (BLOCKED только verify-qa/reviewer).
-- `VERDICT: …` — optional human summary **после** fence; **не** machine input.
-
-Отчёт: на русском.
+- После fence — **ноль** tool calls.
+- gate-repair SoT = `loop-repair-result/v1` fence (`status`, `fixed_blockers`, `remaining_blockers`).
 
 ## Budget (custom overlay)
 
 | Agent | maxTurns | notes |
 |-------|----------|-------|
 | explorer | 20 | ≤12 Read · ≤6 Bash · ≤8 Grep/Glob; после graphify только `path=`; re-read >1× FORBIDDEN; plan/creative вне ALLOW FORBIDDEN; repo-wide `rg`/`find`/`ls` FORBIDDEN |
-| verify-implement / verify-bugfix / verify (alias) | 12 | ≤12 read (цель ≤6) · ≤10 ALLOW · re-read запрещён; fenced JSON `loop-gate-verdict/v1` обязателен; после ≤6 Read — только текст |
-| verify-qa / reviewer (alias) | 30 | ≤16 rg · ≤40 read · ≤40 ALLOW · exhaustive AC matrix (no fail-fast) · полный `## BLOCKERS (complete)` до JSON · re-read запрещён; финал текст + fenced JSON `loop-gate-verdict/v1` |
-| verify-decompose | 12 | ≤12 read · ≤10 ALLOW · re-read запрещён; fenced JSON `loop-gate-verdict/v1` обязателен |
+| verify-implement / verify-bugfix / verify (alias) | 12 | ≤12 read (цель ≤6) · ≤10 ALLOW · re-read запрещён; финал = fenced JSON `loop-gate-verdict/v1` |
+| verify-qa / reviewer (alias) | 30 | ≤16 rg · ≤40 read · ≤40 ALLOW · exhaustive AC matrix · полный `## BLOCKERS (complete)` · финал = fenced JSON `loop-gate-verdict/v1` |
+| verify-decompose | 12 | ≤12 read · ≤10 ALLOW · re-read запрещён; финал = fenced JSON `loop-gate-verdict/v1` |
 
 ## Hooks
 

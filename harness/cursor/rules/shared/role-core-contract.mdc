@@ -23,6 +23,24 @@ alwaysApply: false
 
 Формат ответа фиксирует текущую роль, выполняемый режим и краткий статус действия.
 
+## Environment bootstrap (HARD)
+
+Когда IMPLEMENT / TASK / BUGFIX / QA / REFACTOR / live_smoke падает из‑за **отсутствия зависимостей** окружения — агент **обязан** восстановить env и **повторить** команду. Skip/PASS «нет пакета» = FAIL.
+
+| Сигнал | Действие (проектный env, не system-wide «вслепую») |
+|--------|-----------------------------------------------------|
+| нет `.venv` / `python` не из venv | `python3 -m venv .venv` → `source .venv/bin/activate` |
+| `ModuleNotFoundError` / missing wheel / `pip` package | из корня: `.venv/bin/pip install -e ".[dev]"` (или install из README/`pyproject.toml`) |
+| Node: missing module / `npm ERR!` | `npm --prefix frontend install` (или путь frontend проекта) |
+| `uvicorn` / CLI entry missing после pip | повтор `pip install -e ".[dev]"`; проверить `PATH` = `.venv/bin` |
+| secrets / interactive login / sudo | **не** маскировать: FAIL с явной причиной; bootstrap пакетов всё равно сделать до этого |
+
+**FORBIDDEN:** объявить skip/pass потому что «окружение не готово»; просить пользователя поставить пакеты **без** собственной попытки install; ставить зависимости в system Python в обход `.venv` проекта.
+
+Evidence: команда install + повторный exit code — в `verification_results` / `qa-*.yaml` / implement yaml.
+
+Канон timeout + live_smoke: `@.cursor/rules/shared/test-timeout.mdc`.
+
 ## Test runner (HARD — role-scoped)
 
 Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.

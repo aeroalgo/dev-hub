@@ -91,6 +91,18 @@ Managed: `capability_checks`, CLI validate) — **не** подменяй и н�
 7. Часть строк не закрыта → `status: partial` + оставшиеся id в `remaining_blockers`.
 8. **FORBIDDEN:** spawn Agent/verify, FINISH, invent work вне BLOCKERS, «починил кажется» без VERIFY, frontend tests, повторный full-suite сверх одной команды VERIFY.
 
+## Already-present / browser-outcome (HARD — anti-thrash)
+
+Перед любым Edit по CSS/UI blocker:
+
+1. **Read first.** Если в `<path>` уже есть ровно то, что просит `<concrete_fix>` (тот же token / selector / `!important` / assert) — **не** дублируй правило и не «усиливай» вслепую.
+2. **Source-ok ≠ browser-ok.** Если blocker про computed style / Playwright / «8px vs token 10px» / focus ring, а source уже token-backed:
+   - **FORBIDDEN:** ещё один селектор «на всякий случай», смена `--ds-radius-md` ↔ `--ds-radius-sm` без новой evidence, ослабление assert.
+   - **REQUIRED:** либо почини **конкурирующее** правило (другой path в ALLOW WRITE), либо `status: fail` с `remaining_blockers` id + короткий reason в human summary: `runtime_not_source` (assets sync/build/clear-cache / wrong bundle / `:focus` vs `:focus-visible`).
+3. **No oscillation.** Нельзя в одном repair цикле (и относительно текста BLOCKERS) делать противоположное прошлому fix (например «force md», потом «assert sm»). Один канон на blocker_id; при конфликте в prompt → `status: fail` + `prompt_incomplete:blocker_row` (противоречивый fix), без product Edit.
+4. **Focus rings.** Playwright `.focus()` часто **не** активирует `:focus-visible`. Если в CSS уже есть `:focus-visible` + `--ds-focus`, а blocker снова про dark focus — чини **spec/probe** (если path в ALLOW WRITE) или fail `runtime_not_source` / `focus_visible_mismatch`; не плоди ещё `:focus-visible` копии.
+5. VERIFY red при уже корректном source → `status: fail`, **не** `done` и не бесконечные cosmetic CSS edits.
+
 ## Pre-emit validate (HARD)
 
 Перед финальным текстом — **один** Bash:
@@ -119,22 +131,15 @@ python3 $DEV_HUB/bin/loop.py validate --project "$PROJECT_ROOT" --schema loop-re
 ```
 
 - `schema`: `loop-repair-result/v1`
-- `parent_evidence_id`: id evidence из prompt / `GATE_IDENTITY` context
+- `parent_evidence_id`: id evidence из prompt / `GATE_IDENTITY` context (`PARENT_EVIDENCE_ID` / session_id)
 - `status`: `done` | `partial` | `fail`
 - `fixed_blockers` / `remaining_blockers`: **только** `<blocker_id>` из секции BLOCKERS parent
 
-Строка `REPAIR: done|partial|fail` — optional human summary.
+**Allowed keys ONLY** (extra = reject): `schema`, `agent_id`, `parent_evidence_id`, `status`, `fixed_blockers`, `remaining_blockers`, `recorded_at`.
 
-## Human summary (optional)
+**FORBIDDEN fence keys:** `session_id`, `epic_id`, `step_id`, `blockers`, `changed_paths`, `verification`, `repair_status`, `evidence`, `evidence_sha256`. GATE_IDENTITY не копируется в repair JSON — только в `parent_evidence_id`.
 
-```
-REPAIR: done
-fixed: blocker_id_from_verify
-remaining: (пусто)
-VERIFY: exit 0 — команда из prompt
-evidence:
-- blocker_id_from_verify → <path> edited per <concrete_fix>
-```
+После fence — ноль tool calls. SoT = JSON `status` / `fixed_blockers` / `remaining_blockers`.
 
 ## FORBIDDEN
 
@@ -145,5 +150,8 @@ evidence:
 - `status: done` при незакрытой строке BLOCKERS или red VERIFY
 - Ответ без JSON fence `loop-repair-result/v1`
 - `git checkout --` / `git restore` / `git reset --hard` / `git clean` / удаление файлов вне ALLOW WRITE (в т.ч. «чужой» dirty worktree)
+- Повторный source-only CSS/token patch когда Read уже показывает нужный contract, а FAIL — computed/browser
+- Переключение radius/accent token family (`md`↔`sm`) без явного нового SoT в BLOCKERS
+- `status: done` после cosmetic duplicate selectors
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).

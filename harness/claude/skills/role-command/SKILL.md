@@ -49,10 +49,10 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 0b — session
 
-**HARD RULE:** канон — `.cursor/rules/mainrule.mdc` §Full linked chain.
+**HARD RULE:** code-phase канон — `.cursor/rules/shared/_lean/implement-bootstrap.mdc`. Прочие режимы — `.cursor/rules/mainrule.mdc` §Full linked chain.
 
 - **PLAN / DECOMPOSE / brownfield VAN:** `Read` entrypoint текущего runtime (`CLAUDE.md` / `AGENTS.md`) → `mainrule.mdc` → индекс+core → workflow → Gates → `@` рекурсивно.
-- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: `load_now` shard+index → `_lean/<mode>.mdc` → scope-lock → canonical `## Hot path` → `skills.impl` шага. Индекс роли и полный `workflow-implement.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
+- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: Read `implement-bootstrap.mdc` → follow Read order (`load_now` → `_lean/<mode>` → scope-lock → role `## Hot path` → shard/`skills.*`). Индекс роли, `mainrule` monolith и полный `workflow-*.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
 
 Пропущенный Read из списка режима — gap, не блок FINISH.
 
@@ -118,7 +118,7 @@ Fallback на Read/Grep — только после ориентации по г
 | BACK PLAN REFACTOR | `.cursor/rules/back_developer/workflow-plan-refactor.mdc` |
 | GAP CLOSE | `{role_dir}workflow-gap-close.mdc` |
 
-**IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (Hot path + Gates). Читать при FAIL / дыре coverage.
+**IMPLEMENT:** `implement-bootstrap.mdc` + Gates + scope-lock + `## Hot path`. Полный `workflow-implement.mdc` — только при FAIL / дыре coverage.
 
 **ЗАПРЕЩЕНО угадывать:**
 - `workflow-back-bugfix.mdc` / `workflow-front-*.mdc` / `workflow-integ-*.mdc`

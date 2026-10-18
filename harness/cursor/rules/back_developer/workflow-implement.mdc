@@ -3,10 +3,10 @@ description: "Режим BACK IMPLEMENT — реализация кода по �
 alwaysApply: false
 ---
 ### Команда: BACK IMPLEMENT
-**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
-**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
+**Bootstrap (HARD):** @.cursor/rules/shared/_lean/implement-bootstrap.mdc
+**Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+**Scope lock:** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+**Контекст (lazy):** @.cursor/rules/back_developer/mainrule-core.mdc — только если runner/level не ясны из Gates
 
 **Policy lazy (не грузить целиком без триггера):**
 - boundary/SoT/cutover step → @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (`wire_complete`)
@@ -28,40 +28,20 @@ alwaysApply: false
 
 ## Hot path
 
-**Load (HARD):** не рекурсивный `@`. Канон: .cursor/rules/mainrule.mdc §Full linked chain.
+**Load order SoT:** @.cursor/rules/shared/_lean/implement-bootstrap.mdc — не повторять Gates/Scope здесь.
 
-1. **ANALYZE hard gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
-2. `load_now` → work shard + **`plan_contract`** + `index.yaml` (AC = shard+contract; не весь plan)
-3. Read **`plan_jumps`** / plan §FR (line 120-160 = 160-120 = 40 * 2 => 100% к изначальному scope; jump 120-200)
-4. Gates + scope-lock. Полный `files:` / `delta_paths_*` → SKIP @explorer и graphify query. `skills.impl` если code (docs-only skip). sunset-inventory если `sunset_scope.required`. TDD red→green · `deletes:` · `wire_complete` на SoT
-5. Последний sNN/eNN → **`plan_parity_scan`** (FR+layout checklist)
-6. **Перед FINISH** — Read finish-block. 5 точек → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
+**BACK delta (после bootstrap):**
 
-→ wire-complete: .cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
+1. ANALYZE hard gate: `critical_count=0` (иначе REJECT; нет deferred)
+2. Hub: targeted `bin/pytest` · Managed: `capability_checks: [test.targeted]` + evidence · TDD red→green
+3. Выполнить все `deletes:` · `wire_complete` на SoT/boundary steps
+4. Last sNN / pre-AUDIT → `plan_parity_scan` (FR+layout)
+5. Перед FINISH — Read finish-block → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
 
 ### Execution discipline
 
 - One shard = one session · `EPIC_ATOMIC_COMMIT` per project.env
 - Анти-минимализм: «модуль есть» ≠ done
-- FRONT: Vitest/Playwright — **только parent**
-- INTEG: AC = eNN §Contract; фазы A–F
+- FRONT Vitest/Playwright — **только parent** (если затронут UI через handoff)
 
----
-
-**Старт (до кода):** Hot path → Gates → scope-lock → `load_now` shard+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
-
-**Процесс**:
-1. `OK BACK IMPLEMENT` → **Gates** · **Scope lock** · Hot path
-1a. **Allowlist:** Write/Delete только shard `files:`/`produces.files` + implement yaml + тесты в shard. `.cursor/rules/**` — **FORBIDDEN** без path в shard / `implement this`.
-1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT** (нет `ANALYZE deferred`).
-2. `load_now` → work shard (+ **`plan_contract`**) + `index.yaml`; AC = shard+contract; **FORBIDDEN** полный plan monolith.
-   **Plan jumps:** формула `L=end−start`; `L′=L×2`; jump=`start..(start+L′)`.
-   Last sNN / pre-AUDIT → **`plan_parity_scan`**.
-   Search scope: `delta_paths_*` / полный `files:` → SKIP @explorer и graphify query.
-3. Read **Impl skills** из step до prod-edit (docs-only skip; после TDD red ок)
-4. TDD targeted → code → green (Hub dev-hub self-test: targeted `bin/pytest`; Managed project: declare `capability_checks: [test.targeted]` with typed execution evidence); выполнить все `deletes:`; **FORBIDDEN** restore legacy
-5. §0.11 · при deletes — callers gone. **Не** pre-FINISH skills.
-5a. **Scope check** → `SCOPE CHECK: ok` или halt
-6. **FINISH:** **сейчас** Read finish-block (`code_changed: yes`) — Write/Update implement yaml (`memory-bank/back/implement/<epic_id>/sNN-*.yaml` via `mb-scaffold implement` or `seed-implement`) → Handoff → `@verify-implement` (alias `@verify`) → PASS → `finalize-step`. Epic complete → AUDIT.
-
-**Верификация**: ANALYZE gate + scope lock + plan_contract + gates + deletes + FINISH + `graphify update .`
+**Верификация:** Gates + scope lock + plan_contract + deletes + FINISH + `graphify update .`

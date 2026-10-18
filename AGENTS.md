@@ -12,19 +12,24 @@
 
 ## HARD READ RULE
 
-До анализа, изменений и основной работы прочитай только entrypoint текущего
-runtime, затем `.cursor/rules/mainrule.mdc` и всю выбранную role/mode chain
-с Gates и `@`-ссылками.
+До анализа, изменений и основной работы:
+
+- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** прочитай
+  `.cursor/rules/shared/_lean/implement-bootstrap.mdc` и следуй его Read order
+  (Gates → scope-lock → role `## Hot path` → shard). **Не** грузи
+  `mainrule.mdc` monolith на старте code-phase.
+- **PLAN / DECOMPOSE / VAN / прочие:** entrypoint → `.cursor/rules/mainrule.mdc`
+  → выбранная role/mode chain с Gates и `@`-ссылками.
 
 **EXCEPT Policy lazy:** не читай тела файлов из блока/строки `Policy lazy`
 на старте только из-за `@` — только по trigger (см. `mainrule.mdc` §Full linked
-chain). На **DECOMPOSE** не читай тела Core/situational/Design SKILL.md —
-только copy paths в step (`shared/_lean/decompose-skills-load.mdc`).
+chain / implement-bootstrap). На **DECOMPOSE** не читай тела Core/situational/Design
+SKILL.md — только copy paths в step (`shared/_lean/decompose-skills-load.mdc`).
 
 ## Workflow router
 
-По таблице router выбери текущую команду, роль и режим. Затем прочитай только
-выбранную role/mode chain, её Gates и связанные `@`-ссылки.
+По таблице router выбери текущую команду, роль и режим. Для code-phase — bootstrap;
+иначе — role/mode chain и Gates.
 
 Не загружай workflow или skills заранее и не выбирай другую роль или режим.
 Пути и имена файлов определяются каноническими workflow, index и skills.
@@ -75,5 +80,12 @@ entrypoint, выбери текущую фазу, затем последова�
 ## Root classification & Testing
 
 - Hub (dev-hub self-test) / **BACK**: Python tests — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
-- **FRONT** (IMPLEMENT/TASK/QA): Vitest + Playwright (`timeout -k 10s 300s npm --prefix frontend exec vitest|playwright …`). **FORBIDDEN:** `bin/pytest` / backend pytest как FRONT suite.
+- **BACK QA live_smoke (HARD):** `timeout -k 10s 300s bash scripts/live_smoke.sh` — живой uvicorn+HTTP; ASGI e2e/моки не считаются. Missing deps → установить в `.venv` (`pip install -e ".[dev]"`) и повторить (канон: `role-core-contract` §Environment bootstrap · `_lean/qa.mdc` §2c).
+- **FRONT** (IMPLEMENT/TASK/QA): Vitest + Playwright. В этом репо: `timeout -k 10s 300s npm --prefix crm/frontend exec vitest …` и `timeout -k 10s 300s bash -lc 'cd crm && npx playwright test …'`. **FORBIDDEN:** `bin/pytest` / backend pytest как FRONT suite.
+- **CRM Playwright runtime:** `BASE_URL=http://erp.localhost:8000`. Compose держит `sleep infinity` — нужен отдельно `bench start` в контейнере. Editable `crm/`+`frappe/`+`design-system/` ≠ `frappe-bench/apps/*` (копии get-app). `npx playwright test` → `e2e/global-setup.ts` → `scripts/e2e-preflight.sh` (sync hooks/frontend/design-system/**и** Desk SCSS wires `desktop.scss`/`desk.bundle.scss` → CRM `yarn build` → **`bench build --app frappe`** → clear-cache → **HTTP 200** tokens.css + desk.bundle содержит `--ds-desk-rail-width` если есть shell). Clear-cache alone ≠ Desk CSS update. Канон: `crm/AGENTS.md` § E2E.
+- **CRM AUDIT finish:** `verdict: FAIL` / `converged: false` → **обязан** `@gate-repair` (BLOCKERS|path|fix + ALLOW WRITE + VERIFY) → повторный AUDIT. **Нельзя** закончить сессию «просто отчётом» — loop даст `finish_not_committed` / `retry_exhausted`. `mb-finish` при `converged: false` отклоняет FINISH. **FORBIDDEN** выдуманный `parent-driven-audit`. Negative `rg` без hit = exit 1 = PASS. Канон: `workflow-audit.mdc` + `spawn-hard.md`.
+- **CRM QA finish:** `verify-qa` FAIL + `qa-*.yaml` (`verdict: fail`) + open `bugfix-queue.yaml` → **обязан** `loop.py finish --step QA` → BUGFIX. FAIL ≠ запрет finish (это не IMPLEMENT). Без finish → `finish_not_committed` / retry QA. Канон: `workflow-qa.mdc` + `_lean/qa.mdc`.
+- **CRM BUGFIX sessions:** один open item за сессию — ок; выход без finish при ещё open → loop `PROGRESS_CONTINUE` (не halt). `verify-bugfix` + `finish --step BUGFIX` только когда все items `done` и `verification.status=pass`. Канон: `_lean/bugfix.mdc`.
+- **DECOMPOSE YAML:** в `verify:`/`command:` double-quoted нельзя писать `\.` (YAML unknown escape → `verdict hook error` → `finish_not_committed`). Используй single quotes или block `|`. Один step в index ↔ один файл в `yaml/steps/`; orphan yaml запрещены. Нельзя объявлять DECOMPOSE done без accepted `verify-decompose` PASS + `loop.py finish`.
+- **CRM purge `rg`:** только bounded theme/instruction paths; **FORBIDDEN** `sync.*disabled` по всему `frappe/` (ложный hit в jquery). Канон: `crm/AGENTS.md` § Purge.
 - Managed projects: верификация через stack profile `capability_checks` и typed execution evidence; без generic fallback к raw pytest. Role surface сохраняется (front checks ≠ backend suite).

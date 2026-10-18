@@ -1,0 +1,49 @@
+---
+description: "Code-phase bootstrap — sole load order for IMPLEMENT/TASK/REFACTOR (BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# Code-phase bootstrap (HARD)
+
+**Канон порядка Read** для `BACK|FRONT|INTEG` × `IMPLEMENT|TASK|REFACTOR` (и для BUGFIX — тот же порядок с `_lean/bugfix.mdc`).
+
+**SoT слоёв (не пересказывать содержимое в других files):**
+
+| Слой | Файл | Владеет |
+|------|------|---------|
+| Gates | `{role_dir}/isolation_rules/_lean/<mode>.mdc` | gates · abort · TDD · wire_complete |
+| Scope | `shared/workflow-implement-scope-lock.mdc` | allowlist Write/Delete · scope check |
+| Role delta | `{role_dir}/workflow-<mode>.mdc` → только `## Hot path` (+ INTEG `## Фазы A–F` / step format если есть) | короткие отличия роли |
+| Work | `activeContext` → `load_now` shard (+ `plan_contract`, bounded `plan_jumps`) | AC · files · verify · skills |
+
+`role_dir`: `back`→`back_developer` · `front`→`front_developer` · `integration`/`integ`→`integration_developer`  
+`mode`: `implement` · `task` · `refactor` · `bugfix`
+
+## Read order (до exploration / code / tests)
+
+1. `memory-bank/activeContext.md` — **только** пути из `load_now`
+2. Gates: `.cursor/rules/{role_dir}/isolation_rules/_lean/<mode>.mdc`
+3. Scope: `.cursor/rules/shared/workflow-implement-scope-lock.mdc`
+4. Role delta: `## Hot path` из `.cursor/rules/{role_dir}/workflow-<mode>.mdc`  
+   (не весь файл на старте; полный — только при FAIL / дыре coverage)
+5. Work shard из `load_now` (+ `plan_contract`; `plan_jumps` по формуле jump)
+6. `skills.impl` / FRONT `skills.design*` из shard (`docs-only` / `impl: []` → skip)
+
+## Skip на старте (не грузить)
+
+- `.cursor/rules/mainrule.mdc` как monolith router (фаза уже известна из команды / loop)
+- индекс роли `{role_dir}/mainrule.mdc` · `mainrule-core.mdc` (если runner уже в Gates)
+- полный `workflow-*.mdc` кроме `## Hot path`
+- `token-economy-core.mdc` · `context-session-economy.mdc`
+- `finish-block.mdc` / `finish-doc-router.mdc` — **только перед FINISH**
+- Policy lazy тела (`behavior-first` / `legacy-fallback` / full `spec-first-replace`) — только по trigger из Gates
+
+## FORBIDDEN until bootstrap Reads существуют в сессии
+
+- repo-wide `find`/`ls` tourism · `git status` как discovery
+- `bin/pytest -q` / full suite без path или `-k`
+- любой test вне step `verify:` / `checkpoints[].verify`
+- Full suite = **QA only**, не code-phase
+
+## Другие режимы
+
+PLAN / DECOMPOSE / brownfield VAN → по-прежнему `.cursor/rules/mainrule.mdc` §Full linked chain (рекурсивный `@` с Policy lazy).

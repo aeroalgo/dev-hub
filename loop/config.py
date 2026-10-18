@@ -200,6 +200,11 @@ class LoopSettings(BaseSettings):
         default=2.0,
         ge=0,
         validation_alias=AliasChoices("LOOP_RETRY_BACKOFF"),
+        description=(
+            "Seconds base for sleep before SESSION_ROTATED / STEP_RESTARTED. "
+            "Rotate sleeps attempt*backoff; step-restart sleeps max(attempt,max_attempts)*2*backoff. "
+            "Provider 429/rate-limit halts immediately (no retry storm)."
+        ),
     )
 
     workflow_hooks: Literal["loop", "off"] = Field(

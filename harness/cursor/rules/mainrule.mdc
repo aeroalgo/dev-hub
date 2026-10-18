@@ -24,9 +24,9 @@ alwaysApply: true
 ## Цепочка при распознанной команде
 
 0. **graphify** — @.cursor/rules/graphify.mdc (code modes: IMPLEMENT/TASK/BUGFIX/REFACTOR/QA/SECURITY execute, brownfield VAN, PM DISCOVER, TL SYNC DEV; skip PLAN/DECOMPOSE/CREATIVE/ARCHIVE; IMPLEMENT с полным `files:` / `delta_paths_*` → query skip; Hub без graph.json → N/A)
-1. **Индекс роли** — таблица ниже (**IMPLEMENT/TASK/BUGFIX/REFACTOR: skip** — см. Full linked chain)
-2. **Core** — `{role}/mainrule-core.mdc` (IMPLEMENT: skip, если runner уже в Gates)
-3. **Workflow** — `{role}/workflow-{mode}.mdc` (IMPLEMENT: canonical `## Hot path`, не полный файл)
+1. **Индекс роли** — таблица ниже (**IMPLEMENT/TASK/BUGFIX/REFACTOR: skip** — см. code-phase bootstrap)
+2. **Core** — `{role}/mainrule-core.mdc` (code-phase: skip, если runner уже в Gates)
+3. **Workflow** — code-phase: @.cursor/rules/shared/_lean/implement-bootstrap.mdc + `{role}/workflow-{mode}.mdc` **только** `## Hot path`; иначе полный `{role}/workflow-{mode}.mdc`
 4. **Скиллы** — только пути из шага 3 / текущего shard; `SKILL.md` целиком (`impl: []` / docs-only → skip)
 
 ### Full linked chain (HARD RULE)
@@ -37,17 +37,11 @@ alwaysApply: true
 
 **DECOMPOSE skills:** @.cursor/rules/shared/_lean/decompose-skills-load.mdc — copy paths в step; Read тел SKILL = IMPLEMENT/CREATIVE. Role Core/Design lists — в role workflow.
 
-**IMPLEMENT / TASK / BUGFIX / REFACTOR (code):** **canonical `## Hot path` wins.** До кода — **не** рекурсивный `@`. Обязательный Read:
+**IMPLEMENT / TASK / BUGFIX / REFACTOR (code):** **один канон load order** — @.cursor/rules/shared/_lean/implement-bootstrap.mdc. До кода — **не** рекурсивный `@` и **не** грузить этот `mainrule.mdc` monolith (фаза уже известна). Следуй bootstrap: Gates (`_lean/<mode>`) → scope-lock → role `## Hot path` → shard/`skills.*`.
 
-1. `activeContext.md` → `load_now` (work shard + `decompose-index.yaml`)
-2. `{role}/isolation_rules/_lean/<mode>.mdc` (Gates)
-3. @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-4. Hot path роли (`harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path` / `{role}/workflow-implement.mdc#Hot path`)
-5. `skills.impl` / FRONT `skills.design` из **текущего** shard (`docs-only` / `impl: []` → skip)
+**Skip на старте code-phase:** этот router monolith · индекс роли (`{role}/mainrule.mdc`) · полный `workflow-*.mdc` кроме Hot path (полный — при FAIL) · `token-economy-core.mdc` · `context-session-economy.mdc` · finish-block/doc-router (**перед FINISH**) · policy lazy тела — только по триггеру Gates.
 
-**Skip на старте IMPLEMENT:** индекс роли (`{role}/mainrule.mdc`), полный `workflow-implement.mdc` (только при FAIL/неясности), `token-economy-core.mdc`, `context-session-economy.mdc`, finish-block/doc-router (грузить **перед FINISH**), policy `behavior-first` / `legacy-fallback` / `spec-first-replace` full — только по триггеру Gates.
-
-Пропущенный Read из **этого** списка — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
+Пропущенный Read из bootstrap — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
 
 Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `CONTEXT SYNC`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`, `PRODUCT VISION`, `PRODUCT PHASES`, `PRODUCT ROADMAP REBUILD`, `PRODUCT ROADMAP`, `PRODUCT STATUS`, `EVAL FRAME`, `EVAL HYPOTHESIS`, `EVAL PAIN`, `EVAL PAY`, `EVAL PRICE`, `EVAL SEARCH`, `EVAL MATCH`, `EVAL ADS`, `EVAL ECONOMICS`, `EVAL COMPETE`, `EVAL GATE`, `EVAL TALK`, `EVAL LANDING`, `EVAL SMOKE`, `EVAL SCALE`, `EVAL STATUS`, `EVAL ASSEMBLE`, `EVAL FINISH`, `EVAL CLARIFY`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK|FRONT|INTEG RECONCILE` → `<epic_id>`. `BACK|FRONT|INTEG REPLAN` → `<epic_id>`. `BACK|FRONT|INTEG CONTEXT SYNC` → `<epic_id>`.
 

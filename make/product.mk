@@ -32,18 +32,29 @@ cursor-workspace:
 
 loop:
 	@set -- $(ARGS); \
-	if [ "$$#" -ne 3 ]; then \
-		echo 'Usage: make loop ARGS="codex <epic-id> <model>"' >&2; \
+	if [ "$$#" -lt 3 ] || [ "$$#" -gt 4 ]; then \
+		echo 'Usage: make loop ARGS="codex <epic-id> <model> [effort]"' >&2; \
+		echo '  effort: low|medium|high|xhigh (Codex model_reasoning_effort; default: ~/.codex/config.toml)' >&2; \
 		exit 2; \
 	fi; \
-	runtime="$$1"; epic="$$2"; model="$$3"; \
+	runtime="$$1"; epic="$$2"; model="$$3"; effort="$${4:-}"; \
 	case "$$runtime" in \
 		codex|claude) ;; \
 		*) echo "Unsupported loop runtime: $$runtime" >&2; exit 2 ;; \
 	esac; \
-	exec env EPIC_RUNTIME="$$runtime" python3 "$(DEV_HUB)/bin/loop.py" run \
+	if [ -n "$$effort" ]; then \
+		case "$$effort" in \
+			low|medium|high|xhigh) ;; \
+			*) echo "Unsupported effort: $$effort (use low|medium|high|xhigh)" >&2; exit 2 ;; \
+		esac; \
+	fi; \
+	set -- env EPIC_RUNTIME="$$runtime" python3 "$(DEV_HUB)/bin/loop.py" run \
 		--project "$(PROJECT_ROOT)" \
 		--epic "$$epic" \
 		--role auto \
 		--runtime "$$runtime" \
-		--model "$$model"
+		--model "$$model"; \
+	if [ -n "$$effort" ]; then \
+		set -- "$$@" --effort "$$effort"; \
+	fi; \
+	exec "$$@"

@@ -38,8 +38,7 @@ Parent **обязан** передать секции. Нет секции → `
 0. **Первый Read** = latest `analyze-*.yaml` из ALLOW (если указан) или путь из prompt.
 1. Для каждого CRITICAL id из FINDINGS: Read plan/decompose refs → доказательство fix **или** blocker `finding_open:<id>`.
 2. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже. Без pytest, без implement shards.
-3. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
-4. **Первая строка текста = `VERDICT:`**
+3. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный JSON fence, **ноль** дальнейших tool calls.
 
 ## Pre-emit validate-verdict (HARD — machine-enforced)
 
@@ -53,14 +52,14 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
 - Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
 - Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
-- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
-
-- `step_id` для ANALYZE всегда `"ANALYZE"` (не `sNN`).
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
+- Fence language: **только** `json`.
+- После fence — ноль tool calls.
+- `step_id` для ANALYZE всегда `"ANALYZE"`.
 
 ## Gate Output (JSON fence HARD)
 
-Твой финальный ответ **обязан** содержать fenced JSON блок. Открывающая строка = ` ```json `:
+Финальный ответ = ровно один fenced JSON (`emit_exactly`). Открывающая строка = ` ```json `:
 
 ```json
 {
@@ -74,32 +73,15 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 }
 ```
 
-- Поле `verdict` может быть `"PASS"` или `"FAIL"`.
-- Hook / runtime парсит **именно fenced JSON** с полем `"schema":"loop-gate-verdict/v1"`.
-- Текстовая строка `VERDICT: PASS|FAIL` — дополнительный human summary для удобства чтения в консоли (не machine input).
-
-## Формат отчёта (обязательный)
-
-```
-VERDICT: PASS|FAIL
-
-FINDINGS CHECK:
-- A1: closed | open — <1 line evidence>
-...
-
-BLOCKERS:
-- <id>: <action>   # только при FAIL
-
-WARNINGS:
-- <optional non-blocking>
-```
+- `verdict`: `"PASS"` | `"FAIL"`.
+- Hook парсит только fenced JSON `"schema":"loop-gate-verdict/v1"`.
 
 ## FORBIDDEN
 
 - править plan/decompose/code
-- `VERDICT: PASS` при открытом CRITICAL из FINDINGS
+- `verdict: PASS` при открытом CRITICAL из FINDINGS
 - pytest / implement yaml / `@verify` scope
 - повторный full ANALYZE (это задача parent `BACK ANALYZE`)
-- любые tool calls после финального JSON fence / `VERDICT:`
+- tool calls после финального JSON fence
 
-После `PASS`: boundary hook атомарно переводит cursor в следующую фазу. **Ноль** дальнейших tool calls у verify и у parent после `ok: true`.
+На accepted PASS boundary атомарно двигает cursor. Ноль tool calls у verify после fence.

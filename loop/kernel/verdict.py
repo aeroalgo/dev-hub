@@ -56,8 +56,69 @@ REPAIR_RESULT_ONLY_FIELDS = frozenset(
         "schema",
     }
 )
-_JSON_FENCE_RE = re.compile(r"```\s*json[^\n`]*\n(.*?)\n\s*```", re.IGNORECASE | re.DOTALL)
+# Models often copy GATE_IDENTITY / narrative into the repair fence. Strip these
+# after alias mapping so product-done repairs are not rejected on schema noise.
+REPAIR_IGNORABLE_EXTRA_FIELDS = frozenset(
+    {
+        "session_id",
+        "epic_id",
+        "step_id",
+        "changed_paths",
+        "verification",
+        "evidence",
+        "evidence_sha256",
+        "touched_paths",
+        "findings",
+        "reason",
+        "gate",
+        "checkpoints",
+        "blockers",
+        "repair_status",
+        "message",
+        "summary",
+        "notes",
+        "human_summary",
+    }
+)
+# Accept ```json and common schema-tagged fences models emit
+# (```loop-gate-verdict/v1, ```loop-repair-result/v1, unlabeled ```).
+_JSON_FENCE_RE = re.compile(
+    r"```[ \t]*(?P<lang>[\w./+-]*)[^\n`]*\n(?P<body>.*?)\n[ \t]*```",
+    re.IGNORECASE | re.DOTALL,
+)
+_ALLOWED_FENCE_LANGS = frozenset(
+    {
+        "",
+        "json",
+        "javascript",
+        "js",
+        "loop-gate-verdict",
+        "loop-gate-verdict/v1",
+        "loop-repair-result",
+        "loop-repair-result/v1",
+        "loop-sunset-inventory",
+        "loop-sunset-inventory/v1",
+    }
+)
 _PROMPT_INCOMPLETE_RE = re.compile(r"^prompt_incomplete:(?P<section>.+)$", re.IGNORECASE)
+
+
+def normalize_repair_payload(raw: dict[str, Any]) -> dict[str, Any]:
+    """Map common LLM aliases, then keep only RepairResult keys.
+
+    Preserves fail-closed semantics: unknown product fields are dropped, but
+    GATE_IDENTITY / narrative extras no longer cause schema_extra_forbidden.
+    """
+    data = dict(raw)
+    if "status" not in data and isinstance(data.get("repair_status"), str):
+        data["status"] = data["repair_status"]
+    if "remaining_blockers" not in data and isinstance(data.get("blockers"), list):
+        data["remaining_blockers"] = data["blockers"]
+    if "fixed_blockers" not in data:
+        data["fixed_blockers"] = []
+    if "remaining_blockers" not in data:
+        data["remaining_blockers"] = []
+    return {key: value for key, value in data.items() if key in REPAIR_RESULT_ONLY_FIELDS}
 
 
 def normalize_agent_id(value: str | None) -> str:
@@ -211,18 +272,30 @@ def _result(
 def extract_json_fence(text: str | None) -> tuple[dict[str, Any] | None, tuple[str, ...]]:
     if not isinstance(text, str):
         return None, ("verdict_message_missing",)
-    matches = list(_JSON_FENCE_RE.finditer(text))
-    if not matches:
+    payloads: list[dict[str, Any]] = []
+    for match in _JSON_FENCE_RE.finditer(text):
+        lang = (match.group("lang") or "").strip().lower()
+        if lang and lang not in _ALLOWED_FENCE_LANGS and not lang.startswith("loop-"):
+            continue
+        try:
+            payload = json.loads(match.group("body"))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            payloads.append(payload)
+    if not payloads:
         return None, ("verdict_json_fence_missing",)
-    if len(matches) != 1:
-        return None, ("verdict_json_fence_multiple",)
-    try:
-        payload = json.loads(matches[0].group(1))
-    except json.JSONDecodeError as exc:
-        return None, ("verdict_json_decode_error", f"json_error:{exc.msg}")
-    if not isinstance(payload, dict):
-        return None, ("verdict_payload_not_object",)
-    return payload, ()
+    if len(payloads) == 1:
+        return payloads[0], ()
+    # Prefer the unique loop-* schema fence when prose also contains helper JSON.
+    schema_hits = [
+        item
+        for item in payloads
+        if str(item.get("schema") or "").startswith("loop-")
+    ]
+    if len(schema_hits) == 1:
+        return schema_hits[0], ()
+    return None, ("verdict_json_fence_multiple",)
 
 
 def validate_boundary(
@@ -270,6 +343,8 @@ def validate_boundary(
             errors=("payload must explicitly contain schema",),
             diagnostic_codes=("verdict_schema_missing",),
         )
+    if schema_id == SCHEMA_REPAIR_RESULT:
+        raw = normalize_repair_payload(raw)
     try:
         record = model.model_validate(raw)
     except ValidationError as exc:
@@ -408,6 +483,7 @@ __all__ = [
     "MANAGED_INVENTORY_AGENTS",
     "MANAGED_REPAIR_AGENTS",
     "MANAGED_SUBAGENTS",
+    "REPAIR_IGNORABLE_EXTRA_FIELDS",
     "REPAIR_RESULT_ONLY_FIELDS",
     "SCHEMA_GATE_VERDICT",
     "SCHEMA_REPAIR_RESULT",
@@ -417,6 +493,7 @@ __all__ = [
     "SunsetReport",
     "ValidationResult",
     "extract_json_fence",
+    "normalize_repair_payload",
     "normalize_agent_id",
     "repair_contract_errors",
     "validate_boundary",

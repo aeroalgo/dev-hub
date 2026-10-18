@@ -39,6 +39,8 @@ tests: []
 
 integration_check: []
 
+# checkpoints[].status Literal ONLY: pending | done
+# FORBIDDEN: passed | pass | complete | completed | ok | success (aliases auto-coerced by loop; do not invent)
 checkpoints:
   - id: cp1
     criterion: from decompose checkpoints[0]

@@ -35,9 +35,20 @@ completed implement-шарды. Исходный prompt, предыдущие it
 
 ## Вердикт и переход
 
-- Нет `fail|blocked` → `verdict: PASS` → `BACK QA`.
-- Есть `fail|blocked` → actionable finding → `gate-repair` с blockers/ALLOW WRITE/VERIFY → повторный BACK AUDIT. В BUGFIX из AUDIT не переходить.
-- Только после повторной проверки без actionable findings (`converged: true`) → `BACK QA`.
+- Нет `fail|blocked` → `verdict: PASS` / `converged: true` → `loop.py finish --step AUDIT` → `BACK QA`.
+- Есть `fail|blocked` → actionable finding → **обязателен** `@gate-repair`
+  (`- id | path | fix` + ALLOW WRITE + VERIFY из matrix) → затем **повторный**
+  BACK AUDIT. В BUGFIX из AUDIT не переходить.
+- **FAIL процесса:** записать `verdict: FAIL` и выйти без `gate-repair` и без
+  валидного `finish` → loop `finish_not_committed` / `retry_exhausted`.
+- **FORBIDDEN:** spawn `parent-driven-audit` / `managed-audit` / `verify-audit` /
+  любых не-канонических agent types (см. `harness/instructions/spawn-hard.md`).
+  AUDIT не имеет отдельного verify-субагента; канон repair = только `gate-repair`.
+  На PASS сразу `loop.py finish`, без managed gate.
+- При `unknown agent_type` → не retry тем же invalid type; если PASS уже записан —
+  `finish`; иначе `gate-repair` или parent чинит ALLOW WRITE paths сам.
+- Только после повторной проверки без actionable findings (`converged: true`) →
+  `BACK QA`.
 - AUDIT не создаёт audit-shards, не запускает DECOMPOSE/IMPLEMENT и не объявляет
   `EPIC DONE`.
 - После зелёного QA переход к следующей итерации или final review выбирает

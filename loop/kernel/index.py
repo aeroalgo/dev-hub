@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -94,8 +95,8 @@ def load_queue(project: Path, role: str, epic_id: str) -> Queue:
     path = index_path(project, role, epic_id)
     if not path.is_file():
         raise FileNotFoundError(f"canonical decompose index missing: {path}")
-    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict) or not isinstance(payload.get("steps"), list):
+    payload = _load_yaml_mapping(path)
+    if not isinstance(payload.get("steps"), list):
         raise ValueError(f"invalid decompose index: {path}")
     steps: list[Step] = []
     for raw in payload["steps"]:
@@ -115,9 +116,173 @@ def load_queue(project: Path, role: str, epic_id: str) -> Queue:
     return Queue(path=path, role=normalize_role(role), epic_id=epic_id, steps=tuple(steps))
 
 
+# YAML 1.1 double-quoted single-char escapes (plus \x / \u / \U handled separately).
+_YAML_DQ_ONE_CHAR_ESCAPES = frozenset('0abtnvfre N_LP"\\/')
+
+
+def repair_yaml_double_quoted_escapes(text: str) -> tuple[str, int]:
+    """Fix invalid ``\\.``-style escapes inside double-quoted scalars.
+
+    Authors mean a literal backslash for ``rg``; YAML double-quotes reject most
+    ``\\X`` sequences. Doubling the backslash preserves the intended string value.
+    """
+    out: list[str] = []
+    repairs = 0
+    i = 0
+    n = len(text)
+    in_dq = False
+    while i < n:
+        ch = text[i]
+        if not in_dq:
+            out.append(ch)
+            if ch == '"':
+                in_dq = True
+            i += 1
+            continue
+        if ch == "\\" and i + 1 < n:
+            nxt = text[i + 1]
+            if nxt in _YAML_DQ_ONE_CHAR_ESCAPES:
+                out.append(ch)
+                out.append(nxt)
+                i += 2
+                continue
+            if nxt == "x" and i + 3 < n and all(c in "0123456789abcdefABCDEF" for c in text[i + 2 : i + 4]):
+                out.append(text[i : i + 4])
+                i += 4
+                continue
+            if nxt == "u" and i + 5 < n and all(c in "0123456789abcdefABCDEF" for c in text[i + 2 : i + 6]):
+                out.append(text[i : i + 6])
+                i += 6
+                continue
+            if nxt == "U" and i + 9 < n and all(c in "0123456789abcdefABCDEF" for c in text[i + 2 : i + 10]):
+                out.append(text[i : i + 10])
+                i += 10
+                continue
+            out.append("\\\\")
+            out.append(nxt)
+            repairs += 1
+            i += 2
+            continue
+        if ch == '"':
+            in_dq = False
+        out.append(ch)
+        i += 1
+    return "".join(out), repairs
+
+
+_DECOMPOSE_LIST_FIELDS = (
+    "as_built",
+    "delta",
+    "deletes",
+    "out_of_scope",
+    "checkpoints",
+    "verify",
+    "tdd",
+)
+
+
+def _coerce_decompose_list_value(value: Any) -> tuple[list[Any], bool]:
+    """Normalize bool/scalar mistaken for a list field. Returns (list, changed)."""
+    if isinstance(value, list):
+        return value, False
+    if value is None or value is False or value is True:
+        return [], True
+    if isinstance(value, str):
+        text = value.strip()
+        return ([text] if text else []), True
+    return [value], True
+
+
+def normalize_decompose_list_fields(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Rewrite shard when list fields were authored as bool/scalar (e.g. ``tdd: true``)."""
+    changed_fields: list[str] = []
+    for field in _DECOMPOSE_LIST_FIELDS:
+        if field not in payload:
+            continue
+        coerced, changed = _coerce_decompose_list_value(payload.get(field))
+        if changed:
+            payload[field] = coerced
+            changed_fields.append(field)
+    if not changed_fields:
+        return payload
+    raw = path.read_text(encoding="utf-8")
+    lines = raw.splitlines(keepends=True)
+    out: list[str] = []
+    for line in lines:
+        stripped = line.lstrip()
+        indent = line[: len(line) - len(stripped)]
+        replaced = False
+        for field in changed_fields:
+            # Only top-level keys (no leading spaces beyond indent of root mapping).
+            if re.match(rf"^{re.escape(field)}\s*:", stripped):
+                newline = "\n" if line.endswith("\n") else ""
+                out.append(f"{indent}{field}: []{newline}")
+                replaced = True
+                break
+        if not replaced:
+            out.append(line)
+    path.write_text("".join(out), encoding="utf-8")
+    return payload
+
+
+def _load_yaml_mapping(path: Path) -> dict[str, Any]:
+    raw = path.read_text(encoding="utf-8")
+    try:
+        payload = yaml.safe_load(raw) or {}
+    except yaml.YAMLError:
+        repaired, count = repair_yaml_double_quoted_escapes(raw)
+        if count <= 0 or repaired == raw:
+            try:
+                yaml.safe_load(raw)
+            except yaml.YAMLError as exc:
+                raise ValueError(
+                    f"invalid YAML (unrecoverable): {path}: {exc}"
+                ) from exc
+        try:
+            payload = yaml.safe_load(repaired) or {}
+        except yaml.YAMLError as exc:
+            raise ValueError(
+                f"invalid YAML after escape repair: {path}: {exc}"
+            ) from exc
+        path.write_text(repaired, encoding="utf-8")
+    if not isinstance(payload, dict):
+        raise ValueError(f"YAML root must be a mapping: {path}")
+    return payload
+
+
+def purge_orphan_decompose_shards(steps_root: Path, referenced: set[Path]) -> list[str]:
+    """Delete steps/*.yaml not listed in the decompose index. Returns removed names."""
+    if not steps_root.is_dir():
+        return []
+    removed: list[str] = []
+    for path in sorted(steps_root.glob("*.yaml")):
+        if path.resolve() not in referenced:
+            path.unlink()
+            removed.append(path.name)
+    return removed
+
+
+def decompose_yaml_problems(project: Path, role: str, epic_id: str) -> list[str]:
+    """Return remaining problems after auto-repair (empty if clean/missing)."""
+    problems: list[str] = []
+    index = project / "memory-bank" / normalize_role(role) / "plan" / epic_id / "yaml" / "decompose-index.yaml"
+    steps_root = index.parent / "steps"
+    if not index.is_file():
+        if steps_root.is_dir():
+            orphans = sorted(p.name for p in steps_root.glob("*.yaml"))
+            if orphans:
+                problems.append(f"orphan steps without index: {', '.join(orphans)}")
+        return problems
+    try:
+        validate_decompose_tree(project, role, epic_id)
+    except (ValueError, FileNotFoundError, OSError) as exc:
+        problems.append(str(exc))
+    return problems
+
+
 def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
     queue = load_queue(project, role, epic_id)
-    payload = yaml.safe_load(queue.path.read_text(encoding="utf-8")) or {}
+    payload = _load_yaml_mapping(queue.path)
     if payload.get("schema") != "epic-decompose-index/v1":
         raise ValueError(f"invalid decompose index schema: {queue.path}")
     if str(payload.get("plan_id") or "") != epic_id:
@@ -128,6 +293,7 @@ def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
     expected_role = normalize_role(role)
     steps_root = (queue.path.parent / "steps").resolve()
     seen: set[str] = set()
+    referenced_shards: set[Path] = set()
     required_step_fields = {
         "schema",
         "role",
@@ -163,9 +329,8 @@ def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
             raise FileNotFoundError(f"decompose shard missing: {file_ref} ({queue.path})")
         if shard.resolve().parent != steps_root:
             raise ValueError(f"decompose shard outside canonical steps directory: {shard}")
-        shard_payload = yaml.safe_load(shard.read_text(encoding="utf-8")) or {}
-        if not isinstance(shard_payload, dict):
-            raise ValueError(f"invalid decompose shard: {shard}")
+        referenced_shards.add(shard.resolve())
+        shard_payload = normalize_decompose_list_fields(shard, _load_yaml_mapping(shard))
         missing = sorted(required_step_fields.difference(shard_payload))
         if missing:
             raise ValueError(f"decompose shard missing fields {missing}: {shard}")
@@ -177,17 +342,18 @@ def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
             raise ValueError(f"decompose shard step_id mismatch: {shard}")
         if str(shard_payload.get("plan_id") or "") != epic_id:
             raise ValueError(f"decompose shard plan_id mismatch: {shard}")
-        for field in ("as_built", "delta", "deletes", "out_of_scope", "checkpoints", "verify", "tdd"):
+        for field in _DECOMPOSE_LIST_FIELDS:
             if not isinstance(shard_payload.get(field), list):
                 raise ValueError(f"decompose shard field {field!r} must be a list: {shard}")
         for field in ("plan_contract", "context", "skills"):
             if not isinstance(shard_payload.get(field), dict):
                 raise ValueError(f"decompose shard field {field!r} must be a mapping: {shard}")
+    purge_orphan_decompose_shards(steps_root, referenced_shards)
     return queue
 
 
 def prepare_step_status(queue: Queue, step_id: str, status: str) -> FileMutation:
-    payload = yaml.safe_load(queue.path.read_text(encoding="utf-8")) or {}
+    payload = dict(_load_yaml_mapping(queue.path))
     changed = False
     for raw in payload.get("steps", []):
         if str(raw.get("id") or raw.get("step_id") or "") == step_id:

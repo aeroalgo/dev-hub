@@ -116,7 +116,6 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"FAIL"`.
 - `step_id`, `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
-- `VERDICT: PASS|FAIL` — optional human summary **после** fence (не machine input).
 
 ## Формат human-отчёта (optional summary)
 

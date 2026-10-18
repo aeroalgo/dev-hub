@@ -44,6 +44,7 @@ Parent **обязан** передать только:
 
 **Incomplete = FAIL (HARD):**
 - Любой `checkpoints[].status != done` → `VERDICT: FAIL` (blocker `checkpoints_pending`)
+- Status fields are **machine-owned**: parent/spawn runs `loop.py implement-flush` (auto on SubagentStart). Agent must NOT edit `status` / `checkpoints[].status`. If statuses are wrong synonyms, that is a flush bug — not a gate-repair product fix.
 - `gaps.status=blocked` (или gaps=`blocked`) → `VERDICT: FAIL` (blocker `gaps_blocked`)
 - FORBIDDEN: `VERDICT: PASS` на «consistent blocked-state», «cutover корректно заблокирован»
 - Parent обязан **чинить** incomplete в этом шаге и снова `@verify-implement`. Не советуй `BLOCKED:` вместо фикса.
@@ -99,15 +100,16 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 ```
 
 - Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
-- `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
-- Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
+- `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp + `emit_exactly`).
+- Emit fence = поле `emit_exactly` из stdout CLI. `recorded_at` может отличаться; любое другое поле (`verdict`, ids, `evidence_sha256`) → новый `validate-verdict`.
 - Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
-- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
+- Fence language: **только** `json`.
+- После fence — ноль tool calls.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
-Финальный ответ **обязан** содержать ровно один fenced JSON. Hook читает **ноль** prose. Открывающая строка = ` ```json `.
+Финальный ответ = ровно один fenced JSON (`emit_exactly`). Открывающая строка = ` ```json `.
 
 ```json
 {
@@ -124,23 +126,6 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"FAIL"`.
 - `step_id`, `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
-- `VERDICT: PASS|FAIL` — optional human summary **после** fence (не machine input).
-
-## Формат human-отчёта (optional summary)
-
-После JSON fence можно кратко (на русском):
-
-```
-AC+:
-- A1: PASS|FAIL — evidence
-AC−:
-- N1: PASS|FAIL — evidence
-§0.11:
-- I1: PASS|FAIL — evidence
-VERIFY: PASS|FAIL — команда + кратко
-STEP: PASS|FAIL — path · status=in_progress|completed · cp all done · evidence
-BLOCKERS: (пусто если PASS) id · gap · next_fix
-```
 
 ## FORBIDDEN
 
@@ -152,9 +137,8 @@ BLOCKERS: (пусто если PASS) id · gap · next_fix
 - Игнорировать AC− / §0.11 «потому что тесты зелёные»
 - `verdict: PASS` при красном VERIFY / cp не все `done` / `gaps` blocked / битом шаблоне step
 - `verdict: PASS` для «blocked is correct» / cutover заблокирован parity FAIL
-- `verdict: FAIL` с blocker `step_status` лишь из‑за `in_progress` на pre-FINISH
-- Совет parent писать `status: completed` руками до PASS или писать `BLOCKED:` вместо фикса incomplete
-- Завершать сессию без валидного JSON fence `loop-gate-verdict/v1` (hooks = протокольный FAIL)
+- совет parent писать `status: completed` руками
+- финал без валидного JSON fence `loop-gate-verdict/v1`
 - Смотреть / FAIL по файлам вне ALLOW∩boundary-state; `git status` по репо; discard чужого dirty (`git checkout --` / `git restore` / `rm`)
 - Брать checklist из parent-packed AC+/AC−/§0.11 вместо decompose shard
 

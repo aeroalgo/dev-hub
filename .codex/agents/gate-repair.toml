@@ -111,22 +111,15 @@ python3 $DEV_HUB/bin/loop.py validate --project "$PROJECT_ROOT" --schema loop-re
 ```
 
 - `schema`: `loop-repair-result/v1`
-- `parent_evidence_id`: id evidence из prompt / `GATE_IDENTITY` context
+- `parent_evidence_id`: id evidence из prompt / `GATE_IDENTITY` context (`PARENT_EVIDENCE_ID` / session_id)
 - `status`: `done` | `partial` | `fail`
 - `fixed_blockers` / `remaining_blockers`: **только** `<blocker_id>` из секции BLOCKERS parent
 
-Строка `REPAIR: done|partial|fail` — optional human summary.
+**Allowed keys ONLY** (extra = reject): `schema`, `agent_id`, `parent_evidence_id`, `status`, `fixed_blockers`, `remaining_blockers`, `recorded_at`.
 
-## Human summary (optional)
+**FORBIDDEN fence keys:** `session_id`, `epic_id`, `step_id`, `blockers`, `changed_paths`, `verification`, `repair_status`, `evidence`, `evidence_sha256`. GATE_IDENTITY не копируется в repair JSON — только в `parent_evidence_id`.
 
-```
-REPAIR: done
-fixed: blocker_id_from_verify
-remaining: (пусто)
-VERIFY: exit 0 — команда из prompt
-evidence:
-- blocker_id_from_verify → <path> edited per <concrete_fix>
-```
+
 
 ## FORBIDDEN
 

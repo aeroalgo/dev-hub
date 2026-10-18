@@ -12,6 +12,7 @@ from .creative import (
     phase_for_pending_step,
     resolve_creative_step,
 )
+from .implement_schema import complete_implement_artifact, validate_implement_artifact
 from .index import (
     Queue,
     audit_is_converged,
@@ -48,6 +49,11 @@ _PHASE_GATE_AGENTS = {
     "BUGFIX": "verify-bugfix",
     "QA": "verify-qa",
 }
+
+# After this many failed verify(+repair) / schema / session attempts on one step → restart step.
+MAX_VERIFY_REPAIR_CYCLES = 3
+# After this many step restarts for the same epic+step → true halt (NEED_HUMAN).
+MAX_STEP_RESTARTS = 3
 
 
 class LoopEngine:
@@ -195,6 +201,22 @@ class LoopEngine:
         )
         return "\n".join(lines) + "\n"
 
+    def _render_restart_body(self, cursor: Cursor, *, reason: str, restart_number: int) -> str:
+        body = self._render_body(cursor)
+        banner = (
+            f"\n## STEP RESTART ({restart_number}/{MAX_STEP_RESTARTS})\n"
+            f"- Reason: {reason}\n"
+            f"- Same step `{cursor.step_id}` starts from scratch with a new session_id / GATE_IDENTITY.\n"
+            "- Discard prior partial session claims (OK/Готово without accepted gate PASS).\n"
+            "- Re-read the work shard; re-implement / re-decompose as required; then spawn the gate once.\n"
+            f"- After {MAX_STEP_RESTARTS} step restarts without progress the cursor HALTs (NEED_HUMAN).\n"
+        )
+        # Insert banner after the Handoff section header block.
+        marker = f"## Handoff {cursor.phase}\n"
+        if marker in body:
+            return body.replace(marker, marker + banner.lstrip("\n"), 1)
+        return body + banner
+
     @staticmethod
     def _failure(category: str, code: str, message: str, *, retryable: bool, attempt: int, details: dict[str, Any] | None = None) -> FailureRecord:
         return FailureRecord(category, code, message, retryable, attempt, details=details or {})
@@ -214,6 +236,260 @@ class LoopEngine:
             and queue_intake
             and not queue_ready
             and queue_reason == "bugfix_queue_open"
+        )
+
+    def _qa_pass_ready(self, cursor: Cursor) -> bool:
+        if cursor.phase != "QA":
+            return False
+        artifacts = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "qa")
+        verdict = qa_verdict(artifacts[-1]) if artifacts else None
+        return verdict in {"pass", "passed", "complete", "completed"}
+
+    def _context_sync_ready(self, cursor: Cursor) -> bool:
+        if cursor.phase != "CONTEXT_SYNC":
+            return False
+        sync = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "context-sync")
+        return bool(sync)
+
+    def _salvage_gate_pass_from_pre_emit(self, cursor: Cursor) -> GateVerdict | None:
+        """Reuse a validate-verdict stamp when the child fence was rejected for format noise."""
+        agent_id = self._required_gate_agent(cursor.phase)
+        if agent_id is None:
+            return None
+        from .pre_emit import read_pre_emit_stamp
+
+        stamp = read_pre_emit_stamp(
+            self.paths,
+            session_id=cursor.session_id,
+            agent_id=agent_id,
+            step_id=cursor.step_id,
+        )
+        if stamp is None or not isinstance(stamp.payload, dict):
+            return None
+        payload = dict(stamp.payload)
+        if str(payload.get("verdict") or "").upper() != "PASS":
+            return None
+        if str(payload.get("session_id") or "") != cursor.session_id:
+            return None
+        if str(payload.get("epic_id") or "") != cursor.epic_id:
+            return None
+        if str(payload.get("step_id") or "") != cursor.step_id:
+            return None
+        if str(payload.get("agent_id") or "") != agent_id:
+            return None
+        try:
+            return GateVerdict.model_validate(payload)
+        except Exception:
+            return None
+
+    def try_session_auto_finish(self, cursor: Cursor) -> Transition | None:
+        """Machine-close a phase when artifacts prove done but the agent skipped finish.
+
+        Order:
+        1) Salvage validate-verdict PASS stamp → accept_verdict (atomic gate close).
+        2) Phase-specific artifact auto-finish (AUDIT / QA-fail / BUGFIX / CONTEXT_SYNC / CREATIVE).
+        """
+        if cursor.status in {CursorStatus.COMPLETE, CursorStatus.HALTED}:
+            return None
+
+        gate_agent = self._required_gate_agent(cursor.phase)
+        if gate_agent is not None:
+            salvaged = self._salvage_gate_pass_from_pre_emit(cursor)
+            if salvaged is not None:
+                # Phase artifact gates still apply inside accept_verdict/_finish_plan.
+                if cursor.phase == "QA" and not self._qa_pass_ready(cursor) and not self._qa_failure_ready(cursor):
+                    salvaged = None
+                if salvaged is not None:
+                    try:
+                        transition = self.accept_verdict(
+                            salvaged,
+                            source="session-auto-finish:pre-emit-pass",
+                            expected_agent_id=gate_agent,
+                        )
+                    except TransitionError:
+                        transition = None
+                    if transition is not None and transition.changed:
+                        return transition
+
+        if cursor.phase == "QA" and self._qa_failure_ready(cursor):
+            try:
+                return self.finish(step_id=cursor.step_id, reason="session-auto-finish:qa-fail")
+            except TransitionError:
+                return None
+
+        if cursor.phase == "BUGFIX" and self._bugfix_ready_to_finish(cursor):
+            try:
+                return self.finish(step_id=cursor.step_id, reason="session-auto-finish:bugfix")
+            except TransitionError:
+                return None
+
+        if cursor.phase == "AUDIT":
+            ready, _ = audit_is_converged(self.paths.project, cursor.role, cursor.epic_id)
+            if ready:
+                try:
+                    return self.finish(step_id=cursor.step_id, reason="session-auto-finish:audit")
+                except TransitionError:
+                    return None
+
+        if cursor.phase == "CONTEXT_SYNC" and self._context_sync_ready(cursor):
+            try:
+                return self.finish(step_id=cursor.step_id, reason="session-auto-finish:context-sync")
+            except TransitionError:
+                return None
+
+        if cursor.phase == "CREATIVE":
+            try:
+                queue = self._queue(cursor)
+                step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
+                if step is None:
+                    return None
+                ready, _ = creative_finish_ready(self.paths.project, queue, step)
+                if not ready:
+                    return None
+                return self.finish(step_id=cursor.step_id, reason="session-auto-finish:creative")
+            except TransitionError:
+                return None
+
+        return None
+
+    def _bugfix_ready_to_finish(self, cursor: Cursor) -> bool:
+        if cursor.phase != "BUGFIX":
+            return False
+        ready, reason = bugfix_queue_state(self.paths.project, cursor.role, cursor.epic_id)
+        return ready and reason == "bugfix_queue_ready"
+
+    def _bugfix_has_open_items(self, cursor: Cursor) -> bool:
+        if cursor.phase != "BUGFIX":
+            return False
+        _, reason = bugfix_queue_state(self.paths.project, cursor.role, cursor.epic_id)
+        return reason == "bugfix_queue_open"
+
+    def rearm_active(self, *, reason: str, expected_revision: int | None = None) -> Transition:
+        """Keep the same phase after expected partial progress; clear retry streak."""
+
+        def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
+            if current is None:
+                raise TransitionError("cannot rearm without cursor")
+            if expected_revision is not None and current.revision != expected_revision:
+                return TransactionPlan(current, {"event": "rearm_skipped", "reason": "cursor advanced externally"}, changed=False)
+            if current.status == CursorStatus.COMPLETE:
+                raise TransitionError("cannot rearm a complete cursor")
+            if current.status == CursorStatus.HALTED:
+                raise TransitionError("cannot rearm a halted cursor")
+            candidate = self._copy_cursor(current)
+            candidate.status = CursorStatus.ACTIVE
+            candidate.attempt = 0
+            candidate.failure = None
+            return TransactionPlan(
+                candidate,
+                {
+                    "event": "rearm_active",
+                    "reason": reason,
+                    "phase": candidate.phase,
+                    "step_id": candidate.step_id,
+                },
+                (transaction.mutation(self.paths.active_context, self._render_body(candidate)),),
+            )
+
+        result = self.store.transact(planner)
+        return self._transition_from_result(
+            result,
+            event=str(result.event.get("event") or "rearm_active"),
+            reason=str(result.event.get("reason") or reason),
+        )
+
+    def restart_step(
+        self,
+        reason: str,
+        *,
+        expected_revision: int | None = None,
+        details: dict[str, Any] | None = None,
+        allow_halted: bool = False,
+    ) -> Transition:
+        """Restart the same epic/phase/step from scratch after exhausted verify/repair cycles.
+
+        New session_id + phase_epoch; attempt reset. After MAX_STEP_RESTARTS → halt.
+        """
+
+        def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
+            if current is None:
+                raise TransitionError("cannot restart step without cursor")
+            if expected_revision is not None and current.revision != expected_revision:
+                return TransactionPlan(
+                    current, {"event": "step_restart_skipped", "reason": "cursor advanced externally"}, changed=False
+                )
+            if current.status == CursorStatus.COMPLETE:
+                raise TransitionError("cannot restart a complete cursor")
+            if current.status == CursorStatus.HALTED and not allow_halted:
+                raise TransitionError("cannot restart a halted cursor")
+            restart_prefix = f"{current.epic_id}:{current.step_id}:"
+            restart_number = transaction.event_count("step_restarted", restart_prefix) + 1
+            if restart_number > MAX_STEP_RESTARTS:
+                candidate = self._copy_cursor(current)
+                halt_reason = (
+                    f"step_restart_exhausted:{current.step_id} after {MAX_STEP_RESTARTS} "
+                    f"restarts ({reason})"
+                )
+                candidate.status = CursorStatus.HALTED
+                candidate.failure = self._failure(
+                    "session",
+                    "step_restart_exhausted",
+                    halt_reason,
+                    retryable=False,
+                    attempt=candidate.attempt,
+                    details={"prior_reason": reason, **(details or {})},
+                )
+                return TransactionPlan(
+                    candidate,
+                    {
+                        "event": "halt",
+                        "reason": halt_reason,
+                        "phase": candidate.phase,
+                        "step_id": candidate.step_id,
+                    },
+                    (transaction.mutation(self.paths.active_context, self._render_body(candidate)),),
+                )
+            candidate = self._copy_cursor(current)
+            candidate.status = CursorStatus.ACTIVE
+            candidate.attempt = 0
+            candidate.failure = None
+            candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
+            candidate.phase_epoch += 1
+            event = {
+                "event": "step_restarted",
+                "key": f"{restart_prefix}{restart_number}",
+                "reason": reason,
+                "phase": candidate.phase,
+                "step_id": candidate.step_id,
+                "epic_id": candidate.epic_id,
+                "restart": restart_number,
+                "session_id": candidate.session_id,
+                "phase_epoch": candidate.phase_epoch,
+                "details": details or {},
+            }
+            return TransactionPlan(
+                candidate,
+                event,
+                (
+                    transaction.mutation(
+                        self.paths.active_context,
+                        self._render_restart_body(
+                            candidate, reason=reason, restart_number=restart_number
+                        ),
+                    ),
+                ),
+            )
+
+        result = self.store.transact(planner)
+        return self._transition_from_result(
+            result,
+            event=str(result.event.get("event") or "step_restarted"),
+            reason=str(result.event.get("reason") or reason),
+            metadata={
+                "restart": result.event.get("restart"),
+                "session_id": result.event.get("session_id"),
+                "phase_epoch": result.event.get("phase_epoch"),
+            },
         )
 
     @staticmethod
@@ -249,6 +525,8 @@ class LoopEngine:
                     f"wrong gate for {cursor.phase}: expected={agent_id}, received={gate_pass.agent_id}"
                 )
             return
+        if cursor.phase == "QA" and self._qa_failure_ready(cursor):
+            return
         latest_fail = transaction.latest_event("verdict_recorded")
         if latest_fail and all(
             str(latest_fail.get(field) or "") == expected
@@ -260,6 +538,12 @@ class LoopEngine:
             )
         ):
             verdict = str(latest_fail.get("verdict") or "FAIL")
+            if cursor.phase == "QA" and agent_id == "verify-qa":
+                raise TransitionError(
+                    "cannot finish QA: verify-qa FAIL is recorded but qa-*.yaml "
+                    "(verdict: fail|blocked) and open bugfix-queue.yaml are required; "
+                    "write them then call finish to route BUGFIX — do not gate-repair a product QA FAIL"
+                )
             raise TransitionError(
                 f"cannot finish {cursor.phase}: {agent_id} returned {verdict}; repair and re-verify are required"
             )
@@ -284,7 +568,15 @@ class LoopEngine:
         if step_id and step_id != cursor.step_id:
             raise TransitionError(f"finish step mismatch: cursor={cursor.step_id}, received={step_id}")
 
-        queue = validate_decompose_tree(self.paths.project, cursor.role, cursor.epic_id) if cursor.phase == "DECOMPOSE" else self._queue(cursor)
+        if cursor.phase == "DECOMPOSE":
+            try:
+                queue = validate_decompose_tree(self.paths.project, cursor.role, cursor.epic_id)
+            except (ValueError, FileNotFoundError, OSError) as exc:
+                raise TransitionError(
+                    f"cannot finish DECOMPOSE: invalid yaml tree — {exc}"
+                ) from exc
+        else:
+            queue = self._queue(cursor)
         self._require_gate_pass(cursor, transaction, gate_pass=gate_pass)
         next_queue = queue
         mutations = []
@@ -304,6 +596,23 @@ class LoopEngine:
             if not ready:
                 raise TransitionError(f"cannot finish CREATIVE: {creative_reason}")
         if cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
+            step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
+            if step is None:
+                raise TransitionError(
+                    f"cannot finish {cursor.phase}: step {cursor.step_id!r} missing from decompose index"
+                )
+            try:
+                # Machine-owned status write: step completed + all cp done.
+                # Agents never invent status literals — finish is the sole writer.
+                complete_implement_artifact(
+                    implement_path(self.paths.project, queue.role, queue.epic_id, step),
+                    expected_step_id=cursor.step_id,
+                    expected_plan_id=queue.epic_id,
+                )
+            except (ValueError, FileNotFoundError, OSError) as exc:
+                raise TransitionError(
+                    f"cannot finish {cursor.phase}: invalid implement artifact — {exc}"
+                ) from exc
             index_mutation = prepare_step_status(queue, cursor.step_id, "completed")
             mutations.append(index_mutation)
             next_queue = self._queue_after_step(queue, cursor.step_id)
@@ -315,7 +624,11 @@ class LoopEngine:
             artifacts = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "qa")
             verdict = qa_verdict(artifacts[-1]) if artifacts else None
             if verdict not in {"fail", "failed", "blocked", "pass", "passed", "complete", "completed"}:
-                raise TransitionError("cannot finish QA without a valid verdict")
+                raise TransitionError(
+                    "qa_artifact_required_before_pass: write memory-bank/<role>/qa/<epic>/qa-*.yaml "
+                    "with verdict pass|fail|blocked BEFORE verify-qa PASS can atomically finish; "
+                    "cannot finish QA without a valid qa artifact verdict"
+                )
             if artifacts:
                 previous = transaction.latest_event("verdict_accepted") or transaction.latest_event("finish")
                 if previous and previous.get("source_phase") == "BUGFIX":
@@ -571,11 +884,13 @@ class LoopEngine:
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cursor does not exist; run start first")
-            pending_qa_failure = self._pending_qa_failure(transaction, current)
-            if pending_qa_failure and self._qa_failure_ready(current):
+            # Product QA FAIL + open bugfix queue must route even when Codex/runtime
+            # never persisted verdict_recorded (no subagent-stop hook). Artifact SoT wins.
+            if self._qa_failure_ready(current):
+                pending_qa_failure = self._pending_qa_failure(transaction, current) or {}
                 route_key = (
                     f"{current.phase_epoch}:{current.epic_id}:{current.step_id}:"
-                    f"qa-failure-finish:{pending_qa_failure.get('key') or 'recorded'}"
+                    f"qa-failure-finish:{pending_qa_failure.get('key') or 'artifact'}"
                 )
                 route_event = {
                     "event": "qa_failed",
@@ -589,7 +904,7 @@ class LoopEngine:
                     "verdict_step_id": current.step_id,
                     "verdict_phase_epoch": current.phase_epoch,
                     "recorded_at": pending_qa_failure.get("recorded_at") or "",
-                    "reconciled_from": pending_qa_failure.get("key"),
+                    "reconciled_from": pending_qa_failure.get("key") or "qa-artifact",
                     "route": "BUGFIX",
                 }
                 gate_pass = GateVerdict(
@@ -728,6 +1043,96 @@ class LoopEngine:
                             event=event,
                             gate_pass=record,
                         )
+                prior_fails = transaction.event_match_count(
+                    "verdict_recorded",
+                    {
+                        "agent_id": record.agent_id,
+                        "epic_id": current.epic_id,
+                        "step_id": current.step_id,
+                        "verdict": "FAIL",
+                        "verdict_phase_epoch": current.phase_epoch,
+                    },
+                )
+                repair_count = transaction.event_match_count(
+                    "repair_recorded",
+                    {
+                        "phase": current.phase,
+                        "step_id": current.step_id,
+                    },
+                )
+                fail_cycles = prior_fails + 1
+                if (
+                    fail_cycles >= MAX_VERIFY_REPAIR_CYCLES
+                    and repair_count >= MAX_VERIFY_REPAIR_CYCLES
+                ):
+                    restart_prefix = f"{current.epic_id}:{current.step_id}:"
+                    restart_number = transaction.event_count("step_restarted", restart_prefix) + 1
+                    reason = (
+                        f"verify_repair_exhausted:{record.agent_id} "
+                        f"fails={fail_cycles} repairs={repair_count}"
+                    )
+                    if restart_number > MAX_STEP_RESTARTS:
+                        candidate = self._copy_cursor(current)
+                        halt_reason = (
+                            f"step_restart_exhausted:{current.step_id} after "
+                            f"{MAX_STEP_RESTARTS} restarts ({reason})"
+                        )
+                        candidate.status = CursorStatus.HALTED
+                        candidate.failure = self._failure(
+                            "boundary",
+                            "step_restart_exhausted",
+                            halt_reason,
+                            retryable=False,
+                            attempt=candidate.attempt,
+                            details={"agent_id": record.agent_id},
+                        )
+                        return TransactionPlan(
+                            candidate,
+                            {
+                                "event": "halt",
+                                "reason": halt_reason,
+                                "phase": current.phase,
+                                "step_id": current.step_id,
+                            },
+                            (transaction.mutation(self.paths.active_context, self._render_body(candidate)),),
+                            (event,),
+                        )
+                    candidate = self._copy_cursor(current)
+                    candidate.status = CursorStatus.ACTIVE
+                    candidate.attempt = 0
+                    candidate.failure = None
+                    candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
+                    candidate.phase_epoch += 1
+                    restart_event = {
+                        "event": "step_restarted",
+                        "key": f"{restart_prefix}{restart_number}",
+                        "reason": reason,
+                        "phase": candidate.phase,
+                        "step_id": candidate.step_id,
+                        "epic_id": candidate.epic_id,
+                        "restart": restart_number,
+                        "session_id": candidate.session_id,
+                        "phase_epoch": candidate.phase_epoch,
+                        "details": {
+                            "agent_id": record.agent_id,
+                            "trigger": "verify_repair_exhausted",
+                            "fail_cycles": fail_cycles,
+                            "repair_count": repair_count,
+                        },
+                    }
+                    return TransactionPlan(
+                        candidate,
+                        restart_event,
+                        (
+                            transaction.mutation(
+                                self.paths.active_context,
+                                self._render_restart_body(
+                                    candidate, reason=reason, restart_number=restart_number
+                                ),
+                            ),
+                        ),
+                        (event,),
+                    )
                 return TransactionPlan(None, event)
             return self._finish_plan(
                 current,
@@ -746,7 +1151,21 @@ class LoopEngine:
             metadata={"key": result.event.get("key"), "agent_id": result.event.get("agent_id"), "verdict": result.event.get("verdict")},
         )
 
-    def reject_verdict(self, *, agent_id: str, diagnostic_codes: list[str] | tuple[str, ...], errors: list[str] | tuple[str, ...], source: str = "subagent-stop", max_retries: int = 2) -> tuple[int, bool]:
+    def reject_verdict(
+        self,
+        *,
+        agent_id: str,
+        diagnostic_codes: list[str] | tuple[str, ...],
+        errors: list[str] | tuple[str, ...],
+        source: str = "subagent-stop",
+        max_retries: int = MAX_VERIFY_REPAIR_CYCLES - 1,
+    ) -> tuple[int, str]:
+        """Reject an invalid gate payload.
+
+        Returns ``(retry_number, outcome)`` where outcome is ``continue``,
+        ``restarted`` (step restarted after schema budget), or ``halted``.
+        """
+
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cannot reject a verdict without a cursor")
@@ -765,22 +1184,70 @@ class LoopEngine:
             }
             if retry_number <= max_retries:
                 return TransactionPlan(None, rejection)
-            candidate = self._copy_cursor(current)
+            # Schema budget exhausted → restart same step (not immediate halt).
+            restart_prefix = f"{current.epic_id}:{current.step_id}:"
+            restart_number = transaction.event_count("step_restarted", restart_prefix) + 1
             reason = f"schema_retry_exhausted:{agent_id}"
-            candidate.status = CursorStatus.HALTED
-            candidate.failure = self._failure("boundary", "schema_retry_exhausted", reason, retryable=False, attempt=candidate.attempt, details={"agent_id": agent_id})
-            halt = {"event": "halt", "reason": reason, "phase": current.phase, "step_id": current.step_id}
-            mutations = (transaction.mutation(self.paths.active_context, self._render_body(candidate)),)
-            return TransactionPlan(candidate, halt, mutations, (rejection,))
+            if restart_number > MAX_STEP_RESTARTS:
+                candidate = self._copy_cursor(current)
+                halt_reason = f"step_restart_exhausted:{current.step_id} after {MAX_STEP_RESTARTS} restarts ({reason})"
+                candidate.status = CursorStatus.HALTED
+                candidate.failure = self._failure(
+                    "boundary",
+                    "step_restart_exhausted",
+                    halt_reason,
+                    retryable=False,
+                    attempt=candidate.attempt,
+                    details={"agent_id": agent_id},
+                )
+                halt = {"event": "halt", "reason": halt_reason, "phase": current.phase, "step_id": current.step_id}
+                mutations = (transaction.mutation(self.paths.active_context, self._render_body(candidate)),)
+                return TransactionPlan(candidate, halt, mutations, (rejection,))
+            candidate = self._copy_cursor(current)
+            candidate.status = CursorStatus.ACTIVE
+            candidate.attempt = 0
+            candidate.failure = None
+            candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
+            candidate.phase_epoch += 1
+            restart_event = {
+                "event": "step_restarted",
+                "key": f"{restart_prefix}{restart_number}",
+                "reason": reason,
+                "phase": candidate.phase,
+                "step_id": candidate.step_id,
+                "epic_id": candidate.epic_id,
+                "restart": restart_number,
+                "session_id": candidate.session_id,
+                "phase_epoch": candidate.phase_epoch,
+                "details": {"agent_id": agent_id, "trigger": "schema_retry_exhausted"},
+            }
+            mutations = (
+                transaction.mutation(
+                    self.paths.active_context,
+                    self._render_restart_body(candidate, reason=reason, restart_number=restart_number),
+                ),
+            )
+            return TransactionPlan(candidate, restart_event, mutations, (rejection,))
 
         result = self.store.transact(planner)
-        retry_number = int(result.event.get("retry") or max_retries + 1)
-        return retry_number, bool(result.cursor and result.cursor.status == CursorStatus.HALTED)
+        event_name = str(result.event.get("event") or "")
+        if event_name == "step_restarted":
+            return max_retries + 1, "restarted"
+        if event_name == "halt" or (result.cursor and result.cursor.status == CursorStatus.HALTED):
+            return max_retries + 1, "halted"
+        retry_number = int(result.event.get("retry") or 1)
+        return retry_number, "continue"
 
     def record_event(self, event: dict[str, Any]) -> None:
         self.store.record_event(event)
 
     def retry(self, reason: str, *, expected_revision: int | None = None, details: dict[str, Any] | None = None) -> Transition:
+        """Soft session retry: always mint a new session_id + phase_epoch.
+
+        FORBIDDEN: re-run work under the same GATE_IDENTITY / session_id.
+        Outer cli must rebuild the prompt from the new cursor and start a new runtime process.
+        """
+
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cannot retry without cursor")
@@ -790,18 +1257,41 @@ class LoopEngine:
                 raise TransitionError("cannot retry a complete cursor")
             if current.status == CursorStatus.HALTED:
                 raise TransitionError("cannot retry a halted cursor")
+            previous_session = current.session_id
             candidate = self._copy_cursor(current)
-            candidate.status = CursorStatus.RETRY
+            candidate.status = CursorStatus.ACTIVE
             candidate.attempt += 1
-            candidate.failure = self._failure("session", "retry", reason, retryable=True, attempt=candidate.attempt, details=details)
+            candidate.failure = None
+            candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
+            candidate.phase_epoch += 1
             return TransactionPlan(
                 candidate,
-                {"event": "retry", "reason": reason, "phase": candidate.phase, "step_id": candidate.step_id, "attempt": candidate.attempt},
+                {
+                    "event": "retry",
+                    "reason": reason,
+                    "phase": candidate.phase,
+                    "step_id": candidate.step_id,
+                    "attempt": candidate.attempt,
+                    "session_id": candidate.session_id,
+                    "previous_session_id": previous_session,
+                    "phase_epoch": candidate.phase_epoch,
+                    "details": details or {},
+                },
                 (transaction.mutation(self.paths.active_context, self._render_body(candidate)),),
             )
 
         result = self.store.transact(planner)
-        return self._transition_from_result(result, event=str(result.event.get("event") or "retry"), reason=str(result.event.get("reason") or reason))
+        return self._transition_from_result(
+            result,
+            event=str(result.event.get("event") or "retry"),
+            reason=str(result.event.get("reason") or reason),
+            metadata={
+                "session_id": result.event.get("session_id"),
+                "previous_session_id": result.event.get("previous_session_id"),
+                "attempt": result.event.get("attempt"),
+                "phase_epoch": result.event.get("phase_epoch"),
+            },
+        )
 
     def halt(
         self,

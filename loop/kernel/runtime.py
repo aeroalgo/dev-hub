@@ -194,7 +194,9 @@ class Runtime:
         collaboration_wait_timed_out = False
 
         with log_path.open("w", encoding="utf-8") as log:
-            log.write(f"SESSION_START runtime={self.name} model={model}\n")
+            effort = getattr(self, "effort", None)
+            effort_part = f" effort={effort}" if effort else ""
+            log.write(f"SESSION_START runtime={self.name} model={model}{effort_part}\n")
             log.flush()
             try:
                 proc = subprocess.Popen(
@@ -451,8 +453,15 @@ class CodexRuntime(Runtime):
     name = "codex"
     progress_mode = "codex_json"
 
-    def __init__(self, settings: LoopSettings | None = None, *, progress: bool = True) -> None:
+    def __init__(
+        self,
+        settings: LoopSettings | None = None,
+        *,
+        progress: bool = True,
+        effort: str | None = None,
+    ) -> None:
         super().__init__(settings, progress=progress)
+        self.effort = effort
         self._progress_project = Path.cwd()
         self._collab_agents: dict[str, str] = {}
         self._processed_verdicts: set[tuple[str, str]] = set()
@@ -589,7 +598,11 @@ class CodexRuntime(Runtime):
                 }
             )
         except Exception as exc:
-            return f"    verdict hook error: {exc}"
+            return (
+                f"    verdict REJECTED (hook): {exc} — "
+                "child PASS/FAIL JSON was NOT accepted; DECOMPOSE/phase is NOT done; "
+                "fix artifacts and re-spawn the gate. FORBIDDEN claim Готово/OK after this line."
+            )
         if action.transition:
             transition = action.transition
             metadata = transition.get("metadata", {})
@@ -611,7 +624,32 @@ class CodexRuntime(Runtime):
                 f"{transition.get('phase')}/{transition.get('step_id')}{suffix}"
             )
         if not action.ok:
-            return f"    gate {agent_id} handoff rejected: {action.reason}; respawn the same agent with exact GATE_IDENTITY"
+            halted = "schema_retry_exhausted" in str(action.reason or "")
+            if halted:
+                return (
+                    f"    gate {agent_id} handoff REJECTED → cursor HALTED ({action.reason}). "
+                    "NOT ACCEPTED. FORBIDDEN: claim PASS/Готово/фаза завершена. NEED_HUMAN / resume required."
+                )
+            tree_invalid = "decompose_tree" in str(action.reason or "") or "invalid decompose tree" in str(
+                action.reason or ""
+            )
+            step_restarted = "step_restarted" in str(action.reason or "")
+            if step_restarted:
+                fix_hint = (
+                    " STEP RESTARTED — end this session; loop will re-arm the same step from scratch "
+                    "with a new GATE_IDENTITY. Do not keep patching the old session."
+                )
+            elif tree_invalid:
+                fix_hint = (
+                    " Fix yaml/steps (tdd/verify must be lists; YAML must parse), then re-spawn verify-decompose."
+                )
+            else:
+                fix_hint = " Respawn the same agent with exact GATE_IDENTITY."
+            return (
+                f"    gate {agent_id} handoff REJECTED ({action.reason}). "
+                "NOT ACCEPTED — child JSON is not machine state; phase did NOT advance. "
+                f"FORBIDDEN: claim OK/PASS/Готово/фаза завершена after this line.{fix_hint}"
+            )
         return f"    verdict {agent_id}: {action.reason}"
 
     def _collaboration_progress(self, item: dict[str, object]) -> str:
@@ -762,25 +800,38 @@ class CodexRuntime(Runtime):
 
     def command(self, prompt: str, *, model: str, project: Path) -> list[str]:
         binary = self.executable() or "codex"
-        command = [
-            binary,
-            "exec",
-            "--json",
-            "--dangerously-bypass-approvals-and-sandbox",
-            "--dangerously-bypass-hook-trust",
-            "--cd",
-            str(project),
-        ]
+        # -c MUST come before the `exec` subcommand. A trailing
+        # `-c model_reasoning_effort=…` after `exec` makes Codex 0.15x fall
+        # back to the openai provider (wss/https api.openai.com → 401).
+        command = [binary]
+        if self.effort:
+            command.extend(["-c", f'model_reasoning_effort="{self.effort}"'])
+        command.extend(
+            [
+                "exec",
+                "--json",
+                "--dangerously-bypass-approvals-and-sandbox",
+                "--dangerously-bypass-hook-trust",
+                "--cd",
+                str(project),
+            ]
+        )
         if model:
             command.extend(["--model", model])
         command.append(prompt)
         return command
 
 
-def runtime_for(name: str, *, settings: LoopSettings | None = None, progress: bool = True) -> Runtime:
+def runtime_for(
+    name: str,
+    *,
+    settings: LoopSettings | None = None,
+    progress: bool = True,
+    effort: str | None = None,
+) -> Runtime:
     value = str(name or "claude").lower()
     if value == "claude":
         return ClaudeRuntime(settings, progress=progress)
     if value == "codex":
-        return CodexRuntime(settings, progress=progress)
+        return CodexRuntime(settings, progress=progress, effort=effort)
     raise ValueError(f"unsupported runtime: {name!r}")

@@ -3,10 +3,10 @@ description: "Режим FRONT IMPLEMENT — UI по плану, TDD + Playwrigh
 alwaysApply: false
 ---
 ### Команда: FRONT IMPLEMENT
-**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
-**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
+**Bootstrap (HARD):** @.cursor/rules/shared/_lean/implement-bootstrap.mdc
+**Gates:** @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
+**Scope lock:** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+**Контекст (lazy):** @.cursor/rules/front_developer/mainrule-core.mdc — только если runner/level не ясны из Gates
 
 **Policy lazy (не грузить целиком без триггера):**
 - boundary/SoT/cutover step → @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (`wire_complete`)
@@ -29,16 +29,15 @@ alwaysApply: false
 
 ## Hot path
 
-**Load (HARD):** не рекурсивный `@`. Канон: .cursor/rules/mainrule.mdc §Full linked chain.
+**Load order SoT:** @.cursor/rules/shared/_lean/implement-bootstrap.mdc — не повторять Gates/Scope здесь.
 
-1. **ANALYZE hard gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
-2. `load_now` → work shard + **`plan_contract`** + `index.yaml` (AC = shard+contract; не весь plan)
-3. Read **`plan_jumps`** / plan §FR (формула jump = (end−start)×2)
-4. Gates + scope-lock. Полный `files:` / `delta_paths_*` → SKIP @explorer и graphify query. `skills.impl` + Design если `visible_ui`. TDD red→green · parent Playwright targeted · `deletes:` · `wire_complete` на SoT
-5. Последний sNN → **`plan_parity_scan`** (FR+layout checklist)
-6. **Перед FINISH** — Read finish-block. 5 точек → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
+**FRONT delta (после bootstrap):**
 
-→ wire-complete: .cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
+1. ANALYZE hard gate: `critical_count=0` (иначе REJECT; нет deferred)
+2. `skills.impl` + Design если `visible_ui` · TDD targeted Vitest/RTL
+3. User-visible scenario → **parent-only** Playwright targeted · все `deletes:` · `wire_complete` на SoT
+4. Last sNN → `plan_parity_scan` (FR+layout)
+5. Перед FINISH — Read finish-block → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
 
 ### Execution discipline
 
@@ -46,19 +45,4 @@ alwaysApply: false
 - Анти-минимализм: «компонент есть» ≠ done
 - Vitest/Playwright — **только parent**
 
----
-
-**Старт (до кода):** Hot path → Gates → scope-lock → `load_now` shard+index → skills шага. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
-
-**Процесс**:
-1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock** · Hot path
-1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
-1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT** (нет `ANALYZE deferred`).
-2. `load_now` → work shard (+ **`plan_contract`**) + `index.yaml`; AC = shard+contract; **FORBIDDEN** полный plan monolith.
-3. Read Impl (+ Design если есть) до prod-edit
-4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; выполнить все `deletes:`; **FORBIDDEN** restore legacy
-5. §0.11; после deletes — нет callers на удалённое
-5a. **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH
-6. **FINISH:** Read finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT
-
-**Верификация**: ANALYZE gate + scope lock + plan_contract + gates + deletes + FINISH + `graphify update .`
+**Верификация:** Gates + scope lock + plan_contract + deletes + FINISH + `graphify update .`

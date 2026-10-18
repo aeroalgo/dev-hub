@@ -4,8 +4,9 @@ alwaysApply: false
 ---
 # INTEG IMPLEMENT — gates
 
+**Bootstrap (HARD):** @.cursor/rules/shared/_lean/implement-bootstrap.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Load:** cheatsheet + этот файл + scope-lock на старте. Full workflow / индекс роли — не грузить. Канон: @.cursor/rules/mainrule.mdc §Full linked chain.
+**Load:** bootstrap → этот файл (Gates) → scope-lock → `## Hot path` (+ A–F в workflow). Full workflow monolith / индекс роли / mainrule monolith — не грузить.
 
 **Артефакт:** `memory-bank/integration/implement/<plan_id>/eNN-<slug>.yaml` — `<plan_id>` = stem plan **со slug** (@.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
 **Шаблоны:** `@.cursor/templates/implement/epic-step.yaml` (**строго**; без вольных секций)

@@ -14,6 +14,7 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 
 **REQUIRED session load order (default IMPLEMENT/TASK/BUGFIX/QA):**
 
+0. **Code-phase workflow gates:** @.cursor/rules/shared/_lean/implement-bootstrap.mdc (IMPLEMENT/TASK/BUGFIX/REFACTOR) — до exploration/tests
 1. `memory-bank/activeContext.md` → **`load_now`** list (ONLY those files)
 2. **IMPLEMENT (эпик):** work shard `plan/<epic>/yaml/steps/sNN|eNN-*.yaml` (**включая `plan_contract`**) + `yaml/decompose-index.yaml` + analyze artifact path если в load_now
 3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`

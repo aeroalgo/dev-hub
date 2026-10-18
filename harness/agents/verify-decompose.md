@@ -42,8 +42,7 @@ Parent **обязан** передать только:
 3. GAPS с `status: blocked` или неустранёнными блокирующими зазорами → `FAIL`.
 4. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
 5. **FORBIDDEN pytest / product code paths / test runners.** Только проверка plan/decompose yaml/md.
-6. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
-7. **Первая строка текста = `VERDICT:`**
+6. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный JSON fence, **ноль** дальнейших tool calls.
 
 ## Pre-emit validate-verdict (HARD — machine-enforced)
 
@@ -57,12 +56,13 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
 - Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
 - Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`. Narrative — **после** fence, не внутри JSON.
-- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
+- Fence language: **только** `json`.
+- После fence — ноль tool calls.
 
 ## Gate Output (JSON fence HARD)
 
-Твой финальный ответ **обязан** содержать fenced JSON блок. Открывающая строка = ` ```json `:
+Финальный ответ = ровно один fenced JSON (`emit_exactly`). Открывающая строка = ` ```json `:
 
 ```json
 {
@@ -76,31 +76,13 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 }
 ```
 
-- Поле `verdict` может быть `"PASS"` или `"FAIL"`.
-- Hook / runtime парсит **именно fenced JSON** с полем `"schema":"loop-gate-verdict/v1"`.
-
-## Формат отчёта (обязательный)
-
-```
-VERDICT: PASS|FAIL
-
-COVERAGE CHECK:
-- Requirements coverage: PASS|FAIL — evidence
-- Stages coverage: PASS|FAIL — evidence
-- Outcome map: PASS|FAIL — evidence
-- Replacement cleanup: PASS|FAIL — evidence
-
-BLOCKERS:
-- <id/issue>: <description>  # только при FAIL
-
-WARNINGS:
-- <optional non-blocking>
-```
+- `verdict`: `"PASS"` | `"FAIL"`.
+- Hook парсит только fenced JSON `"schema":"loop-gate-verdict/v1"`.
 
 ## FORBIDDEN
 
 - править plan/decompose/code/tests
-- `VERDICT: PASS` при пустых таблицах покрытия или открытых блокирующих GAPS
+- `verdict: PASS` при пустых таблицах покрытия или открытых блокирующих GAPS
 - запуск pytest, vitest, playwright или исполнение продуктового кода
 - Edit/Write
 - брать coverage checklist из parent prompt вместо ALLOW shards
