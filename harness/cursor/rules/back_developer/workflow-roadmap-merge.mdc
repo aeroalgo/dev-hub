@@ -6,18 +6,7 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/shared/_lean/roadmap-merge.mdc
 **Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
-**Скиллы:** нет
 
-**Когда:** канон `roadmap/queue.yaml` устарел / битый, а PLAN уже закрыт.  
-**Не когда:** сразу после PLAN — PLAN сам делает `roadmap-merge` в той же сессии; next = DECOMPOSE.
-
-**Процесс**:
 1. `OK BACK ROADMAP MERGE`
-1a. Gates + Алгоритм
-2. Inventory `roadmap/queue.yaml` (+ leftover `roadmap/batches/` / legacy `plan/roadmap-*`)
-3. This legacy recovery command is removed. Validate or repair the canonical `decompose-index.yaml` directly, then use `bin/loop.py finish` for the transition.
-4. Conflict/unknown deps/cycle → halt + JSON (не silent fix)
-5. `tasks.md` + `activeContext.md` (load_now = canon + first plan)
-6. **FINISH:** finish-block (`code_changed: no` если только memory-bank); next = `BACK DECOMPOSE <first-id>`
-
-**Верификация**: gates + `parse_roadmap_queue` ok на canon
+2. Follow Gates + Алгоритм (`<role>` = `back`)
+3. **FINISH:** finish-block (`code_changed: no` если только memory-bank); next = `BACK DECOMPOSE <first-id>`

@@ -14,7 +14,7 @@ alwaysApply: false
 - @.cursor/rules/front_developer/workflow-context-sync.mdc  
 - @.cursor/rules/integration_developer/workflow-context-sync.mdc  
 
-**Gates:** `{role}/isolation_rules/_lean/context-sync.mdc`
+**Gates:** @.cursor/rules/shared/_lean/context-sync.mdc + `{role}/isolation_rules/_lean/context-sync.mdc` (role patch)
 
 ---
 

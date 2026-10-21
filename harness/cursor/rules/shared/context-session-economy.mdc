@@ -37,7 +37,7 @@ Read once per file · широкий search → `@explorer` (полный shard 
 
 ## 5. FINISH
 
-`finish-block.mdc` → шаблон `finish-doc-router.md` → routing `finish-doc-router.mdc`.
+`finish-block.mdc` → шаблон `finish-doc-router.md` → routing `finish-doc-router.mdc` (Write gate — stub §0.7).
 
 ## 6. User message (RU)
 

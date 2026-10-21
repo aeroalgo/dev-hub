@@ -18,7 +18,21 @@ from .model import RuntimeResult
 _TOOL_PROGRESS_RE = re.compile(r'"type"\s*:\s*"(?:tool_use|tool_result)"')
 _CODEX_PROGRESS_RE = re.compile(r'"type"\s*:\s*"(?:command_execution|agent_message)"')
 _COLLAB_TERMINAL_STATES = frozenset(
-    {"completed", "failed", "errored", "error", "cancelled", "closed", "stopped"}
+    {
+        "completed",
+        "failed",
+        "errored",
+        "error",
+        "cancelled",
+        "canceled",
+        "closed",
+        "stopped",
+        "done",
+        "success",
+        "finished",
+        "complete",
+        "ok",
+    }
 )
 
 
@@ -40,8 +54,17 @@ def _collaboration_state(
     wait_started: float | None,
     *,
     now: float,
-) -> tuple[set[str], float | None]:
-    """Track native Codex children so a long wait is not mistaken for silence."""
+) -> tuple[set[str], float | None, bool]:
+    """Track native Codex children so a long wait is not mistaken for silence.
+
+    Subagent completion / wait return MUST clear pending. Otherwise idle timeout
+    is bypassed forever and the parent session never ends after the child finishes.
+
+    Returns (pending, wait_started, wave_completed). wave_completed is True when
+    a wait/close cleared the last pending child in this batch (including
+    spawn+wait in one JSONL chunk).
+    """
+    wave_completed = False
     for raw_line in text.splitlines():
         try:
             payload = json.loads(raw_line)
@@ -53,8 +76,10 @@ def _collaboration_state(
         if not isinstance(item, dict) or item.get("type") != "collab_tool_call":
             continue
         tool = str(item.get("tool") or "").rsplit(".", 1)[-1]
-        if tool not in {"spawn_agent", "wait"}:
+        if tool not in {"spawn_agent", "wait", "close_agent"}:
             continue
+        event_type = str(payload.get("type") or "")
+        item_status = str(item.get("status") or "").lower()
         receiver_ids = {
             str(value).strip()
             for value in (item.get("receiver_thread_ids") or [])
@@ -63,6 +88,8 @@ def _collaboration_state(
         states = item.get("agents_states")
         if not isinstance(states, dict):
             states = {}
+        pending_before = set(pending)
+        active: set[str] = set()
         for thread_id, state in states.items():
             thread = str(thread_id).strip()
             if not thread:
@@ -70,17 +97,43 @@ def _collaboration_state(
             status = str(state.get("status") or "").lower() if isinstance(state, dict) else ""
             if status in _COLLAB_TERMINAL_STATES:
                 pending.discard(thread)
-            else:
+            elif status:
+                # Unknown empty status must not keep the parent wait open forever.
+                active.add(thread)
                 pending.add(thread)
-        if tool == "spawn_agent":
+        started = event_type == "item.started" or (
+            event_type != "item.completed" and item_status not in _COLLAB_TERMINAL_STATES
+        )
+        completed = event_type == "item.completed" or item_status in _COLLAB_TERMINAL_STATES
+        if tool == "spawn_agent" and started and not completed:
             pending.update(receiver_ids)
-        elif payload.get("type") == "item.started" and receiver_ids:
+        elif tool == "wait" and event_type == "item.started" and receiver_ids:
             pending.update(receiver_ids)
+        elif completed and tool in {"wait", "close_agent"}:
+            # Wait/close finished: drop receivers that are not still active.
+            # spawn_agent completed alone must NOT clear — child may still be running.
+            for thread in receiver_ids:
+                if thread not in active:
+                    pending.discard(thread)
+            if not active:
+                pending.difference_update(receiver_ids)
+                if not receiver_ids and not states:
+                    # Completed wait with no child ids → collaboration is done.
+                    pending.clear()
+        # Wave done when this wait/close drained the last pending child
+        # (states may discard before the wait branch — compare to item start).
+        if (
+            completed
+            and tool in {"wait", "close_agent"}
+            and (pending_before or receiver_ids)
+            and not pending
+        ):
+            wave_completed = True
         if pending and wait_started is None:
             wait_started = now
         if not pending:
             wait_started = None
-    return pending, wait_started
+    return pending, wait_started, wave_completed
 
 
 def _message_value(value: object) -> str | None:
@@ -244,6 +297,46 @@ class Runtime:
                     emit(remaining)
                 emit(final=True)
 
+            def reap_session_tree() -> None:
+                """Close the whole runtime process group after the session ends.
+
+                Codex may leave nested hosts (code-mode-host / spawn_agent) that
+                keep OmniRoute sockets open after the parent `codex exec` exits.
+                Timeout paths already call stop_and_collect; success/interrupt
+                must still reap leftovers so connections close with the session.
+                """
+                if proc.pid is None:
+                    return
+                if proc.poll() is None:
+                    terminate(signal.SIGTERM)
+                    try:
+                        proc.wait(timeout=kill_grace)
+                    except subprocess.TimeoutExpired:
+                        terminate(signal.SIGKILL)
+                        try:
+                            proc.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            pass
+                try:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                except (OSError, ProcessLookupError):
+                    return
+                deadline = time.monotonic() + max(0.05, kill_grace)
+                while time.monotonic() < deadline:
+                    try:
+                        os.killpg(proc.pid, 0)
+                    except (OSError, ProcessLookupError):
+                        log.write(f"SESSION_REAP session={session_id} status=cleaned\n")
+                        log.flush()
+                        return
+                    time.sleep(0.05)
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                    log.write(f"SESSION_REAP session={session_id} status=force_killed\n")
+                    log.flush()
+                except (OSError, ProcessLookupError):
+                    pass
+
             def write_heartbeat(now: float, *, state: str) -> None:
                 nonlocal last_heartbeat, heartbeat_count
                 if heartbeat_sec is None or now - last_heartbeat < heartbeat_sec:
@@ -267,6 +360,24 @@ class Runtime:
                     )
                 last_heartbeat = now
 
+            def abandon_stdout_wait(*, reason: str) -> None:
+                """Leave the select loop after the child is done / killed.
+
+                communicate() closes stdout but leaves it registered in the
+                selector. Without unregister, the wait loop spins forever on an
+                exited process (heartbeat state=exited, activity stuck).
+                """
+                nonlocal collaboration_pending, collaboration_wait_started
+                collaboration_pending.clear()
+                collaboration_wait_started = None
+                for sel_key in list(selector.get_map().values()):
+                    try:
+                        selector.unregister(sel_key.fileobj)
+                    except (KeyError, ValueError, OSError):
+                        pass
+                log.write(f"SESSION_WAIT_ABANDON session={session_id} reason={reason}\n")
+                log.flush()
+
             selector = selectors.DefaultSelector()
             try:
                 if proc.stdout is None:
@@ -281,7 +392,15 @@ class Runtime:
                         if timed_out:
                             terminate(signal.SIGTERM)
                             stop_and_collect()
+                        abandon_stdout_wait(reason="wall_timeout")
                         break
+                    # Process already gone: do not keep "collaboration wait"
+                    # alive — no further JSONL can clear pending.
+                    if proc.poll() is not None and not selector.get_map():
+                        break
+                    if proc.poll() is not None and collaboration_pending:
+                        collaboration_pending.clear()
+                        collaboration_wait_started = None
                     poll_for = min(
                         remaining,
                         0.25,
@@ -289,9 +408,14 @@ class Runtime:
                         idle_timeout or remaining,
                         collaboration_timeout or remaining,
                     )
-                    events = selector.select(max(0.01, poll_for))
+                    try:
+                        events = selector.select(max(0.01, poll_for))
+                    except (ValueError, OSError):
+                        # Closed/invalid fd left in selector after communicate().
+                        abandon_stdout_wait(reason="selector_closed")
+                        break
                     now = time.monotonic()
-                    if collaboration_pending:
+                    if collaboration_pending and proc.poll() is None:
                         last_activity = now
                         last_activity_label = "native collaboration wait"
                     write_heartbeat(now, state="running" if proc.poll() is None else "exited")
@@ -316,6 +440,7 @@ class Runtime:
                             )
                         terminate(signal.SIGTERM)
                         stop_and_collect()
+                        abandon_stdout_wait(reason="idle_timeout")
                         break
                     if (
                         collaboration_timeout is not None
@@ -342,6 +467,11 @@ class Runtime:
                             )
                         terminate(signal.SIGTERM)
                         stop_and_collect()
+                        abandon_stdout_wait(reason="collab_wait_timeout")
+                        break
+                    # Exited process + drained/stuck selector → leave immediately.
+                    if proc.poll() is not None and not events:
+                        abandon_stdout_wait(reason="process_exited")
                         break
                     for key, _ in events:
                         data = os.read(key.fd, 65536)
@@ -352,13 +482,28 @@ class Runtime:
                                 collaboration_buffer += text
                                 complete_lines = collaboration_buffer.split("\n")
                                 collaboration_buffer = complete_lines.pop()
-                                collaboration_pending, collaboration_wait_started = _collaboration_state(
+                                (
+                                    collaboration_pending,
+                                    collaboration_wait_started,
+                                    collab_wave_done,
+                                ) = _collaboration_state(
                                     "\n".join(complete_lines),
                                     collaboration_pending,
                                     collaboration_wait_started,
                                     now=now,
                                 )
                                 collaboration_buffer = collaboration_buffer[-64_000:]
+                                # Subagent wait/close cleared last pending child.
+                                # Unlock idle (76397ab communicate semantics) so
+                                # Codex keep-alive cannot hang the parent forever.
+                                if collab_wave_done:
+                                    last_activity = now
+                                    last_activity_label = "collab_complete"
+                                    log.write(
+                                        f"SESSION_COLLAB_COMPLETE session={session_id} "
+                                        "pending_cleared=1\n"
+                                    )
+                                    log.flush()
                             progressed, activity_tail = _progress_seen(
                                 activity_tail, text, mode=self.progress_mode
                             )
@@ -367,6 +512,33 @@ class Runtime:
                                 last_activity_label = (
                                     "output" if self.progress_mode == "stream_bytes" else self.progress_mode
                                 )
+
+                            def _kill_for_managed_gate() -> bool:
+                                if not getattr(self, "_end_session_requested", False):
+                                    return False
+                                if proc.poll() is not None:
+                                    abandon_stdout_wait(reason="managed_gate_already_exited")
+                                    return True
+                                log.write(
+                                    f"SESSION_END_REQUESTED session={session_id} "
+                                    "reason=managed_gate_committed\n"
+                                )
+                                log.flush()
+                                if self.progress:
+                                    print(
+                                        f"==> session end requested: session={session_id} "
+                                        "reason=managed_gate_committed",
+                                        flush=True,
+                                    )
+                                terminate(signal.SIGTERM)
+                                stop_and_collect()
+                                abandon_stdout_wait(reason="managed_gate_committed")
+                                return True
+
+                            # Gate PASS / continue_session=False: end parent now
+                            # (Codex often keeps the thread alive after wait returns).
+                            if _kill_for_managed_gate():
+                                break
                             continue
                         selector.unregister(key.fileobj)
                         emit(final=True)
@@ -374,7 +546,8 @@ class Runtime:
                             break
                     else:
                         continue
-                    if proc.poll() is not None and not selector.get_map():
+                    if proc.poll() is not None:
+                        abandon_stdout_wait(reason="stdout_eof")
                         break
             except KeyboardInterrupt:
                 terminate(signal.SIGTERM)
@@ -396,8 +569,9 @@ class Runtime:
                 terminate(signal.SIGTERM)
                 stop_and_collect()
             finally:
+                reap_session_tree()
                 selector.close()
-                if proc.stdout is not None:
+                if proc.stdout is not None and not proc.stdout.closed:
                     proc.stdout.close()
             if timed_out:
                 log.write(f"SESSION_TIMEOUT session={session_id} timeout={timeout:g}s\n")
@@ -468,6 +642,7 @@ class CodexRuntime(Runtime):
         self._displayed_messages: set[str] = set()
         self._collab_lifecycle = None
         self._expected_subagent_type: str | None = None
+        self._end_session_requested = False
 
     def _progress_started(self, project: Path, prompt: str) -> None:
         super()._progress_started(project, prompt)
@@ -476,6 +651,7 @@ class CodexRuntime(Runtime):
         self._processed_verdicts: set[tuple[str, str]] = set()
         self._displayed_messages: set[str] = set()
         self._expected_subagent_type = None
+        self._end_session_requested = False
         try:
             from .lifecycle import SubagentLifecycle
             from .store import LoopPaths
@@ -605,22 +781,41 @@ class CodexRuntime(Runtime):
             )
         if action.transition:
             transition = action.transition
-            metadata = transition.get("metadata", {})
+            metadata = transition.get("metadata", {}) if isinstance(transition.get("metadata"), dict) else {}
+            event = str(transition.get("event") or "")
+            verdict = str(metadata.get("verdict") or "")
+            reason = str(transition.get("reason") or "")
+            # After committed gate PASS / QA→BUGFIX, end parent session so the
+            # next step starts clean (no leftover collab keep-alives).
+            if (
+                transition.get("changed")
+                and not action.continue_session
+                and (
+                    event in {"verdict_accepted", "finish", "qa_failed"}
+                    or verdict == "PASS"
+                    or reason.endswith(":PASS")
+                )
+            ):
+                self._end_session_requested = True
             if metadata.get("repair_status"):
                 return (
                     f"    repair {agent_id}={metadata['repair_status']} -> "
                     f"{transition.get('phase')}/{transition.get('step_id')}; re-verify required"
                 )
-            if transition.get("event") == "inventory_recorded":
+            if event == "inventory_recorded":
                 return (
                     f"    inventory {agent_id} ok={metadata.get('ok')} "
                     f"items={metadata.get('item_count')} -> "
                     f"{transition.get('phase')}/{transition.get('step_id')}"
                 )
-            verdict = metadata.get("verdict") or transition.get("event")
-            suffix = "" if verdict == "PASS" or transition.get("event") == "qa_failed" else "; repair required before finish"
+            verdict_label = verdict or event
+            suffix = (
+                ""
+                if verdict_label == "PASS" or event == "qa_failed"
+                else "; repair required before finish"
+            )
             return (
-                f"    verdict {agent_id}={verdict} -> "
+                f"    verdict {agent_id}={verdict_label} -> "
                 f"{transition.get('phase')}/{transition.get('step_id')}{suffix}"
             )
         if not action.ok:

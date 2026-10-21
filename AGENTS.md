@@ -55,6 +55,7 @@ entrypoint, выбери текущую фазу, затем последова�
 
 Для role command используй `memory-bank/activeContext.md` и только текущие
 пути из `load_now`. Не подменяй текущий shard другим epic или режимом.
+Write `activeContext` — `.cursor/rules/token-economy-stub.mdc` §0.7.
 
 ## Context ledger and budget enforcement
 

@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # FINISH — Doc Router Update
 
-**Mandatory** before handoff. Дополняет `finish-block.mdc`: только routing `load_now`/by-command/graphify.
+**Mandatory** before handoff (Write gate — stub §0.7). Дополняет `finish-block.mdc`: только routing `load_now`/by-command/graphify.
 
 **Fill-in:** @.cursor/templates/finish-doc-router.md — не копировать скелет в rules.
 

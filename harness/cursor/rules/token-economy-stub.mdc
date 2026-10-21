@@ -37,7 +37,17 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 
 ## 0.7 Handoff (HARD)
 
-**activeContext ONE Handoff:** ровно один блок `## Handoff …` + ≤ один `## done` — на FINISH **Write весь файл** (не sandwich). Detail: @.cursor/rules/shared/finish-block.mdc · @.cursor/rules/shared/finish-doc-router.mdc
+**activeContext write gate (HARD):** Write/Edit/Delete `memory-bank/activeContext.md` **только** в сессии распознанной специализированной команды роутера (`BACK|FRONT|INTEG|EVAL …`, `PRODUCT …`, и прочие UPPERCASE role/pipeline команды из `mainrule.mdc`). Обычно — на FINISH этой команды (агент или `loop.py finish` / loop-generated).
+
+| Триггер | Write `activeContext.md` |
+|---------|--------------------------|
+| `BACK IMPLEMENT`, `FRONT QA`, `INTEG PLAN`, `EVAL GATE`, `PRODUCT STATUS`, … | **да** (FINISH / loop) |
+| точная фраза `implement this` **без** role-команды | **нет** (это только §0.9 approval) |
+| обычный чат / Q&A / ad-hoc код без префикса роли | **нет** |
+
+**FORBIDDEN:** «обновить Handoff на всякий случай» после обычного ответа; переписывать `activeContext` потому что пользователь сказал `implement this`; mid-chat mutate вне FINISH role-команды.
+
+**Когда Write разрешён — ONE Handoff:** ровно один блок `## Handoff …` + ≤ один `## done` — **Write весь файл** (не sandwich). Detail: @.cursor/rules/shared/finish-block.mdc · @.cursor/rules/shared/finish-doc-router.mdc
 
 ## 0.9 Approval gate — `implement this`
 
@@ -66,7 +76,7 @@ Triggers: `continue project` · role commands · `PM INIT` (архив).
 
 On start: `activeContext.md` → `load_now`; continue from current stage — do not re-run completed stages.
 
-On FINISH: .cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed). Session detail: @.cursor/rules/shared/context-session-economy.mdc
+On FINISH: .cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed), **если** §0.7 разрешает Write. Session detail: @.cursor/rules/shared/context-session-economy.mdc
 
 ## 0.11 Integration verification (summary)
 

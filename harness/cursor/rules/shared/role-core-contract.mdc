@@ -11,7 +11,7 @@ alwaysApply: false
 - `activeContext.md` → **`load_now`** first (@.cursor/rules/token-economy-stub.mdc §0.5.1)
 - Index → ONE shard; не грузить `done — do NOT load`
 - Session start: @.cursor/rules/shared/context-session-economy.mdc §3
-- Не читать as-built планы других ролей без необходимости; изменения фиксируются через Handoff в `memory-bank/activeContext.md` и decompose index.
+- Не читать as-built планы других ролей без необходимости; изменения фиксируются через Handoff в `memory-bank/activeContext.md` (stub §0.7) и decompose index.
 - Артефакты режимов: `memory-bank/<role>/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`; полная таблица — @.cursor/rules/shared/memory-bank-paths.mdc.
 
 ## ФОРМАТ ОТВЕТА (Response Format)

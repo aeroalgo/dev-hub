@@ -1,0 +1,34 @@
+---
+description: "RECONCILE — read-only сверка plan/spec с кодом после hotfix / ad-hoc drift (shared)"
+alwaysApply: false
+---
+# RECONCILE (shared)
+
+**Role wrapper:** `{role}/workflow-reconcile.mdc`  
+**Gates:** @.cursor/rules/shared/_lean/reconcile.mdc + role patch
+
+## Когда запускать
+
+- после hotfix / изменений в код без обновления плана;
+- ad-hoc drift check между спецификацией (plan/decompose) и репозиторием.
+
+Вход: `* RECONCILE <epic_id>` (`T-xxx` или slug).
+
+## Load (lean)
+
+1. `memory-bank/activeContext.md` → только `load_now`;
+2. `memory-bank/<role>/plan/<epic>/md/plan.md` и `…/yaml/decompose-index.yaml`.
+
+## Процесс
+
+1. Подтверди `epic_id` и read-only scope.
+2. CLI: `python3 .claude/hooks/epic/reconcile.py --epic <epic_id> --write-yaml`
+3. Проверь артефакт `reconcile-YYYYMMDD-<slug>.yaml` в `memory-bank/<role>/reconcile/<epic_id>/`.
+4. Handoff в `activeContext.md` — только если stub §0.7 разрешает Write.
+
+**STRICTLY READ-ONLY:** не модифицирует plan, decompose, implement или код. Не создаёт audit-shards и не запускает правки кода.
+
+## Done When
+
+- [ ] reconcile artifact в `memory-bank/<role>/reconcile/<epic_id>/`;
+- [ ] Handoff (если §0.7) в `activeContext.md`.

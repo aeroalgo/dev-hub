@@ -1,5 +1,5 @@
 ---
-description: "Режим INTEG CONTEXT SYNC — после QA PASS обновить корневой канон по evidence wire-эпика"
+description: "Режим INTEG CONTEXT SYNC — после QA PASS обновить корневой канон по evidence эпика"
 alwaysApply: false
 ---
 ### Команда: INTEG CONTEXT SYNC
@@ -7,14 +7,6 @@ alwaysApply: false
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/context-sync.mdc  
 **Канон:** @.cursor/rules/shared/workflow-context-sync.mdc
 
-**Вход:** `INTEG CONTEXT SYNC <epic_id>` (или epic из `activeContext`).
-
-## Hot path
-
 1. `OK INTEG CONTEXT SYNC` → Gates + shared Hot path  
-2. Evidence: QA pass + plan axiom / Context consumed + текущий корень  
-3. Diff-only write allowlist (`techContext` · `productContext` · `systemPatterns` · опц. `projectbrief`)  
-4. Artifact: `memory-bank/integration/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md`  
-5. **FINISH:** finish-block (`code_changed: no`); next → `INTEG ARCHIVE NOW <epic>` (или next PLAN из queue)
-
-**Верификация**: gates + sync report + no writes вне allowlist
+2. Follow shared (`<role>` = `integration`)  
+3. **FINISH:** finish-block (`code_changed: no`); next → `INTEG ARCHIVE NOW <epic>` (или next PLAN)

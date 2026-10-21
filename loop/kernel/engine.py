@@ -15,6 +15,7 @@ from .creative import (
 from .implement_schema import complete_implement_artifact, validate_implement_artifact
 from .index import (
     Queue,
+    Step,
     audit_is_converged,
     bugfix_queue_path,
     bugfix_queue_intake,
@@ -27,6 +28,8 @@ from .index import (
     plan_path,
     prepare_step_status,
     qa_verdict,
+    queue_implement_gaps,
+    queue_ready_for_audit,
     resolve_epic_role,
     validate_decompose_tree,
 )
@@ -81,6 +84,9 @@ class LoopEngine:
         return plan_path(self.paths.project, cursor.role, cursor.epic_id)
 
     def _phase_after_queue(self, queue: Queue) -> tuple[str, str]:
+        ready, implement_reason = queue_ready_for_audit(self.paths.project, queue)
+        if not ready:
+            raise TransitionError(f"cannot advance past IMPLEMENT: {implement_reason}")
         audit = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "audit")
         qa = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "qa")
         bugfix_queue = bugfix_queue_path(self.paths.project, queue.role, queue.epic_id)
@@ -104,6 +110,12 @@ class LoopEngine:
             return "CONTEXT_SYNC", "qa passed; context sync required"
         return "QA", "qa verdict missing"
 
+    def _work_steps(self, queue: Queue) -> tuple[Step, ...]:
+        """Pending index steps, or completed-without-implement gaps (fail-closed recovery)."""
+        if queue.pending:
+            return queue.pending
+        return tuple(step for step, _reason in queue_implement_gaps(self.paths.project, queue))
+
     def _target(self, cursor: Cursor, queue: Queue | None = None) -> tuple[str, str, str]:
         if queue is None:
             canonical_index = index_path(self.paths.project, cursor.role, cursor.epic_id)
@@ -115,12 +127,18 @@ class LoopEngine:
             active_queue = self._queue(cursor)
         else:
             active_queue = queue
-        if active_queue.pending:
+        work = self._work_steps(active_queue)
+        if work:
             gate = self._analyze_gate(active_queue)
             if gate["required"]:
                 return "ANALYZE", "ANALYZE", f"ANALYZE gate: {gate['reason']}"
-            step = active_queue.pending[0]
+            step = work[0]
             phase, reason = phase_for_pending_step(self.paths.project, active_queue, step)
+            if step.status in {"completed", "done"} and step not in active_queue.pending:
+                reason = (
+                    f"implement incomplete for {step.step_id}: index status {step.status!r} "
+                    "without completed implement artifact"
+                )
             return phase, step.step_id, reason
         phase, reason = self._phase_after_queue(active_queue)
         return phase, phase, reason
@@ -570,7 +588,12 @@ class LoopEngine:
 
         if cursor.phase == "DECOMPOSE":
             try:
-                queue = validate_decompose_tree(self.paths.project, cursor.role, cursor.epic_id)
+                queue = validate_decompose_tree(
+                    self.paths.project,
+                    cursor.role,
+                    cursor.epic_id,
+                    require_fresh_pending=True,
+                )
             except (ValueError, FileNotFoundError, OSError) as exc:
                 raise TransitionError(
                     f"cannot finish DECOMPOSE: invalid yaml tree — {exc}"

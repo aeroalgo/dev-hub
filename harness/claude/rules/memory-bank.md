@@ -8,4 +8,5 @@ paths:
 @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
 
 Session: `activeContext.md` → `load_now` only.  
-FINISH: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc
+FINISH: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc  
+Write gate: @.cursor/rules/token-economy-stub.mdc §0.7

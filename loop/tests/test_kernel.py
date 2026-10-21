@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from loop.kernel.cli import (
     _bugfix_gate_paths,
     _gate_protocol,
     _gate_recovery_prompt,
+    _normalize_legacy_args,
     _phase_gate_agent,
     _phase_instruction,
 )
@@ -32,7 +34,7 @@ from loop.kernel.index import (
 )
 from loop.kernel.lifecycle import SubagentLifecycle
 from loop.kernel.model import CursorStatus, RuntimeResult
-from loop.kernel.runtime import CodexRuntime, Runtime
+from loop.kernel.runtime import CodexRuntime, Runtime, _collaboration_state
 from loop.kernel.session import SessionOutcome, SessionSupervisor
 from loop.kernel.store import CursorStore, LoopPaths
 from loop.kernel.verdict import BoundaryIdentity, GateVerdict, SCHEMA_GATE_VERDICT, SCHEMA_REPAIR_RESULT, SCHEMA_SUNSET_INVENTORY, validate_boundary, validate_message
@@ -45,7 +47,15 @@ def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _seed_implement(root: Path, *, step_id: str, filename: str, epic_id: str = "E1") -> None:
+def _seed_implement(
+    root: Path,
+    *,
+    step_id: str,
+    filename: str,
+    epic_id: str = "E1",
+    status: str = "in_progress",
+    checkpoint_status: str = "pending",
+) -> None:
     write(
         root / f"memory-bank/back/implement/{epic_id}/{filename}",
         f"""
@@ -53,7 +63,7 @@ schema: epic-implement/v1
 role: back
 step_id: {step_id}
 plan_id: {epic_id}
-status: in_progress
+status: {status}
 done:
   - seeded evidence
 files: []
@@ -63,8 +73,28 @@ integration_check: []
 checkpoints:
   - id: cp1
     criterion: seeded
-    status: pending
+    status: {checkpoint_status}
 """,
+    )
+
+
+def _seed_queue_implement_complete(root: Path, *, epic_id: str = "E1") -> None:
+    """Mark all seeded implement artifacts completed — required before AUDIT/QA routing."""
+    _seed_implement(
+        root,
+        step_id="s01",
+        filename="s01-one.yaml",
+        epic_id=epic_id,
+        status="completed",
+        checkpoint_status="done",
+    )
+    _seed_implement(
+        root,
+        step_id="s02",
+        filename="s02-two.yaml",
+        epic_id=epic_id,
+        status="completed",
+        checkpoint_status="done",
     )
 
 
@@ -266,6 +296,121 @@ steps:
     assert engine.store.read().phase == "DECOMPOSE"
 
 
+def test_decompose_finish_rejects_false_completed_status(tmp_path: Path) -> None:
+    write(tmp_path / "memory-bank/back/plan/E-FALSE/md/plan.md", "# Plan: E-FALSE\n")
+    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+    engine = LoopEngine(paths)
+    engine.start("E-FALSE")
+    write(
+        tmp_path / "memory-bank/back/plan/E-FALSE/yaml/decompose-index.yaml",
+        """
+schema: epic-decompose-index/v1
+plan_id: E-FALSE
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: completed
+""",
+    )
+    write(
+        tmp_path / "memory-bank/back/plan/E-FALSE/yaml/steps/s01.yaml",
+        _minimal_decompose_shard(step_id="s01", plan_id="E-FALSE", verify_line="true"),
+    )
+
+    with pytest.raises(TransitionError, match="must be pending"):
+        _finish_via_gate(engine)
+
+    assert engine.store.read().phase == "DECOMPOSE"
+
+
+def test_analyze_finish_routes_to_implement_when_index_completed_without_artifacts(
+    tmp_path: Path,
+) -> None:
+    """Hole regression: false completed in index must not skip to AUDIT/QA."""
+    write(tmp_path / "memory-bank/back/plan/E-GAP/md/plan.md", "# Plan: E-GAP\n")
+    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+    engine = LoopEngine(paths)
+    engine.start("E-GAP")
+    write(
+        tmp_path / "memory-bank/back/plan/E-GAP/yaml/decompose-index.yaml",
+        """
+schema: epic-decompose-index/v1
+plan_id: E-GAP
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02.yaml
+    title: s02
+    next_phase: BACK IMPLEMENT
+    status: pending
+""",
+    )
+    write(
+        tmp_path / "memory-bank/back/plan/E-GAP/yaml/steps/s01.yaml",
+        _minimal_decompose_shard(step_id="s01", plan_id="E-GAP", verify_line="true"),
+    )
+    write(
+        tmp_path / "memory-bank/back/plan/E-GAP/yaml/steps/s02.yaml",
+        _minimal_decompose_shard(step_id="s02", plan_id="E-GAP", verify_line="true"),
+    )
+    assert _finish_via_gate(engine).phase == "ANALYZE"
+
+    write(
+        tmp_path / "memory-bank/back/plan/E-GAP/yaml/decompose-index.yaml",
+        """
+schema: epic-decompose-index/v1
+plan_id: E-GAP
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: completed
+  - id: s02
+    file: s02.yaml
+    title: s02
+    next_phase: BACK IMPLEMENT
+    status: completed
+""",
+    )
+    write(
+        tmp_path / "memory-bank/back/analyze/E-GAP/analyze-20261019-pass.yaml",
+        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n"
+        "coverage:\n  - step_ids: [s01, s02]\n",
+    )
+
+    transition = _finish_via_gate(engine)
+
+    assert transition.phase == "IMPLEMENT"
+    assert transition.step_id == "s01"
+    cursor = engine.store.read()
+    assert cursor is not None
+    assert cursor.phase == "IMPLEMENT"
+    assert cursor.step_id == "s01"
+
+
+def test_phase_after_queue_rejects_audit_without_implement_artifacts(tmp_path: Path) -> None:
+    from loop.kernel.index import Queue, Step, queue_ready_for_audit
+
+    queue = Queue(
+        path=tmp_path / "decompose-index.yaml",
+        role="back",
+        epic_id="E-NOIMP",
+        steps=(
+            Step(step_id="s01", status="completed", title="s01", shard="s01.yaml"),
+        ),
+    )
+    ready, reason = queue_ready_for_audit(tmp_path, queue)
+    assert ready is False
+    assert "implement incomplete before AUDIT" in reason
+
+
 def test_repair_yaml_double_quoted_escapes_doubles_unknown() -> None:
     raw = 'verify:\n  - "timeout -k 10s 300s rg \\\\.token path"\n'
     # already valid \\. — no change
@@ -314,6 +459,19 @@ verify:
   - {verify_line}
 tdd: []
 """
+
+
+def test_normalize_legacy_args_keeps_implement_flush_command() -> None:
+    assert _normalize_legacy_args(
+        ["implement-flush", "--project", "/tmp/forge-os"]
+    ) == ["implement-flush", "--project", "/tmp/forge-os"]
+    assert _normalize_legacy_args(["T-003-plane-bridge", "agy/gemini-3.8-flash-tiered"]) == [
+        "run",
+        "--epic",
+        "T-003-plane-bridge",
+        "--model",
+        "agy/gemini-3.8-flash-tiered",
+    ]
 
 
 def test_normalize_tdd_bool_to_list(tmp_path: Path) -> None:
@@ -799,6 +957,7 @@ items:
 
 def test_legacy_closed_bugfix_item_routes_to_qa_after_pass(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
+    _seed_queue_implement_complete(tmp_path)
     write(
         tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
         """schema: epic-decompose-index/v1
@@ -851,6 +1010,7 @@ verification:
 
 def test_multi_done_bugfix_queue_routes_to_qa_after_pass(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
+    _seed_queue_implement_complete(tmp_path)
     write(
         tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
         """schema: epic-decompose-index/v1
@@ -1853,11 +2013,13 @@ def test_subagent_pass_finishes_once_and_duplicate_is_idempotent(tmp_path: Path)
 
     accepted = lifecycle.stop(payload)
     assert accepted.ok
+    assert accepted.continue_session is False
     assert accepted.transition["reason"] == "subagent-stop:verify-implement:PASS"
     assert engine.store.read().step_id == "s02"
 
     duplicate = lifecycle.stop(payload)
     assert duplicate.ok
+    assert duplicate.continue_session is False
     assert duplicate.transition["event"] == "verdict_duplicate"
     assert engine.store.read().step_id == "s02"
 
@@ -1877,6 +2039,7 @@ def test_subagent_fail_or_blocked_is_recorded_without_finishing(tmp_path: Path) 
             }
         )
         assert action.ok
+        assert action.continue_session is False
         assert action.transition["event"] == "verdict_recorded"
         assert action.transition["reason"] == verdict
         assert engine.store.read().step_id == "s01"
@@ -2162,6 +2325,7 @@ def test_subagent_stop_hook_accepts_pydantic_verdict(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     hook_payload = json.loads(result.stdout)
     assert hook_payload["ok"] is True
+    assert hook_payload["continue"] is False
     assert hook_payload["transition"]["reason"] == "subagent-stop:verify-implement:PASS"
     assert engine.store.read().step_id == "s02"
 
@@ -2647,3 +2811,296 @@ def test_runtime_heartbeat_elapsed_and_idle_timeout_are_recorded(tmp_path: Path,
     assert "SESSION_HEARTBEAT" in log
     assert "SESSION_IDLE_TIMEOUT" in log
     assert "SESSION_END" in log
+
+
+def test_runtime_abandons_wait_after_managed_gate_end(tmp_path: Path) -> None:
+    """SESSION_END_REQUESTED must leave the select loop (no exited+collab hang)."""
+
+    class StickyRuntime(Runtime):
+        name = "sticky-end"
+
+        def executable(self) -> str:
+            return sys.executable
+
+        def command(self, prompt: str, *, model: str, project: Path) -> list[str]:
+            # Emit one line then sleep; parent kills on end-session request.
+            return [
+                sys.executable,
+                "-u",
+                "-c",
+                "import time; print('gate-done', flush=True); time.sleep(120)",
+            ]
+
+        def _emit_progress(self, text: str, *, final: bool = False) -> None:
+            super()._emit_progress(text, final=final)
+            if "gate-done" in text:
+                self._end_session_requested = True
+
+    started = time.monotonic()
+    result = StickyRuntime(
+        LoopSettings(status_heartbeat=1, session_kill_grace=1)
+    ).run(
+        "prompt",
+        model="model",
+        project=tmp_path,
+        log_path=tmp_path / "session-end-abandon.log",
+        timeout=60,
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 20, f"hung after end-session: elapsed={elapsed:.1f}s"
+    assert result.elapsed_sec < 20
+    log = (tmp_path / "session-end-abandon.log").read_text(encoding="utf-8")
+    assert "SESSION_END_REQUESTED" in log
+    assert "SESSION_WAIT_ABANDON" in log
+    assert "SESSION_END" in log
+    # Must not keep heartbeating as exited+collab for minutes.
+    exited_heartbeats = [
+        line for line in log.splitlines() if "state=exited" in line and "SESSION_HEARTBEAT" in line
+    ]
+    assert len(exited_heartbeats) <= 2
+
+
+def test_runtime_reaps_leftover_process_group_after_success(tmp_path: Path) -> None:
+    """Parent exit must not leave nested children holding sockets open."""
+    child_pid_path = tmp_path / "orphan.pid"
+    script = tmp_path / "leave_child.py"
+    script.write_text(
+        "\n".join(
+            [
+                "import os, signal, sys, time",
+                "signal.signal(signal.SIGHUP, signal.SIG_IGN)",
+                "pid = os.fork()",
+                "if pid == 0:",
+                "    signal.signal(signal.SIGHUP, signal.SIG_IGN)",
+                "    open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid()))",
+                "    time.sleep(60)",
+                "    os._exit(0)",
+                "sys.exit(0)",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    class LeaveChildRuntime(Runtime):
+        name = "leave-child"
+
+        def executable(self) -> str:
+            return sys.executable
+
+        def command(self, prompt: str, *, model: str, project: Path) -> list[str]:
+            return [sys.executable, str(script), str(child_pid_path)]
+
+    result = LeaveChildRuntime(LoopSettings(session_kill_grace=1)).run(
+        "prompt",
+        model="model",
+        project=tmp_path,
+        log_path=tmp_path / "session-reap.log",
+        timeout=10,
+    )
+
+    assert result.exit_code == 0
+    assert child_pid_path.exists()
+    orphan_pid = int(child_pid_path.read_text(encoding="utf-8").strip())
+    # Give the reaper a moment, then the leftover child must be gone.
+    deadline = time.time() + 2
+    alive = True
+    while time.time() < deadline:
+        try:
+            os.kill(orphan_pid, 0)
+        except OSError:
+            alive = False
+            break
+        time.sleep(0.05)
+    assert alive is False
+    log = (tmp_path / "session-reap.log").read_text(encoding="utf-8")
+    assert "SESSION_END" in log
+    assert "SESSION_REAP" in log
+
+
+def test_runtime_idle_timeout_applies_after_subagent_wait_completes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """After wait completes, collaboration must not block idle forever (pre-collab semantics)."""
+
+    class CollabThenSilentRuntime(Runtime):
+        name = "collab-then-silent"
+        progress_mode = "codex_json"
+
+        def executable(self) -> str:
+            return sys.executable
+
+        def command(self, prompt: str, *, model: str, project: Path) -> list[str]:
+            # Emit spawn+wait completed, then go silent (Codex keep-alive mimic).
+            payload_spawn = json.dumps(
+                {
+                    "type": "item.started",
+                    "item": {
+                        "type": "collab_tool_call",
+                        "tool": "spawn_agent",
+                        "receiver_thread_ids": ["thr-idle"],
+                        "status": "in_progress",
+                    },
+                }
+            )
+            payload_wait = json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "type": "collab_tool_call",
+                        "tool": "wait",
+                        "receiver_thread_ids": ["thr-idle"],
+                        "agents_states": {"thr-idle": {"status": "completed"}},
+                        "status": "completed",
+                    },
+                }
+            )
+            script = (
+                "import time\n"
+                f"print({payload_spawn!r}, flush=True)\n"
+                "time.sleep(0.3)\n"
+                f"print({payload_wait!r}, flush=True)\n"
+                "time.sleep(30)\n"
+            )
+            return [sys.executable, "-u", "-c", script]
+
+    started = time.monotonic()
+    result = CollabThenSilentRuntime(
+        LoopSettings(
+            status_heartbeat=1,
+            stream_idle_timeout=2,
+            session_kill_grace=1,
+            collaboration_wait_timeout=None,
+        )
+    ).run(
+        "prompt",
+        model="model",
+        project=tmp_path,
+        log_path=tmp_path / "session-collab-idle.log",
+        timeout=30,
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 15, f"collab blocked idle: elapsed={elapsed:.1f}s"
+    assert result.idle_timed_out is True
+    assert result.exit_code == 124
+    log = (tmp_path / "session-collab-idle.log").read_text(encoding="utf-8")
+    assert "SESSION_COLLAB_COMPLETE" in log
+    assert "SESSION_IDLE_TIMEOUT" in log
+
+
+def test_collaboration_state_clears_pending_when_wait_completes() -> None:
+    """Wait completion must clear pending so idle timeout is not bypassed forever."""
+    now = 100.0
+    spawn = {
+        "type": "item.started",
+        "item": {
+            "type": "collab_tool_call",
+            "tool": "spawn_agent",
+            "receiver_thread_ids": ["thr-1"],
+        },
+    }
+    pending, started, done = _collaboration_state(json.dumps(spawn), set(), None, now=now)
+    assert pending == {"thr-1"}
+    assert started == now
+    assert done is False
+
+    wait_done = {
+        "type": "item.completed",
+        "item": {
+            "type": "collab_tool_call",
+            "tool": "wait",
+            "receiver_thread_ids": ["thr-1"],
+            "agents_states": {"thr-1": {"status": "completed"}},
+        },
+    }
+    pending, started, done = _collaboration_state(json.dumps(wait_done), pending, started, now=now + 1)
+    assert pending == set()
+    assert started is None
+    assert done is True
+
+
+def test_collaboration_state_clears_on_wait_completed_without_states() -> None:
+    pending = {"thr-2"}
+    wait_done = {
+        "type": "item.completed",
+        "item": {
+            "type": "collab_tool_call",
+            "tool": "wait",
+            "receiver_thread_ids": ["thr-2"],
+        },
+    }
+    pending, started, done = _collaboration_state(json.dumps(wait_done), pending, 50.0, now=60.0)
+    assert pending == set()
+    assert started is None
+    assert done is True
+
+
+def test_collaboration_state_spawn_completed_keeps_pending_while_child_runs() -> None:
+    pending, started, done = _collaboration_state(
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "receiver_thread_ids": ["thr-3"],
+                },
+            }
+        ),
+        set(),
+        None,
+        now=1.0,
+    )
+    assert done is False
+    pending, started, done = _collaboration_state(
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "receiver_thread_ids": ["thr-3"],
+                },
+            }
+        ),
+        pending,
+        started,
+        now=2.0,
+    )
+    assert pending == {"thr-3"}
+    assert started == 1.0
+    assert done is False
+
+
+def test_collaboration_state_spawn_and_wait_same_chunk_marks_wave_done() -> None:
+    chunk = "\n".join(
+        [
+            json.dumps(
+                {
+                    "type": "item.started",
+                    "item": {
+                        "type": "collab_tool_call",
+                        "tool": "spawn_agent",
+                        "receiver_thread_ids": ["thr-4"],
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "type": "collab_tool_call",
+                        "tool": "wait",
+                        "receiver_thread_ids": ["thr-4"],
+                        "agents_states": {"thr-4": {"status": "completed"}},
+                    },
+                }
+            ),
+        ]
+    )
+    pending, started, done = _collaboration_state(chunk, set(), None, now=10.0)
+    assert pending == set()
+    assert started is None
+    assert done is True

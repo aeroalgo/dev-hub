@@ -27,7 +27,7 @@ paths:
 - Файл, который ты только что Read или Edit — **уже в контексте**. Не перечитывай
 - Re-read допустим **только** при: `offset` за пределами первого чтения; после внешней правки другим tool
 - `tasks/log/*.md`: не append вручную на IMPLEMENT sNN (`finalize-step`); не перечитывай чтобы «убедиться»
-- `activeContext.md`: читай **1×** старт; **перед FINISH** разрешён **1× re-read** (избежать stale Edit) **или** сразу `Write` весь файл без Edit
+- `activeContext.md`: читай **1×** старт; **перед FINISH** разрешён **1× re-read** (избежать stale Edit) **или** сразу `Write` весь файл без Edit (gate — stub §0.7)
 - **Запрещено:** Read после Edit «чтобы проверить что записалось» — Edit/Write идемпотентен; на FINISH предпочитай Write целиком
 
 ## find / grep vs graphify

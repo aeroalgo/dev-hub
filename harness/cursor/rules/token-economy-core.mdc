@@ -153,7 +153,7 @@ Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT*
 
 When passing work between roles: 2–3 lines + file path. Not "read everything".
 
-**activeContext ONE Handoff (HARD):** ровно один блок `## Handoff …` + ≤ один `## done` — на FINISH **Write весь файл** (не sandwich). Append/стопка = FAIL/halt. История → `tasks/log/` + role artifacts. Detail: `finish-block.mdc` / `finish-doc-router.mdc`.
+**Write gate / ONE Handoff:** SoT @.cursor/rules/token-economy-stub.mdc §0.7. Append/стопка = FAIL/halt. История → `tasks/log/` + role artifacts. Detail: `finish-block.mdc` / `finish-doc-router.mdc`.
 
 ## 0.8 Code comments
 
@@ -202,7 +202,7 @@ Triggers: `continue project <name>` · role command (`BACK IMPLEMENT`, …) · `
 
 On start: (1) read `memory-bank/activeContext.md`; (2) load ONLY current role docs (§0.3) unless PLAN workflow expands inventory; (3) continue from current stage — do NOT re-execute completed stages.
 
-**On FINISH** (end of IMPLEMENT, QA pass, CONTEXT SYNC, PLAN, VAN, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed).
+**On FINISH** (end of IMPLEMENT, QA pass, CONTEXT SYNC, PLAN, VAN, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed), если stub §0.7 разрешает Write.
 
 ## 0.11 Integration verification (connection rule)
 
@@ -248,7 +248,7 @@ On role command / FINISH: recommend tool if unclear — Cursor + fast-editing (d
 Detail: .cursor/rules/shared/context-session-economy.mdc
 
 - **One chat = one atomic subtask** (not whole epic); new chat on role switch or subtask done
-- **FINISH:** **перезаписать** единственный `## Handoff` в `activeContext.md` (не append) → doc-router → recommend new chat (@.cursor/templates/finish-doc-router.md + .cursor/rules/shared/finish-doc-router.mdc)
+- **FINISH:** **перезаписать** единственный `## Handoff` в `activeContext.md` (не append; gate — stub §0.7) → doc-router → recommend new chat (@.cursor/templates/finish-doc-router.md + .cursor/rules/shared/finish-doc-router.mdc)
 - **Session start:** `load_now` + handoff file; never depend on prior chat transcript
 - **Skills:** lazy — only skills for current subtask
 - **QA:** qa/bugfix shard + diff + §0.11 grep; skip `plan/<epic_id>/md/plan.md`; if AC unclear → only `plan §N`, never full plan in `load_now`

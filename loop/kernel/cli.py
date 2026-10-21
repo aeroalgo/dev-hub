@@ -116,7 +116,19 @@ def _print_step_banner(
 
 def _normalize_legacy_args(argv: list[str]) -> list[str]:
     """Keep the pre-Python-entrypoint ``<epic> <model>`` invocation working."""
-    commands = {"run", "start", "finish", "halt", "rewind", "status", "doctor", "scope", "validate", "validate-verdict"}
+    commands = {
+        "run",
+        "start",
+        "finish",
+        "halt",
+        "rewind",
+        "status",
+        "doctor",
+        "scope",
+        "validate",
+        "validate-verdict",
+        "implement-flush",
+    }
     if len(argv) >= 2 and argv[0] not in commands and not argv[0].startswith("-"):
         return ["run", "--epic", argv[0], "--model", argv[1], *argv[2:]]
     return argv

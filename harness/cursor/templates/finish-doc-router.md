@@ -3,7 +3,7 @@
 **Task:** T-xxx  
 **Command:** BACK IMPLEMENT | QA | ARCHIVE | PLAN | VAN | INTEG …
 
-Канон заполнения `activeContext.md`: **Write весь файл целиком** на FINISH.  
+Канон заполнения `activeContext.md`: **Write весь файл целиком** на FINISH (gate — stub §0.7).  
 Структура: `## load_now` → **ровно один** `## Handoff …` → **≤ один** `## done — do NOT load`.  
 **FAIL:** ≥2 `## Handoff` · ≥2 `## done` · sandwich (старый Handoff/done в хвосте) · completed shard в `load_now`.  
 История шагов → `tasks/log/` + implement/qa/bugfix shards, **не** копилка в activeContext.  

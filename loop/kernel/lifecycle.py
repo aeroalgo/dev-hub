@@ -327,7 +327,7 @@ class SubagentLifecycle:
         )
         return HookAction(
             True,
-            True,
+            False,
             reason=f"repair_recorded:{record.status}",
             transition={
                 "event": "repair_recorded",
@@ -440,7 +440,7 @@ class SubagentLifecycle:
         )
         return HookAction(
             True,
-            True,
+            False,
             reason=f"inventory_recorded:{agent_type}",
             transition={
                 "event": "inventory_recorded",
@@ -647,7 +647,12 @@ class SubagentLifecycle:
         ):
             tree_error: str | None = None
             try:
-                validate_decompose_tree(self.paths.project, cursor.role, cursor.epic_id)
+                validate_decompose_tree(
+                    self.paths.project,
+                    cursor.role,
+                    cursor.epic_id,
+                    require_fresh_pending=True,
+                )
             except (ValueError, FileNotFoundError, OSError) as exc:
                 tree_error = str(exc)
             if tree_error is None:
@@ -773,9 +778,11 @@ class SubagentLifecycle:
                 ("step_restart_exhausted",),
                 transition=_transition_dict(transition),
             )
+        # Managed gate finished: end the child session so Codex closes the
+        # thread and the parent wait can complete (no keep-alive hang).
         return HookAction(
             True,
-            True,
+            False,
             reason=transition.reason,
             transition=_transition_dict(transition),
         )

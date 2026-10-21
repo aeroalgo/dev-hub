@@ -280,7 +280,18 @@ def decompose_yaml_problems(project: Path, role: str, epic_id: str) -> list[str]
     return problems
 
 
-def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
+_INDEX_STEP_STATUSES = frozenset({"pending", "completed", "done", "in_progress"})
+_FRESH_DECOMPOSE_STATUSES = frozenset({"pending"})
+_COMPLETED_INDEX_STATUSES = frozenset({"completed", "done"})
+
+
+def validate_decompose_tree(
+    project: Path,
+    role: str,
+    epic_id: str,
+    *,
+    require_fresh_pending: bool = False,
+) -> Queue:
     queue = load_queue(project, role, epic_id)
     payload = _load_yaml_mapping(queue.path)
     if payload.get("schema") != "epic-decompose-index/v1":
@@ -321,6 +332,17 @@ def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
         if step_id in seen:
             raise ValueError(f"duplicate decompose step: {step_id}")
         seen.add(step_id)
+        status = str(raw.get("status") or "pending").strip().lower()
+        if status not in _INDEX_STEP_STATUSES:
+            raise ValueError(
+                f"decompose index step {step_id!r} has invalid status {status!r}; "
+                f"allowed={sorted(_INDEX_STEP_STATUSES)}"
+            )
+        if require_fresh_pending and status not in _FRESH_DECOMPOSE_STATUSES:
+            raise ValueError(
+                f"decompose finish forbids step {step_id!r} status {status!r}; "
+                "must be pending (completed is machine-owned only after IMPLEMENT finish)"
+            )
         file_ref = str(raw.get("file") or "").strip()
         if not file_ref:
             raise ValueError(f"decompose step {step_id!r} has no file")
@@ -350,6 +372,59 @@ def validate_decompose_tree(project: Path, role: str, epic_id: str) -> Queue:
                 raise ValueError(f"decompose shard field {field!r} must be a mapping: {shard}")
     purge_orphan_decompose_shards(steps_root, referenced_shards)
     return queue
+
+
+def step_implement_complete(project: Path, queue: Queue, step: Step) -> tuple[bool, str]:
+    """Whether a step has a machine-valid completed implement artifact."""
+    from .implement_schema import validate_implement_artifact
+
+    path = implement_path(project, queue.role, queue.epic_id, step)
+    if not path.is_file():
+        return False, f"implement artifact missing: {path}"
+    try:
+        model = validate_implement_artifact(
+            path,
+            expected_step_id=step.step_id,
+            expected_plan_id=queue.epic_id,
+            rewrite=False,
+        )
+    except ValueError as exc:
+        return False, str(exc)
+    if model.status != "completed":
+        return False, f"implement status {model.status!r} not completed: {path}"
+    return True, "implement complete"
+
+
+def queue_implement_gaps(project: Path, queue: Queue) -> tuple[tuple[Step, str], ...]:
+    """Steps that still need IMPLEMENT evidence before AUDIT is legal."""
+    gaps: list[tuple[Step, str]] = []
+    for step in queue.steps:
+        ok, reason = step_implement_complete(project, queue, step)
+        if not ok:
+            gaps.append((step, reason))
+    return tuple(gaps)
+
+
+def queue_ready_for_audit(project: Path, queue: Queue) -> tuple[bool, str]:
+    """Fail-closed: every step must be index-completed AND have completed implement yaml."""
+    if not queue.steps:
+        return False, "decompose index has no steps"
+    gaps = queue_implement_gaps(project, queue)
+    if gaps:
+        detail = "; ".join(f"{step.step_id}: {reason}" for step, reason in gaps[:8])
+        more = "" if len(gaps) <= 8 else f" (+{len(gaps) - 8} more)"
+        return False, f"implement incomplete before AUDIT: {detail}{more}"
+    incomplete_index = [
+        step.step_id
+        for step in queue.steps
+        if step.status not in _COMPLETED_INDEX_STATUSES
+    ]
+    if incomplete_index:
+        return (
+            False,
+            "index steps not completed before AUDIT: " + ", ".join(incomplete_index),
+        )
+    return True, "implement queue complete"
 
 
 def prepare_step_status(queue: Queue, step_id: str, status: str) -> FileMutation:
