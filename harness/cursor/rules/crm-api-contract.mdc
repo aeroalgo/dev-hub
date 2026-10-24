@@ -1,0 +1,117 @@
+---
+description: HARD — новый CRM whitelist API — methods, Pydantic, HTTP-статусы
+globs: crm/crm/api/**/*.py,crm/crm/**/api*.py
+alwaysApply: false
+---
+
+# CRM API CONTRACT (наш новый код)
+
+Канон для **нового** `@frappe.whitelist()` в CRM (и соседей по globs).  
+Не переписывать upstream-стиль ядра Frappe/ERPNext/HRMS.  
+Транспорт остаётся Frappe: `/api/method/...`, `return dict`.  
+**FORBIDDEN:** параллельный FastAPI / свой TestClient / OpenAPI рядом.
+
+Pydantic уже в runtime через `frappe` (`pydantic~=2.12`). Отдельный ORM-слой на Pydantic **не** вводим — только граница HTTP.
+
+---
+
+## 1. HTTP methods (HARD)
+
+| Операция | `methods=` |
+|----------|------------|
+| Чтение / список / get | `["GET"]` |
+| Создание / изменение / действие | `["POST"]` |
+| Удаление | `["DELETE"]` только если семантика именно delete |
+
+**REQUIRED:** у каждого нового whitelist — явный `methods=[...]`.
+
+**FORBIDDEN:** `@frappe.whitelist()` без `methods` (дефолт GET+POST+PUT+DELETE).  
+**FORBIDDEN:** мутация состояния через GET.
+
+```python
+@frappe.whitelist(methods=["GET"])
+def get_item(name: str):
+    ...
+
+@frappe.whitelist(methods=["POST"])
+def create_item(**kwargs):
+    ...
+```
+
+---
+
+## 2. Валидация входа — Pydantic (HARD)
+
+На границе whitelist:
+
+1. Описать вход `pydantic.BaseModel` (поля, типы, `Literal`/`Enum` где нужно).
+2. Собрать payload из `frappe.form_dict` / JSON body (как принято в соседнем API).
+3. `Model.model_validate(payload)` — единственный machine path входа.
+4. `pydantic.ValidationError` → `frappe.throw(..., frappe.ValidationError)` с **понятным** текстом (ошибка видна клиенту). Не глотать, не подставлять silent default.
+
+```python
+from pydantic import BaseModel, ValidationError
+
+class CreateItemIn(BaseModel):
+    title: str
+    amount: float
+
+@frappe.whitelist(methods=["POST"])
+def create_item(**kwargs):
+    try:
+        data = CreateItemIn.model_validate(kwargs)
+    except ValidationError as e:
+        frappe.throw(str(e), frappe.ValidationError)
+    ...
+```
+
+**FORBIDDEN:** regex → str → «как будто enum»; сырой `kwargs` без schema на новой границе.  
+DocType / Document — SoT в БД; Pydantic не заменяет DocType.
+
+---
+
+## 3. Ответы и коды (HARD)
+
+| Исход | Как |
+|-------|-----|
+| Успех | `return dict` (ключи контракта стабильны) |
+| Плохой ввод | `frappe.throw(..., frappe.ValidationError)` |
+| Нет прав | `frappe.PermissionError` / throw с ним |
+| Не авторизован | `frappe.AuthenticationError` |
+| Нет сущности | `frappe.DoesNotExistError` |
+
+Статусы отдаёт стандартный обработчик Frappe (`app.py`) — **не** маскировать ошибку телом `{ok: false}` при HTTP 200.
+
+**FORBIDDEN:** success-shaped JSON при бизнес-ошибке; самодельные status без throw.
+
+---
+
+## 4. Права и wire
+
+- Перед данными — `frappe.has_permission` / роли, как в соседних CRM API.
+- Имя метода и путь `/api/method/...` — в тесте и (если UI) в вызове фронта в том же эпике.
+
+---
+
+## 5. Тесты (HARD для нового whitelist)
+
+Минимум в том же эпике:
+
+1. Контракт успеха (ключи / типы / ветка).
+2. Невалидный body → ValidationError / отказ (не 200-ok).
+3. Неверный HTTP method → отказ (если проверяемо через `FrappeAPITestCase`).
+4. User-facing HTTP — по возможности `FrappeAPITestCase` / `self.get|post(self.method("crm...."))`.
+
+Runner: bench `run-tests` (не hub `bin/pytest`).
+
+**FAIL / не done:** prod whitelist без теста; только `bench execute` / ручной клик.
+
+---
+
+## 6. AC−
+
+1. Нет нового whitelist без явного `methods=`.
+2. Нет новой HTTP-границы без Pydantic validate-on-entry.
+3. Нет dual path (Pydantic + «сырой kwargs ок»).
+4. Нет ошибки бизнеса под HTTP 200 success body.
+5. Нет параллельного FastAPI/OpenAPI для той же фичи.

@@ -4,7 +4,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 
@@ -28,10 +28,15 @@ class Queue:
     role: str
     epic_id: str
     steps: tuple[Step, ...]
+    kind: str = "feature"
 
     @property
     def pending(self) -> tuple[Step, ...]:
         return tuple(step for step in self.steps if step.status not in {"completed", "done"})
+
+
+EpicKind = Literal["feature", "refactor", "security"]
+SUPPORTED_KINDS: tuple[EpicKind, ...] = ("feature", "refactor", "security")
 
 
 def normalize_role(role: str) -> str:
@@ -43,56 +48,170 @@ def normalize_role(role: str) -> str:
     return value
 
 
-def index_path(project: Path, role: str, epic_id: str) -> Path:
+def normalize_kind(kind: str | None) -> EpicKind:
+    value = str(kind or "feature").strip().lower()
+    if value not in SUPPORTED_KINDS:
+        raise ValueError(f"unsupported kind: {kind!r}")
+    return value  # type: ignore[return-value]
+
+
+def plan_root(kind_or_project: Path | str = "feature", role: str | None = None, kind: str | None = None) -> Path:
+    if isinstance(kind_or_project, Path):
+        project = kind_or_project
+        if role is None:
+            raise ValueError("role required when project path is provided")
+        k = normalize_kind(kind or "feature")
+        sub = Path("plan") if k == "feature" else Path(k) / "plan"
+        return project / "memory-bank" / normalize_role(role) / sub
+    k = normalize_kind(kind_or_project)
+    return Path("plan") if k == "feature" else Path(k) / "plan"
+
+
+def index_path(project: Path, role: str, epic_id: str, kind: str = "feature") -> Path:
     if not epic_id or Path(epic_id).name != epic_id:
         raise ValueError(f"invalid epic id: {epic_id!r}")
-    return project / "memory-bank" / normalize_role(role) / "plan" / epic_id / "yaml" / "decompose-index.yaml"
+    return plan_root(project, role, kind) / epic_id / "yaml" / "decompose-index.yaml"
 
 
-def plan_path(project: Path, role: str, epic_id: str) -> Path:
-    return index_path(project, role, epic_id).parent.parent / "md" / "plan.md"
-
-
-def discover_epic_roles(project: Path, epic_id: str) -> list[str]:
+def plan_path(project: Path, role: str, epic_id: str, kind: str = "feature") -> Path:
     if not epic_id or Path(epic_id).name != epic_id:
         raise ValueError(f"invalid epic id: {epic_id!r}")
-    found: list[str] = []
-    for role in SUPPORTED_ROLES:
-        if plan_path(project, role, epic_id).is_file() or index_path(project, role, epic_id).is_file():
-            found.append(role)
+    return plan_root(project, role, kind) / epic_id / "md" / "plan.md"
+
+
+def discover_epic_kinds(project: Path, epic_id: str, role: str | None = None) -> list[EpicKind]:
+    if not epic_id or Path(epic_id).name != epic_id:
+        raise ValueError(f"invalid epic id: {epic_id!r}")
+    roles = [normalize_role(role)] if role and str(role).strip().lower() != "auto" else list(SUPPORTED_ROLES)
+    found: list[EpicKind] = []
+    for kind in SUPPORTED_KINDS:
+        for r in roles:
+            if plan_path(project, r, epic_id, kind=kind).is_file() or index_path(project, r, epic_id, kind=kind).is_file():
+                if kind not in found:
+                    found.append(kind)
+                break
     return found
 
 
-def resolve_epic_role(project: Path, epic_id: str, role: str | None = "auto") -> str:
-    requested = str(role or "auto").strip().lower()
-    if requested in {"", "auto"}:
-        found = discover_epic_roles(project, epic_id)
-        if not found:
+def discover_epic_roles(project: Path, epic_id: str, kind: str | None = None) -> list[str]:
+    if not epic_id or Path(epic_id).name != epic_id:
+        raise ValueError(f"invalid epic id: {epic_id!r}")
+    kinds = [normalize_kind(kind)] if kind else list(SUPPORTED_KINDS)
+    found: list[str] = []
+    for role in SUPPORTED_ROLES:
+        for k in kinds:
+            if plan_path(project, role, epic_id, kind=k).is_file() or index_path(project, role, epic_id, kind=k).is_file():
+                if role not in found:
+                    found.append(role)
+                break
+    return found
+
+
+def _all_searched_plan_roots(epic_id: str, roles: tuple[str, ...] | list[str] = SUPPORTED_ROLES) -> list[str]:
+    roots: list[str] = []
+    for r in roles:
+        for k in SUPPORTED_KINDS:
+            sub = "plan" if k == "feature" else f"{k}/plan"
+            roots.append(f"memory-bank/{r}/{sub}/{epic_id}/md/plan.md")
+    return roots
+
+
+def resolve_epic_kind(project: Path, epic_id: str, kind: str | None = None, role: str | None = None) -> EpicKind:
+    if kind is not None and str(kind).strip().lower() not in {"", "auto"}:
+        normalized = normalize_kind(kind)
+        kinds = discover_epic_kinds(project, epic_id, role=role)
+        if kinds and normalized not in kinds:
             raise FileNotFoundError(
-                "canonical plan missing: searched "
-                f"memory-bank/{{back,front,integration}}/plan/{epic_id}/md/plan.md"
+                f"canonical plan missing for kind {normalized!r}: {epic_id} "
+                f"(epic exists under kind(s) {kinds}; pass --kind {kinds[0]})"
             )
-        if len(found) > 1:
-            raise ValueError(
-                f"ambiguous epic {epic_id!r} found in roles {found}; pass --role explicitly"
-            )
-        return found[0]
-    normalized = normalize_role(requested)
-    plan = plan_path(project, normalized, epic_id)
-    index = index_path(project, normalized, epic_id)
-    if plan.is_file() or index.is_file():
+        if not kinds:
+            target_roles = [normalize_role(role)] if role and role != "auto" else SUPPORTED_ROLES
+            searched = _all_searched_plan_roots(epic_id, target_roles)
+            raise FileNotFoundError(f"canonical plan missing: searched roots {', '.join(searched)}")
         return normalized
-    elsewhere = discover_epic_roles(project, epic_id)
-    if elsewhere:
-        raise FileNotFoundError(
-            f"canonical plan missing: {plan} "
-            f"(epic exists under role(s) {elsewhere}; pass --role {elsewhere[0]})"
-        )
-    raise FileNotFoundError(f"canonical plan missing: {plan}")
+    kinds = discover_epic_kinds(project, epic_id, role=role)
+    if not kinds:
+        target_roles = [normalize_role(role)] if role and role != "auto" else SUPPORTED_ROLES
+        searched = _all_searched_plan_roots(epic_id, target_roles)
+        raise FileNotFoundError(f"canonical plan missing: searched roots {', '.join(searched)}")
+    if len(kinds) > 1:
+        raise ValueError(f"ambiguous epic {epic_id!r} found in kinds {kinds}; pass --kind explicitly")
+    return kinds[0]
 
 
-def load_queue(project: Path, role: str, epic_id: str) -> Queue:
-    path = index_path(project, role, epic_id)
+def resolve_epic_role(project: Path, epic_id: str, role: str | None = "auto", kind: str | None = None) -> str:
+    requested_role = str(role or "auto").strip().lower()
+    if kind is not None and str(kind).strip().lower() not in {"", "auto"}:
+        target_kind = normalize_kind(kind)
+        if requested_role in {"", "auto"}:
+            found = discover_epic_roles(project, epic_id, kind=target_kind)
+            if not found:
+                other_kinds = discover_epic_kinds(project, epic_id)
+                if other_kinds:
+                    raise FileNotFoundError(
+                        f"canonical plan missing for kind {target_kind!r}: {epic_id} "
+                        f"(epic exists under kind(s) {other_kinds}; pass --kind {other_kinds[0]})"
+                    )
+                searched = _all_searched_plan_roots(epic_id)
+                raise FileNotFoundError(f"canonical plan missing: searched roots {', '.join(searched)}")
+            if len(found) > 1:
+                raise ValueError(
+                    f"ambiguous epic {epic_id!r} found in roles {found}; pass --role explicitly"
+                )
+            return found[0]
+        normalized = normalize_role(requested_role)
+        plan = plan_path(project, normalized, epic_id, kind=target_kind)
+        index = index_path(project, normalized, epic_id, kind=target_kind)
+        if plan.is_file() or index.is_file():
+            return normalized
+        elsewhere = discover_epic_roles(project, epic_id, kind=target_kind)
+        if elsewhere:
+            raise FileNotFoundError(
+                f"canonical plan missing: {plan} "
+                f"(epic exists under role(s) {elsewhere}; pass --role {elsewhere[0]})"
+            )
+        other_kinds = discover_epic_kinds(project, epic_id, role=normalized)
+        if other_kinds:
+            raise FileNotFoundError(
+                f"canonical plan missing for kind {target_kind!r}: {plan} "
+                f"(epic exists under kind(s) {other_kinds}; pass --kind {other_kinds[0]})"
+            )
+        searched = _all_searched_plan_roots(epic_id, [normalized])
+        raise FileNotFoundError(f"canonical plan missing: searched roots {', '.join(searched)}")
+
+    target_role = requested_role if requested_role not in {"", "auto"} else None
+    if target_role is not None:
+        normalized = normalize_role(target_role)
+        if not discover_epic_kinds(project, epic_id, role=normalized):
+            elsewhere = discover_epic_roles(project, epic_id)
+            if elsewhere:
+                plan = plan_path(project, normalized, epic_id, kind="feature")
+                raise FileNotFoundError(
+                    f"canonical plan missing: {plan} "
+                    f"(epic exists under role(s) {elsewhere}; pass --role {elsewhere[0]})"
+                )
+    resolved_kind = resolve_epic_kind(project, epic_id, role=target_role)
+    return resolve_epic_role(project, epic_id, role=requested_role, kind=resolved_kind)
+
+
+def load_queue(project: Path, role: str, epic_id: str, kind: str | None = None) -> Queue:
+    resolved_kind = kind
+    if resolved_kind is not None:
+        path = index_path(project, role, epic_id, kind=resolved_kind)
+    else:
+        default_path = index_path(project, role, epic_id, kind="feature")
+        if default_path.is_file():
+            path = default_path
+            resolved_kind = "feature"
+        else:
+            kinds = discover_epic_kinds(project, epic_id, role=role)
+            if len(kinds) == 1:
+                resolved_kind = kinds[0]
+                path = index_path(project, role, epic_id, kind=resolved_kind)
+            else:
+                resolved_kind = "feature"
+                path = default_path
     if not path.is_file():
         raise FileNotFoundError(f"canonical decompose index missing: {path}")
     payload = _load_yaml_mapping(path)
@@ -113,7 +232,7 @@ def load_queue(project: Path, role: str, epic_id: str) -> Queue:
                 shard=str(raw.get("file") or raw.get("shard") or "") or None,
             )
         )
-    return Queue(path=path, role=normalize_role(role), epic_id=epic_id, steps=tuple(steps))
+    return Queue(path=path, role=normalize_role(role), epic_id=epic_id, steps=tuple(steps), kind=normalize_kind(resolved_kind))
 
 
 # YAML 1.1 double-quoted single-char escapes (plus \x / \u / \U handled separately).
@@ -457,9 +576,20 @@ def shard_path(project: Path, queue: Queue, step: Step) -> Path | None:
     return next((candidate for candidate in candidates if candidate.is_file()), candidates[0])
 
 
-def implement_path(project: Path, role: str, epic_id: str, step: Step) -> Path:
-    filename = Path(step.shard).name if step.shard else f"{step.step_id}.yaml"
-    return project / "memory-bank" / normalize_role(role) / "implement" / epic_id / filename
+def execute_path(project: Path, role: str, epic_id: str, step: Step | str, kind: str = "feature") -> Path:
+    if not epic_id or Path(epic_id).name != epic_id:
+        raise ValueError(f"invalid epic id: {epic_id!r}")
+    k = normalize_kind(kind)
+    sub = Path("implement") if k == "feature" else Path(k) / "implement"
+    if isinstance(step, Step):
+        filename = Path(step.shard).name if step.shard else f"{step.step_id}.yaml"
+    else:
+        filename = Path(step).name if step.endswith(".yaml") else f"{step}.yaml"
+    return project / "memory-bank" / normalize_role(role) / sub / epic_id / filename
+
+
+def implement_path(project: Path, role: str, epic_id: str, step: Step, kind: str = "feature") -> Path:
+    return execute_path(project, role, epic_id, step, kind=kind)
 
 
 def phase_artifacts(project: Path, role: str, epic_id: str, kind: str) -> list[Path]:

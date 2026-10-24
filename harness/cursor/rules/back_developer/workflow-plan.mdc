@@ -18,7 +18,7 @@ alwaysApply: false
 1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`
 2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
 2c. **PLAN Context Pack (L2+, mandatory Read до Technology axiom):** `techContext.md` · `systemPatterns.md` (+ `domain/SP-*` если есть) · `projectbrief.md` · `architecture/index.md` (+ релевантный shard если не stub) · **`memory-bank/product/` если каталог существует** — Read все файлы (roadmap/vision/phases/validation/eval-*/oss-landscape и прочие; SUSPENSION: inventory не lean); **если `product/` нет — skip, не halt**. В `plan.md` секция `## Context consumed` (path → что вошло в axiom/Deps/FR; `product/: n/a` если каталога нет). **FORBIDDEN** пропуск `product/` **только когда каталог есть**. FINISH `load_now` не раздувать — monoliths остаются в PLAN-сессии.
-3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `#qa-consumes` ≥3 TM → Review readiness (no pending Required)
+3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `## Boundary / negative cases` (L2+: ≥3 BN или полный checklist n/a+reason) → `#qa-consumes` ≥3 TM (BN→TM) → Review readiness (no pending Required)
 3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
 4. Каждый PLAN → апсерт `roadmap/queue.yaml` + plan + `prompt.md`; multi-epic → N rows/plans/prompts (`## Covering` один текст, оси без ID; без roadmap md / без `roadmap/prompt-*`)

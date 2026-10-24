@@ -153,4 +153,6 @@ def phase_for_pending_step(project: Path, queue: Queue, step: Step) -> tuple[str
     )
     if phase == "CREATIVE":
         return "CREATIVE", f"open creative gate for {step.step_id}"
+    if getattr(queue, "kind", None) == "security":
+        return "SECURITY", f"pending security review step {step.step_id}"
     return "IMPLEMENT", f"pending step {step.step_id}"

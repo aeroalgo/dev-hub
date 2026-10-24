@@ -59,12 +59,16 @@ alwaysApply: false
 1a. Gates + workflow-security-epic (path rule)
 1b. Epic detect: `security/plan/<id>/yaml/` / `@aNN` / plan id → **эпик**; иначе **S**
 2. `tasks.md` + load_now; skills = Audit skills шага (эпик) или workflow list (S)
-3. **Эпик:** один `aNN` → findings → `security/implement/<id>/aNN-<slug>.yaml`
+3. **Эпик:** один `aNN` → findings → `security/implement/<id>/aNN-<slug>.yaml` (валидируется по `schema: epic-security/v1`)
    **FORBIDDEN:** `security-audit-*.md` в корне при эпике
 4. **S:** audit → `security/security-audit-YYYYMMDD-<slug>.md`
    **FORBIDDEN:** legacy markdown audit artifacts in implement directories
 5. Не чинить код; §0.11 на findings
-6. **FINISH:** finish-block (`code_changed: no`)
+6. **Gate & FINISH:**
+   - Для эпика: перед finish вызывается гейт `@verify-security` (read-only проверка артефакта `aNN-*.yaml`).
+   - Команда финиша: `python3 bin/loop.py finish --project <root> --step aNN`
+   - После завершения всех `aNN` loop автоматически переходит в `DONE` (без `AUDIT`/`QA`/`CONTEXT_SYNC`).
+   - Для S: finish-block (`code_changed: no`)
    Next: Handoff · workflow-loop-state
 
 **Next (фиксы):** BUGFIX / IMPLEMENT. Drift → не SECURITY.

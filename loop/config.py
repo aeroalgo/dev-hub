@@ -17,6 +17,7 @@ PHASES = (
     "ANALYZE",
     "CREATIVE",
     "IMPLEMENT",
+    "SECURITY",
     "AUDIT",
     "QA",
     "BUGFIX",
@@ -123,6 +124,12 @@ class LoopSettings(BaseSettings):
         default=None,
         validation_alias=AliasChoices(
             "LOOP_MODEL_IMPLEMENT", "PROJECT_LOOP_IMPLEMENT_MODEL"
+        ),
+    )
+    security_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "LOOP_MODEL_SECURITY", "PROJECT_LOOP_SECURITY_MODEL"
         ),
     )
     audit_model: str | None = Field(

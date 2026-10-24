@@ -73,6 +73,40 @@ Write `activeContext` — `.cursor/rules/token-economy-stub.mdc` §0.7.
 - Коммиты и PR выполняй только по явному запросу.
 - Комментарии в коде добавляй только по запросу.
 
+## Frappe / ERPNext / CRM — стиль кода и тестов (HARD)
+
+Канон для кода в `frappe/`, `erpnext/`, `crm/`, `hrms/` (не для Python-хаба `bin/pytest`).
+
+### Стиль программирования
+
+- **Пишем в стиле уже существующего кода этого репо**, не «как в FastAPI/Django REST с нуля».
+- API = `@frappe.whitelist()` + `return dict` / Document API; HTTP-обёртка — Frappe (`/api/method/...`, `/api/resource/...`).
+- Модели данных = DocType (`*.json` + `*.py` Document), не отдельные Pydantic/SQLAlchemy-слои «сбоку», если as-built так не устроен.
+- Перед новым модулем — найти соседний образец в том же app (page / whitelist / test) и копировать паттерны: импорты, `frappe.get_all`, права `has_permission`, именование, структура ответа.
+- **FORBIDDEN:** параллельный стек (свой FastAPI, свой TestClient, свой OpenAPI) рядом с Frappe для той же фичи; silent fallback; «временный» код без теста.
+- **Новый CRM whitelist API (HARD):** явный `methods=[...]`, валидация входа Pydantic на границе, ошибки через `frappe.throw` / typed exceptions (не success-body при ошибке). Канон: `.cursor/rules/crm-api-contract.mdc`. Не размазывать этот контракт на правки upstream `frappe/` / `erpnext/` / `hrms/`.
+
+### Стиль тестов
+
+- Тесты пишем **в стиле, который уже есть в apps**, не изобретаем другой runner «для удобства».
+- Образцы:
+  - HTTP API ядра: `frappe/frappe/tests/test_api.py` (`FrappeAPITestCase`)
+  - App / DocType / whitelist: `FrappeTestCase` рядом с кодом (`erpnext/**/test_*.py`, `crm/crm/tests/test_*.py`)
+- Для нового `@frappe.whitelist()` в том же эпике/сессии IMPLEMENT:
+  1. тест на контракт ответа (ключи / типы / ветки) — минимум;
+  2. при user-facing HTTP — по возможности вызов через `FrappeAPITestCase` / `self.get(self.method("app.module.fn"))`, как в `test_api.py`;
+  3. прогон через **bench** (обычно Docker backend):  
+     `bench --site <site> run-tests --app <app> --module <dotted.module>`  
+     Smoke `bench execute` **не** заменяет тест.
+- **FAIL / не done:** prod whitelist или Desk-wire без теста в стиле app; только ручной клик / `execute` без `test_*.py`.
+- Hub `bin/pytest` — только self-test хаба; **не** подменять им suite Frappe/ERPNext/CRM.
+
+### Где гонять
+
+- Runtime apps: контейнер backend / `frappe-bench` + `bench run-tests`.
+- CRM UI: Vitest / Playwright (см. § Root classification & Testing и `crm/AGENTS.md`).
+- Не считать «зелёным» только build/migrate без прогона релевантных `test_*.py`.
+
 ## EVAL (оценка ниши)
 
 Команды `EVAL FRAME|SEARCH|PRICE|GATE|…` — не BACK. Индекс: `.cursor/rules/eval/mainrule.mdc`.  

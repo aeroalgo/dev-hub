@@ -61,6 +61,7 @@ class Cursor:
     revision: int = 0
     epic_id: str = ""
     role: str = "back"
+    kind: str = "feature"
     phase: str = ""
     step_id: str = ""
     phase_epoch: int = 0
@@ -87,6 +88,7 @@ class Cursor:
             revision=int(payload.get("revision") or 0),
             epic_id=str(payload.get("epic_id") or ""),
             role=str(payload.get("role") or "back"),
+            kind=str(payload.get("kind") or "feature"),
             phase=str(payload.get("phase") or ""),
             step_id=str(payload.get("step_id") or ""),
             phase_epoch=int(payload.get("phase_epoch") or 0),
@@ -103,6 +105,7 @@ class Cursor:
             "revision": self.revision,
             "epic_id": self.epic_id,
             "role": self.role,
+            "kind": self.kind,
             "phase": self.phase,
             "step_id": self.step_id,
             "phase_epoch": self.phase_epoch,

@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-107-loop-security-epic-pipeline
+task_id: T-HUB-107
+title: s01 — EpicKind, kind-aware plan and index path resolution, and CLI --kind detection IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s01-kind-aware-path-resolve-and-detection.yaml
+date: 2026-10-24
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Defined EpicKind = Literal['feature', 'refactor', 'security'] and SUPPORTED_KINDS in loop/kernel/index.py with normalize_kind validator"
+  - "Added kind: str = 'feature' to Cursor in loop/kernel/model.py with full to_dict and from_dict serialization"
+  - "Implemented kind-aware plan_root, plan_path, index_path, execute_path, and implement_path helpers"
+  - "Implemented discover_epic_kinds, discover_epic_roles, resolve_epic_kind, and resolve_epic_role supporting fail-closed behavior on missing roots (BN-001) and ambiguity (BN-003)"
+  - "Added --kind argument to CLI parser in loop/kernel/cli.py and passed to resolve_epic_role"
+  - "Created unit and integration tests in loop/tests/test_kind_resolution.py covering checkpoints cp1..cp4 and CLI parsing"
+
+files:
+  - loop/kernel/index.py
+  - loop/kernel/model.py
+  - loop/kernel/cli.py
+  - loop/tests/test_kind_resolution.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/kernel/cli.py: resolve_epic_role with kind=args.kind"
+    - "loop/kernel/index.py: index_path, plan_path, execute_path, load_queue"
+  enforce_path: "loop/kernel/index.py"
+  dual_path_rg: "rg 'def implement_path' loop/kernel/"
+  instruction_rg: "rg 'kind-aware' memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_kind_resolution.py -k test_discover_and_path_resolution -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_kind_resolution.py -k test_security_kind_missing -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_kind_resolution.py -k test_security_kind_ambiguous -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_kind_resolution.py -k test_refactor_kind_path -q --tb=line` — PASS'
+
+integration_check:
+  - "bin/pytest loop/tests/test_kind_resolution.py -q --tb=line"
+
+checkpoints:
+  - id: cp1
+    criterion: "Определен EpicKind и поле Cursor.kind; discover_epic_kinds и kind-aware plan_path/index_path работают"
+    status: done
+  - id: cp2
+    criterion: "Отсутствующий эпик вызывает FileNotFoundError со списком всех проверяемых корней (BN-001, TM-001)"
+    status: done
+  - id: cp3
+    criterion: "Неоднозначный эпик (feature + security) без флага --kind вызывает ошибку fail-closed (BN-003, TM-004)"
+    status: done
+  - id: cp4
+    criterion: "Эпик вида refactor успешно резолвит путь refactor/plan/ (FR-011, TM-008)"
+    status: done

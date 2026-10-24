@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-107-loop-security-epic-pipeline
+task_id: T-HUB-107
+title: s06 — legacy-fallback-purge — sunset inventory verification and feature regression
+  protection
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s06-legacy-fallback-purge.yaml
+date: '2026-10-24'
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+done:
+- 'Verified sunset inventory Kind A: all plan and index path helpers parameterized
+  by kind across loop/kernel/'
+- 'Verified sunset inventory Kind B: CLI parameters and help include --kind and security/refactor
+  options'
+- 'Verified sunset inventory Kind C: fail-closed require --kind error on ambiguous
+  layout without silent fallback to feature'
+- 'Verified sunset inventory Kind I: loop/README.md and workflow rules reflect security
+  epic lifecycle and kind-aware CLI usage'
+- Fixed role resolution error hint regression in loop/kernel/index.py when epic lives
+  under alternative role
+- Updated test_retry_is_bounded_by_one_counter in loop/tests/test_kernel.py to cover
+  kind field in cursor payload
+- Created loop/tests/test_engine.py with feature epic lifecycle regression tests (TM-006,
+  SC-005)
+- 'Ran feature epic regression suite: 100 tests passing without regressions'
+files:
+- loop/tests/test_kernel.py
+- loop/tests/test_engine.py
+- loop/kernel/index.py
+deletes: []
+wire_complete:
+  call_sites:
+  - 'loop/kernel/index.py: resolve_epic_role preserves hint when epic exists under
+    another role'
+  - 'loop/tests/test_engine.py: test_feature_epic_lifecycle_regression exercises standard
+    feature lifecycle'
+  enforce_path: loop/kernel/index.py
+  dual_path_rg: rg -F index_path( loop/kernel/index.py loop/kernel/engine.py
+  instruction_rg: rg -n security loop/README.md
+  deny_old_proven: true
+tests:
+- '`rg -F index_path( loop/kernel/index.py loop/kernel/engine.py` — PASS'
+- '`python3 bin/loop.py --help | rg -- --kind` — PASS'
+- '`bin/pytest loop/tests/test_kind_resolution.py -k test_security_kind_ambiguous
+  -q --tb=line` — PASS'
+- '`rg -n security loop/README.md` — PASS'
+- '`bin/pytest loop/tests/test_kernel.py loop/tests/test_engine.py -q --tb=line` —
+  PASS'
+integration_check:
+- bin/pytest loop/tests/test_kernel.py loop/tests/test_engine.py -q --tb=line
+checkpoints:
+- id: cp-inventory-a
+  criterion: 'Kind A: все обращения к путям плана и индекса в ядре параметризованы
+    по kind'
+  status: done
+- id: cp-inventory-b
+  criterion: 'Kind B: CLI параметры и справка содержат --kind и описание security/refactor'
+  status: done
+- id: cp-inventory-c
+  criterion: 'Kind C: отсутствие silent fallback на feature при неоднозначности layout'
+  status: done
+- id: cp-inventory-i
+  criterion: 'Kind I: инструкции и README содержат актуальные команды для security-эпика'
+  status: done
+- id: cp-suite-regression
+  criterion: Существующий test suite для feature-эпиков green без регрессий (AC-5,
+    SC-005, TM-006)
+  status: done
+resume_from: cp-inventory-a

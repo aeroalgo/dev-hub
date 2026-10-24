@@ -1,0 +1,55 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-107
+plan_id: T-HUB-107-loop-security-epic-pipeline
+epic_id: T-HUB-107-loop-security-epic-pipeline
+date: '2026-10-24'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 31a65163c1f93b2ab813277871145fb28ee2e083db4637307c9e87f34c0d490f
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-107"
+  - "epic: T-HUB-107-loop-security-epic-pipeline"
+  - "steps: s01–s06"
+  - "files: loop/**, harness/**, tests/**"
+
+ac_plus:
+  - "LoopEngine.start на fixture security plan/index выставляет kind=security и корректную фазу."
+  - "finish SECURITY с валидным epic-security/v1 закрывает step в index и двигает курсор."
+  - "После последнего aNN phase=DONE; AUDIT не требуется."
+  - "Невалидный/отсутствующий security execute yaml -> finish denied."
+  - "Feature epic tests (IMPLEMENT->AUDIT path) остаются green."
+  - "verify-security agent file + gate map wired; CLI protocol lists security paths."
+  - "Refactor fixture start резолвит refactor/plan/."
+  - "Docs/README/workflow tip обновлены (Kind I)."
+
+ac_minus:
+  - "Нет sole hot-path index_path -> только …/plan/<epic>/ без kind."
+  - "Нет silent default kind=feature при однозначном security/refactor layout."
+  - "Нет finish SECURITY через verify-implement как единственный допустимый agent."
+  - "Нет dual machine path «prose audit md OR yaml» для epic finish."
+  - "Нет принудительного AUDIT/QA для kind=security после полной очереди aNN."
+  - "Нет optional SoT «security paths if flag» без enforce на start."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments: agent file <-> gate map <-> CLI protocol <-> schemas verified."
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (147 passed in 13.18s)"
+  - "targeted security suite green: `bin/pytest -k security` (15 passed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS (verify-qa)"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 147 passed in 13.18s"

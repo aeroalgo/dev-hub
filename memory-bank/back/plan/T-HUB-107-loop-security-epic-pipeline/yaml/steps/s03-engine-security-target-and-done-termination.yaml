@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-107-loop-security-epic-pipeline
+title: s03 — LoopEngine target phase transitions, security queue advance, and DONE termination
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Адаптировать LoopEngine._target, _phase_after_queue и phase_for_pending_step для kind=security:
+  исключить требование ANALYZE перед первым SECURITY шагом (FR-004), назначать фазу SECURITY
+  на шагах aNN (FR-003), закрывать шаги в индексе при finish и переводить курсор в DONE
+  после завершения всей очереди aNN без запуска AUDIT/QA (FR-006, BN-005, AC-3).
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - FR-006
+    - SC-002
+    - US-002
+  nouns:
+    - loop/kernel/engine.py
+    - loop/kernel/creative.py
+    - loop/tests/test_security_engine.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s03-engine-security-target-and-done-termination.yaml
+  ac_quotes:
+    - "Для kind=security после наличия валидного decompose index система назначает фазу SECURITY на pending aNN."
+    - "Для kind=security система не требует ANALYZE gate перед первым SECURITY шагом (DECOMPOSE -> SECURITY напрямую)."
+    - "После последнего aNN phase=DONE; AUDIT не требуется."
+    - "Нет принудительного AUDIT/QA для kind=security после полной очереди aNN."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:40-64
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:113-145
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:157-200
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md
+    - loop/kernel/engine.py
+    - loop/kernel/creative.py
+    - loop/kernel/security_schema.py
+  produces:
+    - loop/kernel/engine.py
+    - loop/kernel/creative.py
+    - loop/tests/test_security_engine.py
+  plan_refs:
+    - FR-003
+    - FR-004
+    - FR-006
+    - SC-002
+    - US-002
+    - BN-005
+    - TM-002
+  files:
+    - loop/kernel/engine.py
+    - loop/kernel/creative.py
+    - loop/tests/test_security_engine.py
+
+as_built:
+  - "LoopEngine._target принудительно требует ANALYZE перед первым рабочим шагом очереди"
+  - "phase_for_pending_step возвращает IMPLEMENT для всех шагов"
+  - "LoopEngine._phase_after_queue безусловно переходит в AUDIT -> QA -> CONTEXT_SYNC"
+
+delta:
+  - "В loop/kernel/creative.py расширить phase_for_pending_step для поддержки kind=security (возврат SECURITY)"
+  - "В LoopEngine._target не требовать gate ANALYZE, если cursor.kind == 'security'"
+  - "В LoopEngine._phase_after_queue возвращать DONE при cursor.kind == 'security'"
+  - "Реализовать продвижение по очереди aNN (finish a01 -> a02 -> DONE) с обновлением decompose index"
+  - "Написать тесты test_security_engine.py для проверки всего жизненного цикла security эпика (TM-002, BN-005)"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Добавление gate агента verify-security (шаг s04)"
+  - "Инструкции и обновление roadmap.py (шаг s05)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes in loop engine"
+    async-python-patterns: "synchronous loop engine transitions"
+
+checkpoints:
+  - id: cp1
+    criterion: "После DECOMPOSE курсор security-эпика переходит в SECURITY @ a01 без ожидания ANALYZE"
+    verify: "bin/pytest loop/tests/test_security_engine.py -k test_security_skip_analyze -q --tb=line"
+  - id: cp2
+    criterion: "Завершение шага a01 переводит статус в completed и курсор на a02 (TM-002)"
+    verify: "bin/pytest loop/tests/test_security_engine.py -k test_security_finish_advance -q --tb=line"
+  - id: cp3
+    criterion: "Завершение последнего aNN переводит курсор в DONE без запуска AUDIT или QA (BN-005)"
+    verify: "bin/pytest loop/tests/test_security_engine.py -k test_security_queue_complete_done -q --tb=line"
+
+verify: []
+tdd: []

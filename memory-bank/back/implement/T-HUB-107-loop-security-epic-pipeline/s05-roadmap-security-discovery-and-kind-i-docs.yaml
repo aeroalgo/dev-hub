@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-107-loop-security-epic-pipeline
+task_id: T-HUB-107
+title: s05 — roadmap security path discovery and Kind I instruction surfaces update
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s05-roadmap-security-discovery-and-kind-i-docs.yaml
+date: 2026-10-24
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Updated prepare_advance_after_context_sync in loop/kernel/roadmap.py to pass kind=next_kind to plan_path (FR-010)"
+  - "Updated loop/README.md with kind-aware start examples, roadmap arm descriptions, and explicit SECURITY epic lifecycle documentation (FR-013, SC-006)"
+  - "Updated .cursor/rules/back_developer/workflow-security.mdc and .cursor/rules/shared/workflow-security-epic.mdc with kind-aware loop commands and verify-security protocol"
+  - "Updated CLI help in loop/kernel/cli.py to mention kind-aware memory-bank layout (FR-013)"
+  - "Added targeted unit and integration tests in loop/tests/test_roadmap_security.py for security plan discovery and missing plan error handling (TM-007)"
+
+files:
+  - loop/kernel/roadmap.py
+  - loop/README.md
+  - .cursor/rules/back_developer/workflow-security.mdc
+  - .cursor/rules/shared/workflow-security-epic.mdc
+  - loop/kernel/cli.py
+  - loop/tests/test_roadmap_security.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/kernel/roadmap.py: target_plan = plan_path(project, role_key, next_id, kind=next_kind)"
+    - "loop/kernel/cli.py: help strings for --role and --kind specify memory-bank/<role>/{,refactor/,security/}plan/<epic>"
+  enforce_path: "loop/kernel/roadmap.py"
+  dual_path_rg: "rg 'plan_path.*kind' loop/kernel/"
+  instruction_rg: "rg 'security/plan' loop/README.md"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_roadmap_security.py -k test_roadmap_security_plan -q --tb=line` — PASS'
+  - '`rg -n "security/plan" loop/README.md .cursor/rules/back_developer/workflow-security.mdc` — PASS'
+  - '`python3 bin/loop.py --help | rg -- "--kind"` — PASS'
+
+integration_check:
+  - "bin/pytest loop/tests/test_roadmap_security.py -q --tb=line"
+
+checkpoints:
+  - id: cp1
+    criterion: "Roadmap advance при next_kind=security ищет и находит план в security/plan/<id>/md/plan.md (TM-007)"
+    status: done
+  - id: cp2
+    criterion: "loop/README.md и правила workflow содержат актуальные инструкции по kind-aware start и loop SECURITY"
+    status: done
+  - id: cp3
+    criterion: "CLI help содержит упоминание --kind и путей security/refactor"
+    status: done
+
+resume_from: cp1

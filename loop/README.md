@@ -15,6 +15,8 @@ records для recovery и не является вторым state owner. Ин�
 
 ```bash
 python3 bin/loop.py start --project /path/to/project --epic E1
+# Для security-эпика (или при неоднозначности kind) явно передаётся --kind:
+python3 bin/loop.py start --project /path/to/project --epic SEC-01 --kind security
 python3 bin/loop.py run --project /path/to/project --epic E1 --model <model>
 python3 bin/loop.py finish --project /path/to/project --step s01
 python3 bin/loop.py halt --project /path/to/project --reason "manual stop"
@@ -45,7 +47,7 @@ Managed gate-субагент завершает ответ ровно одни�
 его в QA и требует новый QA artifact. При QA PASS курсор идёт в `CONTEXT_SYNC`
 (нужен `context-sync/<epic>/sync-*.md`), затем loop **marks the epic done** in
 `memory-bank/<role>/roadmap/queue.yaml` and, if the queue still has a head with
-`plan.md`, **arms the next epic** (usually `DECOMPOSE`). Empty queue / no queue
+`plan.md`, **arms the next epic** (обычно `DECOMPOSE` по плану в `plan/` или `security/plan/<id>/md/plan.md`). Empty queue / no queue
 file → `DONE`. ARCHIVE остаётся операторской командой после финального DONE.
 Cadence pause только при `LOOP_RESPECT_CADENCE=1`. Повторный callback идемпотентен, а три
 некорректных JSON-ответа переводят курсор в `HALTED`.
@@ -56,6 +58,14 @@ Cadence pause только при `LOOP_RESPECT_CADENCE=1`. Повторный c
 python3 bin/loop.py validate-verdict --project /path/to/project \
   --payload '{"schema":"loop-gate-verdict/v1", ...}'
 ```
+
+## Типы эпиков (kind) и SECURITY pipeline
+
+Loop поддерживает типы эпиков `feature`, `refactor` и `security` (`--kind`):
+
+- **Feature (`kind=feature`):** `memory-bank/<role>/plan/<id>/` и `implement/<id>/`. Жизненный цикл: `DECOMPOSE → ANALYZE → IMPLEMENT (sNN) → AUDIT → QA → CONTEXT_SYNC → DONE`.
+- **Refactor (`kind=refactor`):** `memory-bank/<role>/refactor/plan/<id>/` и `refactor/implement/<id>/`. Жизненный цикл: `DECOMPOSE → ANALYZE → REFACTOR (rNN) → AUDIT → QA → CONTEXT_SYNC → DONE`.
+- **Security (`kind=security`):** `memory-bank/<role>/security/plan/<id>/` и `security/implement/<id>/`. Жизненный цикл: `DECOMPOSE → SECURITY (aNN) → DONE`. Фаза `ANALYZE` пропускается; аудит выполняется по шагам `aNN` с гейтом `verify-security` и артефактами `schema: epic-security/v1` в `security/implement/<id>/aNN-*.yaml`. После завершения всех `aNN` цикл сразу переходит в `DONE` (без прогона feature-фаз `AUDIT`/`QA`/`CONTEXT_SYNC`).
 
 ## Конфигурация
 

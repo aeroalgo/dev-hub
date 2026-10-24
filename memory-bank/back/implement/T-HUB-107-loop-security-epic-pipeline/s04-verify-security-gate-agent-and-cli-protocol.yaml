@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-107-loop-security-epic-pipeline
+task_id: T-HUB-107
+title: s04 — verify-security gate agent, phase gate mapping, CLI protocol, and phase config
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s04-verify-security-gate-agent-and-cli-protocol.yaml
+date: 2026-10-24
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Created agent specification harness/agents/verify-security.md for epic-security/v1 gate validation (FR-008, SC-004)"
+  - "Registered _PHASE_GATE_AGENTS['SECURITY'] = 'verify-security' in loop/kernel/engine.py and enforced gate rejection of wrong agents (FR-007, BN-004, TM-005)"
+  - "Updated CLI gate protocol in loop/kernel/cli.py to support SECURITY with kind-aware paths and ALLOW READ on security execute and decompose step artifacts"
+  - "Added SECURITY to PHASES and configured security_model / LOOP_MODEL_SECURITY in loop/config.py (FR-009, TM-009)"
+  - "Created unit and integration tests in loop/tests/test_gate_security.py covering phase model config, gate rejection, and protocol rendering"
+
+files:
+  - harness/agents/verify-security.md
+  - loop/kernel/engine.py
+  - loop/kernel/cli.py
+  - loop/config.py
+  - loop/tests/test_gate_security.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/kernel/engine.py: _PHASE_GATE_AGENTS['SECURITY'] = 'verify-security'"
+    - "loop/kernel/cli.py: _gate_protocol handles verify-security with kind-aware execute_path"
+    - "loop/config.py: PHASES includes SECURITY and LoopSettings includes security_model"
+  enforce_path: "loop/kernel/engine.py"
+  dual_path_rg: "rg '_PHASE_GATE_AGENTS.*SECURITY' loop/kernel/"
+  instruction_rg: "rg 'FR-007' memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s04-verify-security-gate-agent-and-cli-protocol.yaml"
+  deny_old_proven: true
+
+tests:
+  - '`test -f harness/agents/verify-security.md` — PASS'
+  - '`bin/pytest loop/tests/test_gate_security.py -k test_security_phase_model -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_gate_security.py -k test_security_gate_agent -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_gate_security.py -k test_security_gate_protocol -q --tb=line` — PASS'
+
+integration_check:
+  - "bin/pytest loop/tests/test_gate_security.py -q --tb=line"
+
+checkpoints:
+  - id: cp1
+    criterion: "Файл harness/agents/verify-security.md существует и содержит валидную спецификацию гейта"
+    status: done
+  - id: cp2
+    criterion: "Фаза SECURITY зарегистрирована в PHASES и конфигурируется через LOOP_MODEL_SECURITY (TM-009)"
+    status: done
+  - id: cp3
+    criterion: "Попытка закрыть SECURITY шаг с verify-implement отвергается гейтом (BN-004, TM-005)"
+    status: done
+
+resume_from: cp1

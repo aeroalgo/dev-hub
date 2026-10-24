@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-107-loop-security-epic-pipeline
+title: s04 — verify-security gate agent, phase gate mapping, CLI protocol, and phase config
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать файл SoT агента harness/agents/verify-security.md и обеспечить его конфигурационную доступность.
+  Зарегистрировать _PHASE_GATE_AGENTS['SECURITY'] = 'verify-security' в engine.py, добавить phase protocol
+  для SECURITY в loop/kernel/cli.py и расширить PHASES и LOOP_MODEL_SECURITY в loop/config.py.
+  Обеспечить fail-closed отказ при попытке завершить шаг SECURITY с другим агентом (BN-004, AC-6, AC--3).
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - FR-008
+    - FR-009
+    - SC-004
+    - US-003
+  nouns:
+    - harness/agents/verify-security.md
+    - loop/kernel/engine.py
+    - loop/kernel/cli.py
+    - loop/config.py
+    - loop/tests/test_gate_security.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s04-verify-security-gate-agent-and-cli-protocol.yaml
+  ac_quotes:
+    - "_PHASE_GATE_AGENTS['SECURITY'] = 'verify-security'; CLI gate protocol для SECURITY указывает ALLOW READ на security implement + decompose step."
+    - "Должен существовать agent SoT harness/agents/verify-security.md (+ codex/materialize parity как у соседних verify-*)."
+    - "LOOP_MODEL_SECURITY / phase model resolution должен знать фазу SECURITY (PHASES + settings field)."
+    - "SECURITY finish с agent_id verify-implement only -> gate reject / TransitionError."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:40-64
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:113-145
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:157-200
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md
+    - harness/agents/verify-implement.md
+    - loop/kernel/engine.py
+    - loop/kernel/cli.py
+    - loop/config.py
+  produces:
+    - harness/agents/verify-security.md
+    - loop/kernel/engine.py
+    - loop/kernel/cli.py
+    - loop/config.py
+    - loop/tests/test_gate_security.py
+  plan_refs:
+    - FR-007
+    - FR-008
+    - FR-009
+    - SC-004
+    - BN-004
+    - TM-005
+    - TM-009
+  files:
+    - harness/agents/verify-security.md
+    - loop/kernel/engine.py
+    - loop/kernel/cli.py
+    - loop/config.py
+    - loop/tests/test_gate_security.py
+
+as_built:
+  - "harness/agents/verify-implement.md существует, но verify-security отсутствует"
+  - "_PHASE_GATE_AGENTS в engine.py не содержит фазу SECURITY"
+  - "loop/config.py PHASES не содержит SECURITY; нет security_model / LOOP_MODEL_SECURITY"
+
+delta:
+  - "Создать harness/agents/verify-security.md по аналогии с verify-implement.md для схемы epic-security/v1"
+  - "Добавить SECURITY: verify-security в _PHASE_GATE_AGENTS в loop/kernel/engine.py"
+  - "Обновить CLI gate протокол в loop/kernel/cli.py для фазы SECURITY с ALLOW READ на security артефакты"
+  - "Добавить SECURITY в loop/config.py: PHASES и LOOP_MODEL_SECURITY"
+  - "Создать тесты test_gate_security.py на соответствие gate map и reject неверного агента (BN-004, TM-005, TM-009)"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Правки roadmap.py и документации Kind I (шаг s05)"
+  - "Sunset purge сканирование (шаг s06)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes in gate and CLI config"
+    async-python-patterns: "synchronous CLI and gate mapping"
+
+checkpoints:
+  - id: cp1
+    criterion: "Файл harness/agents/verify-security.md существует и содержит валидную спецификацию гейта"
+    verify: "test -f harness/agents/verify-security.md"
+  - id: cp2
+    criterion: "Фаза SECURITY зарегистрирована в PHASES и конфигурируется через LOOP_MODEL_SECURITY (TM-009)"
+    verify: "bin/pytest loop/tests/test_gate_security.py -k test_security_phase_model -q --tb=line"
+  - id: cp3
+    criterion: "Попытка закрыть SECURITY шаг с verify-implement отвергается гейтом (BN-004, TM-005)"
+    verify: "bin/pytest loop/tests/test_gate_security.py -k test_security_gate_agent -q --tb=line"
+
+verify: []
+tdd: []

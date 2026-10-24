@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-107-loop-security-epic-pipeline
+task_id: T-HUB-107
+title: s03 — LoopEngine target phase transitions, security queue advance, and DONE termination
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s03-engine-security-target-and-done-termination.yaml
+date: 2026-10-24
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+
+done:
+  - "Updated loop/kernel/creative.py phase_for_pending_step to return SECURITY when queue.kind == security (FR-003)"
+  - "Updated loop/kernel/engine.py _target to bypass the ANALYZE gate when cursor or queue kind is security (FR-004)"
+  - "Updated loop/kernel/engine.py _phase_after_queue to transition directly to DONE when queue.kind == security (FR-006, BN-005)"
+  - "Updated loop/kernel/engine.py _work_steps to avoid checking feature implement gaps on completed security steps"
+  - "Updated loop/kernel/engine.py start to resolve kind via resolve_epic_kind"
+  - "Updated loop/kernel/engine.py _finish_plan on DECOMPOSE to transition directly via _target for kind=security"
+  - "Created comprehensive lifecycle tests in loop/tests/test_security_engine.py verifying skip ANALYZE, queue advance, and termination at DONE (SC-002, US-002, BN-005)"
+
+files:
+  - loop/kernel/engine.py
+  - loop/kernel/creative.py
+  - loop/tests/test_security_engine.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/kernel/creative.py: phase_for_pending_step returns SECURITY for kind=security"
+    - "loop/kernel/engine.py: _target bypasses ANALYZE gate for kind=security"
+    - "loop/kernel/engine.py: _phase_after_queue returns DONE for kind=security"
+  enforce_path: "loop/kernel/engine.py"
+  dual_path_rg: "rg 'queue.kind.*security' loop/kernel/"
+  instruction_rg: "rg 'FR-004' memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s03-engine-security-target-and-done-termination.yaml"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_security_engine.py -k test_security_skip_analyze -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_security_engine.py -k test_security_finish_advance -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_security_engine.py -k test_security_queue_complete_done -q --tb=line` — PASS'
+
+integration_check:
+  - "bin/pytest loop/tests/test_security_engine.py -q --tb=line"
+
+checkpoints:
+  - id: cp1
+    criterion: "После DECOMPOSE курсор security-эпика переходит в SECURITY @ a01 без ожидания ANALYZE"
+    status: done
+  - id: cp2
+    criterion: "Завершение шага a01 переводит статус в completed и курсор на a02 (TM-002)"
+    status: done
+  - id: cp3
+    criterion: "Завершение последнего aNN переводит курсор в DONE без запуска AUDIT или QA (BN-005)"
+    status: done
+
+resume_from: cp1

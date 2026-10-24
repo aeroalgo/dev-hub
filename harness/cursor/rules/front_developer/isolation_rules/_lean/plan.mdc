@@ -26,8 +26,9 @@ alwaysApply: false
 6a. Поверхность «в другом compose/дереве» → отдельный эпик в queue, не «уже отдельный» без ID
 7. После записи roadmap/plan: CLI `roadmap-merge --role front` обязателен и должен вернуть `ok: true`; next ≠ ROADMAP MERGE
 8. Eng review spine (gate 8): для L2+ plan должен быть заполнен Eng review spine (architecture, patterns, code surface / design stack) до FINISH PLAN
-9. QA consumes draft (gate 9): для L2+ секция §QA consumes draft должна содержать ≥3 TM строк
-10. Review readiness (gate 10): таблица Review readiness не должна содержать неразрешённых `pending` строк со статусом `Required` до FINISH PLAN
+9. QA consumes draft (gate 9): для L2+ секция §QA consumes draft должна содержать ≥3 TM строк; каждый applicable `BN-*` из §Boundary / negative cases → ≥1 TM
+9a. Boundary / negative cases (gate 9a): для L2+ секция `## Boundary / negative cases` — ≥3 filled `BN-*` **или** полный checklist с явным `n/a`+reason на каждый пункт; **FORBIDDEN** silent skip. Шаблон: `.cursor/templates/plan.md`
+10. Review readiness (gate 10): таблица Review readiness не должна содержать неразрешённых `pending` строк со статусом `Required` до FINISH PLAN (включая row Boundary / negative cases)
 
 ## Level delta
 
@@ -45,4 +46,5 @@ alwaysApply: false
 - В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps / пути чужих plan → halt
 - Агент читает соседние `plan/` из-за prompt → halt
 - L2+ без Context Pack / без `## Context consumed` → halt
+- L2+ без `## Boundary / negative cases` (≥3 BN или полный checklist с `n/a`+reason) → halt
 - `memory-bank/product/` существует, но не прочитан → halt (нет каталога → OK)

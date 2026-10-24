@@ -197,9 +197,10 @@ def prepare_advance_after_context_sync(
             complete=True,
             blocked_reason="next_queue_row_missing_epic_id",
         )
-    if not plan_path(project, role_key, next_id).is_file():
+    target_plan = plan_path(project, role_key, next_id, kind=next_kind)
+    if not target_plan.is_file():
         raise ValueError(
-            f"next_epic_plan_missing: memory-bank/{role_key}/plan/{next_id}/md/plan.md"
+            f"next_epic_plan_missing: {target_plan.relative_to(project).as_posix()}"
         )
 
     return RoadmapAdvance(

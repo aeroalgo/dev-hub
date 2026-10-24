@@ -1,0 +1,193 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-107-loop-security-epic-pipeline
+slug: loop-security-epic-pipeline
+date: '2026-10-24'
+status: complete
+index_fingerprint: sha256:2088c4e860b03a89c640f9282e6957a81eac0d8342e432562f6f09e85260c5ee
+findings: []
+coverage:
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Система должна определять `kind` ∈ {`feature`,`refactor`,`security`}
+    при `start` по layout (и `--kind` при неоднозначности) и сохранять `kind` в cursor
+    state.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Система должна резолвить `plan_path` / `index_path` / execute
+    artifact path относительно kind (feature → `plan|implement`; refactor → `refactor/plan|implement`;
+    security → `security/plan|implement`).
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Для `kind=security` после наличия валидного decompose index
+    система должна назначать execute-фазу `SECURITY` (не `IMPLEMENT`) на pending `aNN`.
+- requirement_id: FR-004
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Для `kind=security` система должна **не** требовать ANALYZE
+    gate перед первым `SECURITY` шагом (DECOMPOSE → SECURITY напрямую).
+- requirement_id: FR-005
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: 'finish на SECURITY должен pydantic-валидировать execute yaml
+    epic-security/v1 (step_id, plan_id, status, findings непустой list или явный empty-with-rationale
+    field per template policy — минимум: schema + checkpoints + status machine как
+    implement), затем mark index completed.'
+- requirement_id: FR-006
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: После завершения всех security steps _target / _phase_after_queue
+    должны возвращать DONE (не AUDIT/QA/CONTEXT_SYNC).
+- requirement_id: FR-007
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: _PHASE_GATE_AGENTS["SECURITY"] = "verify-security"; CLI gate
+    protocol для SECURITY указывает ALLOW READ на security implement + decompose step.
+- requirement_id: FR-008
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Должен существовать agent SoT harness/agents/verify-security.md
+    (+ codex/materialize parity как у соседних verify-*), read-only, verdict pass-fail,
+    checklist из security execute yaml.
+- requirement_id: FR-009
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: LOOP_MODEL_SECURITY / phase model resolution должен знать фазу
+    SECURITY (PHASES + settings field).
+- requirement_id: FR-010
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Roadmap advance при next_kind=security должен искать plan под
+    security/plan/<id>/md/plan.md (не только feature plan/).
+- requirement_id: FR-011
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: 'Kind=refactor получает тот же path/execute resolve (фаза REFACTOR
+    уже есть); post-queue refactor = как feature (AUDIT→…) или явно documented same-as-feature
+    — decision: refactor сохраняет feature post-queue (code change); только security
+    short-circuits to DONE.'
+- requirement_id: FR-012
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: S one-shot (security/security-audit-*.md) не становится loop
+    epic; попытка finish SECURITY без epic index → существующий/ясный error.
+- requirement_id: FR-013
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: 'Kind I: loop/README.md, workflow-security.mdc / shared security-epic
+    (loop tip), CLI --role help / --kind — учат kind-aware start; feature-only path
+    wording на hot docs убран.'
+- requirement_id: FR-014
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Misconfig (два kind layout для одного epic_id) → fail-closed
+    с требованием --kind, не silent pick feature.
+- requirement_id: SC-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: start security epic без feature plan tree успешен
+- requirement_id: SC-002
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: finish aNN → next aNN / DONE
+- requirement_id: SC-003
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: invalid security yaml блокирует finish
+- requirement_id: SC-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: _PHASE_GATE_AGENTS содержит SECURITY→verify-security; agent
+    file exists
+- requirement_id: SC-005
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: feature epic lifecycle AUDIT/QA не регрессирует
+- requirement_id: SC-006
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: 'Kind I: README/workflow упоминают security loop path'
+- requirement_id: US-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Как оператор, я хочу loop.py start --epic <security-id>, чтобы
+    курсор встал на DECOMPOSE или первый aNN security-эпика.
+- requirement_id: US-002
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Как оператор, я хочу finish после verify-security PASS, чтобы
+    index aNN стал completed и курсор перешёл на следующий aNN или DONE.
+- requirement_id: US-003
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: Как gate, я хочу verify-security, чтобы FINISH не принимал пустой/невалидный
+    findings YAML.
+- requirement_id: US-004
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Как оператор refactor-эпика, я хочу тот же kind-resolve для
+    refactor/plan/, чтобы REFACTOR не ломался на feature-only path.
+- requirement_id: BN-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: 'start epic_id без plan ни в одном kind layout: FileNotFoundError
+    с перечислением искавшихся roots'
+- requirement_id: BN-002
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: 'finish SECURITY без execute yaml / wrong schema: TransitionError;
+    index не completed'
+- requirement_id: BN-003
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: 'один epic_id существует и как feature, и как security: require
+    --kind; без него error, не silent feature'
+- requirement_id: BN-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: 'SECURITY finish с agent_id verify-implement only: gate reject
+    / TransitionError'
+- requirement_id: BN-005
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: 'security queue complete: DONE, not AUDIT'
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

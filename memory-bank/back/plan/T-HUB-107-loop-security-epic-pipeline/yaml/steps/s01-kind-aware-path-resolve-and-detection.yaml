@@ -1,0 +1,117 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-107-loop-security-epic-pipeline
+title: s01 — EpicKind, kind-aware plan and index path resolution, and CLI --kind detection
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Ввести перечисление EpicKind ('feature', 'refactor', 'security') и сохранить kind в CursorStore (Cursor.kind).
+  Реализовать kind-aware резолвер путей plan_root, plan_path, index_path, execute_path, discover_epic_kinds
+  и resolve_epic_role в loop/kernel/index.py с fail-closed обработкой отсутствующих путей (BN-001)
+  и неоднозначности layout (BN-003) с поддержкой CLI флага --kind.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-011
+    - FR-014
+    - SC-001
+    - US-001
+    - US-004
+  nouns:
+    - loop/kernel/index.py
+    - loop/kernel/model.py
+    - loop/kernel/cli.py
+    - loop/tests/test_kind_resolution.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s01-kind-aware-path-resolve-and-detection.yaml
+  ac_quotes:
+    - "LoopEngine.start на fixture security plan/index выставляет kind=security и корректную фазу."
+    - "Refactor fixture start резолвит refactor/plan/."
+    - "start epic_id без plan ни в одном kind layout -> FileNotFoundError с перечислением искавшихся roots."
+    - "один epic_id существует и как feature, и как security -> require --kind; без него error, не silent feature."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:40-64
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:113-145
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:157-200
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md
+    - loop/kernel/index.py
+    - loop/kernel/model.py
+    - loop/kernel/cli.py
+  produces:
+    - loop/kernel/index.py
+    - loop/kernel/model.py
+    - loop/kernel/cli.py
+    - loop/tests/test_kind_resolution.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-011
+    - FR-014
+    - BN-001
+    - BN-003
+    - TM-001
+    - TM-004
+    - TM-008
+  files:
+    - loop/kernel/index.py
+    - loop/kernel/model.py
+    - loop/kernel/cli.py
+    - loop/tests/test_kind_resolution.py
+
+as_built:
+  - "loop/kernel/index.py жестко определяет index_path как memory-bank/<role>/plan/<epic>/yaml/decompose-index.yaml"
+  - "Cursor в loop/kernel/model.py не хранит поле kind"
+  - "CLI loop.py не имеет параметра --kind"
+
+delta:
+  - "Добавить тип EpicKind = Literal['feature', 'refactor', 'security'] в loop/kernel/index.py"
+  - "Добавить поле kind: EpicKind = 'feature' в модель Cursor в loop/kernel/model.py"
+  - "Реализовать функции plan_root(kind), discover_epic_kinds, kind-aware plan_path/index_path/execute_path"
+  - "Добавить поддержку параметра --kind в CLI loop.py с валидацией и передачей в resolve_epic_role"
+  - "Создать тесты test_kind_resolution.py на BN-001 (missing roots), BN-003 (ambiguous require --kind) и refactor layout"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Валидация схемы epic-security/v1 (шаг s02)"
+  - "Переходы LoopEngine._target на фазу SECURITY и DONE (шаг s03)"
+  - "Агент verify-security и регистрация в _PHASE_GATE_AGENTS (шаг s04)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes or FastAPI dependencies in loop kernel"
+    async-python-patterns: "synchronous hub loop kernel"
+
+checkpoints:
+  - id: cp1
+    criterion: "Определен EpicKind и поле Cursor.kind; discover_epic_kinds и kind-aware plan_path/index_path работают"
+    verify: "bin/pytest loop/tests/test_kind_resolution.py -k test_discover_and_path_resolution -q --tb=line"
+  - id: cp2
+    criterion: "Отсутствующий эпик вызывает FileNotFoundError со списком всех проверяемых корней (BN-001, TM-001)"
+    verify: "bin/pytest loop/tests/test_kind_resolution.py -k test_security_kind_missing -q --tb=line"
+  - id: cp3
+    criterion: "Неоднозначный эпик (feature + security) без флага --kind вызывает ошибку fail-closed (BN-003, TM-004)"
+    verify: "bin/pytest loop/tests/test_kind_resolution.py -k test_security_kind_ambiguous -q --tb=line"
+  - id: cp4
+    criterion: "Эпик вида refactor успешно резолвит путь refactor/plan/ (FR-011, TM-008)"
+    verify: "bin/pytest loop/tests/test_kind_resolution.py -k test_refactor_kind_path -q --tb=line"
+
+verify: []
+tdd: []

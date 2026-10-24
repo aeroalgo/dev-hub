@@ -125,6 +125,33 @@ Min: для L3+ — минимум 4 заполненных вопроса.
 
 Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
 
+## Boundary / negative cases
+
+> **L2+ обязателен** (иначе `n/a` + reason на каждый пункт checklist). Это SoT edge/corner для DECOMPOSE → IMPLEMENT → QA.  
+> **FORBIDDEN:** invent новых negative в QA сверх этой секции + AC− (anti-ratchet).  
+> Каждый applicable `BN-*` → ≥1 row в `#qa-consumes` Test matrix (`Maps FR/AC` = `BN-00N` и/или AC−).
+
+| ID | Class | Input / condition | Expected (fail-closed) | Maps TM / AC |
+|----|-------|-------------------|------------------------|--------------|
+| BN-001 | empty / missing | … | 4xx / DENY / empty-safe | TM-00x |
+| BN-002 | unknown / DENY old | … | 4xx / HALT + diagnostic | TM-00x |
+| BN-003 | authz / misconfig | … | 401/403 / fail at start | TM-00x |
+
+Checklist (не применимо → `n/a` + reason в Notes ниже; не молчаливый skip):
+
+| # | Class | Status |
+|---|-------|--------|
+| 1 | empty / missing required | done \| n/a: … |
+| 2 | unknown key / DENY legacy SoT | done \| n/a: … |
+| 3 | max / overflow / unicode | done \| n/a: … |
+| 4 | authz / unauthenticated | done \| n/a: … |
+| 5 | duplicate / idempotence | done \| n/a: … |
+| 6 | misconfig fail-closed (не stub) | done \| n/a: … |
+
+**Notes:** combinatorial surface (parse / filter / validate) → в TM указать table-driven или property-based; не оставлять только happy-path.
+
+Min L2+: ≥3 filled `BN-*` **или** полный checklist с явным `n/a`+reason на каждый пункт.
+
 ## Техника / архитектура (HOW)
 
 > HOW описывает техническую стратегию и границы реализации отдельно от WHAT.
@@ -214,9 +241,9 @@ Min: самооценка 1–5 по трем измерениям engineering s
 
 | ID | Priority | Scenario | Command / fixture | Expected | Maps FR/AC |
 |----|----------|----------|-------------------|----------|------------|
-| TM-001 | P0 | … | `bin/pytest …` (dev-hub self-test) или `capability_checks: [test.targeted]` (managed) | PASS / exit 0 | AC-1 |
+| TM-001 | P0 | … | `bin/pytest …` (dev-hub self-test) или `capability_checks: [test.targeted]` (managed) | PASS / exit 0 | AC-1 / BN-001 |
 
-Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 TM row. TM-IDs cross-link to Failure matrix Test ID.
+Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 TM row; каждый applicable `BN-*` из §Boundary / negative cases → ≥1 TM row. TM-IDs cross-link to Failure matrix Test ID.
 
 ### Regression notes
 
@@ -230,8 +257,9 @@ Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 
 | Eng review spine | L2+ | done \| pending | §Eng review spine filled |
 | §0.11 counterparts (draft) | if external refs in HOW | done \| n/a \| pending | table or defer list |
 | Delivery closure | P0/P1 runtime capability / API / tool / boundary | done \| n/a \| pending | §Delivery closure; foundation has approval + queue ID |
+| Boundary / negative cases | L2+ | done \| n/a+reason \| pending | §Boundary / negative cases (≥3 BN или полный checklist) |
 | CREATIVE | if flagged | done \| n/a | link creative |
-| qa_consumes draft | L2+ | done \| pending | §QA consumes ≥3 TM |
+| qa_consumes draft | L2+ | done \| pending | §QA consumes ≥3 TM; BN→TM linked |
 | Plan review batch | L2+ | done \| pending | §Plan review batch log |
 
 **FINISH PLAN allowed:** no `pending` in Required rows for epic level.

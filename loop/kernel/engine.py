@@ -13,6 +13,7 @@ from .creative import (
     resolve_creative_step,
 )
 from .implement_schema import complete_implement_artifact, validate_implement_artifact
+from .security_schema import complete_security_artifact
 from .index import (
     Queue,
     Step,
@@ -30,6 +31,7 @@ from .index import (
     qa_verdict,
     queue_implement_gaps,
     queue_ready_for_audit,
+    resolve_epic_kind,
     resolve_epic_role,
     validate_decompose_tree,
 )
@@ -49,9 +51,12 @@ _PHASE_GATE_AGENTS = {
     "IMPLEMENT": "verify-implement",
     "TASK": "verify-implement",
     "REFACTOR": "verify-implement",
+    "SECURITY": "verify-security",
     "BUGFIX": "verify-bugfix",
     "QA": "verify-qa",
 }
+
+_ENGINE_GATE_AGENTS = MANAGED_GATE_AGENTS | {"verify-security"}
 
 # After this many failed verify(+repair) / schema / session attempts on one step → restart step.
 MAX_VERIFY_REPAIR_CYCLES = 3
@@ -68,7 +73,7 @@ class LoopEngine:
         self.boundary = BoundaryService(paths)
 
     def _queue(self, cursor: Cursor) -> Queue:
-        return load_queue(self.paths.project, cursor.role, cursor.epic_id)
+        return load_queue(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind)
 
     def _analyze_gate(self, queue: Queue, *, force: bool = False) -> dict[str, Any]:
         return analyze_required_before_implement(
@@ -81,9 +86,11 @@ class LoopEngine:
         )
 
     def _plan_path(self, cursor: Cursor) -> Path:
-        return plan_path(self.paths.project, cursor.role, cursor.epic_id)
+        return plan_path(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind or "feature")
 
     def _phase_after_queue(self, queue: Queue) -> tuple[str, str]:
+        if getattr(queue, "kind", None) == "security":
+            return "DONE", "security audit queue complete"
         ready, implement_reason = queue_ready_for_audit(self.paths.project, queue)
         if not ready:
             raise TransitionError(f"cannot advance past IMPLEMENT: {implement_reason}")
@@ -114,11 +121,13 @@ class LoopEngine:
         """Pending index steps, or completed-without-implement gaps (fail-closed recovery)."""
         if queue.pending:
             return queue.pending
+        if getattr(queue, "kind", None) == "security":
+            return ()
         return tuple(step for step, _reason in queue_implement_gaps(self.paths.project, queue))
 
     def _target(self, cursor: Cursor, queue: Queue | None = None) -> tuple[str, str, str]:
         if queue is None:
-            canonical_index = index_path(self.paths.project, cursor.role, cursor.epic_id)
+            canonical_index = index_path(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind or "feature")
             if not canonical_index.is_file():
                 plan = self._plan_path(cursor)
                 if not plan.is_file():
@@ -129,9 +138,10 @@ class LoopEngine:
             active_queue = queue
         work = self._work_steps(active_queue)
         if work:
-            gate = self._analyze_gate(active_queue)
-            if gate["required"]:
-                return "ANALYZE", "ANALYZE", f"ANALYZE gate: {gate['reason']}"
+            if getattr(active_queue, "kind", None) != "security" and cursor.kind != "security":
+                gate = self._analyze_gate(active_queue)
+                if gate["required"]:
+                    return "ANALYZE", "ANALYZE", f"ANALYZE gate: {gate['reason']}"
             step = work[0]
             phase, reason = phase_for_pending_step(self.paths.project, active_queue, step)
             if step.status in {"completed", "done"} and step not in active_queue.pending:
@@ -192,7 +202,7 @@ class LoopEngine:
                 f"{next_load_number}. memory-bank/{cursor.role}/{artifact_kind}/{cursor.epic_id}/ — current phase artifacts"
             )
             next_load_number += 1
-        if queue is not None and cursor.step_id and cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR", "CREATIVE"}:
+        if queue is not None and cursor.step_id and cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR", "CREATIVE", "SECURITY"}:
             step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
             if step and step.shard:
                 shard_rel = step.shard
@@ -204,7 +214,7 @@ class LoopEngine:
                 next_load_number += 1
             if step and cursor.phase != "CREATIVE":
                 lines.append(
-                    f"{next_load_number}. {implement_path(self.paths.project, queue.role, queue.epic_id, step).relative_to(self.paths.project).as_posix()} — implement artifact"
+                    f"{next_load_number}. {implement_path(self.paths.project, queue.role, queue.epic_id, step, kind=cursor.kind or "feature").relative_to(self.paths.project).as_posix()} — implement artifact"
                 )
         lines.extend(
             [
@@ -639,6 +649,31 @@ class LoopEngine:
             index_mutation = prepare_step_status(queue, cursor.step_id, "completed")
             mutations.append(index_mutation)
             next_queue = self._queue_after_step(queue, cursor.step_id)
+        elif cursor.phase == "SECURITY":
+            step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
+            if step is None:
+                raise TransitionError(
+                    f"cannot finish SECURITY: step {cursor.step_id!r} missing from decompose index"
+                )
+            try:
+                complete_security_artifact(
+                    implement_path(
+                        self.paths.project,
+                        queue.role,
+                        queue.epic_id,
+                        step,
+                        kind=cursor.kind or "security",
+                    ),
+                    expected_step_id=cursor.step_id,
+                    expected_plan_id=queue.epic_id,
+                )
+            except (ValueError, FileNotFoundError, OSError) as exc:
+                raise TransitionError(
+                    f"cannot finish SECURITY: invalid security artifact — {exc}"
+                ) from exc
+            index_mutation = prepare_step_status(queue, cursor.step_id, "completed")
+            mutations.append(index_mutation)
+            next_queue = self._queue_after_step(queue, cursor.step_id)
         elif cursor.phase == "AUDIT":
             ready, audit_reason = audit_is_converged(self.paths.project, queue.role, queue.epic_id)
             if not ready:
@@ -678,7 +713,10 @@ class LoopEngine:
                 )
 
         if cursor.phase == "DECOMPOSE":
-            phase, next_step, target_reason = "ANALYZE", "ANALYZE", "decompose index created"
+            if cursor.kind == "security":
+                phase, next_step, target_reason = self._target(cursor, next_queue)
+            else:
+                phase, next_step, target_reason = "ANALYZE", "ANALYZE", "decompose index created"
         elif cursor.phase == "CREATIVE":
             phase, next_step, target_reason = self._target(cursor, next_queue)
             if phase == "CREATIVE":
@@ -723,6 +761,7 @@ class LoopEngine:
             if advance.next_epic_id and not advance.complete:
                 candidate.epic_id = advance.next_epic_id
                 candidate.role = cursor.role
+                candidate.kind = advance.next_kind or "feature"
                 candidate.session_id = f"session-{uuid.uuid4().hex[:12]}"
                 try:
                     phase, next_step, target_reason = self._target(candidate)
@@ -814,9 +853,14 @@ class LoopEngine:
                     },
                     (transaction.mutation(self.paths.active_context, self._render_body(candidate, queue)),),
                 )
+            try:
+                resolved_kind = resolve_epic_kind(self.paths.project, epic_id, role=role)
+            except Exception:
+                resolved_kind = "feature"
             candidate = Cursor(
                 epic_id=epic_id,
                 role=role,
+                kind=resolved_kind,
                 session_id=f"session-{uuid.uuid4().hex[:12]}",
                 phase_epoch=1,
             )
@@ -903,7 +947,13 @@ class LoopEngine:
             result.tx_id,
         )
 
-    def finish(self, *, step_id: str | None = None, reason: str = "session completed") -> Transition:
+    def finish(
+        self,
+        *,
+        step_id: str | None = None,
+        reason: str = "session completed",
+        gate_pass: GateVerdict | None = None,
+    ) -> Transition:
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cursor does not exist; run start first")
@@ -930,7 +980,7 @@ class LoopEngine:
                     "reconciled_from": pending_qa_failure.get("key") or "qa-artifact",
                     "route": "BUGFIX",
                 }
-                gate_pass = GateVerdict(
+                qa_gate_pass = GateVerdict(
                     schema="loop-gate-verdict/v1",
                     agent_id="verify-qa",
                     verdict="FAIL",
@@ -945,9 +995,16 @@ class LoopEngine:
                     step_id=step_id,
                     reason="finish-reconcile:verify-qa:FAIL",
                     event=route_event,
-                    gate_pass=gate_pass,
+                    gate_pass=qa_gate_pass,
                 )
-            return self._finish_plan(current, transaction, step_id=step_id, reason=reason, event={"event": "finish"})
+            return self._finish_plan(
+                current,
+                transaction,
+                step_id=step_id,
+                reason=reason,
+                event={"event": "finish"},
+                gate_pass=gate_pass,
+            )
 
         result = self.store.transact(planner)
         return self._transition_from_result(result, event=str(result.event.get("event") or "finish"), reason=str(result.event.get("reason") or reason))
@@ -1021,7 +1078,7 @@ class LoopEngine:
                 or transaction.event_seen("qa_failed", key)
             ):
                 return TransactionPlan(current, {"event": "verdict_duplicate", "key": key}, changed=False)
-            if record.agent_id not in MANAGED_GATE_AGENTS:
+            if record.agent_id not in _ENGINE_GATE_AGENTS:
                 raise TransitionError(f"unsupported gate agent: {record.agent_id}")
             if expected_agent_id and record.agent_id != expected_agent_id:
                 raise TransitionError(f"verdict agent mismatch: expected={expected_agent_id}, received={record.agent_id}")

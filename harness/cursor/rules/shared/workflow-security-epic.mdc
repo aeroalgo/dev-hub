@@ -71,7 +71,13 @@ M/L: **FORBIDDEN** полный аудит в PLAN/DECOMPOSE; execute тольк
 | Execute dir | `{role}/implement/<plan>/` | `{role}/refactor/implement/<id>/` | `{role}/security/implement/<id>/` |
 | Execute cmd | `* IMPLEMENT` | `* REFACTOR` | `* SECURITY` |
 
-**Epic loop:** arm на `memory-bank/{back\|front\|integration}/security/plan/<id>/yaml/decompose-index.yaml`; pending считает `aNN`. FINISH artifact = `security/implement/<id>/aNN-*.yaml`.
+**Epic loop:** запуск через `python3 bin/loop.py start --project <root> --epic <id> --kind security` (или автоопределение по дереву `memory-bank/{role}/security/plan/<id>/`).
+Arm на `memory-bank/{back\|front\|integration}/security/plan/<id>/yaml/decompose-index.yaml`; pending считает `aNN`.
+Фаза execute = `SECURITY` (фаза `ANALYZE` пропускается).
+FINISH artifact = `security/implement/<id>/aNN-*.yaml` (валидация `schema: epic-security/v1`).
+Перед finish обязателен gate `verify-security`.
+Финиш: `python3 bin/loop.py finish --project <root> --step aNN`.
+После завершения всех `aNN` loop автоматически переходит в `DONE` (без `AUDIT`/`QA`/`CONTEXT_SYNC`).
 В промпт SECURITY epic: FINISH-артефакт = `implement/.../aNN-*.yaml`, не `security-audit-*`.
 
 ## PLAN output

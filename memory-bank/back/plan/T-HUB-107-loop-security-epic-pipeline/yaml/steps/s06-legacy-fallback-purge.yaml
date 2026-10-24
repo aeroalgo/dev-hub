@@ -1,0 +1,152 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-107-loop-security-epic-pipeline
+title: s06 — legacy-fallback-purge — sunset inventory verification and feature regression protection
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: проверить удаление всех устаревших feature-only предположений на hot paths,
+  выполнить полный sunset inventory scan (Kind A, B, C, I), убедиться в отсутствии silent fallback
+  на feature и подтвердить полную сохранность жизненного цикла feature эпиков (IMPLEMENT -> AUDIT -> QA)
+  без регрессий (AC-5, SC-005, TM-006).
+
+plan_contract:
+  fr_ids:
+    - SC-005
+    - SC-006
+  nouns:
+    - loop/kernel/index.py
+    - loop/kernel/engine.py
+    - loop/tests/test_kernel.py
+    - loop/tests/test_engine.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "Feature epic lifecycle AUDIT/QA не регрессирует."
+    - "Нет sole hot-path index_path -> только …/plan/<epic>/ без kind."
+    - "Нет silent default kind=feature при однозначном security/refactor layout."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:40-64
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:256-315
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md
+    - loop/kernel/index.py
+    - loop/kernel/engine.py
+    - loop/tests/test_kernel.py
+    - loop/tests/test_engine.py
+  produces:
+    - loop/tests/test_kernel.py
+    - loop/tests/test_engine.py
+    - loop/kernel/index.py
+  plan_refs:
+    - SC-005
+    - SC-006
+    - TM-006
+  files:
+    - loop/tests/test_kernel.py
+    - loop/tests/test_engine.py
+    - loop/kernel/index.py
+
+as_built:
+  - "Существующие тесты ядра loop/tests/test_kernel.py и test_engine.py ориентированы на feature lifecycle"
+
+delta:
+  - "Провести grep_control по всем строкам sunset_inventory (A, B, C, I)"
+  - "Запустить регрессионный сьют для feature-эпиков и убедиться в полном прохождении тестов без регрессий"
+
+sunset_inventory:
+  - symbol: "index_path / plan_path hardcode …/plan/<id>/ only"
+    kind: A
+    replacement: "kind-aware plan_root and path helpers in index.py"
+    policy: "delete in-epic"
+    rg_scope: "loop/kernel/"
+    expect: "zero prod callers using unparameterized kind on hot path"
+  - symbol: "implement_path sole feature implement/ directory"
+    kind: A
+    replacement: "execute_path(..., kind=...)"
+    policy: "delete in-epic"
+    rg_scope: "loop/kernel/"
+    expect: "calls parameterized by kind"
+  - symbol: "CLI help «discover under …/plan/<epic>» only"
+    kind: B
+    replacement: "CLI help mentioning security/refactor roots and --kind"
+    policy: "delete in-epic"
+    rg_scope: "loop/kernel/cli.py bin/loop.py"
+    expect: "help includes kind options and layout descriptions"
+  - symbol: "Silent pick feature when security also exists"
+    kind: C
+    replacement: "fail-closed require --kind error"
+    policy: "delete in-epic"
+    rg_scope: "loop/kernel/index.py"
+    expect: "no silent fallback to feature when ambiguous"
+  - symbol: "loop/README.md feature-only arm examples"
+    kind: I
+    replacement: "loop/README.md with security epic arm and --kind documentation"
+    policy: "delete in-epic"
+    rg_scope: "loop/README.md"
+    expect: "includes security pipeline lifecycle examples"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "auto-suggest kind in doctor UX"
+  - "FRONT/INTEG-specific security prompt skins"
+  - "migrate historical security-audit md into yaml"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: "hardcoded feature-only plan path in index.py"
+    command: "rg -n 'plan_path\\(' loop/kernel/engine.py || true"
+    expect: "callers supply kind or use kind-aware helpers"
+  - id: inv-b-01
+    kind: B
+    symbol: "legacy CLI help"
+    command: "rg -n 'discover under memory-bank/\\*/plan/' loop/kernel/cli.py || true"
+    expect: "no matches with old unparameterized description"
+  - id: inv-c-01
+    kind: C
+    symbol: "silent fallback to feature"
+    command: "rg -n 'kind = \"feature\"' loop/kernel/index.py || true"
+    expect: "no silent default assignment when discovering multiple kinds"
+  - id: inv-i-01
+    kind: I
+    symbol: "feature-only doc references"
+    command: "rg -n 'loop.py start --epic' loop/README.md"
+    expect: "examples show --kind usage and security flow"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes in test and purge verification"
+    async-python-patterns: "synchronous pytest test suite"
+
+checkpoints:
+  - id: cp-inventory-a
+    criterion: "Kind A: все обращения к путям плана и индекса в ядре параметризованы по kind"
+    verify: "rg -n 'index_path\\(' loop/kernel/index.py loop/kernel/engine.py"
+  - id: cp-inventory-b
+    criterion: "Kind B: CLI параметры и справка содержат --kind и описание security/refactor"
+    verify: "python3 bin/loop.py --help | rg -- '--kind'"
+  - id: cp-inventory-c
+    criterion: "Kind C: отсутствие silent fallback на feature при неоднозначности layout"
+    verify: "bin/pytest loop/tests/test_kind_resolution.py -k test_security_kind_ambiguous -q --tb=line"
+  - id: cp-inventory-i
+    criterion: "Kind I: инструкции и README содержат актуальные команды для security-эпика"
+    verify: "rg -n 'security' loop/README.md"
+  - id: cp-suite-regression
+    criterion: "Существующий test suite для feature-эпиков green без регрессий (AC-5, SC-005, TM-006)"
+    verify: "bin/pytest loop/tests/test_kernel.py loop/tests/test_engine.py -q --tb=line"
+
+verify: []
+tdd: []

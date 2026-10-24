@@ -1,0 +1,241 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-107-loop-security-epic-pipeline
+appetite:
+  timebox_days: 3
+  cut_list:
+  - auto-suggest kind in doctor UX
+  - FRONT/INTEG-specific security prompt skins beyond shared paths
+  - migrate historical security-audit md into yaml
+effort_probe:
+  outcomes:
+  - outcome: Kind-aware path resolve, Cursor.kind, discover and ambiguous fail-closed
+    hours: 3.0
+  - outcome: Security execute schema validation and complete artifact lifecycle
+    hours: 2.0
+  - outcome: Engine _target/_phase_after_queue SECURITY, skip ANALYZE, and DONE termination
+    hours: 2.0
+  - outcome: verify-security gate agent, phase gate mapping, CLI protocol, and phase
+      config
+    hours: 2.5
+  - outcome: Roadmap security plan path discovery and Kind I instruction surfaces
+    hours: 1.5
+  - outcome: Legacy-fallback-purge, sunset inventory verification, and feature regression
+      suite
+    hours: 1.0
+  total_hours: 12.0
+  effort_class: L
+  sNN_cap: 8
+  sNN_target: 6
+steps:
+- id: s01
+  file: s01-kind-aware-path-resolve-and-detection.yaml
+  title: s01 — EpicKind, kind-aware plan and index path resolution, and CLI --kind
+    detection
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-security-schema-and-artifact-lifecycle.yaml
+  title: s02 — security execute schema validation and complete artifact lifecycle
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-engine-security-target-and-done-termination.yaml
+  title: s03 — LoopEngine target phase transitions, security queue advance, and DONE
+    termination
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-verify-security-gate-agent-and-cli-protocol.yaml
+  title: s04 — verify-security gate agent, phase gate mapping, CLI protocol, and phase
+    config
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-roadmap-security-discovery-and-kind-i-docs.yaml
+  title: s05 — roadmap security path discovery and Kind I instruction surfaces update
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — sunset inventory verification and feature regression
+    protection
+  next_phase: BACK IMPLEMENT
+  status: completed
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Determine kind ∈ {feature, refactor, security} at start and persist
+    in cursor state
+- id: FR-002
+  step: s01
+  description: Resolve plan_path, index_path, and execute path relative to kind
+- id: FR-003
+  step: s03
+  description: Assign execute phase SECURITY on pending aNN steps for kind=security
+- id: FR-004
+  step: s03
+  description: Do not require ANALYZE gate before first SECURITY step (DECOMPOSE ->
+    SECURITY directly)
+- id: FR-005
+  step: s02
+  description: Validate epic-security/v1 execute artifact at finish on SECURITY before
+    completing step
+- id: FR-006
+  step: s03
+  description: Return DONE after all security steps complete (not AUDIT/QA/CONTEXT_SYNC)
+- id: FR-007
+  step: s04
+  description: _PHASE_GATE_AGENTS['SECURITY'] = 'verify-security' and CLI protocol
+    ALLOW READ wiring
+- id: FR-008
+  step: s04
+  description: Materialize harness/agents/verify-security.md agent SoT and codex policy
+    parity
+- id: FR-009
+  step: s04
+  description: Register SECURITY phase in PHASES and add LOOP_MODEL_SECURITY settings
+- id: FR-010
+  step: s05
+  description: Roadmap next_kind=security discovers plan under security/plan/<id>/md/plan.md
+- id: FR-011
+  step: s01
+  description: Kind=refactor path and execute resolution parity with feature post-queue
+- id: FR-012
+  step: s02
+  description: S one-shot is not a loop epic; finish SECURITY without epic index gives
+    explicit error
+- id: FR-013
+  step: s05
+  description: Kind I doc updates across loop/README.md, workflow-security rules,
+    and CLI help
+- id: FR-014
+  step: s01
+  description: Ambiguous epic layout across multiple kinds fails closed requiring
+    --kind
+- id: SC-001
+  step: s01
+  description: start security epic without feature plan tree succeeds
+- id: SC-002
+  step: s03
+  description: finish aNN advances to next aNN or DONE
+- id: SC-003
+  step: s02
+  description: invalid security yaml blocks finish
+- id: SC-004
+  step: s04
+  description: _PHASE_GATE_AGENTS contains SECURITY->verify-security and agent file
+    exists
+- id: SC-005
+  step: s06
+  description: feature epic lifecycle (IMPLEMENT->AUDIT->QA) does not regress
+- id: SC-006
+  step: s05
+  description: 'Kind I: README/workflow mention security loop path'
+- id: US-001
+  step: s01
+  description: Operator runs loop.py start --epic <security-id> and cursor lands on
+    DECOMPOSE or aNN
+- id: US-002
+  step: s03
+  description: Operator runs finish after verify-security PASS and index advances
+    or reaches DONE
+- id: US-003
+  step: s02
+  description: Gate verify-security prevents finish with empty or invalid findings
+    YAML
+- id: US-004
+  step: s01
+  description: Operator of refactor epic uses same kind resolution for refactor/plan/
+- id: BN-001
+  step: s01
+  description: Start missing epic across all kind layouts raises FileNotFoundError
+    listing searched roots
+- id: BN-002
+  step: s02
+  description: Finish SECURITY without execute yaml or wrong schema raises TransitionError
+- id: BN-003
+  step: s01
+  description: Ambiguous epic existing in both feature and security requires --kind
+- id: BN-004
+  step: s04
+  description: SECURITY finish with wrong agent id (e.g. verify-implement) is rejected
+- id: BN-005
+  step: s03
+  description: Security queue complete advances directly to DONE without AUDIT
+stages_coverage:
+- stage: 'Stage 1: Kind detection and path resolution'
+  step: s01
+- stage: 'Stage 2: Security execute artifact schema and lifecycle'
+  step: s02
+- stage: 'Stage 3: Engine target transition, queue advance, and termination'
+  step: s03
+- stage: 'Stage 4: verify-security gate agent, protocol, and configuration'
+  step: s04
+- stage: 'Stage 5: Roadmap advance and Kind I documentation hygiene'
+  step: s05
+- stage: 'Stage 6: Legacy fallback purge and regression oracle verification'
+  step: s06
+outcome_map:
+- outcome: Kind-aware plan/index/execute paths
+  step: s01
+- outcome: SECURITY execute artifact validation
+  step: s02
+- outcome: SECURITY step loop aNN and DONE termination
+  step: s03
+- outcome: verify-security gate and phase config
+  step: s04
+- outcome: Roadmap next_kind support and Kind I instruction surfaces
+  step: s05
+- outcome: Zero hot-path feature-only hardcode and regression oracle suite
+  step: s06
+replacement_cleanup:
+- symbol: index_path / plan_path hardcode …/plan/<id>/ only
+  kind: A
+  replacement: kind-aware plan_root and path helpers
+  step: s01
+  policy: delete in-epic
+- symbol: implement_path sole feature implement/ directory
+  kind: A
+  replacement: execute_path(project, role, epic_id, kind=...)
+  step: s01
+  policy: delete in-epic
+- symbol: Engine assumption post-queue always AUDIT
+  kind: A
+  replacement: branch on cursor.kind (security -> DONE)
+  step: s03
+  policy: delete in-epic
+- symbol: ANALYZE-before-work for all kinds
+  kind: A
+  replacement: skip ANALYZE when kind=security
+  step: s03
+  policy: delete in-epic
+- symbol: CLI help «discover under …/plan/<epic>» only
+  kind: B
+  replacement: CLI help mentioning security/refactor roots and --kind
+  step: s05
+  policy: delete in-epic
+- symbol: Silent pick feature when security also exists
+  kind: C
+  replacement: fail-closed require --kind error
+  step: s01
+  policy: delete in-epic
+- symbol: Finish security via implement schema «if looks like yaml»
+  kind: C
+  replacement: security_schema only
+  step: s02
+  policy: delete in-epic
+- symbol: loop/README.md feature-only arm examples
+  kind: I
+  replacement: mention security epic arm / DONE rule and --kind
+  step: s05
+  policy: delete in-epic
+- symbol: workflow-security.mdc «Epic loop» prose without kind paths
+  kind: I
+  replacement: concrete bin/loop.py + kind paths
+  step: s05
+  policy: delete in-epic
+- symbol: shared workflow-security-epic.mdc loop tip
+  kind: I
+  replacement: kind-aware loop paths and verify-security
+  step: s05
+  policy: delete in-epic

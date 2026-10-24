@@ -43,3 +43,11 @@
 
 - Loop: последовательные сессии агента + bounded timeout/retry (`EPIC_*` в project.env)
 - DAG `loop-dag/v2`: dependency-ready nodes **по одному**, без distributed lock
+
+## Epic kinds и Security pipeline
+
+- Epic kinds: `feature` (default), `refactor`, `security` (`Cursor.kind`)
+- Пути plan/index/implement/security: layout под `memory-bank/<role>/{,refactor/,security/}plan/<id>/`
+- Валидация execute SECURITY: `schema: epic-security/v1` (`loop.kernel.security_schema`)
+- Gate agent: `verify-security` (`harness/agents/verify-security.md`)
+- Lifecycle `security`: `DECOMPOSE` -> `SECURITY` (@aNN*) -> `DONE` (skip ANALYZE/AUDIT/QA/CONTEXT_SYNC)

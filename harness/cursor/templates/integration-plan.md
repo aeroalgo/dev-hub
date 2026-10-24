@@ -109,6 +109,19 @@ response…
 5. e11 client bookings
 6. e16 provider scheduler …
 
+## Boundary / negative cases
+
+> L2+/portal обязателен (иначе checklist с `n/a`+reason). Wire edge/corner SoT — не invent в QA.  
+> Каждый applicable `BN-*` → строка в Test matrix / Journey.
+
+| ID | Class | Input / condition | Expected (fail-closed) | Element / Journey |
+|----|-------|-------------------|------------------------|-------------------|
+| BN-001 | empty / missing | … | empty state / 4xx / DENY | e0N / J1 |
+| BN-002 | authz / guest | … | redirect / 401/403 | e0N / J1 |
+| BN-003 | DENY mock / legacy client | … | sole live SoT; mock absent | e0N / J1 |
+
+Checklist: empty · unknown/DENY mock · authz · max/overflow · duplicate submit · misconfig — каждый `done` или `n/a: …`. Min: ≥3 BN или полный checklist.
+
 ## Test matrix
 
 | Journey | BACK (dev-hub pytest / managed capability_checks) | FRONT vitest parent-only | Wire / E2E parent-only |

@@ -1,0 +1,272 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-107-loop-security-epic-pipeline
+plan_id: T-HUB-107-loop-security-epic-pipeline
+date: '2026-10-24'
+auditor: BACK AUDIT
+converged: true
+verdict: PASS
+purge_step_present: true
+plan_intent:
+  epic_goal: Add first-class SECURITY epic lifecycle to loop kernel with kind-aware paths, verify-security gate agent, epic-security/v1 execute artifact lifecycle, and DONE termination.
+  source: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md#WHAT
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 14
+  fr_satisfied: 14
+  sc_checked: 6
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+check_matrix:
+  - source_ref: FR-001
+    status: pass
+    evidence: Cursor model supports kind and resolve_epic_kind persists kind in cursor state.
+    verify: rg -n "class Cursor" loop/kernel/model.py
+  - source_ref: FR-002
+    status: pass
+    evidence: index_path, plan_path, execute_path parameterized by kind across loop/kernel/index.py.
+    verify: rg -n "def index_path|def plan_path" loop/kernel/index.py
+  - source_ref: FR-003
+    status: pass
+    evidence: phase_for_pending_step routes pending aNN steps to SECURITY when queue kind is security.
+    verify: rg -n "phase_for_pending_step" loop/kernel/creative.py
+  - source_ref: FR-004
+    status: pass
+    evidence: LoopEngine._target skips ANALYZE gate when cursor or queue kind is security.
+    verify: rg -n "active_queue.kind != \"security\"" loop/kernel/engine.py
+  - source_ref: FR-005
+    status: pass
+    evidence: validate_security_artifact and complete_security_artifact validate epic-security/v1 execute artifact at finish.
+    verify: pytest loop/tests/test_security_schema.py
+  - source_ref: FR-006
+    status: pass
+    evidence: _phase_after_queue returns DONE when queue kind is security after all steps complete.
+    verify: pytest loop/tests/test_security_engine.py -k test_security_queue_complete_done
+  - source_ref: FR-007
+    status: pass
+    evidence: _PHASE_GATE_AGENTS['SECURITY'] = 'verify-security' and CLI gate protocol wires ALLOW READ on security execute and decompose step artifacts.
+    verify: rg -n "verify-security" loop/kernel/engine.py loop/kernel/cli.py
+  - source_ref: FR-008
+    status: pass
+    evidence: harness/agents/verify-security.md agent specification exists with pass-fail verdict and epic-security/v1 checks.
+    verify: ls -l harness/agents/verify-security.md
+  - source_ref: FR-009
+    status: pass
+    evidence: SECURITY added to PHASES in loop/config.py and LOOP_MODEL_SECURITY / security_model configured.
+    verify: rg -n "LOOP_MODEL_SECURITY" loop/config.py
+  - source_ref: FR-010
+    status: pass
+    evidence: Roadmap next_kind discovers plan under security/plan/<id>/md/plan.md and advance syncs candidate.kind.
+    verify: rg -n "next_kind" loop/kernel/roadmap.py
+  - source_ref: FR-011
+    status: pass
+    evidence: Kind=refactor path and execute resolution shares kind-aware index/plan/execute resolvers.
+    verify: pytest loop/tests/test_kind_resolution.py
+  - source_ref: FR-012
+    status: pass
+    evidence: S one-shot is not a loop epic; finish without epic index raises explicit error.
+    verify: pytest loop/tests/test_kind_resolution.py
+  - source_ref: FR-013
+    status: pass
+    evidence: loop/README.md, workflow-security rules, and CLI help updated with security epic lifecycle and kind paths.
+    verify: rg -n "security/plan" loop/README.md
+  - source_ref: FR-014
+    status: pass
+    evidence: Ambiguous epic layout across multiple kinds fails closed requiring --kind.
+    verify: pytest loop/tests/test_kind_resolution.py
+  - source_ref: SC-001
+    status: pass
+    evidence: start security epic without feature plan tree succeeds and lands on DECOMPOSE or SECURITY.
+    verify: pytest loop/tests/test_security_engine.py -k test_security_skip_analyze
+  - source_ref: SC-002
+    status: pass
+    evidence: finish aNN advances to next aNN or DONE when verify-security gate passes.
+    verify: pytest loop/tests/test_security_engine.py -k test_security_finish_advance
+  - source_ref: SC-003
+    status: pass
+    evidence: invalid security yaml blocks finish with explicit TransitionError.
+    verify: pytest loop/tests/test_security_schema.py -k test_security_finish_invalid
+  - source_ref: SC-004
+    status: pass
+    evidence: _PHASE_GATE_AGENTS contains SECURITY->verify-security and harness/agents/verify-security.md exists.
+    verify: pytest loop/tests/test_gate_security.py
+  - source_ref: SC-005
+    status: pass
+    evidence: feature epic lifecycle tests pass without regression.
+    verify: pytest loop/tests/test_kernel.py
+  - source_ref: SC-006
+    status: pass
+    evidence: Kind I README and workflow rules mention security loop path.
+    verify: rg -n "security/plan" loop/README.md
+  - source_ref: US-001
+    status: pass
+    evidence: Operator runs loop.py start --epic <security-id> and cursor lands on DECOMPOSE or aNN.
+    verify: pytest loop/tests/test_security_engine.py -k test_security_skip_analyze
+  - source_ref: US-002
+    status: pass
+    evidence: Operator runs finish after verify-security PASS and index advances or reaches DONE.
+    verify: pytest loop/tests/test_security_engine.py
+  - source_ref: US-003
+    status: pass
+    evidence: Gate verify-security prevents finish with empty or invalid findings YAML.
+    verify: pytest loop/tests/test_gate_security.py
+  - source_ref: US-004
+    status: pass
+    evidence: Operator of refactor epic uses same kind resolution for refactor/plan.
+    verify: pytest loop/tests/test_kind_resolution.py
+  - source_ref: BN-001
+    status: pass
+    evidence: Start missing epic across all kind layouts raises FileNotFoundError listing searched roots.
+    verify: pytest loop/tests/test_kind_resolution.py
+  - source_ref: BN-002
+    status: pass
+    evidence: Finish SECURITY without execute yaml or wrong schema raises TransitionError.
+    verify: pytest loop/tests/test_security_schema.py -k test_security_finish_invalid
+  - source_ref: BN-003
+    status: pass
+    evidence: Ambiguous epic existing in both feature and security requires --kind.
+    verify: pytest loop/tests/test_kind_resolution.py
+  - source_ref: BN-004
+    status: pass
+    evidence: SECURITY finish with wrong agent id is rejected.
+    verify: pytest loop/tests/test_gate_security.py
+  - source_ref: BN-005
+    status: pass
+    evidence: Security queue complete advances directly to DONE without AUDIT.
+    verify: pytest loop/tests/test_security_engine.py -k test_security_queue_complete_done
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: Cursor model supports kind and resolve_epic_kind persists kind in cursor state.
+  - source_ref: FR-002
+    status: satisfied
+    evidence: index_path, plan_path, execute_path parameterized by kind across loop/kernel/index.py.
+  - source_ref: FR-003
+    status: satisfied
+    evidence: phase_for_pending_step routes pending aNN steps to SECURITY when queue kind is security.
+  - source_ref: FR-004
+    status: satisfied
+    evidence: LoopEngine._target skips ANALYZE gate when cursor or queue kind is security.
+  - source_ref: FR-005
+    status: satisfied
+    evidence: complete_security_artifact validates and finishes epic-security/v1 execute artifact.
+  - source_ref: FR-006
+    status: satisfied
+    evidence: Security queue complete advances directly to DONE without AUDIT.
+  - source_ref: FR-007
+    status: satisfied
+    evidence: _PHASE_GATE_AGENTS['SECURITY'] = 'verify-security' and CLI gate protocol wires ALLOW READ.
+  - source_ref: FR-008
+    status: satisfied
+    evidence: harness/agents/verify-security.md agent specification exists.
+  - source_ref: FR-009
+    status: satisfied
+    evidence: SECURITY added to PHASES in loop/config.py and LOOP_MODEL_SECURITY configured.
+  - source_ref: FR-010
+    status: satisfied
+    evidence: Roadmap next_kind discovers plan under security/plan/<id>/md/plan.md.
+  - source_ref: FR-011
+    status: satisfied
+    evidence: Kind=refactor path and execute resolution shares kind-aware index/plan/execute resolvers.
+  - source_ref: FR-012
+    status: satisfied
+    evidence: S one-shot is not a loop epic; finish without epic index raises explicit error.
+  - source_ref: FR-013
+    status: satisfied
+    evidence: loop/README.md, workflow-security rules, and CLI help updated.
+  - source_ref: FR-014
+    status: satisfied
+    evidence: Ambiguous epic layout across multiple kinds fails closed requiring --kind.
+findings: []
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-107-loop-security-epic-pipeline/s01-kind-aware-path-resolve-and-detection.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-107-loop-security-epic-pipeline/s02-security-schema-and-artifact-lifecycle.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-107-loop-security-epic-pipeline/s03-engine-security-target-and-done-termination.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-107-loop-security-epic-pipeline/s04-verify-security-gate-agent-and-cli-protocol.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-107-loop-security-epic-pipeline/s05-roadmap-security-discovery-and-kind-i-docs.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-107-loop-security-epic-pipeline/s06-legacy-fallback-purge.yaml
+step_matrix:
+  - step_id: s01
+    status: completed
+  - step_id: s02
+    status: completed
+  - step_id: s03
+    status: completed
+  - step_id: s04
+    status: completed
+  - step_id: s05
+    status: completed
+  - step_id: s06
+    status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-10-24'
+  plan_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/decompose-index.yaml#replacement_cleanup
+  rows:
+    - symbol: index_path / plan_path hardcode …/plan/<id>/ only
+      kind: A
+      command: rg -n "plan_root|def index_path|def plan_path" loop/kernel/index.py
+      result: pass
+      prod_callers: 0
+    - symbol: implement_path sole feature implement/ directory
+      kind: A
+      command: rg -n "def implement_path" loop/kernel/index.py
+      result: pass
+      prod_callers: 0
+    - symbol: Engine assumption post-queue always AUDIT
+      kind: A
+      command: rg -n "_phase_after_queue" loop/kernel/engine.py
+      result: pass
+      prod_callers: 0
+    - symbol: ANALYZE-before-work for all kinds
+      kind: A
+      command: rg -n "_analyze_gate" loop/kernel/engine.py
+      result: pass
+      prod_callers: 0
+    - symbol: CLI help «discover under …/plan/<epic>» only
+      kind: B
+      command: rg -n "discover" loop/kernel/cli.py
+      result: pass
+      prod_callers: 0
+    - symbol: Silent pick feature when security also exists
+      kind: C
+      command: rg -n "resolve_epic_kind" loop/kernel/index.py
+      result: pass
+      prod_callers: 0
+    - symbol: Finish security via implement schema «if looks like yaml»
+      kind: C
+      command: rg -n "complete_security_artifact" loop/kernel/engine.py
+      result: pass
+      prod_callers: 0
+    - symbol: loop/README.md feature-only arm examples
+      kind: I
+      command: rg -n "security/plan" loop/README.md
+      result: pass
+      prod_callers: 0
+    - symbol: workflow-security.mdc «Epic loop» prose without kind paths
+      kind: I
+      command: rg -n "verify-security" .cursor/rules/back_developer/workflow-security.mdc
+      result: pass
+      prod_callers: 0
+    - symbol: shared workflow-security-epic.mdc loop tip
+      kind: I
+      command: rg -n "verify-security" .cursor/rules/shared/workflow-security-epic.mdc
+      result: pass
+      prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

@@ -1,0 +1,101 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-107-loop-security-epic-pipeline
+title: s02 — security execute schema validation and complete artifact lifecycle
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать loop/kernel/security_schema.py с Pydantic-моделями для schema epic-security/v1,
+  функциями validate_security_artifact, flush_security_for_verify и complete_security_artifact.
+  Обеспечить fail-closed проверку артефакта при завершении шага SECURITY (BN-002, FR-005, FR-012),
+  запрещающую завершение без валидного YAML артефакта или по prose-only markdown.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-012
+    - SC-003
+    - US-003
+  nouns:
+    - loop/kernel/security_schema.py
+    - loop/kernel/engine.py
+    - loop/tests/test_security_schema.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s02-security-schema-and-artifact-lifecycle.yaml
+  ac_quotes:
+    - "finish SECURITY с валидным epic-security/v1 закрывает step в index и двигает курсор."
+    - "Невалидный/отсутствующий security execute yaml -> finish denied."
+    - "Нет dual machine path «prose audit md OR yaml» для epic finish."
+    - "finish SECURITY без execute yaml / wrong schema -> TransitionError; index не completed."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:40-64
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:113-145
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:157-200
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md
+    - harness/cursor/templates/security/epic-step.yaml
+    - loop/kernel/implement_schema.py
+    - loop/kernel/engine.py
+  produces:
+    - loop/kernel/security_schema.py
+    - loop/kernel/engine.py
+    - loop/tests/test_security_schema.py
+  plan_refs:
+    - FR-005
+    - FR-012
+    - SC-003
+    - BN-002
+    - TM-003
+  files:
+    - loop/kernel/security_schema.py
+    - loop/kernel/engine.py
+    - loop/tests/test_security_schema.py
+
+as_built:
+  - "В ядре loop существует implement_schema.py только для epic-implement/v1"
+  - "Шаблоны epic-security/v1 зафиксированы в harness/cursor/templates/security/epic-step.yaml"
+  - "LoopEngine.finish валидирует только implement_schema при фазе IMPLEMENT"
+
+delta:
+  - "Создать модуль loop/kernel/security_schema.py по аналогии с implement_schema.py"
+  - "Реализовать SecurityArtifact, SecurityCheckpoint, validate_security_artifact, complete_security_artifact"
+  - "Интегрировать вызов complete_security_artifact в LoopEngine.finish при phase == SECURITY"
+  - "Написать тесты test_security_schema.py на валидацию, алиасы статусов, flush и fail-closed отказ (TM-003)"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Продвижение курсора в DONE и логика _phase_after_queue (шаг s03)"
+  - "Регистрация агента verify-security в engine и CLI (шаг s04)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes in security schema module"
+    async-python-patterns: "synchronous Pydantic schema validation"
+
+checkpoints:
+  - id: cp1
+    criterion: "Модуль security_schema.py валидирует корректный артефакт epic-security/v1 и нормализует алиасы"
+    verify: "bin/pytest loop/tests/test_security_schema.py -k test_valid_security_artifact -q --tb=line"
+  - id: cp2
+    criterion: "Отсутствие файла или неверная схема вызывают ValueError / TransitionError (BN-002, TM-003)"
+    verify: "bin/pytest loop/tests/test_security_schema.py -k test_security_finish_invalid -q --tb=line"
+  - id: cp3
+    criterion: "complete_security_artifact атомарно переводит статус шага в completed и чекпоинты в done"
+    verify: "bin/pytest loop/tests/test_security_schema.py -k test_complete_security_artifact -q --tb=line"
+
+verify: []
+tdd: []

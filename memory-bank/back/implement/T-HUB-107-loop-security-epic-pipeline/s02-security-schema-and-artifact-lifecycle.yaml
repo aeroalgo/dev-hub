@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-107-loop-security-epic-pipeline
+task_id: T-HUB-107
+title: s02 — security execute schema validation and complete artifact lifecycle IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s02-security-schema-and-artifact-lifecycle.yaml
+date: 2026-10-24
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+
+done:
+  - "Created loop/kernel/security_schema.py with Pydantic models SecurityArtifact and SecurityCheckpoint validating epic-security/v1"
+  - "Implemented coerce_step_status and coerce_checkpoint_status aliases normalization"
+  - "Implemented validate_security_artifact with in-place alias rewrite preserving comments"
+  - "Implemented security_artifact_problems, flush_security_for_verify, and complete_security_artifact"
+  - "Integrated complete_security_artifact into LoopEngine.finish for cursor.phase == SECURITY"
+  - "Added SECURITY to LoopEngine._render_body load_now calculation for step artifact"
+  - "Added targeted unit and integration tests in loop/tests/test_security_schema.py covering validation, aliases, fail-closed TransitionError, and index step completion"
+
+files:
+  - loop/kernel/security_schema.py
+  - loop/kernel/engine.py
+  - loop/tests/test_security_schema.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/kernel/engine.py: complete_security_artifact on phase SECURITY"
+    - "loop/kernel/engine.py: implement_path kind-aware loading in _render_body"
+  enforce_path: "loop/kernel/security_schema.py"
+  dual_path_rg: "rg 'complete_security_artifact' loop/kernel/"
+  instruction_rg: "rg 'epic-security/v1' memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_security_schema.py -k test_valid_security_artifact -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_security_schema.py -k test_security_finish_invalid -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_security_schema.py -k test_complete_security_artifact -q --tb=line` — PASS'
+
+integration_check:
+  - "bin/pytest loop/tests/test_security_schema.py -q --tb=line"
+
+checkpoints:
+  - id: cp1
+    criterion: "Модуль security_schema.py валидирует корректный артефакт epic-security/v1 и нормализует алиасы"
+    status: done
+  - id: cp2
+    criterion: "Отсутствие файла или неверная схема вызывают ValueError / TransitionError (BN-002, TM-003)"
+    status: done
+  - id: cp3
+    criterion: "complete_security_artifact атомарно переводит статус шага в completed и чекпоинты в done"
+    status: done
+
+resume_from: cp1

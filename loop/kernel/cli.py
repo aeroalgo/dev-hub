@@ -16,10 +16,14 @@ from .index import (
     bugfix_queue_path,
     bugfix_report_paths,
     decompose_yaml_problems,
+    execute_path,
     implement_path,
+    index_path,
     load_queue,
     phase_artifacts,
     phase_payload,
+    plan_path,
+    resolve_epic_role,
 )
 from .runtime import runtime_for
 from .session import SessionOutcome, SessionSupervisor
@@ -50,7 +54,13 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--project", "--cwd", dest="project")
     parser.add_argument("--epic")
-    parser.add_argument("--role", default="auto", help="back|front|integration|auto (discover under memory-bank/*/plan/<epic>)")
+    parser.add_argument("--role", default="auto", help="back|front|integration|auto (discover under memory-bank/<role>/{,refactor/,security/}plan/<epic>)")
+    parser.add_argument(
+        "--kind",
+        choices=("feature", "refactor", "security"),
+        default=None,
+        help="feature|refactor|security (layout under memory-bank/<role>/{,refactor/,security/}plan/<epic>)",
+    )
     parser.add_argument("--runtime", choices=("claude", "codex"), default=None)
     parser.add_argument("--model")
     parser.add_argument(
@@ -429,12 +439,12 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
             "gate_agent is required for managed gate protocol; "
             "AUDIT/CREATIVE must not invent parent-driven-audit"
         )
-    role_root = project / "memory-bank" / cursor.role
-    plan = role_root / "plan" / cursor.epic_id / "md" / "plan.md"
-    index = role_root / "plan" / cursor.epic_id / "yaml" / "decompose-index.yaml"
+    kind = getattr(cursor, "kind", "feature") or "feature"
+    plan = plan_path(project, cursor.role, cursor.epic_id, kind=kind)
+    index = index_path(project, cursor.role, cursor.epic_id, kind=kind)
     paths: list[Path] = [plan, index]
     try:
-        queue = load_queue(project, cursor.role, cursor.epic_id)
+        queue = load_queue(project, cursor.role, cursor.epic_id, kind=kind)
     except (FileNotFoundError, ValueError):
         queue = None
     if queue is not None:
@@ -491,20 +501,20 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
             ]
         )
-    elif gate_agent == "verify-implement":
+    elif gate_agent in {"verify-implement", "verify-security"}:
         current_step = None
         if queue is not None:
             current_step = next((step for step in queue.steps if step.step_id == cursor.step_id), None)
         if current_step is not None:
             paths.extend(
                 [
-                    implement_path(project, queue.role, queue.epic_id, current_step),
+                    execute_path(project, queue.role, queue.epic_id, current_step, kind=kind),
                     queue.path.parent / "steps" / Path(current_step.shard or f"{current_step.step_id}.yaml").name,
                 ]
             )
         lines.extend(
             [
-                "Required sections in the verify-implement spawn prompt:",
+                f"Required sections in the {gate_agent} spawn prompt:",
                 "ALLOW READ:",
                 _relative_paths(project, paths),
                 "Add each concrete touched code or test file; never use a directory or glob.",
@@ -798,7 +808,8 @@ def run(args: argparse.Namespace) -> int:
     settings.apply_environment()
     engine = LoopEngine(paths)
     epic_id = _epic(args, engine)
-    cursor = engine.start(epic_id, args.role)
+    role = resolve_epic_role(paths.project, epic_id, args.role, kind=args.kind)
+    cursor = engine.start(epic_id, role)
     if cursor.status.value == "complete":
         _print(engine.status(), args.json)
         return 0
@@ -1028,7 +1039,9 @@ def main(argv: list[str] | None = None) -> int:
             _print(result, args.json)
             return 0 if result["ok"] else 1
         if args.command == "start":
-            cursor = engine.start(_epic(args, engine), args.role)
+            epic_id = _epic(args, engine)
+            role = resolve_epic_role(paths.project, epic_id, args.role, kind=args.kind)
+            cursor = engine.start(epic_id, role)
             _print(cursor.to_dict(), args.json)
             return 0
         if args.command == "implement-flush":

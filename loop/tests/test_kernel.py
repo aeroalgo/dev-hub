@@ -1743,6 +1743,7 @@ def test_retry_is_bounded_by_one_counter(tmp_path: Path) -> None:
         "session_id",
         "failure",
         "updated_at",
+        "kind",
     }
 
 

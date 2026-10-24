@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-107-loop-security-epic-pipeline
+title: s05 — roadmap security path discovery and Kind I instruction surfaces update
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить loop/kernel/roadmap.py для поддержки next_kind == 'security' при обнаружении плана эпика
+  (путь security/plan/<id>/md/plan.md). Обновить документацию и инструкции (Kind I): loop/README.md,
+  workflow-security.mdc, shared/workflow-security-epic.mdc и тексты справки CLI, убрав устаревшие
+  feature-only формулировки и явно описав поддержку kind=security и kind=refactor.
+
+plan_contract:
+  fr_ids:
+    - FR-010
+    - FR-013
+    - SC-006
+    - US-001
+  nouns:
+    - loop/kernel/roadmap.py
+    - loop/README.md
+    - .cursor/rules/back_developer/workflow-security.mdc
+    - .cursor/rules/shared/workflow-security-epic.mdc
+    - loop/kernel/cli.py
+    - loop/tests/test_roadmap_security.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/yaml/steps/s05-roadmap-security-discovery-and-kind-i-docs.yaml
+  ac_quotes:
+    - "Roadmap advance при next_kind=security должен искать plan под security/plan/<id>/md/plan.md (не только feature plan/)."
+    - "Docs/README/workflow tip обновлены (Kind I)."
+    - "CLI help «discover under …/plan/<epic>» only заменяется на упоминание security/refactor roots + --kind."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:40-64
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:113-145
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md:256-289
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md
+    - loop/kernel/roadmap.py
+    - loop/README.md
+    - .cursor/rules/back_developer/workflow-security.mdc
+    - .cursor/rules/shared/workflow-security-epic.mdc
+    - loop/kernel/cli.py
+  produces:
+    - loop/kernel/roadmap.py
+    - loop/README.md
+    - .cursor/rules/back_developer/workflow-security.mdc
+    - .cursor/rules/shared/workflow-security-epic.mdc
+    - loop/kernel/cli.py
+    - loop/tests/test_roadmap_security.py
+  plan_refs:
+    - FR-010
+    - FR-013
+    - SC-006
+    - TM-007
+  files:
+    - loop/kernel/roadmap.py
+    - loop/README.md
+    - .cursor/rules/back_developer/workflow-security.mdc
+    - .cursor/rules/shared/workflow-security-epic.mdc
+    - loop/kernel/cli.py
+    - loop/tests/test_roadmap_security.py
+
+as_built:
+  - "loop/kernel/roadmap.py ищет план следующего эпика только в memory-bank/<role>/plan/<epic_id>/md/plan.md"
+  - "loop/README.md содержит только примеры запуска feature-эпиков без --kind"
+  - "Правила workflow-security содержат текстовые подсказки без конкретных команд loop для security-эпика"
+
+delta:
+  - "В loop/kernel/roadmap.py учитывать next_kind при формировании пути к плану эпика"
+  - "Обновить loop/README.md: добавить раздел про SECURITY epic lifecycle и аргумент --kind"
+  - "Обновить .cursor/rules/back_developer/workflow-security.mdc и shared/workflow-security-epic.mdc"
+  - "Обновить подсказку аргумента --role / --kind в loop/kernel/cli.py"
+  - "Написать тесты test_roadmap_security.py на корректный поиск плана при next_kind=security (TM-007)"
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Legacy fallback purge сканирование репозитория (шаг s06)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes in roadmap and docs step"
+    async-python-patterns: "synchronous roadmap file discovery"
+
+checkpoints:
+  - id: cp1
+    criterion: "Roadmap advance при next_kind=security ищет и находит план в security/plan/<id>/md/plan.md (TM-007)"
+    verify: "bin/pytest loop/tests/test_roadmap_security.py -k test_roadmap_security_plan -q --tb=line"
+  - id: cp2
+    criterion: "loop/README.md и правила workflow содержат актуальные инструкции по kind-aware start и loop SECURITY"
+    verify: "rg -n 'security/plan' loop/README.md .cursor/rules/back_developer/workflow-security.mdc"
+  - id: cp3
+    criterion: "CLI help содержит упоминание --kind и путей security/refactor"
+    verify: "python3 bin/loop.py --help | rg -- '--kind'"
+
+verify: []
+tdd: []
