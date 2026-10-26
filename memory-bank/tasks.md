@@ -2,7 +2,9 @@
 
 ## Active
 
-| T-HUB-107 | Loop SECURITY epic pipeline | L3 | PLAN done | queue[0] | [plan](back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md) · [prompt](back/plan/T-HUB-107-loop-security-epic-pipeline/md/prompt.md) · [clarify](back/clarify/clarify-20261024-loop-security-epic.md) · batch loop-security-epic-20261024 · kind paths + SECURITY aNN → DONE + verify-security; next BACK DECOMPOSE |
+| T-HUB-108 | Loop board projection (Bitrix24\|Plane adapters) | L3 | PLAN done | queue[0] | [plan](back/plan/T-HUB-108-loop-board-projection/md/plan.md) · [prompt](back/plan/T-HUB-108-loop-board-projection/md/prompt.md) · [clarify](back/clarify/clarify-20261026-bitrix-loop-epic-board.md) · batch loop-board-projection-20261026 · Protocol+registry · soft-fail · provider switch; next BACK DECOMPOSE |
+| T-HUB-107 | Loop SECURITY epic pipeline | L3 | PLAN done | done | [plan](back/plan/T-HUB-107-loop-security-epic-pipeline/md/plan.md) · [prompt](back/plan/T-HUB-107-loop-security-epic-pipeline/md/prompt.md) · [clarify](back/clarify/clarify-20261024-loop-security-epic.md) · batch loop-security-epic-20261024 · EPIC DONE |
+
 | T-HUB-106 | DSH runtime full purge | L3 | PLAN done | queued | [plan](back/plan/T-HUB-106-dsh-runtime-full-purge/md/plan.md) · [prompt](back/plan/T-HUB-106-dsh-runtime-full-purge/md/prompt.md) · [clarify](back/clarify/clarify-20260916-dsh-full-purge.md) · batch dsh-runtime-full-purge-20260916 · live code/runtime/libs/tests/Kind I; history epics untouched |
 | T-HUB-103…105 | PLAN REFACTOR leftover twin/shim (post 098–102) | L2 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · batch plan-refactor-leftover-20260916 · kind=refactor · **103** event schema SoT · **104** plan-path classifier · **105** roadmap legacy source · next BACK DECOMPOSE T-HUB-103-event-schema-sot-unify |
 | T-HUB-103 | Event schema SoT unify | L2 | PLAN done | queued | [plan](back/plan/T-HUB-103-event-schema-sot-unify/md/plan.md) · [prompt](back/plan/T-HUB-103-event-schema-sot-unify/md/prompt.md) · C1 |

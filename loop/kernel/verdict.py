@@ -35,6 +35,7 @@ MANAGED_GATE_AGENTS = frozenset(
         "verify-script",
         "verify-edit",
         "verify-publish",
+        "verify-security",
     }
 )
 MANAGED_REPAIR_AGENTS = frozenset({"gate-repair"})

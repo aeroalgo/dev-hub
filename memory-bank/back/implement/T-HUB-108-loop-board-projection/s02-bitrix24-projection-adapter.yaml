@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-108-loop-board-projection
+task_id: T-HUB-108
+title: s02 — Bitrix24 projection adapter and REST webhook transport IMPLEMENT
+level: L2
+status: in_progress
+decompose_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s02-bitrix24-projection-adapter.yaml
+date: 2026-10-26
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+
+done:
+  - "Создан пакет loop/board_projection/adapters/ с файлом __init__.py."
+  - "Создан класс Bitrix24Adapter в loop/board_projection/adapters/bitrix24.py, реализующий Protocol BoardProjectionAdapter."
+  - "Реализован метод ensure_card: отправка webhook tasks.task.add с TITLE, DESCRIPTION, GROUP_ID и начальным STAGE_ID, извлечение external task_id."
+  - "Реализован метод move_card: отправка webhook task.stages.movetask с task id и stageId, разрешенным через phase_alias и stage_map."
+  - "Зарегистрирован Bitrix24Adapter в реестре get_adapter / register_adapter."
+  - "Созданы unit-тесты loop/tests/test_board_projection_bitrix24.py с mock transport для валидации всех checkpoints, протокола и обработки ошибок (HTTP 500, REST error, unknown phase)."
+
+files:
+  - loop/board_projection/adapters/__init__.py
+  - loop/board_projection/adapters/bitrix24.py
+  - loop/tests/test_board_projection_bitrix24.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/board_projection/adapters/bitrix24.py: Bitrix24Adapter implementing BoardProjectionAdapter"
+    - "loop/board_projection/adapters/bitrix24.py: register_adapter('bitrix24', Bitrix24Adapter.from_config)"
+  enforce_path: "loop/board_projection/adapters/bitrix24.py"
+  dual_path_rg: "rg -n 'tasks\\.task\\.add|task\\.stages\\.movetask' loop/ --glob '!loop/board_projection/**' --glob '!loop/tests/**'"
+  instruction_rg: "rg -n 'Bitrix24Adapter' loop/"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_board_projection_bitrix24.py -k test_bitrix24_implements_protocol -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_bitrix24.py -k test_bitrix24_ensure_card -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_bitrix24.py -k test_bitrix24_move_card -q --tb=line` — PASS'
+
+integration_check:
+  - "Bitrix24Adapter unit tests run green via mock transport with full protocol and registry integration"
+
+checkpoints:
+  - id: cp1
+    criterion: "Bitrix24Adapter имплементирует BoardProjectionAdapter Protocol"
+    status: done
+  - id: cp2
+    criterion: "ensure_card отправляет корректный JSON в tasks.task.add и возвращает external_id"
+    status: done
+  - id: cp3
+    criterion: "move_card вызывает task.stages.movetask с stageId из stage_map"
+    status: done
+
+resume_from: cp3

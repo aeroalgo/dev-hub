@@ -6,7 +6,7 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/shared/_lean/security.mdc + @.cursor/rules/back_developer/isolation_rules/_lean/security.mdc (role patch)
 **Epic paths:** @.cursor/rules/shared/workflow-security-epic.mdc
-**Скиллы:**
+**Скиллы (база + pack; execute грузит только `skills.impl` шага / S → situational subset):**
 - @.agents/skills/writing-plans/SKILL.md (PLAN / DECOMPOSE)
 - @.agents/skills/owasp-security-check/SKILL.md
 - @.agents/skills/security-auditor/SKILL.md
@@ -23,8 +23,30 @@ alwaysApply: false
 - @.agents/skills/skill-security-audit/SKILL.md
 - @.agents/skills/sigil-scan/SKILL.md
 - @.agents/skills/variant-analysis/SKILL.md
+- @.agents/skills/code-review-security/SKILL.md
+- @.agents/skills/api-security-review/SKILL.md
+- @.agents/skills/web-security-review/SKILL.md
+- @.agents/skills/secrets-scan/SKILL.md
+- @.agents/skills/sca-audit/SKILL.md
+- @.agents/skills/hunt-fastapi/SKILL.md
+- @.agents/skills/sast-analysis/SKILL.md
+- @.agents/skills/sast-sqli/SKILL.md
+- @.agents/skills/sast-ssrf/SKILL.md
+- @.agents/skills/sast-idor/SKILL.md
+- @.agents/skills/sast-jwt/SKILL.md
+- @.agents/skills/sast-missingauth/SKILL.md
+- @.agents/skills/sast-fileupload/SKILL.md
+- @.agents/skills/sast-hardcodedsecrets/SKILL.md
+- @.agents/skills/sast-businesslogic/SKILL.md
+- @.agents/skills/sast-rce/SKILL.md
+- @.agents/skills/sast-pathtraversal/SKILL.md
+- @.agents/skills/sast-report/SKILL.md
+- @.agents/skills/secrets-gitleaks/SKILL.md
+- @.agents/skills/sast-bandit/SKILL.md
+- @.agents/skills/sca-trivy/SKILL.md
 
 **Цель:** security-аудит кусками (эпик) или one-shot (S). Isolation maps не грузить сверх Gates.
+**Agent gate (не CI):** при execute агент **сам** гоняет evidence из skills (rg / bandit / pip-audit / gitleaks / trivy / semgrep — по SKILL и наличию tools). Azure Pipelines security stage **не** требуется для workflow.
 
 **Detect submode:** args / Handoff содержат `PLAN` → PLAN; `DECOMPOSE` → DECOMPOSE; иначе EXECUTE.
 
@@ -32,10 +54,11 @@ alwaysApply: false
 
 ## A. SECURITY PLAN
 
-1. `OK BACK SECURITY PLAN - Security plan` + `SUSPENSION GUARD active — plan output unlimited`
+1. `OK BACK SECURITY PLAN - Security plan` + `SUSPENSION GUARD active — plan output unlimited` (§0.0 token-economy-core; brevity / ~200-line cap **FORBIDDEN** for plan artifact)
 1a. Gates + workflow-security-epic
 2. Scope detect: сомнение → M/L
 3. Inventory surfaces (api/auth/db/jobs/secrets/deps/ci) + priority + skills map
+3b. **PLAN DETAIL (HARD — SECURITY):** `plan.md` пишется **максимально подробным / exhaustive**. Обязательно: полный surface inventory с paths; threat model; priority matrix; SQL/querystring→builder dataflow (если есть filter/SQL SoT); evidence commands; draft `aNN` outline; skills map; assumptions; AC. **FORBIDDEN:** TOC-only stub · telegraph §0.2 · «оглавление достаточно» · урезание ради токенов/чата. Chat brief OK; artifact — no size limit. Gate: `wc -l plan.md` не stub (ожидаемо сотни+ строк при M/L full-project).
 4. Сохрани `memory-bank/back/security/plan/<id>/md/plan.md` (@.cursor/templates/security/plan.md)
 5. `tasks.md` append-only
 6. **FINISH:** finish-block (`code_changed: no`)
@@ -58,7 +81,9 @@ alwaysApply: false
 1. `OK BACK SECURITY - Security audit`
 1a. Gates + workflow-security-epic (path rule)
 1b. Epic detect: `security/plan/<id>/yaml/` / `@aNN` / plan id → **эпик**; иначе **S**
-2. `tasks.md` + load_now; skills = Audit skills шага (эпик) или workflow list (S)
+2. `tasks.md` + load_now; skills = **`skills.impl` шага** (эпик) или situational subset из списка выше (S)
+2b. **HARD — Read skills before audit:** для каждого path из `skills.impl` — `Read` `SKILL.md` и следуй процедуре skill (не «упомянуть в отчёте»). Класс-SAST (`sast-*`) + OWASP playbook (`*-review` / `secrets-scan` / `sca-audit`) + `hunt-fastapi` — по surface шага.
+2c. **HARD — Agent evidence (не CI):** выполнить evidence commands из plan/skill (минимум: `rg` по scope; при наличии CLI — bandit / pip-audit / gitleaks dir / trivy fs / semgrep). Результаты → findings + paths; **не** полагаться на Azure Pipeline. Missing tool → зафиксировать `evidence: tool_unavailable:<name>` и продолжить ручным/rg pass (не silent skip класса угроз).
 3. **Эпик:** один `aNN` → findings → `security/implement/<id>/aNN-<slug>.yaml` (валидируется по `schema: epic-security/v1`)
    **FORBIDDEN:** `security-audit-*.md` в корне при эпике
 4. **S:** audit → `security/security-audit-YYYYMMDD-<slug>.md`

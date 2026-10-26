@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-108-loop-board-projection
+task_id: T-HUB-108
+title: s01 — Board projection config, schemas, protocol, and registry IMPLEMENT
+level: L1
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s01-board-projection-config-protocol-registry.yaml
+date: 2026-10-26
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Создан модуль loop/board_projection/errors.py с иерархией ProjectionError, ProjectionConfigError, ProviderMismatchError, AdapterExecutionError."
+  - "Создан модуль loop/board_projection/protocol.py с dataclass EpicRef, ProjectionResult и runtime-checkable Protocol BoardProjectionAdapter."
+  - "Создан модуль loop/board_projection/config.py с Pydantic моделями Bitrix24Config, PlaneConfig, ProvidersConfig, BoardProjectionConfig, функцией load_projection_config и проверками полноты провайдеров (FR-001, FR-002, FR-010, FR-011)."
+  - "Создан модуль loop/board_projection/registry.py с реестром провайдеров и функциями register_adapter, get_adapter, unregister_adapter."
+  - "Создан пакетный экспорт loop/board_projection/__init__.py."
+  - "Созданы unit-тесты loop/tests/test_board_projection_config.py покрывающие все чекпоинты (cp1-cp4), а также валидацию YAML и работу реестра."
+
+files:
+  - loop/board_projection/__init__.py
+  - loop/board_projection/config.py
+  - loop/board_projection/protocol.py
+  - loop/board_projection/registry.py
+  - loop/board_projection/errors.py
+  - loop/tests/test_board_projection_config.py
+
+deletes: []
+
+tests:
+  - '`bin/pytest loop/tests/test_board_projection_config.py -k test_projection_models_defined -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_config.py -k test_missing_config_disabled -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_config.py -k test_unknown_provider_fail_closed -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_config.py -k test_incomplete_config_and_roles -q --tb=line` — PASS'
+
+integration_check:
+  - "Targeted tests for board projection config and protocol run green"
+
+checkpoints:
+  - id: cp1
+    criterion: "Определены модели Pydantic для конфигурации проекции и Protocol BoardProjectionAdapter"
+    status: done
+  - id: cp2
+    criterion: "Отсутствующий файл конфига корректно сообщает disabled reason missing_config без исключения (BN-001, TM-001)"
+    status: done
+  - id: cp3
+    criterion: "Неизвестный провайдер fail-closed выбрасывает ProjectionConfigError (BN-002, TM-002)"
+    status: done
+  - id: cp4
+    criterion: "Неполная конфигурация провайдера выдает disabled reason incomplete_provider_config (BN-003, TM-003, TM-010)"
+    status: done
+
+resume_from: cp4

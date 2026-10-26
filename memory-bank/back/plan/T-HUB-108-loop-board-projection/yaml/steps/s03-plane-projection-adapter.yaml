@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-108-loop-board-projection
+title: s03 — Plane projection adapter and REST work-item transport
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать PlaneAdapter, имплементирующий BoardProjectionAdapter Protocol,
+  работающий через Plane REST API (create work-item / issue и PATCH state),
+  с fail-closed валидацией успешной смены state (защита от silent no-op),
+  и покрыть unit-тестами с fake HTTP транспортом.
+
+plan_contract:
+  fr_ids:
+    - FR-008
+    - AC-2
+    - TM-005
+  nouns:
+    - loop/board_projection/adapters/plane.py
+    - loop/tests/test_board_projection_plane.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s03-plane-projection-adapter.yaml
+  ac_quotes:
+    - "Plane adapter: API key + BASE_URL; create work item/issue; update state с fail-closed проверкой что state реально сменился (защита от silent no-op CE/cloud field drift: слать совместимые поля / verify response)."
+    - "При полном конфиге provider=plane finish без map -> work item + sidecar."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:140-180
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:200-250
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md
+    - loop/board_projection/protocol.py
+    - loop/board_projection/config.py
+    - loop/board_projection/errors.py
+  produces:
+    - loop/board_projection/adapters/plane.py
+    - loop/tests/test_board_projection_plane.py
+  plan_refs:
+    - FR-008
+    - AC-2
+    - TM-005
+  files:
+    - loop/board_projection/adapters/plane.py
+    - loop/tests/test_board_projection_plane.py
+
+as_built:
+  - "В loop отсутствует клиент и адаптер для интеграции с Plane."
+
+delta:
+  - "Создать loop/board_projection/adapters/plane.py с классом PlaneAdapter."
+  - "Реализовать ensure_card: создание work item / issue в Plane через POST /api/v1/workspaces/{slug}/projects/{project_id}/issues/ с name, description_html/body, state_id."
+  - "Реализовать move_card: PATCH /api/v1/workspaces/{slug}/projects/{project_id}/issues/{issue_id}/ с новым state_id и assert проверки возвращаемого ответа (fail-closed если state не сменился)."
+  - "Зарегистрировать PlaneAdapter в реестре адаптеров registry.py."
+  - "Добавить loop/tests/test_board_projection_plane.py с тестами создания и перемещения карточки, а также с проверкой fail-closed при несовпадении target state в ответе API."
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Bitrix24Adapter (шаг s02)"
+  - "Управление сайдкаром и soft-fail обработка в общем сервисе (шаг s04)"
+  - "Интеграция с CLI командами loop (шаг s05)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  omit_justification:
+    fastapi-templates: "no FastAPI framework; external sync REST client"
+    async-python-patterns: "synchronous HTTP adapter using httpx.Client"
+
+checkpoints:
+  - id: cp1
+    criterion: "PlaneAdapter имплементирует BoardProjectionAdapter Protocol"
+    verify: "bin/pytest loop/tests/test_board_projection_plane.py -k test_plane_implements_protocol -q --tb=line"
+  - id: cp2
+    criterion: "ensure_card создает work-item в проекте Plane с правильными заголовками авторизации и телом"
+    verify: "bin/pytest loop/tests/test_board_projection_plane.py -k test_plane_ensure_card -q --tb=line"
+  - id: cp3
+    criterion: "move_card обновляет state work item и бросает исключение при неизменном state в ответе API"
+    verify: "bin/pytest loop/tests/test_board_projection_plane.py -k test_plane_move_card_fail_closed -q --tb=line"
+
+verify: []
+tdd: []

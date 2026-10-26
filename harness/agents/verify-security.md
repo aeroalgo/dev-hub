@@ -77,14 +77,17 @@ Parent **обязан** передать только:
 python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-security","verdict":"PASS","step_id":"<aNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
-- Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`.
-- `valid: false` → исправь по ошибкам и повтори Bash до `valid: true`.
+- Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
+- `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp + `emit_exactly`).
+- Emit fence = поле `emit_exactly` из stdout CLI. `recorded_at` может отличаться; любое другое поле (`verdict`, ids, `evidence_sha256`) → новый `validate-verdict`.
 - Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- Fence language: **только** `json`.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `findings_verified`, `summary`, `gate`, `status`, `checkpoints`. Narrative / audit prose — **после** fence, не внутри JSON.
+- Fence language: **только** `json`. FORBIDDEN: info-string `json loop-gate-verdict/v1` или `loop-gate-verdict/v1`.
+- После fence — ноль tool calls.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
-Финальный ответ = ровно один fenced JSON. Открывающая строка = ` ```json `.
+Финальный ответ = ровно один fenced JSON (`emit_exactly`). Открывающая строка = ` ```json `.
 
 ```json
 {
@@ -98,8 +101,16 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 }
 ```
 
+- Поле **`schema`** (не `schema_version`).
+- `verdict`: `"PASS"` | `"FAIL"`.
+- `step_id`, `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
+- Findings живут только в security execute yaml (`epic-security/v1`); **FORBIDDEN** класть `findings` / `findings_verified` / `summary` в gate JSON.
+
 ## FORBIDDEN
 
 - Edit/Write/любые патчи
 - финал без валидного JSON fence `loop-gate-verdict/v1`
 - `verdict: PASS` при pending checkpoints
+- free-form / audit-report JSON вместо `emit_exactly`
+- fence language ≠ `json`
+- tool calls после финального JSON fence

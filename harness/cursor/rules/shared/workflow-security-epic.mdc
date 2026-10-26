@@ -82,15 +82,20 @@ FINISH artifact = `security/implement/<id>/aNN-*.yaml` (валидация `sche
 
 ## PLAN output
 
-`security/plan/<id>/md/plan.md` = **§0.0 SUSPENSION GUARD** (как feature/refactor plan): maximally detailed; chat brief OK.
+`security/plan/<id>/md/plan.md` = **§0.0 SUSPENSION GUARD** (как feature/refactor plan): **maximally detailed / exhaustive / comprehensive** — no line/size/brevity limits; chat brief OK.  
+**FORBIDDEN on SECURITY plan write:** §0.2 telegraph · ~200-line cap · TOC-only · «keep short» · compress inventory/SQL dataflow «ради токенов».  
+Token-economy lean = **load** unrelated docs, **not** lean **write** of security plan.
 
 ### PLAN must include
 
-- Threat / surface inventory (роли: BACK=api/auth/db/jobs; FRONT=XSS/tokens/CSP/bundle; INTEG=wire/authz/IDOR/contract)
-- Priority matrix Critical→Low
+- Threat / surface inventory (роли: BACK=api/auth/db/jobs; FRONT=XSS/tokens/CSP/bundle; INTEG=wire/authz/IDOR/contract) — **paths + routes**, не только заголовки
+- Для BACK при наличии filter/SQL SoT: **отдельный раздел** querystring → `PaginateQueryParams` / ORM QueryBuilder / `build_sql_query` (dataflow, call sites, residual SQLi vs over-filter)
+- Priority matrix Critical→Low с обоснованием
+- Inventory findings (candidate Critical/High) с path:line — **без** копирования plaintext secrets в plan
 - Draft slice outline **без** checkbox (статусы только после DECOMPOSE в index)
 - Skills map (какие audit skills на какие surfaces)
-- Out of scope + assumptions
+- Evidence commands (rg / pip-audit / semgrep — по наличию)
+- Out of scope + assumptions + AC эпика
 - Next: `* SECURITY DECOMPOSE`
 
 ## DECOMPOSE output

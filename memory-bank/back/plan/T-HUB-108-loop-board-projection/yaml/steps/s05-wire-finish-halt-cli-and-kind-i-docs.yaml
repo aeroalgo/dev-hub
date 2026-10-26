@@ -1,0 +1,118 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-108-loop-board-projection
+title: s05 — Wire finish and halt transition hooks, board-sync CLI catch-up, and Kind I documentation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить вызов project_epic_phase в loop/kernel/cli.py после успешного выполнения команд finish и halt
+  (строго после фиксации перехода в CursorStore, без риска отката транзакции при ошибке проекции),
+  добавить CLI команду bin/loop.py board-sync для ручного догона синхронизации и сброса sync_error,
+  подготовить пример конфигурации .loop/board-projection.yaml.example и обновить Kind I документацию в loop/README.md.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-012
+    - FR-014
+    - AC-5
+    - AC-7
+    - US-001
+    - US-004
+    - TM-008
+    - TM-009
+    - SC-002
+  nouns:
+    - loop/kernel/cli.py
+    - .loop/board-projection.yaml.example
+    - loop/README.md
+    - loop/tests/test_board_projection_cli.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s05-wire-finish-halt-cli-and-kind-i-docs.yaml
+  ac_quotes:
+    - "После успешного cursor commit на finish / halt hot path должен вызывать единый project_after_transition вне CursorStore transaction."
+    - "CLI догона: bin/loop.py board-sync [--epic ID] использует тот же Protocol."
+    - "Finish не импортирует vendor clients напрямую (только Protocol/registry)."
+    - "Нет конфига / provider: none -> finish OK + explicit disabled."
+    - "Kind I: loop/README.md описывает providers, конфиг, soft-fail, switch rules — не MCP-as-primary."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:140-190
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:200-280
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md
+    - loop/board_projection/service.py
+    - loop/board_projection/registry.py
+    - loop/kernel/cli.py
+  produces:
+    - loop/kernel/cli.py
+    - .loop/board-projection.yaml.example
+    - loop/README.md
+    - loop/tests/test_board_projection_cli.py
+  plan_refs:
+    - FR-004
+    - FR-012
+    - FR-014
+    - AC-5
+    - AC-7
+    - US-001
+    - US-004
+    - TM-008
+    - TM-009
+    - SC-002
+  files:
+    - loop/kernel/cli.py
+    - .loop/board-projection.yaml.example
+    - loop/README.md
+    - loop/tests/test_board_projection_cli.py
+
+as_built:
+  - "В CLI loop.py отсутствует вызов проекции при выполнении finish или halt."
+  - "В CLI loop.py отсутствует команда board-sync."
+  - "В документации loop/README.md нет описания настройки проекции досок Bitrix24 и Plane."
+
+delta:
+  - "В loop/kernel/cli.py добавить вызов сервиса project_epic_phase после успешных engine.finish() и engine.halt() вне блока транзакции."
+  - "Убедиться, что loop/kernel/cli.py не импортирует напрямую модули вендоров bitrix24.py или plane.py, а использует только интерфейс сервиса и реестра (AC-7, TM-009)."
+  - "Добавить CLI подкоманду board-sync в loop/kernel/cli.py с поддержкой опции --epic, запускающую догон синхронизации и сбрасывающую sync_error при успешном вызове (FR-012, TM-008)."
+  - "Создать пример конфигурации .loop/board-projection.yaml.example с секциями bitrix24 и plane, phase_alias и role_allowlist."
+  - "Обновить loop/README.md (Kind I): описать конфигурацию провайдеров, политику soft-fail, правила смены провайдера и использование CLI board-sync."
+  - "Добавить тесты в loop/tests/test_board_projection_cli.py на finish/halt wire, отсутствие прямого импорта вендоров, и работу подкоманды board-sync."
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Двусторонняя синхронизация задач из внешней доски обратно в loop"
+  - "Автоматическая миграция маппинга между разными трекерами"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    fastapi-templates: "CLI application and markdown documentation"
+    async-python-patterns: "synchronous CLI commands and engine execution"
+
+checkpoints:
+  - id: cp1
+    criterion: "finish и halt вызывают сервис проекции без отката транзакции при сбоях (FR-004, AC-7, TM-009)"
+    verify: "bin/pytest loop/tests/test_board_projection_cli.py -k test_cli_finish_halt_wire -q --tb=line"
+  - id: cp2
+    criterion: "Команда board-sync успешно выполняет синхронизацию и очищает sync_error (FR-012, TM-008)"
+    verify: "bin/pytest loop/tests/test_board_projection_cli.py -k test_cli_board_sync -q --tb=line"
+  - id: cp3
+    criterion: "Пример .loop/board-projection.yaml.example существует и loop/README.md содержит документацию по board-projection (FR-014)"
+    verify: "test -f .loop/board-projection.yaml.example && grep -q 'board-projection' loop/README.md"
+
+verify: []
+tdd: []

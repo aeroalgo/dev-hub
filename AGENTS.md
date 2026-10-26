@@ -84,7 +84,11 @@ Write `activeContext` — `.cursor/rules/token-economy-stub.mdc` §0.7.
 - Модели данных = DocType (`*.json` + `*.py` Document), не отдельные Pydantic/SQLAlchemy-слои «сбоку», если as-built так не устроен.
 - Перед новым модулем — найти соседний образец в том же app (page / whitelist / test) и копировать паттерны: импорты, `frappe.get_all`, права `has_permission`, именование, структура ответа.
 - **FORBIDDEN:** параллельный стек (свой FastAPI, свой TestClient, свой OpenAPI) рядом с Frappe для той же фичи; silent fallback; «временный» код без теста.
-- **Новый CRM whitelist API (HARD):** явный `methods=[...]`, валидация входа Pydantic на границе, ошибки через `frappe.throw` / typed exceptions (не success-body при ошибке). Канон: `.cursor/rules/crm-api-contract.mdc`. Не размазывать этот контракт на правки upstream `frappe/` / `erpnext/` / `hrms/`.
+- **Новый CRM API и архитектура бэкенда (HARD):**
+  - Архитектурный канон слоёв: `.cursor/rules/crm-architecture.mdc` (Adapter, Service, Repository, Schema).
+  - API-контракт: `.cursor/rules/crm-api-contract.mdc` — явный `methods=[...]`, Pydantic-валидация входа, обязательный Out-контракт, тонкий adapter (без толстой бизнес-логики и SQL прямо в методе), ошибки через `frappe.throw` / typed exceptions (не success-body при ошибке).
+  - **FORBIDDEN:** FastAPI / Starlette / Django REST app в CRM; толстые whitelist без `methods=[...]`.
+  - Scope foundation_only: архитектурные каркасы и правила задают канон и не обещают сразу готовый продуктовый endpoint. Не размазывать этот контракт на правки upstream `frappe/` / `erpnext/` / `hrms/`.
 
 ### Стиль тестов
 

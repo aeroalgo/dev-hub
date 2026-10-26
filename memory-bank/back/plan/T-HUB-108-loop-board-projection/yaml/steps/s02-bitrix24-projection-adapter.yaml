@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-108-loop-board-projection
+title: s02 — Bitrix24 projection adapter and REST webhook transport
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать Bitrix24Adapter, имплементирующий BoardProjectionAdapter Protocol,
+  работающий через webhook REST API Bitrix24 (tasks.task.add и task.stages.movetask),
+  с поддержкой group_id и stage_map из конфигурации, и покрыть unit-тестами с fake HTTP транспортом.
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - AC-1
+    - TM-005
+  nouns:
+    - loop/board_projection/adapters/bitrix24.py
+    - loop/tests/test_board_projection_bitrix24.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s02-bitrix24-projection-adapter.yaml
+  ac_quotes:
+    - "Bitrix24 adapter: webhook REST tasks.task.add + task.stages.movetask (group + stageId из конфига)."
+    - "При полном конфиге provider=bitrix24 finish без map -> задача в группе + sidecar."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:140-175
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:200-240
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md
+    - loop/board_projection/protocol.py
+    - loop/board_projection/config.py
+    - loop/board_projection/errors.py
+  produces:
+    - loop/board_projection/adapters/__init__.py
+    - loop/board_projection/adapters/bitrix24.py
+    - loop/tests/test_board_projection_bitrix24.py
+  plan_refs:
+    - FR-007
+    - AC-1
+    - TM-005
+  files:
+    - loop/board_projection/adapters/__init__.py
+    - loop/board_projection/adapters/bitrix24.py
+    - loop/tests/test_board_projection_bitrix24.py
+
+as_built:
+  - "В loop отсутствует клиент и адаптер для интеграции с Bitrix24."
+
+delta:
+  - "Создать директорию loop/board_projection/adapters/ с файлом __init__.py."
+  - "Создать loop/board_projection/adapters/bitrix24.py с классом Bitrix24Adapter."
+  - "Реализовать метод ensure_card: вызов tasks.task.add с title, description, group_id и начальной stage_id, возвращающий external task_id."
+  - "Реализовать метод move_card: вызов task.stages.movetask с task_id и target stage_id."
+  - "Зарегистрировать Bitrix24Adapter в реестре адаптеров registry.py."
+  - "Добавить loop/tests/test_board_projection_bitrix24.py с тестами вызовов webhook tasks.task.add и task.stages.movetask через mock transport."
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "PlaneAdapter (шаг s03)"
+  - "Управление сайдкаром и soft-fail обработка в общем сервисе (шаг s04)"
+  - "Интеграция с CLI командами loop (шаг s05)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+  omit_justification:
+    fastapi-templates: "no FastAPI framework; external sync REST client"
+    async-python-patterns: "synchronous HTTP adapter using httpx.Client"
+
+checkpoints:
+  - id: cp1
+    criterion: "Bitrix24Adapter имплементирует BoardProjectionAdapter Protocol"
+    verify: "bin/pytest loop/tests/test_board_projection_bitrix24.py -k test_bitrix24_implements_protocol -q --tb=line"
+  - id: cp2
+    criterion: "ensure_card отправляет корректный JSON в tasks.task.add и возвращает external_id"
+    verify: "bin/pytest loop/tests/test_board_projection_bitrix24.py -k test_bitrix24_ensure_card -q --tb=line"
+  - id: cp3
+    criterion: "move_card вызывает task.stages.movetask с stageId из stage_map"
+    verify: "bin/pytest loop/tests/test_board_projection_bitrix24.py -k test_bitrix24_move_card -q --tb=line"
+
+verify: []
+tdd: []

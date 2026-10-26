@@ -1,6 +1,12 @@
 version: roadmap-queue/v2
 role: back
-queue: []
+queue:
+- id: T-HUB-108
+  epic_id: T-HUB-108-loop-board-projection
+  kind: feature
+  plan: T-HUB-108-loop-board-projection/md/plan.md
+  batch: loop-board-projection-20261026
+  deps: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -617,3 +623,8 @@ batches:
     note: T-HUB-107 kind-aware paths (feature|refactor|security), SECURITY phase finish/advance
       to DONE, verify-security gate, epic-security/v1 schema; S one-shot out of loop;
       clarify clarify-20261024-loop-security-epic.md; details in plan/<epic_id>/md/plan.md
+  loop-board-projection-20261026:
+    title: Loop board projection — pluggable Bitrix24|Plane adapters
+    note: T-HUB-108 Protocol+registry, soft-fail post-finish mirror, provider switch,
+      mapping sidecar under .loop/; clarify clarify-20261026-bitrix-loop-epic-board.md;
+      details in plan/T-HUB-108-loop-board-projection/md/plan.md

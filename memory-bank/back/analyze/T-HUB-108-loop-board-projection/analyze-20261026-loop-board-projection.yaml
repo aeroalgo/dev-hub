@@ -1,0 +1,292 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-108-loop-board-projection
+slug: loop-board-projection
+date: '2026-10-26'
+status: complete
+index_fingerprint: sha256:a80dacc1289813b0556c0eb3761ef18bd4a0d48a2f8c6b0a49d476a76f714720
+findings: []
+coverage:
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Load board projection config using Pydantic from .loop/board-projection.yaml
+    (or env override path) with loud ProjectionConfigError on invalid YAML
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Support provider in {none, bitrix24, plane} with fail-closed
+    rejection for unknown provider
+- requirement_id: FR-003
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Expose BoardProjectionAdapter Protocol with ensure_card, move_card,
+    and provider_name
+- requirement_id: FR-004
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Wire project_after_transition hook after successful finish/halt
+    outside CursorStore transaction
+- requirement_id: FR-005
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Lazy create card when epic mapping is absent with title/description
+    containing epic_id and atomic sidecar persistence
+- requirement_id: FR-006
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Move card to stage/state column from map using canonical phase
+    aliases when map provider matches config
+- requirement_id: FR-007
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: Bitrix24 adapter using webhook REST tasks.task.add and task.stages.movetask
+- requirement_id: FR-008
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Plane adapter using API key and BASE_URL to create work item
+    and update state with fail-closed assert against silent no-op
+- requirement_id: FR-009
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Soft-fail behavior where projection errors do not rollback transition
+    but log to stderr and persist sync_error
+- requirement_id: FR-010
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Incomplete active provider config yields explicit projection_disabled
+    reason without HTTP calls
+- requirement_id: FR-011
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Role allowlist enforcement (default ['back']) where disallowed
+    roles return disabled reason role_not_allowed
+- requirement_id: FR-012
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: CLI catch-up command bin/loop.py board-sync using same Protocol
+    and clearing sync_error on success
+- requirement_id: FR-013
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Lookup cards strictly via sidecar external_id without search-by-title
+    fallback
+- requirement_id: FR-014
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Kind I documentation in loop/README.md detailing providers,
+    config, soft-fail, and switch rules
+- requirement_id: US-001
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Operator selects provider plane or bitrix24 in config to mirror
+    epics to external board
+- requirement_id: US-002
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Operator sees new card created on first finish when no prior
+    mapping exists
+- requirement_id: US-003
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Operator sees card moved to phase column on subsequent phase
+    transitions
+- requirement_id: US-004
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Operator without config sees finish succeed with explicit projection
+    disabled status
+- requirement_id: US-005
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Operator sees cursor advance and sync_error logged during board
+    outage, retrying later via board-sync
+- requirement_id: US-006
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Operator switching provider receives explicit error when stale
+    mapping exists without corrupting external tasks
+- requirement_id: AC-1
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: Bitrix24 provider creates task in group and records sidecar
+    mapping
+- requirement_id: AC-2
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Plane provider creates work item in project and records sidecar
+    mapping
+- requirement_id: AC-3
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Finish transition moves card according to mapping
+- requirement_id: AC-4
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Provider switch with existing mapping of another provider fails
+    explicitly before HTTP
+- requirement_id: AC-5
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Missing config or provider none finishes cleanly with explicit
+    disabled reason
+- requirement_id: AC-6
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: REST errors soft-fail without rolling back finish and board-sync
+    repairs
+- requirement_id: AC-7
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Finish does not import vendor clients directly but uses Protocol
+    and registry
+- requirement_id: BN-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Missing config returns disabled reason missing_config with zero
+    HTTP calls
+- requirement_id: BN-002
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Unknown provider raises ProjectionConfigError fail-closed
+- requirement_id: BN-003
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Incomplete provider config (e.g. plane without api_key) yields
+    incomplete_provider_config
+- requirement_id: BN-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Provider mismatch between map and config raises ProjectionError
+    provider_mismatch
+- requirement_id: BN-005
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Duplicate finish on same phase is idempotent and does not create
+    duplicate card
+- requirement_id: BN-006
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: REST 500 or timeout sets sync_error while keeping cursor transition
+- requirement_id: BN-007
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: REST 401 unauthenticated sets sync_error without silent pass
+- requirement_id: BN-008
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Phase missing from stage/state map records sync_error unknown_phase_mapping
+- requirement_id: TM-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Finish with missing config results in projection_disabled and
+    zero HTTP calls
+- requirement_id: TM-002
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Unknown provider raises ConfigError
+- requirement_id: TM-003
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Incomplete plane config results in incomplete_provider_config
+- requirement_id: TM-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Provider mismatch raises ProjectionError with zero HTTP calls
+- requirement_id: TM-005
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Lazy create followed by move against fake HTTP bitrix and plane
+- requirement_id: TM-006
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: REST 500 soft-fail preserves cursor transition and sets sync_error
+- requirement_id: TM-007
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Unknown phase mapping sets sync_error unknown_phase
+- requirement_id: TM-008
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: board-sync catch-up clears sync_error on success
+- requirement_id: TM-009
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Finish does not import vendor modules directly verified by test
+- requirement_id: TM-010
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Role not in allowlist returns disabled reason role_not_allowed
+- requirement_id: SC-001
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Targeted tests for each adapter and registry switch
+- requirement_id: SC-002
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Finish without config does not make HTTP calls
+- requirement_id: SC-003
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Provider mismatch detected before HTTP
+- requirement_id: SC-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Soft-fail preserves cursor phase
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

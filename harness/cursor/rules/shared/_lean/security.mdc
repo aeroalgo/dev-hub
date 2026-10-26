@@ -22,10 +22,11 @@ alwaysApply: false
 
 ## PLAN-only
 
-1. Inventory surfaces + priority matrix (см. role patch)
+1. Inventory surfaces + priority matrix (см. role patch) — **exhaustive**, §0.0 SUSPENSION GUARD
 2. Draft aNN outline без checkbox
 3. Next → SECURITY DECOMPOSE
-4. `wc -l` plan — не TOC-only stub
+4. `wc -l` plan — не TOC-only stub; SECURITY plan = **maximally detailed** (FORBIDDEN telegraph / size cap)
+5. BACK + SQL filters: plan обязан содержать dataflow querystring→builder + call sites
 
 ## DECOMPOSE-only
 

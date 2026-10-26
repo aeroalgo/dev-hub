@@ -1,0 +1,63 @@
+---
+description: HARD — архитектура бэкенда CRM — слои, тонкие адаптеры, запрет толстого whitelist и FastAPI
+globs: crm/crm/api/**/*.py,crm/crm/schemas/**,crm/crm/services/**,crm/crm/repositories/**
+alwaysApply: false
+---
+
+# CRM BACKEND ARCHITECTURE CANON (наш новый код)
+
+Канон слоистой архитектуры бэкенда приложения CRM.
+Применяется для нового серверного Python-кода в `crm/crm/`.
+Не переписывать upstream-стиль ядра Frappe/ERPNext/HRMS.
+Связанный API-контракт: `.cursor/rules/crm-api-contract.mdc`.
+
+---
+
+## 1. Архитектурные слои (Taxonomy)
+
+| Слой | Назначение | Разрешено | Запрещено |
+|------|------------|-----------|-----------|
+| **Adapter (API Whitelist)**<br>`crm/crm/api/**/*.py` | Тонкий HTTP/RPC фасад Frappe | Валидация входа (`validate_inbound`), проверка прав (`assert_permission`), вызов сервиса, возврат Out-структуры | Прямые SQL-запросы, тяжелая бизнес-логика, манипуляции с БД |
+| **Service (Domain Logic)**<br>`crm/crm/services/**` | Чистая бизнес-логика и оркестрация | Правила предметной области, вызовы репозиториев, транзакции | Работа с `frappe.form_dict`, чтение HTTP-заголовков, прямой возврат HTTP-ответов |
+| **Repository (Data Access)**<br>`crm/crm/repositories/**` | Доступ к данным Frappe | `frappe.get_doc`, `frappe.qb`, `frappe.db.get_value`, чтение/запись DocType | Бизнес-правила, валидация HTTP-запросов |
+| **Schema (Data Contracts)**<br>`crm/crm/schemas/**` | Pydantic v2 модели контрактов | Inbound модели (`CreateXIn`), Outbound модели (`ItemOut`), валидаторы полей | Запросы к БД, импорт тяжелых модулей рантайма Frappe |
+
+---
+
+## 2. Тонкий адаптер и запрет толстого whitelist (HARD)
+
+Каждая функция `@frappe.whitelist()` в CRM обязана быть тонким адаптером:
+1. Иметь явный параметр `methods=[...]` (например, `methods=["GET"]` или `methods=["POST"]`).
+2. Валидировать вход через Pydantic-схему (слой schemas / `validate_inbound`).
+3. Проверять полномочия (`frappe.has_permission` или `assert_permission`).
+4. Делегировать выполнение слою сервисов (`crm/crm/services/`).
+5. Возвращать валидированный Out-контракт (`dict` или Pydantic Out model dump).
+
+**FORBIDDEN:**
+- `@frappe.whitelist()` без параметра `methods=`.
+- Толстый whitelist: бизнес-логика, прямые SQL-запросы или сложный процессинг прямо в теле API метода.
+- Мутация состояния через HTTP метод `GET`.
+
+---
+
+## 3. Запрет параллельных фреймворков (HARD)
+
+- **FastAPI / Starlette / Django REST: FORBIDDEN** в качестве параллельного стека или «нормального API» рядом с Frappe.
+- Вся интеграция и HTTP-транспорт осуществляются через стандартные механизмы Frappe (`/api/method/...`, `@frappe.whitelist()`).
+- OpenAPI/Swagger обертки «сбоку» запрещены, если они вводят параллельный runtime.
+
+---
+
+## 4. Обработка ошибок (Fail-Closed)
+
+- Ошибки валидации: `frappe.ValidationError` (через `frappe.throw`).
+- Ошибки доступа: `frappe.PermissionError`.
+- Отсутствие сущности: `frappe.DoesNotExistError`.
+- **FORBIDDEN:** возврат JSON вида `{"success": false, "error": "..."}` со статусом HTTP 200 при бизнес-ошибках.
+
+---
+
+## 5. Scope-директива Foundation
+
+- Настоящий канон фиксирует соглашения слоев и контрактов (`foundation_only`).
+- Сам по себе архитектурный каркас не обещает готовый продуктовый эндпоинт (пилотный бизнес-срез реализуется в последующих специализированных эпиках, например T-010).

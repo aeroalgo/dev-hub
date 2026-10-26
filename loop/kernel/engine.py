@@ -168,8 +168,15 @@ class LoopEngine:
         )
 
     def _render_body(self, cursor: Cursor, queue: Queue | None = None) -> str:
+        if queue is None and cursor.phase not in {"DECOMPOSE", "BUGFIX"} and cursor.epic_id:
+            try:
+                queue = self._queue(cursor)
+            except Exception:
+                queue = None
         if cursor.phase == "BUGFIX":
             load_path = bugfix_queue_path(self.paths.project, cursor.role, cursor.epic_id)
+        elif cursor.phase == "SECURITY" and queue is not None:
+            load_path = None
         else:
             load_path = queue.path if queue is not None else self._plan_path(cursor)
         lines = [
@@ -185,8 +192,14 @@ class LoopEngine:
             "---",
             "",
             "## load_now",
-            f"1. {load_path.relative_to(self.paths.project).as_posix()} — {'queue/status' if queue is not None else 'source plan'}",
         ]
+        next_load_number = 1
+        if load_path is not None:
+            lines.append(
+                f"{next_load_number}. {load_path.relative_to(self.paths.project).as_posix()} — "
+                f"{'queue/status' if queue is not None else 'source plan'}"
+            )
+            next_load_number += 1
         phase_directories = {
             "ANALYZE": "analyze",
             "CREATIVE": "creative",
@@ -196,7 +209,6 @@ class LoopEngine:
             "CONTEXT_SYNC": "context-sync",
         }
         artifact_kind = phase_directories.get(cursor.phase)
-        next_load_number = 2
         if artifact_kind:
             lines.append(
                 f"{next_load_number}. memory-bank/{cursor.role}/{artifact_kind}/{cursor.epic_id}/ — current phase artifacts"
@@ -213,9 +225,19 @@ class LoopEngine:
                 lines.append(f"{next_load_number}. {shard_rel} — current step artifact")
                 next_load_number += 1
             if step and cursor.phase != "CREATIVE":
+                impl_label = "security execute artifact" if cursor.phase == "SECURITY" else "implement artifact"
                 lines.append(
-                    f"{next_load_number}. {implement_path(self.paths.project, queue.role, queue.epic_id, step, kind=cursor.kind or "feature").relative_to(self.paths.project).as_posix()} — implement artifact"
+                    f"{next_load_number}. {implement_path(self.paths.project, queue.role, queue.epic_id, step, kind=cursor.kind or "feature").relative_to(self.paths.project).as_posix()} — {impl_label}"
                 )
+                next_load_number += 1
+            if cursor.phase == "SECURITY" and queue is not None:
+                lines.append(
+                    f"{next_load_number}. {queue.path.relative_to(self.paths.project).as_posix()} — decompose index status"
+                )
+                next_load_number += 1
+        if next_load_number == 1:
+            fallback = self._plan_path(cursor)
+            lines.append(f"1. {fallback.relative_to(self.paths.project).as_posix()} — source plan")
         lines.extend(
             [
                 "",
@@ -878,7 +900,7 @@ class LoopEngine:
             raise TransitionError("start transaction did not produce a cursor")
         return result.cursor
 
-    def rewind(self, phase: str, *, reason: str = "manual rewind") -> Transition:
+    def rewind(self, phase: str, *, reason: str = "manual rewind", step_id: str | None = None) -> Transition:
         target_phase = str(phase or "").strip().upper()
         if target_phase not in {
             "DECOMPOSE",
@@ -888,6 +910,7 @@ class LoopEngine:
             "QA",
             "BUGFIX",
             "CONTEXT_SYNC",
+            "SECURITY",
         }:
             raise TransitionError(f"unsupported rewind phase: {phase!r}")
 
@@ -907,6 +930,19 @@ class LoopEngine:
                         raise TransitionError("cannot rewind to CREATIVE: no pending step")
                     creative_step = queue.pending[0]
                 candidate.step_id = creative_step.step_id
+            elif target_phase == "SECURITY":
+                if queue is None:
+                    raise TransitionError("cannot rewind to SECURITY without decompose index")
+                wanted = str(step_id or "").strip() or None
+                if wanted:
+                    match = next((item for item in queue.steps if item.step_id == wanted), None)
+                    if match is None:
+                        raise TransitionError(f"cannot rewind to SECURITY: step {wanted!r} missing from index")
+                    candidate.step_id = match.step_id
+                elif queue.pending:
+                    candidate.step_id = queue.pending[0].step_id
+                else:
+                    raise TransitionError("cannot rewind to SECURITY: no pending audit step")
             else:
                 candidate.step_id = target_phase
             candidate.status = CursorStatus.ACTIVE

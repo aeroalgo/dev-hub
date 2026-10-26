@@ -1,0 +1,129 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-108-loop-board-projection
+title: s01 — Board projection config, schemas, protocol, and registry
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать пакет loop/board_projection с базовыми моделями конфигурации (pydantic v2),
+  протоколом адаптера BoardProjectionAdapter, реестром адаптеров get_adapter,
+  типизированными исключениями и проверками валидности конфига (провайдер none/bitrix24/plane,
+  role_allowlist, fail-closed при неполной конфигурации).
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-010
+    - FR-011
+    - BN-001
+    - BN-002
+    - BN-003
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-010
+  nouns:
+    - loop/board_projection/config.py
+    - loop/board_projection/protocol.py
+    - loop/board_projection/registry.py
+    - loop/board_projection/errors.py
+    - loop/tests/test_board_projection_config.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s01-board-projection-config-protocol-registry.yaml
+  ac_quotes:
+    - "Система должна читать конфиг проекции pydantic-ом из .loop/board-projection.yaml (или env override path); invalid YAML -> ProjectionConfigError (loud)."
+    - "Система должна поддерживать provider in {none, bitrix24, plane}; неизвестный provider -> fail-closed."
+    - "Система должна экспонировать Protocol: ensure_card(epic) -> external_id, move_card(external_id, phase) -> None, provider_name."
+    - "Неполный конфиг активного provider -> projection_disabled с reason (не HTTP, не silent)."
+    - "Role allowlist (default ['back']); роль вне списка -> disabled reason role_not_allowed."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:120-160
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md:180-230
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md
+  produces:
+    - loop/board_projection/__init__.py
+    - loop/board_projection/config.py
+    - loop/board_projection/protocol.py
+    - loop/board_projection/registry.py
+    - loop/board_projection/errors.py
+    - loop/tests/test_board_projection_config.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-010
+    - FR-011
+    - BN-001
+    - BN-002
+    - BN-003
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-010
+  files:
+    - loop/board_projection/__init__.py
+    - loop/board_projection/config.py
+    - loop/board_projection/protocol.py
+    - loop/board_projection/registry.py
+    - loop/board_projection/errors.py
+    - loop/tests/test_board_projection_config.py
+
+as_built:
+  - "Пакета loop/board_projection в репозитории нет."
+  - "В loop нет схемы конфигурации проекции на внешние доски."
+  - "В loop нет единого Protocol для адаптеров внешних досок."
+
+delta:
+  - "Создать loop/board_projection/__init__.py с экспортом основных типов и исключений."
+  - "Создать loop/board_projection/errors.py с иерархией ошибок ProjectionError, ProjectionConfigError."
+  - "Создать loop/board_projection/protocol.py с dataclass EpicRef, ProjectionResult и runtime-checkable Protocol BoardProjectionAdapter."
+  - "Создать loop/board_projection/config.py с Pydantic моделями Bitrix24Config, PlaneConfig, BoardProjectionConfig, функцией load_projection_config."
+  - "Создать loop/board_projection/registry.py с реестром провайдеров и функцией get_adapter."
+  - "Добавить unit-тесты loop/tests/test_board_projection_config.py проверяющие валидацию провайдеров, отсутствие конфига (BN-001), неизвестный провайдер (BN-002), неполный конфиг (BN-003), и allowlist ролей (TM-010)."
+
+deletes: []
+wire_complete_required: true
+
+out_of_scope:
+  - "Реализация Bitrix24Adapter HTTP вызовов (шаг s02)"
+  - "Реализация PlaneAdapter HTTP вызовов (шаг s03)"
+  - "Сервис синхронизации и сайдкар mapping (шаг s04)"
+  - "Интеграция с CLI finish/halt (шаг s05)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+  omit_justification:
+    fastapi-templates: "no HTTP routes or FastAPI dependencies in loop config"
+    async-python-patterns: "synchronous hub loop configuration and protocol"
+
+checkpoints:
+  - id: cp1
+    criterion: "Определены модели Pydantic для конфигурации проекции и Protocol BoardProjectionAdapter"
+    verify: "bin/pytest loop/tests/test_board_projection_config.py -k test_projection_models_defined -q --tb=line"
+  - id: cp2
+    criterion: "Отсутствующий файл конфига корректно сообщает disabled reason missing_config без исключения (BN-001, TM-001)"
+    verify: "bin/pytest loop/tests/test_board_projection_config.py -k test_missing_config_disabled -q --tb=line"
+  - id: cp3
+    criterion: "Неизвестный провайдер fail-closed выбрасывает ProjectionConfigError (BN-002, TM-002)"
+    verify: "bin/pytest loop/tests/test_board_projection_config.py -k test_unknown_provider_fail_closed -q --tb=line"
+  - id: cp4
+    criterion: "Неполная конфигурация провайдера выдает disabled reason incomplete_provider_config (BN-003, TM-003, TM-010)"
+    verify: "bin/pytest loop/tests/test_board_projection_config.py -k test_incomplete_config_and_roles -q --tb=line"
+
+verify: []
+tdd: []

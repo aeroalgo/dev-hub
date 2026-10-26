@@ -7,7 +7,32 @@ from loop.kernel.model import Cursor
 from loop.kernel.store import LoopPaths
 from loop.kernel.engine import LoopEngine, TransitionError, _PHASE_GATE_AGENTS
 from loop.kernel.verdict import GateVerdict
-from loop.kernel.cli import _gate_protocol
+from loop.kernel.cli import _gate_protocol, _phase_instruction
+
+
+def test_security_prompt_requires_workflow_bootstrap(tmp_path: Path) -> None:
+    """SECURITY execute must force workflow-security + gates; never implement-bootstrap."""
+    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+    cursor = Cursor(
+        epic_id="T-HUB-999-sec",
+        role="back",
+        kind="security",
+        phase="SECURITY",
+        step_id="a01",
+        session_id="s-test",
+    )
+    instruction = _phase_instruction(cursor, tmp_path)
+    assert "HARD SECURITY bootstrap" in instruction
+    assert ".cursor/rules/back_developer/workflow-security.mdc" in instruction
+    assert ".cursor/rules/shared/_lean/security.mdc" in instruction
+    assert ".cursor/rules/back_developer/isolation_rules/_lean/security.mdc" in instruction
+    assert ".cursor/rules/shared/workflow-security-epic.mdc" in instruction
+    assert "implement-bootstrap.mdc" in instruction
+    assert "do not use implement-bootstrap.mdc" in instruction
+    assert "memory-bank/back/security/plan/" in instruction
+    assert "memory-bank/back/security/implement/" in instruction
+    assert "verify-security" in instruction
+    assert "code_changed: no" in instruction
 
 
 def test_security_phase_model() -> None:

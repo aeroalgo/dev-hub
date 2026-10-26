@@ -1,0 +1,291 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-108-loop-board-projection
+appetite:
+  timebox_days: 3
+  cut_list:
+  - comments on card
+  - auto-create columns
+  - OAuth for Bitrix
+  - dual-provider fanout
+  - auto-migrate map between providers
+  - Linear adapter
+effort_probe:
+  outcomes:
+  - outcome: Board projection config, schemas, protocol, registry, and errors
+    hours: 3.0
+  - outcome: Bitrix24 projection adapter and webhook REST transport
+    hours: 2.5
+  - outcome: Plane projection adapter and REST work-item transport
+    hours: 2.5
+  - outcome: Projection service, mapping sidecar lifecycle, provider switch protection,
+      and soft-fail
+    hours: 3.0
+  - outcome: Wire finish and halt transition hooks, board-sync CLI catch-up, and Kind
+      I documentation
+    hours: 2.0
+  total_hours: 13.0
+  effort_class: L
+  sNN_cap: 8
+  sNN_target: 5
+steps:
+- id: s01
+  file: s01-board-projection-config-protocol-registry.yaml
+  title: s01 — Board projection config, schemas, protocol, and registry
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-bitrix24-projection-adapter.yaml
+  title: s02 — Bitrix24 projection adapter and REST webhook transport
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s03
+  file: s03-plane-projection-adapter.yaml
+  title: s03 — Plane projection adapter and REST work-item transport
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-projection-service-mapping-and-soft-fail.yaml
+  title: s04 — Projection service, mapping sidecar lifecycle, provider switch protection,
+    and soft-fail
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-wire-finish-halt-cli-and-kind-i-docs.yaml
+  title: s05 — Wire finish and halt transition hooks, board-sync CLI catch-up, and
+    Kind I documentation
+  next_phase: BACK IMPLEMENT
+  status: pending
+requirements_coverage:
+- id: FR-001
+  step: s01
+  description: Load board projection config using Pydantic from .loop/board-projection.yaml
+    (or env override path) with loud ProjectionConfigError on invalid YAML
+- id: FR-002
+  step: s01
+  description: Support provider in {none, bitrix24, plane} with fail-closed rejection
+    for unknown provider
+- id: FR-003
+  step: s01
+  description: Expose BoardProjectionAdapter Protocol with ensure_card, move_card,
+    and provider_name
+- id: FR-004
+  step: s05
+  description: Wire project_after_transition hook after successful finish/halt outside
+    CursorStore transaction
+- id: FR-005
+  step: s04
+  description: Lazy create card when epic mapping is absent with title/description
+    containing epic_id and atomic sidecar persistence
+- id: FR-006
+  step: s04
+  description: Move card to stage/state column from map using canonical phase aliases
+    when map provider matches config
+- id: FR-007
+  step: s02
+  description: Bitrix24 adapter using webhook REST tasks.task.add and task.stages.movetask
+- id: FR-008
+  step: s03
+  description: Plane adapter using API key and BASE_URL to create work item and update
+    state with fail-closed assert against silent no-op
+- id: FR-009
+  step: s04
+  description: Soft-fail behavior where projection errors do not rollback transition
+    but log to stderr and persist sync_error
+- id: FR-010
+  step: s01
+  description: Incomplete active provider config yields explicit projection_disabled
+    reason without HTTP calls
+- id: FR-011
+  step: s01
+  description: Role allowlist enforcement (default ['back']) where disallowed roles
+    return disabled reason role_not_allowed
+- id: FR-012
+  step: s05
+  description: CLI catch-up command bin/loop.py board-sync using same Protocol and
+    clearing sync_error on success
+- id: FR-013
+  step: s04
+  description: Lookup cards strictly via sidecar external_id without search-by-title
+    fallback
+- id: FR-014
+  step: s05
+  description: Kind I documentation in loop/README.md detailing providers, config,
+    soft-fail, and switch rules
+- id: US-001
+  step: s05
+  description: Operator selects provider plane or bitrix24 in config to mirror epics
+    to external board
+- id: US-002
+  step: s04
+  description: Operator sees new card created on first finish when no prior mapping
+    exists
+- id: US-003
+  step: s04
+  description: Operator sees card moved to phase column on subsequent phase transitions
+- id: US-004
+  step: s05
+  description: Operator without config sees finish succeed with explicit projection
+    disabled status
+- id: US-005
+  step: s04
+  description: Operator sees cursor advance and sync_error logged during board outage,
+    retrying later via board-sync
+- id: US-006
+  step: s04
+  description: Operator switching provider receives explicit error when stale mapping
+    exists without corrupting external tasks
+- id: AC-1
+  step: s02
+  description: Bitrix24 provider creates task in group and records sidecar mapping
+- id: AC-2
+  step: s03
+  description: Plane provider creates work item in project and records sidecar mapping
+- id: AC-3
+  step: s04
+  description: Finish transition moves card according to mapping
+- id: AC-4
+  step: s04
+  description: Provider switch with existing mapping of another provider fails explicitly
+    before HTTP
+- id: AC-5
+  step: s05
+  description: Missing config or provider none finishes cleanly with explicit disabled
+    reason
+- id: AC-6
+  step: s04
+  description: REST errors soft-fail without rolling back finish and board-sync repairs
+- id: AC-7
+  step: s05
+  description: Finish does not import vendor clients directly but uses Protocol and
+    registry
+- id: BN-001
+  step: s01
+  description: Missing config returns disabled reason missing_config with zero HTTP
+    calls
+- id: BN-002
+  step: s01
+  description: Unknown provider raises ProjectionConfigError fail-closed
+- id: BN-003
+  step: s01
+  description: Incomplete provider config (e.g. plane without api_key) yields incomplete_provider_config
+- id: BN-004
+  step: s04
+  description: Provider mismatch between map and config raises ProjectionError provider_mismatch
+- id: BN-005
+  step: s04
+  description: Duplicate finish on same phase is idempotent and does not create duplicate
+    card
+- id: BN-006
+  step: s04
+  description: REST 500 or timeout sets sync_error while keeping cursor transition
+- id: BN-007
+  step: s04
+  description: REST 401 unauthenticated sets sync_error without silent pass
+- id: BN-008
+  step: s04
+  description: Phase missing from stage/state map records sync_error unknown_phase_mapping
+- id: TM-001
+  step: s01
+  description: Finish with missing config results in projection_disabled and zero
+    HTTP calls
+- id: TM-002
+  step: s01
+  description: Unknown provider raises ConfigError
+- id: TM-003
+  step: s01
+  description: Incomplete plane config results in incomplete_provider_config
+- id: TM-004
+  step: s04
+  description: Provider mismatch raises ProjectionError with zero HTTP calls
+- id: TM-005
+  step: s04
+  description: Lazy create followed by move against fake HTTP bitrix and plane
+- id: TM-006
+  step: s04
+  description: REST 500 soft-fail preserves cursor transition and sets sync_error
+- id: TM-007
+  step: s04
+  description: Unknown phase mapping sets sync_error unknown_phase
+- id: TM-008
+  step: s05
+  description: board-sync catch-up clears sync_error on success
+- id: TM-009
+  step: s05
+  description: Finish does not import vendor modules directly verified by test
+- id: TM-010
+  step: s01
+  description: Role not in allowlist returns disabled reason role_not_allowed
+- id: SC-001
+  step: s04
+  description: Targeted tests for each adapter and registry switch
+- id: SC-002
+  step: s05
+  description: Finish without config does not make HTTP calls
+- id: SC-003
+  step: s04
+  description: Provider mismatch detected before HTTP
+- id: SC-004
+  step: s04
+  description: Soft-fail preserves cursor phase
+stages_coverage:
+- stage: 'Stage 1: Board projection config, schemas, protocol, registry, and errors'
+  step: s01
+- stage: 'Stage 2: Bitrix24 projection adapter and webhook REST transport'
+  step: s02
+- stage: 'Stage 3: Plane projection adapter and REST work-item transport'
+  step: s03
+- stage: 'Stage 4: Projection service, mapping sidecar lifecycle, provider switch
+    protection, and soft-fail'
+  step: s04
+- stage: 'Stage 5: Wire finish and halt transition hooks, board-sync CLI catch-up,
+    and Kind I documentation'
+  step: s05
+outcome_map:
+- outcome: Board projection config, schemas, protocol, registry, and errors
+  step: s01
+- outcome: Bitrix24 projection adapter and webhook REST transport
+  step: s02
+- outcome: Plane projection adapter and REST work-item transport
+  step: s03
+- outcome: Projection service, mapping sidecar lifecycle, provider switch protection,
+    and soft-fail
+  step: s04
+- outcome: Wire finish and halt transition hooks, board-sync CLI catch-up, and Kind
+    I documentation
+  step: s05
+replacement_cleanup:
+- symbol: resurrect loop/board_sync DSH as SoT
+  kind: A
+  replacement: loop/board_projection/
+  step: s01
+  policy: delete in-epic
+- symbol: hardcode Bitrix-only finish hook
+  kind: A
+  replacement: Protocol registry
+  step: s01
+  policy: delete in-epic
+- symbol: n/a entrypoints
+  kind: B
+  replacement: finish + board-sync CLI
+  step: s05
+  policy: delete in-epic
+- symbol: silent skip нет битрикса — ок без reason
+  kind: C
+  replacement: explicit projection_disabled
+  step: s01
+  policy: delete in-epic
+- symbol: soft title search if no map
+  kind: C
+  replacement: mapping-only external_id
+  step: s04
+  policy: delete in-epic
+- symbol: подключи MCP и двигай эпики как primary для board mirror
+  kind: I
+  replacement: README adapter + provider switch
+  step: s05
+  policy: delete in-epic
+- symbol: prompt draft Bitrix-only wording
+  kind: I
+  replacement: multi-provider wording
+  step: s05
+  policy: delete in-epic

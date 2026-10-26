@@ -74,7 +74,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--step")
     parser.add_argument(
         "--phase",
-        choices=("DECOMPOSE", "ANALYZE", "CREATIVE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC"),
+        choices=("DECOMPOSE", "ANALYZE", "CREATIVE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC", "SECURITY"),
     )
     parser.add_argument("--reason", default="manual halt")
     parser.add_argument("--payload")
@@ -193,6 +193,40 @@ def _code_phase_bootstrap(cursor, project: Path) -> str:
     )
 
 
+def _security_phase_bootstrap(cursor, project: Path) -> str:
+    """Force SECURITY execute load order — workflow + gates; never implement-bootstrap."""
+    role_rules = _role_rules_dir(cursor.role)
+    role = str(cursor.role or "back").strip().upper()
+    workflow = f".cursor/rules/{role_rules}/workflow-security.mdc"
+    lean_shared = ".cursor/rules/shared/_lean/security.mdc"
+    lean_role = f".cursor/rules/{role_rules}/isolation_rules/_lean/security.mdc"
+    epic_paths = ".cursor/rules/shared/workflow-security-epic.mdc"
+    active = project / "memory-bank" / "activeContext.md"
+    epic = cursor.epic_id
+    step = cursor.step_id
+    role_mb = cursor.role
+    return (
+        f"HARD SECURITY bootstrap BEFORE any exploration or audit evidence "
+        f"(do not skip; do not use implement-bootstrap.mdc; do not load mainrule.mdc monolith): "
+        f"1) Read {workflow} — section C SECURITY execute is SoT. "
+        f"2) Read {lean_shared} and {lean_role} (Gates). "
+        f"3) Read {epic_paths} (path rule: epic → only security/implement/…/aNN-*.yaml). "
+        f"4) Read {active} and ONLY its load_now paths. "
+        f"5) Read the current decompose step shard for {step} under "
+        f"memory-bank/{role_mb}/security/plan/{epic}/yaml/steps/ "
+        "(or the exact load_now shard path); follow audit_surface, scope, threats, checkpoints, "
+        "and Audit skills listed on the step — Read those SKILL.md paths before auditing. "
+        f"6) Write/update findings only in memory-bank/{role_mb}/security/implement/{epic}/"
+        f"{step}-*.yaml (schema: epic-security/v1). "
+        f"Run {role} SECURITY for {epic} step {step}: audit only; code_changed: no. "
+        "FORBIDDEN until those bootstrap Reads exist in this session: repo-wide find/ls tourism, "
+        "git status as discovery, production code edits, root security-audit-*.md while an epic "
+        "YAML tree is active, dual-writing implement + root audit. "
+        "Before finish: spawn verify-security, then "
+        f"`python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step {step}`. "
+    )
+
+
 def _phase_instruction(cursor, project: Path) -> str:
     role = cursor.role.upper()
     epic = cursor.epic_id
@@ -226,6 +260,8 @@ def _phase_instruction(cursor, project: Path) -> str:
         )
     if cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
         return _code_phase_bootstrap(cursor, project)
+    if cursor.phase == "SECURITY":
+        return _security_phase_bootstrap(cursor, project)
     if cursor.phase == "BUGFIX":
         return (
             f"Run {role} BUGFIX for {epic}. Read bugfix-queue.yaml first, take only the first open or "
@@ -1089,7 +1125,7 @@ def main(argv: list[str] | None = None) -> int:
             if not args.phase:
                 _print({"ok": False, "error": "--phase is required for rewind"}, args.json)
                 return 2
-            transition = engine.rewind(args.phase, reason=args.reason)
+            transition = engine.rewind(args.phase, reason=args.reason, step_id=args.step)
             _print(
                 {"event": transition.event, "status": transition.status.value, "phase": transition.phase, "step_id": transition.step_id},
                 args.json,
