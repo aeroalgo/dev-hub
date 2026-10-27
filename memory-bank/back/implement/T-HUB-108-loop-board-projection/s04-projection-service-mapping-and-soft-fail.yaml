@@ -1,0 +1,129 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-108-loop-board-projection
+task_id: T-HUB-108
+title: s04 — Projection service, mapping sidecar lifecycle, provider switch protection, and soft-fail IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s04-projection-service-mapping-and-soft-fail.yaml
+date: 2026-10-26
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+
+done:
+  - "Создан модуль loop/board_projection/mapping.py со схемой loop-board-epic-map/v1, моделями BoardEpicMap и EpicMapEntry, и функциями атомарной записи и загрузки сайдкара маппинга."
+  - "Создан сервис loop/board_projection/service.py с функциями project_epic_phase и project_after_transition."
+  - "Определён BoardProjectionService как обёртка над project_epic_phase и project_after_transition."
+  - "Реализована fail-closed защита от несовпадения провайдеров (ProviderMismatchError) до выполнения любых сетевых HTTP вызовов (BN-004, TM-004, SC-003)."
+  - "Реализован lazy create при отсутствии записи карточки в маппинге и move при наличии (FR-005, FR-006, BN-005, TM-005)."
+  - "Реализован механизм soft-fail: перехват исключений сетевого взаимодействия адаптера с логированием в stderr и сохранением sync_error в сайдкар маппинга (FR-009, BN-006, BN-007, TM-006, SC-004)."
+  - "Реализована проверка role_allowlist и обработка статуса disabled."
+  - "Добавлены всесторонние unit-тесты в loop/tests/test_board_projection_service.py покрывающие жизненный цикл маппинга, fail-closed mismatch, soft-fail, lazy create, идемпотентность и роли."
+
+files:
+  - loop/board_projection/mapping.py
+  - loop/board_projection/service.py
+  - loop/tests/test_board_projection_service.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/board_projection/service.py: BoardProjectionService"
+    - "loop/board_projection/service.py: project_epic_phase and project_after_transition"
+    - "loop/board_projection/mapping.py: load_board_epic_map and save_board_epic_map"
+  enforce_path: "loop/board_projection/service.py"
+  dual_path_rg: "rg -n 'board-epic-map' loop/ --glob '!loop/board_projection/**' --glob '!loop/tests/**'"
+  instruction_rg: "rg -n 'project_epic_phase' loop/"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_board_projection_service.py -k test_mapping_lifecycle -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_service.py -k test_provider_mismatch_fails_closed -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_service.py -k test_soft_fail_records_sync_error -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_service.py -k test_lazy_create_and_move_idempotence -q --tb=line` — PASS'
+
+integration_check:
+  - "BoardProjectionService and BoardEpicMap lifecycle unit tests pass all 4 checkpoints with mock adapter"
+
+checkpoints:
+  - id: cp1
+    criterion: "Сайдкар mapping сохраняет и читает схему loop-board-epic-map/v1"
+    status: done
+  - id: cp2
+    criterion: "Несовпадение провайдера в конфиге и маппинге прерывается ошибкой до HTTP (BN-004, TM-004, SC-003)"
+    status: done
+  - id: cp3
+    criterion: "Сетевые ошибки внешнего API не приводят к падению сервиса и фиксируются в sync_error (BN-006, BN-007, TM-006, SC-004)"
+    status: done
+  - id: cp4
+    criterion: "Первый вызов создает карточку, повторный перемещает карточку по external_id без дубликатов (FR-005, FR-006, BN-005, TM-005)"
+    status: done
+
+ac_evidence:
+  - ac_id: FR-005
+    status: completed
+    mapping:
+      - "Если mapping для epic_id отсутствует — lazy create (название/описание включают epic_id), затем атомарная запись sidecar."
+    boundary:
+      in_scope: "s04 service lazy create"
+      out_of_scope:
+        - "s05 cli wiring"
+  - ac_id: FR-006
+    status: completed
+    mapping:
+      - "Если mapping есть и map.provider == config.provider — move на column id из map для текущей phase (или сжатый alias -> id)."
+    boundary:
+      in_scope: "s04 service move logic"
+      out_of_scope:
+        - "s05 cli wiring"
+  - ac_id: FR-009
+    status: completed
+    mapping:
+      - "Soft-fail: исключение projection не откатывает Transition; пишет stderr + sync_error в map; exit code finish остаётся success transition."
+    boundary:
+      in_scope: "s04 soft-fail error capture"
+      out_of_scope:
+        - "s05 cli wiring"
+  - ac_id: FR-013
+    status: completed
+    mapping:
+      - "Lookup карточки только по sidecar external_id; FORBIDDEN search-by-title."
+    boundary:
+      in_scope: "s04 external_id lookup"
+      out_of_scope:
+        - "s05 cli wiring"
+  - ac_id: AC-3
+    status: completed
+    mapping:
+      - "Если mapping есть и map.provider == config.provider — move на column id из map для текущей phase (или сжатый alias -> id)."
+    boundary:
+      in_scope: "s04 service move logic"
+      out_of_scope:
+        - "s05 cli wiring"
+  - ac_id: AC-4
+    status: completed
+    mapping:
+      - "Смена provider при существующем map другого provider -> явная ошибка, без HTTP к новому API с чужим id."
+    boundary:
+      in_scope: "s04 provider mismatch check"
+      out_of_scope:
+        - "s05 cli wiring"
+  - ac_id: AC-6
+    status: completed
+    mapping:
+      - "Soft-fail: исключение projection не откатывает Transition; пишет stderr + sync_error в map; exit code finish остаётся success transition."
+    boundary:
+      in_scope: "s04 soft-fail error capture"
+      out_of_scope:
+        - "s05 cli wiring"
+
+resume_from: cp4

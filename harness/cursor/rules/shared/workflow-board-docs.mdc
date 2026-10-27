@@ -1,0 +1,69 @@
+---
+description: "PROJECT DOCS — ручная публикация workflow/gitflow/runbooks на Диск проекта Bitrix/Plane"
+alwaysApply: false
+---
+# PROJECT DOCS (manual)
+
+**Триггер:** `PROJECT DOCS` · `BOARD DOCS` (legacy alias) · «опубликуй документацию проекта на доску/диск».
+
+Это **не** про эпик и **не** про карточку задачи. Публикуются общие правила работы с проектом (workflow, gitflow, runbooks) в хранилище **проекта**:
+
+- Bitrix24: Диск группы (`group_id`) → папка `project_docs.folder_name`
+- Plane: страницы проекта (Pages), title = `{folder} / {filename}`
+
+**НЕ** вызывается из `finish` / `halt` / auto-loop.
+
+## Preconditions
+
+1. `.loop/board-projection.yaml` (структура) + **per-project `.env`** (`LOOP_BOARD_PROVIDER`, Bitrix/Plane ids, secrets)
+2. Для Bitrix webhook scope **`disk`** (+ task scopes для канбана)
+3. В yaml заполнен `project_docs.files` и/или переданы `--file`
+
+## Config
+
+`.env` (своя доска у каждого проекта):
+
+```bash
+LOOP_BOARD_PROVIDER=bitrix24
+BITRIX_WEBHOOK_URL=...
+BITRIX_GROUP_ID=26
+BITRIX_RESPONSIBLE_ID=274
+BITRIX_STAGE_BACKLOG=...
+PROJECT_DOCS_FOLDER=docs
+```
+
+YAML только список файлов репо:
+
+```yaml
+project_docs:
+  files:
+    - path: docs/runbooks/workflow-pack-operator.md
+    - path: workflows/README.md
+      as: workflows-readme.md
+```
+
+## Command
+
+```bash
+# всё из project_docs.files
+python3 bin/loop.py project-docs --project . --json
+
+# точечно
+python3 bin/loop.py project-docs --project . --file docs/runbooks/workflow-pack-operator.md --json
+
+# другая папка на Диске
+python3 bin/loop.py project-docs --project . --folder "team-playbooks" --json
+```
+
+Повторный запуск **обновляет** файл той же имени (Bitrix `disk.file.uploadversion` / Plane page PATCH).
+
+## Forbidden
+
+- путать с `board-docs` (к карточке эпика только `prompt.md` + `plan.md`)
+- звать из finish/halt
+- публиковать секреты / `.env`
+- silent skip при пустом списке файлов — явная ошибка
+
+## Done
+
+CLI `ok: true`, `published` непустой; в Bitrix файлы видны в Диске группы / в Plane — Pages проекта.

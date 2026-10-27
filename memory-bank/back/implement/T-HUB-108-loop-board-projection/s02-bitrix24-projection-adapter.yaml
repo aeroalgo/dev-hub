@@ -5,7 +5,7 @@ plan_id: T-HUB-108-loop-board-projection
 task_id: T-HUB-108
 title: s02 — Bitrix24 projection adapter and REST webhook transport IMPLEMENT
 level: L2
-status: in_progress
+status: completed
 decompose_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s02-bitrix24-projection-adapter.yaml
 date: 2026-10-26
 

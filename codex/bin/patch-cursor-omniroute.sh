@@ -31,19 +31,35 @@ wrapper = json.loads(os.environ["WRAPPER_JSON"])
 wrapper_literal = json.dumps(wrapper)
 
 # 1) Route CLI executable through OmniRoute wrapper.
-old_yI = (
-    'function yI(t,e){let r=mn("cliExecutable");if(r&&r.trim().length>0)return r;'
-    'let n=fh(e),o=(e??process.platform)==="win32"?"codex.exe":"codex";'
-    'return za.Uri.joinPath(t,`${n}/${o}`).fsPath}'
-)
-new_yI = (
-    f'function yI(t,e){{let r=process.env.CODEX_OMNIROUTE_WRAPPER||{wrapper_literal};'
-    f'if((e??process.platform)!=="win32"&&r.trim().length>0)return r;'
-    f'let n=mn("cliExecutable");if(n&&n.trim().length>0)return n;'
-    f'let o=(e??process.platform)==="win32"?"codex.exe":"codex";'
-    f'return za.Uri.joinPath(t,`${{fh(e)}}/${{o}}`).fsPath}}'
-)
-marker_yI = "process.env.CODEX_OMNIROUTE_WRAPPER||"
+# openai.chatgpt ≤26.908 used yI/mn/fh/za; ≥26.1021 uses W1/to/G1/wc (+ dead `let r=void 0` hook).
+marker_wrapper = "process.env.CODEX_OMNIROUTE_WRAPPER||"
+resolver_repls = [
+    (
+        'function yI(t,e){let r=mn("cliExecutable");if(r&&r.trim().length>0)return r;'
+        'let n=fh(e),o=(e??process.platform)==="win32"?"codex.exe":"codex";'
+        'return za.Uri.joinPath(t,`${n}/${o}`).fsPath}',
+        (
+            f'function yI(t,e){{let r={marker_wrapper}{wrapper_literal};'
+            f'if((e??process.platform)!=="win32"&&r.trim().length>0)return r;'
+            f'let n=mn("cliExecutable");if(n&&n.trim().length>0)return n;'
+            f'let o=(e??process.platform)==="win32"?"codex.exe":"codex";'
+            f'return za.Uri.joinPath(t,`${{fh(e)}}/${{o}}`).fsPath}}'
+        ),
+    ),
+    (
+        'function W1(t,e){let r=void 0;if(r)return r;let n=to("cliExecutable");'
+        'if(n&&n.trim().length>0)return n;let o=G1(e),'
+        'i=(e??process.platform)==="win32"?"codex.exe":"codex";'
+        'return wc.Uri.joinPath(t,`${o}/${i}`).fsPath}',
+        (
+            f'function W1(t,e){{let r={marker_wrapper}{wrapper_literal};'
+            f'if((e??process.platform)!=="win32"&&r.trim().length>0)return r;'
+            f'let n=to("cliExecutable");if(n&&n.trim().length>0)return n;'
+            f'let o=G1(e),i=(e??process.platform)==="win32"?"codex.exe":"codex";'
+            f'return wc.Uri.joinPath(t,`${{o}}/${{i}}`).fsPath}}'
+        ),
+    ),
+]
 
 # 2) After unexpected app-server exit, respawn once so the sidebar does not stay dead.
 # Stock code only logs fatal and never restarts (manual kill / crash → permanent "process not available").
@@ -93,16 +109,21 @@ for raw_path in sys.argv[1:]:
         changed = True
         print(f"stripped kill-tree teardown: {path}")
 
-    if marker_yI not in text:
-        if old_yI not in text:
-            print(f"unsupported yI resolver: {path}", file=sys.stderr)
+    if marker_wrapper not in text:
+        matched = False
+        for old_res, new_res in resolver_repls:
+            if old_res in text:
+                text = text.replace(old_res, new_res, 1)
+                changed = True
+                matched = True
+                print(f"cli resolver wrapper patched: {path}")
+                break
+        if not matched:
+            print(f"unsupported cli resolver: {path}", file=sys.stderr)
             unsupported += 1
             continue
-        text = text.replace(old_yI, new_yI, 1)
-        changed = True
-        print(f"yI wrapper patched: {path}")
     else:
-        print(f"yI wrapper already patched: {path}")
+        print(f"cli resolver already patched: {path}")
 
     if marker_autorestart not in text:
         if old_finish not in text:

@@ -58,3 +58,5 @@ loop:
 		set -- "$$@" --effort "$$effort"; \
 	fi; \
 	exec "$$@"
+
+include $(DEV_HUB)/make/deploy.mk

@@ -65,6 +65,7 @@ alwaysApply: true
 | `IDEA PIPELINE` · `CONTINUE` · `FINISH` · `STATUS` | DECIDE scorecard/verdict перед VAN/PLAN; детали: .cursor/rules/shared/workflow-idea-pipeline.mdc |
 | `PRODUCT VISION` · `PRODUCT PHASES` · `PRODUCT ROADMAP REBUILD` · `PRODUCT STATUS` | Product-слой (vision/phases/roadmap); .cursor/rules/shared/workflow-product-roadmap.mdc |
 | `EVAL …` | Оценка ниши по шагам (данные → tools → shard); .cursor/rules/eval/mainrule.mdc · карта: `memory-bank/product/eval-pipeline.md` |
+| `PROJECT DOCS` · `BOARD DOCS` | Ручная публикация workflow/gitflow/runbooks на Диск проекта Bitrix / Pages Plane; .cursor/rules/shared/workflow-board-docs.mdc · `bin/loop.py project-docs` |
 
 Скиллы без workflow: `find-skills` · `git-commit` · `memory-management` — только по явному запросу.
 

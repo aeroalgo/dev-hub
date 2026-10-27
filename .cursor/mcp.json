@@ -1,3 +1,8 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "b24-dev-mcp": {
+      "url": "https://mcp-dev.bitrix24.tech/mcp",
+      "timeout": 30000
+    }
+  }
 }

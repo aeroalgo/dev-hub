@@ -49,8 +49,21 @@ def test_projection_models_defined():
     assert isinstance(dummy, BoardProjectionAdapter)
 
     # Models check
-    b24 = Bitrix24Config(webhook_url="https://test.bitrix24.ru/rest/1/abc/", group_id=10, stage_map={"backlog": "1"})
+    b24 = Bitrix24Config(
+        webhook_url="https://test.bitrix24.ru/rest/1/abc/",
+        group_id=10,
+        responsible_id=1,
+        stage_map={"backlog": "1"},
+    )
     assert b24.group_id == 10
+    assert b24.responsible_id == 1
+    assert b24.is_complete() is True
+    incomplete = Bitrix24Config(
+        webhook_url="https://test.bitrix24.ru/rest/1/abc/",
+        group_id=10,
+        stage_map={"backlog": "1"},
+    )
+    assert incomplete.is_complete() is False
     plane = PlaneConfig(base_url="https://plane.example.com", api_key="secret", workspace_slug="ws", project_id="proj")
     assert plane.workspace_slug == "ws"
 
@@ -97,6 +110,7 @@ def test_incomplete_config_and_roles(tmp_path: Path):
             "bitrix24": {
                 "webhook_url": "https://test.bitrix24.ru/rest/1/abc/",
                 "group_id": 5,
+                "responsible_id": 1,
                 "stage_map": {"backlog": "10"}
             }
         }
@@ -104,7 +118,22 @@ def test_incomplete_config_and_roles(tmp_path: Path):
     cfg, disabled_reason = load_projection_config(config_path=valid_cfg_file)
     assert disabled_reason is None
     assert cfg is not None
+    assert cfg.providers.bitrix24.responsible_id == 1
     assert cfg.is_role_allowed("back") is True
+
+    missing_responsible = tmp_path / "bitrix-no-responsible.yaml"
+    missing_responsible.write_text(yaml.dump({
+        "provider": "bitrix24",
+        "providers": {
+            "bitrix24": {
+                "webhook_url": "https://test.bitrix24.ru/rest/1/abc/",
+                "group_id": 5,
+                "stage_map": {"backlog": "10"},
+            }
+        }
+    }))
+    _, missing_reason = load_projection_config(config_path=missing_responsible)
+    assert missing_reason == "incomplete_provider_config"
     assert cfg.is_role_allowed("front") is True
     assert cfg.is_role_allowed("qa") is False
 
@@ -155,3 +184,74 @@ def test_adapter_registry():
     # Provider none returns None
     none_cfg = BoardProjectionConfig(provider="none")
     assert get_adapter(none_cfg) is None
+
+
+def test_secrets_come_from_env_not_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cfg_path = tmp_path / "board-projection.yaml"
+    cfg_path.write_text(yaml.dump({
+        "provider": "bitrix24",
+        "providers": {
+            "bitrix24": {
+                "webhook_url": "",
+                "group_id": 5,
+                "responsible_id": 1,
+                "stage_map": {"backlog": "10"},
+            }
+        },
+    }))
+    monkeypatch.setenv("BITRIX_WEBHOOK_URL", "https://secret.bitrix24.ru/rest/1/token/")
+    cfg, reason = load_projection_config(config_path=cfg_path)
+    assert reason is None
+    assert cfg is not None
+    assert cfg.providers.bitrix24.webhook_url == "https://secret.bitrix24.ru/rest/1/token/"
+
+    plane_path = tmp_path / "plane.yaml"
+    plane_path.write_text(yaml.dump({
+        "provider": "plane",
+        "providers": {
+            "plane": {
+                "base_url": "https://app.plane.so",
+                "api_key": "",
+                "workspace_slug": "ws",
+                "project_id": "proj",
+                "state_map": {"backlog": "1"},
+            }
+        },
+    }))
+    monkeypatch.setenv("PLANE_API_KEY", "plane-secret-from-env")
+    plane_cfg, plane_reason = load_projection_config(config_path=plane_path)
+    assert plane_reason is None
+    assert plane_cfg is not None
+    assert plane_cfg.providers.plane.api_key == "plane-secret-from-env"
+
+
+def test_board_identity_from_env_overrides_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cfg_path = tmp_path / "board-projection.yaml"
+    cfg_path.write_text(yaml.dump({
+        "provider": "none",
+        "providers": {
+            "bitrix24": {
+                "webhook_url": "",
+                "group_id": None,
+                "responsible_id": None,
+                "stage_map": {},
+            }
+        },
+        "project_docs": {"folder_name": "from-yaml", "files": []},
+    }))
+    monkeypatch.setenv("LOOP_BOARD_PROVIDER", "bitrix24")
+    monkeypatch.setenv("BITRIX_WEBHOOK_URL", "https://portal.example/rest/1/x/")
+    monkeypatch.setenv("BITRIX_GROUP_ID", "26")
+    monkeypatch.setenv("BITRIX_RESPONSIBLE_ID", "274")
+    monkeypatch.setenv("BITRIX_STAGE_BACKLOG", "1342")
+    monkeypatch.setenv("BITRIX_STAGE_DESIGN", "1343")
+    monkeypatch.setenv("PROJECT_DOCS_FOLDER", "env-docs")
+    cfg, reason = load_projection_config(config_path=cfg_path)
+    assert reason is None
+    assert cfg is not None
+    assert cfg.provider == "bitrix24"
+    assert cfg.providers.bitrix24.group_id == 26
+    assert cfg.providers.bitrix24.responsible_id == 274
+    assert cfg.providers.bitrix24.stage_map["backlog"] == "1342"
+    assert cfg.providers.bitrix24.stage_map["design"] == "1343"
+    assert cfg.project_docs.folder_name == "env-docs"

@@ -1,0 +1,86 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-108-loop-board-projection
+task_id: T-HUB-108
+title: s03 — Plane projection adapter and REST work-item transport IMPLEMENT
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s03-plane-projection-adapter.yaml
+date: 2026-10-26
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-resilience/SKILL.md
+
+done:
+  - "Создан класс PlaneAdapter в loop/board_projection/adapters/plane.py, реализующий Protocol BoardProjectionAdapter."
+  - "Реализован метод ensure_card: отправка POST /api/v1/workspaces/{slug}/projects/{project_id}/issues/ с name, description_html/body, state_id, и извлечение external issue id."
+  - "Реализован метод move_card: отправка PATCH /api/v1/workspaces/{slug}/projects/{project_id}/issues/{issue_id}/ с новым state_id и fail-closed проверка возвращенного ответа на совпадение state_id (защита от silent no-op)."
+  - "Зарегистрирован PlaneAdapter в реестре адаптеров register_adapter('plane', PlaneAdapter.from_config)."
+  - "Созданы unit-тесты loop/tests/test_board_projection_plane.py с mock transport для валидации всех checkpoints, протокола, заголовков авторизации x-api-key, обработки HTTP ошибок и fail-closed проверки смены state."
+
+files:
+  - loop/board_projection/adapters/plane.py
+  - loop/tests/test_board_projection_plane.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/board_projection/adapters/plane.py: PlaneAdapter implementing BoardProjectionAdapter"
+    - "loop/board_projection/adapters/plane.py: register_adapter('plane', PlaneAdapter.from_config)"
+  enforce_path: "loop/board_projection/adapters/plane.py"
+  dual_path_rg: "rg -n 'issues/' loop/ --glob '!loop/board_projection/**' --glob '!loop/tests/**'"
+  instruction_rg: "rg -n 'PlaneAdapter' loop/"
+  deny_old_proven: true
+
+tests:
+  - 'bringing up nodes...
+bringing up nodes...
+
+.                                                                        [100%]
+1 passed in 1.04s — PASS'
+  - 'bringing up nodes...
+bringing up nodes...
+
+.                                                                        [100%]
+1 passed in 1.11s — PASS'
+  - 'bringing up nodes...
+bringing up nodes...
+
+.                                                                        [100%]
+1 passed in 1.09s — PASS'
+
+integration_check:
+  - "PlaneAdapter unit tests run green via mock transport with full protocol, fail-closed validation, and registry integration"
+
+checkpoints:
+  - id: cp1
+    criterion: "PlaneAdapter имплементирует BoardProjectionAdapter Protocol"
+    status: done
+  - id: cp2
+    criterion: "ensure_card создает work-item в проекте Plane с правильными заголовками авторизации и телом"
+    status: done
+  - id: cp3
+    criterion: "move_card обновляет state work item и бросает исключение при неизменном state в ответе API"
+    status: done
+
+ac_evidence:
+  - ac_id: AC-2
+    status: completed
+    mapping:
+      - "PlaneAdapter использует API key и BASE_URL, создаёт work item через ensure_card и возвращает его внешний идентификатор external_id."
+      - "move_card обновляет state work item через PATCH и fail-closed проверяет, что state действительно изменился."
+    boundary:
+      in_scope: "s03 adapter boundary: ensure_card создаёт work item и возвращает external_id."
+      out_of_scope:
+        - "s04 sidecar finish wire"
+        - "s05 sidecar finish wire"
+
+resume_from: cp3

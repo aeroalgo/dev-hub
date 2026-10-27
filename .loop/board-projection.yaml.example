@@ -1,0 +1,64 @@
+# Shared template — safe to commit. NO per-project board ids / secrets here.
+# Per-project board lives in .env (each repo/board differs):
+#   LOOP_BOARD_PROVIDER=bitrix24
+#   BITRIX_WEBHOOK_URL=...
+#   BITRIX_GROUP_ID=...
+#   BITRIX_RESPONSIBLE_ID=...
+#   BITRIX_STAGE_BACKLOG=... (or BITRIX_STAGE_MAP JSON)
+#   PLANE_* for plane
+#   PROJECT_DOCS_FOLDER=docs
+#
+# 1) cp .loop/board-projection.yaml.example .loop/board-projection.yaml
+# 2) fill project_docs.files (repo paths)
+# 3) put board identity + secrets in .env
+# Real .loop/board-projection.yaml is gitignored.
+schema: loop-board-projection/v1
+
+# Default; override with LOOP_BOARD_PROVIDER in .env
+provider: none
+
+role_allowlist:
+  - back
+
+# Shared phase compression (same across projects unless you fork this file)
+phase_alias:
+  QUEUED: backlog
+  PLAN: design
+  CLARIFY: design
+  DECOMPOSE: design
+  ANALYZE: design
+  CREATIVE: design
+  IMPLEMENT: build
+  TASK: build
+  REFACTOR: build
+  SECURITY: build
+  AUDIT: build
+  QA: verify
+  BUGFIX: verify
+  CONTEXT_SYNC: uat
+  DONE: done
+  HALT: blocked
+
+# Leave empty — filled from .env per project
+providers:
+  bitrix24:
+    webhook_url: ""
+    group_id: null
+    responsible_id: null
+    stage_map: {}
+
+  plane:
+    base_url: ""
+    api_key: ""
+    workspace_slug: ""
+    project_id: ""
+    state_map: {}
+
+# Repo-relative docs to publish (project Disk/Pages). Folder name from PROJECT_DOCS_FOLDER.
+project_docs:
+  folder_name: docs
+  files:
+    - path: docs/runbooks/workflow-pack-operator.md
+    - path: docs/runbooks/workflow-pack-authoring.md
+    - path: workflows/README.md
+      as: workflows-readme.md

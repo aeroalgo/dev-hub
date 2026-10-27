@@ -23,6 +23,7 @@ python3 bin/loop.py halt --project /path/to/project --reason "manual stop"
 python3 bin/loop.py status --project /path/to/project --json
 python3 bin/loop.py doctor --project /path/to/project --json
 python3 bin/loop.py validate-verdict --project /path/to/project --payload '<json-object>'
+python3 bin/loop.py board-sync --project /path/to/project [--epic E1]
 ```
 
 `run` запускает одну сессию за раз. Чистое завершение процесса не двигает
@@ -120,3 +121,86 @@ Hooks активны только когда процесс запущен че�
 ```bash
 python3 bin/loop.py scope --project /path/to/project --json
 ```
+
+
+## Проекция состояния на внешние доски (Board Projection)
+
+Loop поддерживает одностороннюю проекцию переходов эпиков на канбан-доски внешних таск-трекеров (Bitrix24, Plane). Доска является зеркалом (read-only mirror), единственным источником правды (SoT) остаётся локальный CursorStore цикла. Прямые вызовы REST API трекеров выполняются через унифицированный `BoardProjectionAdapter` Protocol без использования MCP как первичного транспорта.
+
+### Конфигурация (.loop/board-projection.yaml)
+
+Настройки проекции хранятся в `.loop/board-projection.yaml` проекта. Шаблон с описанием параметров доступен в `.loop/board-projection.yaml.example`.
+
+- YAML (`.loop/board-projection.yaml`) — **общая структура**: `phase_alias`, `role_allowlist`, `project_docs.files`. Без id чужой доски.
+- **Per-project board** (у каждого репо/доски своё) — только `.env` (env побеждает yaml):
+  - `LOOP_BOARD_PROVIDER=bitrix24|plane|none`
+  - Bitrix: `BITRIX_WEBHOOK_URL`, `BITRIX_GROUP_ID`, `BITRIX_RESPONSIBLE_ID`, `BITRIX_STAGE_*` или `BITRIX_STAGE_MAP` (JSON)
+  - Plane: `PLANE_API_KEY`, `PLANE_BASE_URL`, `PLANE_WORKSPACE_SLUG`, `PLANE_PROJECT_ID`, `PLANE_STATE_*` / `PLANE_STATE_MAP`
+  - Docs folder: `PROJECT_DOCS_FOLDER`
+- Если файл yaml отсутствует или итоговый `provider=none` — проекция disabled (AC-5, SC-002).
+- Рабочий yaml + sidecar `.loop/board-epic-map.yaml` gitignored; в репо — `.loop/board-projection.yaml.example` + `.env.example`.
+
+### Жизненный цикл и sidecar-маппинг (.loop/board-epic-map.yaml)
+
+Связка между `epic_id` и внешним идентификатором задачи фиксируется в sidecar-файле `.loop/board-epic-map.yaml`:
+
+- **Lazy create:** При первом вызове `finish` для нового эпика создаётся карточка на внешней доске, а её `external_id` атомарно сохраняется в sidecar.
+- **Move / transition:** При последующих переходах фаз карточка перемещается в колонку согласно `phase_alias` и карте стадий провайдера. Поиск карточки ведётся строго по `external_id` (поиск по заголовку запрещён во избежание коллизий).
+- **Halt:** При ручной или автоматической остановке цикла (`halt`) карточка переводится в колонку `blocked` (алиас фазы `HALT`).
+
+### Политика soft-fail
+
+Ошибки взаимодействия с внешней доской (сетевые таймауты, 5xx ошибки REST API, временная недоступность сервиса) **никогда не откатывают** транзакцию перехода фазы и не прерывают выполнение команд `finish` и `halt` (FR-004, FR-009). При ошибке:
+1. Сообщение об ошибке выводится в `sys.stderr`.
+2. В файле `.loop/board-epic-map.yaml` для данного эпика выставляется поле `sync_error`.
+3. Команда CLI возвращает успешный код завершения локального перехода.
+
+### Защита от смены провайдера (provider_mismatch)
+
+Если в sidecar-маппинге `.loop/board-epic-map.yaml` уже записаны карточки от одного провайдера (например, `bitrix24`), а в конфигурации активирован другой (например, `plane`), система завершается ошибкой `ProviderMismatchError` fail-closed **до** любых HTTP-запросов, предотвращая передачу чужих ID в несоответствующее API.
+
+### Текст карточки (`prompt.md` → `## Board`)
+
+При **первом** create (обычно `finish` после `PLAN`, либо ручной `board-sync`) loop читает `memory-bank/<role>/plan/<epic>/md/prompt.md`:
+
+- секция `## Board` с полями `title:` и `summary:` (без ID эпика — ID префиксует adapter);
+- если `## Board` нет — fallback на `## Epic` → `### Outcome`;
+- в описание добавляются `Epic:` и путь к `plan.md`.
+
+Дальнейшие `finish` / `halt` только **двигают** карточку по `phase_alias` → `stage_map` / `state_map`. Отдельной фазы «создать карточку» нет.
+
+### Ручная публикация документации проекта (`project-docs`)
+
+Это **не** эпик. Общие правила работы (workflow / gitflow / runbooks) публикуются в хранилище **проекта**:
+
+- Bitrix24: Диск группы (`group_id`) → папка `project_docs.folder_name` (нужен scope `disk`)
+- Plane: Pages проекта
+
+Список файлов — в `.loop/board-projection.yaml` → `project_docs.files`. Только явная команда (не finish/halt):
+
+```bash
+python3 bin/loop.py project-docs --project . --json
+python3 bin/loop.py project-docs --project . --file docs/runbooks/workflow-pack-operator.md --json
+```
+
+Workflow: `.cursor/rules/shared/workflow-board-docs.mdc` (`PROJECT DOCS`).
+
+Опционально `board-docs` — аттач **только** `prompt.md` + `plan.md` к карточке эпика (без сгенерированного brief):
+
+```bash
+python3 bin/loop.py board-docs --project . --epic E1 --json
+```
+
+### Ручной догон синхронизации (CLI board-sync)
+
+Для устранения накопленных `sync_error` после восстановления связи с внешним трекером предназначена подкоманда `board-sync`:
+
+```bash
+# Синхронизация текущего активного эпика:
+python3 bin/loop.py board-sync --project /path/to/project
+
+# Синхронизация конкретного эпика:
+python3 bin/loop.py board-sync --project /path/to/project --epic E1
+```
+
+При успешном выполнении команда создаёт карточку (если ещё нет) или перемещает в актуальную стадию и очищает поле `sync_error`.

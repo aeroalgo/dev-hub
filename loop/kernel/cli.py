@@ -30,6 +30,9 @@ from .session import SessionOutcome, SessionSupervisor
 from .store import LoopPaths
 from .pre_emit import write_pre_emit_stamp
 from .verdict import SCHEMA_GATE_VERDICT, validate_boundary
+from ..board_projection.docs_publish import publish_board_docs
+from ..board_projection.project_docs import publish_project_docs
+from ..board_projection.service import project_after_transition, project_epic_phase
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -50,6 +53,9 @@ def _parser() -> argparse.ArgumentParser:
             "validate",
             "validate-verdict",
             "implement-flush",
+            "board-sync",
+            "board-docs",
+            "project-docs",
         ),
     )
     parser.add_argument("--project", "--cwd", dest="project")
@@ -85,6 +91,28 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--backoff", type=float)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--status", action="store_true")
+    parser.add_argument(
+        "--no-plan",
+        action="store_true",
+        help="board-docs: attach only prompt.md (skip plan.md)",
+    )
+    parser.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="board-docs: attach only plan.md (skip prompt.md)",
+    )
+    parser.add_argument(
+        "--file",
+        action="append",
+        dest="docs_files",
+        default=[],
+        help="project-docs: extra repo-relative file to publish (repeatable)",
+    )
+    parser.add_argument(
+        "--folder",
+        default=None,
+        help="project-docs: Disk/pages folder name (default from config project_docs.folder_name)",
+    )
     return parser
 
 
@@ -138,6 +166,9 @@ def _normalize_legacy_args(argv: list[str]) -> list[str]:
         "validate",
         "validate-verdict",
         "implement-flush",
+        "board-sync",
+        "board-docs",
+        "project-docs",
     }
     if len(argv) >= 2 and argv[0] not in commands and not argv[0].startswith("-"):
         return ["run", "--epic", argv[0], "--model", argv[1], *argv[2:]]
@@ -1000,6 +1031,16 @@ def run(args: argparse.Namespace) -> int:
         _report_failure(args, cursor, reason=session_run.reason, status=status, attempt=attempt, runtime=runtime_name, model=model, cursor_path=paths.cursor, result=session_run.result)
         return session_run.return_code
     halted = engine.halt("max_steps_exceeded")
+    if cursor and cursor.epic_id:
+        try:
+            project_after_transition(
+                project_root=paths.project,
+                epic_id=cursor.epic_id,
+                phase="HALT",
+                role=cursor.role,
+            )
+        except Exception as exc:
+            sys.stderr.write(f"Board projection error after halt: {exc}\n")
     _report_failure(args, cursor, reason="max_steps_exceeded", status=halted.status.value, attempt=halted.attempt, runtime=runtime_name, model=model, cursor_path=paths.cursor)
     return 1
 
@@ -1113,13 +1154,146 @@ def main(argv: list[str] | None = None) -> int:
                 args.json,
             )
             return 0
+        if args.command == "board-sync":
+            cursor = engine.store.read()
+            target_epic = args.epic or (cursor.epic_id if cursor else None)
+            if not target_epic:
+                _print({"ok": False, "error": "--epic is required when no active cursor exists"}, args.json)
+                return 2
+
+            role = cursor.role if (cursor and cursor.epic_id == target_epic) else (args.role if args.role != "auto" else "back")
+            phase = cursor.phase if (cursor and cursor.epic_id == target_epic) else "QUEUED"
+            if not phase:
+                phase = "QUEUED"
+
+            from ..board_projection.mapping import load_board_epic_map, resolve_map_path
+            map_path = resolve_map_path(paths.project)
+            current_map = load_board_epic_map(map_path)
+            entry = current_map.epics.get(target_epic)
+            if entry and entry.last_phase and (cursor is None or cursor.epic_id != target_epic):
+                phase = entry.last_phase
+
+            kind = None
+            if cursor and cursor.epic_id == target_epic:
+                kind = cursor.kind
+            result = project_epic_phase(
+                project_root=paths.project,
+                epic_id=target_epic,
+                phase=phase,
+                role=role,
+                kind=kind,
+            )
+            success = result.status in {"success", "disabled"}
+            payload = {
+                "ok": success,
+                "epic_id": target_epic,
+                "status": result.status,
+                "phase": phase,
+                "external_id": result.external_id,
+                "disabled_reason": result.disabled_reason,
+                "error": result.error,
+            }
+            _print(payload, args.json)
+            return 0 if success else 1
+        if args.command == "board-docs":
+            cursor = engine.store.read()
+            target_epic = args.epic or (cursor.epic_id if cursor else None)
+            if not target_epic:
+                _print({"ok": False, "error": "--epic is required when no active cursor exists"}, args.json)
+                return 2
+            role = cursor.role if (cursor and cursor.epic_id == target_epic) else args.role
+            kind = cursor.kind if (cursor and cursor.epic_id == target_epic) else args.kind
+            result = publish_board_docs(
+                project_root=paths.project,
+                epic_id=target_epic,
+                role=role,
+                kind=kind,
+                include_plan=not args.no_plan,
+                include_prompt=not args.no_prompt,
+            )
+            success = result.status == "success"
+            payload = {
+                "ok": success,
+                "epic_id": result.epic_id,
+                "status": result.status,
+                "external_id": result.external_id,
+                "local_path": result.local_path,
+                "attached": result.attached,
+                "disabled_reason": result.disabled_reason,
+                "error": result.error,
+            }
+            _print(payload, args.json)
+            return 0 if success else 1
+        if args.command == "project-docs":
+            result = publish_project_docs(
+                project_root=paths.project,
+                files=list(args.docs_files or []),
+                folder_name=args.folder,
+            )
+            success = result.status == "success"
+            payload = {
+                "ok": success,
+                "status": result.status,
+                "published": result.published,
+                "disabled_reason": result.disabled_reason,
+                "error": result.error,
+            }
+            _print(payload, args.json)
+            return 0 if success else 1
         if args.command == "finish":
+            cursor_before = engine.store.read()
             transition = engine.finish(step_id=args.step)
-            _print({"event": transition.event, "status": transition.status.value, "phase": transition.phase, "step_id": transition.step_id}, args.json)
+            projection_result = None
+            if cursor_before and cursor_before.epic_id:
+                try:
+                    phase_to_project = transition.phase
+                    if transition.status.value == "complete" or transition.phase == "DONE":
+                        phase_to_project = "DONE"
+                    projection_result = project_after_transition(
+                        project_root=paths.project,
+                        epic_id=cursor_before.epic_id,
+                        phase=phase_to_project,
+                        role=cursor_before.role,
+                        kind=cursor_before.kind,
+                    )
+                except Exception as exc:
+                    sys.stderr.write(f"Board projection error after finish: {exc}\n")
+            payload = {
+                "event": transition.event,
+                "status": transition.status.value,
+                "phase": transition.phase,
+                "step_id": transition.step_id,
+            }
+            if projection_result is not None:
+                payload["projection_status"] = projection_result.status
+                payload["projection_disabled_reason"] = projection_result.disabled_reason
+            _print(payload, args.json)
             return 0
         if args.command == "halt":
+            cursor_before = engine.store.read()
             transition = engine.halt(args.reason)
-            _print({"event": transition.event, "status": transition.status.value, "phase": transition.phase, "step_id": transition.step_id}, args.json)
+            projection_result = None
+            if cursor_before and cursor_before.epic_id:
+                try:
+                    projection_result = project_after_transition(
+                        project_root=paths.project,
+                        epic_id=cursor_before.epic_id,
+                        phase="HALT",
+                        role=cursor_before.role,
+                        kind=cursor_before.kind,
+                    )
+                except Exception as exc:
+                    sys.stderr.write(f"Board projection error after halt: {exc}\n")
+            payload = {
+                "event": transition.event,
+                "status": transition.status.value,
+                "phase": transition.phase,
+                "step_id": transition.step_id,
+            }
+            if projection_result is not None:
+                payload["projection_status"] = projection_result.status
+                payload["projection_disabled_reason"] = projection_result.disabled_reason
+            _print(payload, args.json)
             return 0
         if args.command == "rewind":
             if not args.phase:

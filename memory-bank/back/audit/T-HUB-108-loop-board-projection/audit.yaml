@@ -1,0 +1,427 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-108-loop-board-projection
+plan_id: T-HUB-108-loop-board-projection
+date: '2026-10-26'
+auditor: BACK AUDIT
+converged: true
+verdict: pass
+purge_step_present: false
+plan_intent:
+  epic_goal: Оператор включает проекцию на выбранный таскборд. После успешного finish/halt
+    loop создаёт или двигает карточку эпика в колонку, соответствующую фазе. Смена
+    трекера — смена provider в конфиге (с безопасным mapping). Loop остаётся SoT;
+    доска — зеркало для людей.
+  source: memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md#WHAT
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 14
+  fr_satisfied: 14
+  sc_checked: 4
+  layout_paths_total: 0
+  layout_paths_closed: 0
+  constitution_checked: true
+check_matrix:
+- source_ref: FR-001
+  status: pass
+  evidence: Pydantic-конфигурация BoardProjectionConfig считывается из .loop/board-projection.yaml
+    или переменной LOOP_BOARD_PROJECTION_CONFIG; синтаксические ошибки YAML выбрасывают
+    ProjectionConfigError.
+  verify: python3 -c "import loop.board_projection.config as c; c.load_projection_config('/nonexistent')"
+- source_ref: FR-002
+  status: pass
+  evidence: Поддерживаются только провайдеры {none, bitrix24, plane}; неизвестный
+    провайдер fail-closed выбрасывает ProjectionConfigError.
+  verify: rg -n "Unknown board projection provider" loop/board_projection/config.py
+- source_ref: FR-003
+  status: pass
+  evidence: Экспонирован runtime-checkable Protocol BoardProjectionAdapter с методами
+    ensure_card, move_card и свойством provider_name.
+  verify: rg -n "class BoardProjectionAdapter" loop/board_projection/protocol.py
+- source_ref: FR-004
+  status: pass
+  evidence: Единый хук project_after_transition вызывается в CLI после коммита транзакции
+    finish и halt вне CursorStore транзакции.
+  verify: rg -n "project_after_transition" loop/kernel/cli.py
+- source_ref: FR-005
+  status: pass
+  evidence: При отсутствии записи в sidecar выполняется ленивое создание карточки
+    с префиксом [epic_id] и атомарное сохранение external_id в .loop/board-epic-map.yaml.
+  verify: rg -n "active_adapter.ensure_card" loop/board_projection/service.py
+- source_ref: FR-006
+  status: pass
+  evidence: При наличии карточки перемещение происходит по 6 каноническим алиасам
+    фаз (backlog|design|build|verify|done|blocked).
+  verify: rg -n "active_adapter.move_card" loop/board_projection/service.py
+- source_ref: FR-007
+  status: pass
+  evidence: Адаптер Bitrix24 использует REST webhook tasks.task.add и task.stages.movetask
+    с группой group_id и стадией stage_id.
+  verify: rg -n "tasks.task.add|task.stages.movetask" loop/board_projection/adapters/bitrix24.py
+- source_ref: FR-008
+  status: pass
+  evidence: Адаптер Plane использует API key + base_url, создаёт issue/work item и
+    проверяет фактическую смену state_id в ответе PATCH.
+  verify: rg -n "api/v1/workspaces" loop/board_projection/adapters/plane.py
+- source_ref: FR-009
+  status: pass
+  evidence: Ошибки проекции не ломают транзакцию курсора, пишутся в stderr и фиксируются
+    в sidecar как sync_error (soft-fail).
+  verify: rg -n "sync_error" loop/board_projection/service.py
+- source_ref: FR-010
+  status: pass
+  evidence: Неполный конфиг активного провайдера возвращает статус disabled с причиной
+    incomplete_provider_config без HTTP-вызовов.
+  verify: rg -n "incomplete_provider_config" loop/board_projection/config.py
+- source_ref: FR-011
+  status: pass
+  evidence: По умолчанию список разрешенных ролей ['back']; вызов с ролью вне allowlist
+    возвращает статус disabled с причиной role_not_allowed.
+  verify: rg -n "role_not_allowed" loop/board_projection/service.py
+- source_ref: FR-012
+  status: pass
+  evidence: Реализована подкоманда CLI board-sync с опцией --epic для повторной синхронизации
+    и устранения sync_error через общий протокол.
+  verify: rg -n "args.command == \"board-sync\"" loop/kernel/cli.py
+- source_ref: FR-013
+  status: pass
+  evidence: Поиск карточки выполняется строго по sidecar external_id, сопоставление
+    по title запрещено.
+  verify: rg -n "entry.external_id" loop/board_projection/service.py
+- source_ref: FR-014
+  status: pass
+  evidence: В loop/README.md и .loop/board-projection.yaml.example задокументированы
+    архитектура, провайдеры, soft-fail и CLI board-sync.
+  verify: rg -n "board-projection" loop/README.md
+- source_ref: US-001
+  status: pass
+  evidence: Выбор провайдера bitrix24 или plane перенаправляет вызовы на соответствующий
+    адаптер и адрес назначения.
+  verify: rg -n "get_adapter" loop/board_projection/registry.py
+- source_ref: US-002
+  status: pass
+  evidence: Первый finish при отсутствии маппинга создаёт карточку на доске и сохраняет
+    external_id в sidecar YAML.
+  verify: rg -n "test_project_epic_phase_lazy_create" loop/tests/test_board_projection_service.py
+- source_ref: US-003
+  status: pass
+  evidence: После смены фазы карточка перемещается в соответствующую колонку, last_phase
+    обновляется, sync_error сбрасывается.
+  verify: rg -n "test_project_epic_phase_move_existing_card" loop/tests/test_board_projection_service.py
+- source_ref: US-004
+  status: pass
+  evidence: Отсутствие конфига или provider none завершает finish успешно со статусом
+    disabled и 0 HTTP-вызовами.
+  verify: rg -n "test_finish_without_config_disabled_no_http" loop/tests/test_board_projection_cli.py
+- source_ref: US-005
+  status: pass
+  evidence: При сетевом сбое (500) фаза курсора сохраняется, sync_error записывается
+    в sidecar, а CLI board-sync выполняет повтор.
+  verify: rg -n "test_board_sync_subcommand_catchup" loop/tests/test_board_projection_cli.py
+- source_ref: US-006
+  status: pass
+  evidence: При смене провайдера в конфиге при наличии sidecar от другого провайдера
+    выбрасывается ProviderMismatchError до выполнения любых HTTP-запросов.
+  verify: rg -n "test_provider_mismatch_fails_closed" loop/tests/test_board_projection_service.py
+- source_ref: SC-001
+  status: pass
+  evidence: Реализованы и успешно проходят 30 целевых тестов адаптеров, сервиса, конфига
+    и CLI.
+  verify: .venv/bin/pytest loop/tests/test_board_projection*.py -q
+- source_ref: SC-002
+  status: pass
+  evidence: Прогон finish без конфигурационного файла не инициирует ни одного HTTP-запроса.
+  verify: rg -n "test_finish_without_config_disabled_no_http" loop/tests/test_board_projection_cli.py
+- source_ref: SC-003
+  status: pass
+  evidence: Несоответствие провайдера блокируется валидатором до адаптера и сети.
+  verify: rg -n "ProviderMismatchError" loop/board_projection/service.py
+- source_ref: SC-004
+  status: pass
+  evidence: Soft-fail гарантирует сохранение состояния перехода курсора при любых
+    ошибках проекции.
+  verify: rg -n "test_finish_and_halt_hook_soft_fail" loop/tests/test_board_projection_cli.py
+- source_ref: AC+:1
+  status: pass
+  evidence: Полный конфиг Bitrix24 + finish без карты создаёт задачу в группе Bitrix24
+    и сохраняет sidecar.
+  verify: rg -n "test_ensure_card_creates_task_and_returns_id" loop/tests/test_board_projection_bitrix24.py
+- source_ref: AC+:2
+  status: pass
+  evidence: Полный конфиг Plane + finish без карты создаёт issue в проекте Plane и
+    сохраняет sidecar.
+  verify: rg -n "test_ensure_card_creates_issue" loop/tests/test_board_projection_plane.py
+- source_ref: AC+:3
+  status: pass
+  evidence: Finish со сменой фазы вызывает move_card/PATCH state в соответствии со
+    stage_map/state_map.
+  verify: rg -n "test_move_card_updates_state" loop/tests/test_board_projection_plane.py
+- source_ref: AC+:4
+  status: pass
+  evidence: Смена провайдера при наличии маппинга другого провайдера вызывает ProviderMismatchError
+    без HTTP к новому API с чужим ID.
+  verify: rg -n "ProviderMismatchError" loop/board_projection/service.py
+- source_ref: AC+:5
+  status: pass
+  evidence: При отсутствии конфига или provider none finish возвращает OK со статусом
+    disabled.
+  verify: rg -n "provider_none|missing_config" loop/board_projection/config.py
+- source_ref: AC+:6
+  status: pass
+  evidence: Ошибка REST API приводит к сохранению sync_error, транзакция finish не
+    откатывается, CLI board-sync восстанавливает синхронизацию.
+  verify: rg -n "test_board_sync_subcommand_catchup" loop/tests/test_board_projection_cli.py
+- source_ref: AC+:7
+  status: pass
+  evidence: CLI finish и halt импортируют только project_after_transition из service,
+    без прямых зависимостей от вендорных адаптеров.
+  verify: rg -n "from ..board_projection.service" loop/kernel/cli.py
+- source_ref: AC-:1
+  status: pass
+  evidence: Доска является строго зеркалом для человека и не пишет состояние обратно
+    в loop (однонаправленный поток).
+  verify: git diff loop/board_projection/
+- source_ref: AC-:2
+  status: pass
+  evidence: Отсутствует молчаливый пропуск проекции; возвращаются явные disabled_reason
+    или soft_fail ошибки.
+  verify: rg -n "disabled_reason" loop/board_projection/service.py
+- source_ref: AC-:3
+  status: pass
+  evidence: Отсутствует поиск карточек по title/заголовку (только по sidecar external_id).
+  verify: rg -n "search.*title" loop/board_projection/ || true
+- source_ref: AC-:4
+  status: pass
+  evidence: Исключен хардкод пути Bitrix24 в hot path CLI — используется реестр адаптеров
+    и Protocol.
+  verify: rg -n "bitrix" loop/kernel/cli.py || true
+- source_ref: AC-:5
+  status: pass
+  evidence: Исключена одновременная запись в Bitrix24 и Plane (ровно один активный
+    провайдер).
+  verify: rg -n "get_adapter(config)" loop/board_projection/service.py
+- source_ref: AC-:6
+  status: pass
+  evidence: Ошибки конфигурации активного провайдера приводят к явной ошибке, а не
+    фиктивному успеху.
+  verify: rg -n "incomplete_provider_config" loop/board_projection/config.py
+- source_ref: AC-:7
+  status: pass
+  evidence: Устаревший модуль loop/board_sync не реанимирован и отсутствует в кодовой
+    базе.
+  verify: test ! -d loop/board_sync
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: Pydantic-конфигурация BoardProjectionConfig считывается из .loop/board-projection.yaml
+    или переменной LOOP_BOARD_PROJECTION_CONFIG.
+- source_ref: FR-002
+  status: satisfied
+  evidence: Поддерживаются только провайдеры {none, bitrix24, plane}; неизвестный
+    провайдер fail-closed.
+- source_ref: FR-003
+  status: satisfied
+  evidence: Экспонирован runtime-checkable Protocol BoardProjectionAdapter.
+- source_ref: FR-004
+  status: satisfied
+  evidence: Хук project_after_transition вызывается в CLI после коммита транзакции
+    finish и halt.
+- source_ref: FR-005
+  status: satisfied
+  evidence: Ленивое создание карточки с префиксом [epic_id] и атомарное сохранение
+    external_id в .loop/board-epic-map.yaml.
+- source_ref: FR-006
+  status: satisfied
+  evidence: Перемещение по 6 каноническим алиасам фаз (backlog|design|build|verify|done|blocked).
+- source_ref: FR-007
+  status: satisfied
+  evidence: Адаптер Bitrix24 использует REST webhook tasks.task.add и task.stages.movetask.
+- source_ref: FR-008
+  status: satisfied
+  evidence: Адаптер Plane использует API key + base_url, создаёт issue/work item и
+    проверяет фактическую смену state_id.
+- source_ref: FR-009
+  status: satisfied
+  evidence: Soft-fail семантика с логированием в stderr и фиксацией sync_error в sidecar.
+- source_ref: FR-010
+  status: satisfied
+  evidence: Неполный конфиг активного провайдера возвращает статус disabled с причиной
+    incomplete_provider_config.
+- source_ref: FR-011
+  status: satisfied
+  evidence: По умолчанию список разрешенных ролей ['back']; вне allowlist — role_not_allowed.
+- source_ref: FR-012
+  status: satisfied
+  evidence: Подкоманда CLI board-sync с опцией --epic для повторной синхронизации.
+- source_ref: FR-013
+  status: satisfied
+  evidence: Поиск карточки выполняется строго по sidecar external_id.
+- source_ref: FR-014
+  status: satisfied
+  evidence: Документация Kind I в loop/README.md и шаблон .loop/board-projection.yaml.example.
+- source_ref: US-001
+  status: satisfied
+  evidence: Выбор провайдера bitrix24 или plane направляет вызовы на соответствующий
+    адаптер.
+- source_ref: US-002
+  status: satisfied
+  evidence: Первый finish при отсутствии маппинга создаёт карточку и сохраняет external_id.
+- source_ref: US-003
+  status: satisfied
+  evidence: Смена фазы перемещает карточку, обновляет last_phase, сбрасывает sync_error.
+- source_ref: US-004
+  status: satisfied
+  evidence: Отсутствие конфига или provider none завершает finish успешно с 0 HTTP-вызовами.
+- source_ref: US-005
+  status: satisfied
+  evidence: При сетевом сбое (500) фаза курсора сохраняется, а CLI board-sync выполняет
+    повтор.
+- source_ref: US-006
+  status: satisfied
+  evidence: Смена провайдера блокируется ProviderMismatchError до выполнения любых
+    сетевых вызовов.
+- source_ref: SC-001
+  status: satisfied
+  evidence: 30 целевых тестов адаптеров, сервиса, конфига и CLI проходят успешно.
+- source_ref: SC-002
+  status: satisfied
+  evidence: Finish без конфигурационного файла не совершает HTTP-вызовов.
+- source_ref: SC-003
+  status: satisfied
+  evidence: Несоответствие провайдера детектируется до сетевых запросов.
+- source_ref: SC-004
+  status: satisfied
+  evidence: Soft-fail сохраняет состояние перехода курсора.
+- source_ref: AC+:1
+  status: satisfied
+  evidence: Создание задачи в Bitrix24 и сохранение sidecar при первом finish.
+- source_ref: AC+:2
+  status: satisfied
+  evidence: Создание issue в Plane и сохранение sidecar при первом finish.
+- source_ref: AC+:3
+  status: satisfied
+  evidence: Перемещение карточки со сменой фазы по карте стадий.
+- source_ref: AC+:4
+  status: satisfied
+  evidence: Блокировка смены провайдера без сброса/миграции маппинга.
+- source_ref: AC+:5
+  status: satisfied
+  evidence: Отсутствие конфига / provider none -> finish OK + explicit disabled.
+- source_ref: AC+:6
+  status: satisfied
+  evidence: Сохранение sync_error при ошибках REST и восстановление через board-sync.
+- source_ref: AC+:7
+  status: satisfied
+  evidence: Отсутствие вендорных импортов в CLI finish и halt.
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Однонаправленный поток из loop на внешнюю доску без обратной записи в
+    loop.
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Отсутствие молчаливых пропусков проекции.
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Отсутствие поиска карточки по title.
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Отсутствие хардкода Bitrix24 в точке вызова CLI.
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Отсутствие одновременной записи в несколько внешних систем.
+- source_ref: AC-:6
+  status: satisfied
+  evidence: Ошибки конфигурации активного провайдера громко заявляют о себе.
+- source_ref: AC-:7
+  status: satisfied
+  evidence: Отсутствие реанимации устаревшего модуля loop/board_sync.
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Конституция соблюдена во всех шагах реализации.
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: 'TDD first: тесты создавались и верифицировались до и вместе с кодом.'
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: 'Отсутствие silent fallback: ошибки конфигурации и несовпадения провайдеров
+    fail-closed.'
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: FRONT tests parent-only respected (back epic).
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: Lean load соблюдён.
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: Fail-closed misconfiguration соблюдён.
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: No-guess markers соблюдены.
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: ONE Handoff per step соблюдён.
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: Интеграционный паритет сохранён.
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: Фазовый авторитет сохранён.
+architecture_parity: []
+findings: []
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-108-loop-board-projection/s01-board-projection-config-protocol-registry.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-108-loop-board-projection/s02-bitrix24-projection-adapter.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-108-loop-board-projection/s03-plane-projection-adapter.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-108-loop-board-projection/s04-projection-service-mapping-and-soft-fail.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-108-loop-board-projection/s05-wire-finish-halt-cli-and-kind-i-docs.yaml
+step_matrix:
+- step_id: s01
+  status: completed
+- step_id: s02
+  status: completed
+- step_id: s03
+  status: completed
+- step_id: s04
+  status: completed
+- step_id: s05
+  status: completed
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-10-26'
+  plan_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/md/plan.md#Replacement-/-sunset
+  rows:
+  - symbol: resurrect loop/board_sync DSH as SoT
+    kind: A
+    command: test ! -d loop/board_sync
+    result: pass
+    prod_callers: 0
+  - symbol: silent skip projection without reason
+    kind: C
+    command: rg -n "disabled_reason" loop/board_projection/service.py
+    result: pass
+    prod_callers: 0
+  - symbol: soft title search if no map
+    kind: C
+    command: rg -n "search.*title" loop/board_projection/ || true
+    result: pass
+    prod_callers: 0
+  - symbol: hardcode Bitrix-only finish hook without adapter
+    kind: A
+    command: rg -n "bitrix" loop/kernel/cli.py || true
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+replan_candidates: []

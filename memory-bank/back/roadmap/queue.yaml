@@ -1,12 +1,6 @@
 version: roadmap-queue/v2
 role: back
-queue:
-- id: T-HUB-108
-  epic_id: T-HUB-108-loop-board-projection
-  kind: feature
-  plan: T-HUB-108-loop-board-projection/md/plan.md
-  batch: loop-board-projection-20261026
-  deps: []
+queue: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -518,6 +512,12 @@ done:
   kind: feature
   plan: plan-T-HUB-107-loop-security-epic-pipeline.md
   batch: loop-security-epic-20261024
+  deps: []
+- id: T-HUB-108
+  epic_id: T-HUB-108-loop-board-projection
+  kind: feature
+  plan: T-HUB-108-loop-board-projection/md/plan.md
+  batch: loop-board-projection-20261026
   deps: []
 batches:
   workflow-loop-hardening:

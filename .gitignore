@@ -12,7 +12,9 @@ agent_trace/
 projects/**/*.env.local
 *.env
 *.env.local
+.deploy.env
 !.env.example
+!.deploy.env.example
 !loop/.env.example
 codex/.build/
 .DS_Store
@@ -20,3 +22,8 @@ codex/.build/
 node_modules/
 dsh/plugins/epic-gate/lib/
 graphify-out/
+
+# Board projection: real secrets/runtime map stay local; example is tracked
+.loop/board-projection.yaml
+.loop/board-epic-map.yaml
+!.loop/board-projection.yaml.example

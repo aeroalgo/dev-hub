@@ -56,3 +56,13 @@ Outcome, In, Out, Done when, Forbidden after, Chat decisions **этого** эп
 
 ### Chat decisions
 - <решения на всю нарезку> | `n/a — no pre-plan chat`
+
+---
+
+## Board
+
+Опционально. Текст карточки на внешней доске (Bitrix/Plane). **FORBIDDEN:** ID эпиков, пути `plan/`, Role/Deps — их подставляет loop при create. Без секции loop возьмёт fallback из Epic Outcome.
+
+title: <короткий заголовок без ID, 5–12 слов>
+
+summary: <1–3 предложения для наблюдателя доски, без HOW и без ID>

@@ -1,0 +1,61 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-108
+plan_id: T-HUB-108-loop-board-projection
+epic_id: T-HUB-108-loop-board-projection
+date: '2026-10-26'
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: acdcf8acd72c9a274fdeeb1e2c9c49c00d86b94e90808a395a0cf1ca4b32ad26
+verify_scope: full
+
+scope:
+  - "task: T-HUB-108"
+  - "epic: T-HUB-108-loop-board-projection"
+  - "steps: s01–s05"
+  - "files: loop/**, harness/**, tests/**"
+
+ac_plus:
+  - "Bitrix24 provider creates task in group and records sidecar mapping"
+  - "Plane provider creates work item in project and records sidecar mapping"
+  - "Finish transition moves card according to mapping"
+  - "Provider switch with existing mapping of another provider fails explicitly before HTTP"
+  - "Missing config or provider none finishes cleanly with explicit disabled reason"
+  - "REST errors soft-fail without rolling back finish and board-sync repairs"
+  - "Finish does not import vendor clients directly but uses Protocol and registry"
+  - "SC-001: ≥1 targeted test per adapter and registry switch (test_board_projection*.py)"
+  - "SC-002: Finish without config does not make HTTP calls"
+  - "SC-003: Provider mismatch detected before HTTP"
+  - "SC-004: Soft-fail preserves cursor phase"
+
+ac_minus:
+  - "Нет dual SoT (доска не пишет в loop)."
+  - "Нет silent skip projection."
+  - "Нет match по title."
+  - "Нет hardcode sole Bitrix path в finish без adapter."
+  - "Нет dual-write в Bitrix и Plane одновременно."
+  - "Misconfig активного provider (битый map/stage) → loud error, не stub success sync."
+  - "Нет resurrect DSH loop/board_sync как SoT."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments: Protocol, adapters, Bitrix webhook methods tasks.task.add/task.stages.movetask and Plane REST endpoints verified."
+
+checks:
+  - "full suite green: bin/pytest -q --tb=line (188 passed in 11.26s)"
+  - "targeted board projection suite green: bin/pytest loop/tests/test_board_projection* -q --tb=line (40 passed in 1.37s)"
+  - "all bugfix queue items done (BF-001, BF-002, BF-003)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS (verify-qa)"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # 188 passed in 11.26s"
+  - "bin/pytest loop/tests/test_board_projection* -q --tb=line  # 40 passed in 1.37s"

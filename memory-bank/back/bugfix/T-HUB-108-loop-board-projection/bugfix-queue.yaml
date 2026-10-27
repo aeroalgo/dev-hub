@@ -1,0 +1,52 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-108-loop-board-projection
+role: back
+source_qa: memory-bank/back/qa/T-HUB-108-loop-board-projection/qa-20261026-loop-board-projection.yaml
+checklist_sha256: acdcf8acd72c9a274fdeeb1e2c9c49c00d86b94e90808a395a0cf1ca4b32ad26
+created_at: '2026-10-26T18:30:00Z'
+updated_at: '2026-10-26T19:30:00Z'
+current_id: BF-003
+items:
+- id: BF-001
+  status: done
+  class: ac_gap
+  title: finish discards ProjectionResult.disabled_reason, so missing config/none is not explicit and projection can be silently skipped
+  blocker_ref: 'ac_gap: finish discards ProjectionResult.disabled_reason, so missing config/none is not explicit and projection can be silently skipped (loop/kernel/cli.py:1175) · expose disabled reason in finish/halt output.'
+  fix_plan_ref: 'BACK BUGFIX BF-001: Expose ProjectionResult.disabled_reason in finish and halt CLI output so projection status is explicit.'
+  targets:
+  - loop/kernel/cli.py
+  verify: bin/pytest loop/tests/test_board_projection_cli.py -q --tb=line
+  evidence: 5 passed in 1.65s via bin/pytest loop/tests/test_board_projection_cli.py -q --tb=line
+  done_at: '2026-10-26T18:45:00Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: ac_gap
+  title: incomplete stage_map/state_map can fall back and report success
+  blocker_ref: 'ac_gap: incomplete stage_map/state_map can fall back and report success (loop/board_projection/adapters/bitrix24.py:87, loop/board_projection/adapters/plane.py:92, loop/board_projection/service.py:109) · validate mappings and fail loudly.'
+  fix_plan_ref: 'BACK BUGFIX BF-002: Validate stage_map/state_map completeness against phase aliases and fail loudly on missing mappings without silent fallback.'
+  targets:
+  - loop/board_projection/adapters/bitrix24.py
+  - loop/board_projection/adapters/plane.py
+  - loop/board_projection/service.py
+  verify: bin/pytest loop/tests/test_board_projection_service.py loop/tests/test_board_projection_bitrix24.py loop/tests/test_board_projection_plane.py -q --tb=line
+  evidence: 26 passed in 1.23s via bin/pytest loop/tests/test_board_projection_service.py loop/tests/test_board_projection_bitrix24.py loop/tests/test_board_projection_plane.py -q --tb=line
+  done_at: '2026-10-26T19:00:00Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: ac_gap
+  title: Misconfig активного provider (битый map/stage) не валидируется при sync_phase и превращается в disabled-success вместо громкой ошибки
+  blocker_ref: 'ac_gap: Misconfig активного provider (битый map/stage) не валидируется при sync_phase и превращается в disabled-success вместо громкой ошибки (loop/board_projection/service.py:44, loop/board_projection/service.py:89) · вызвать validate_mappings() и не превращать активную misconfig в disabled-success.'
+  fix_plan_ref: 'BACK BUGFIX BF-003: Call validate_mappings() on active provider in sync_phase/create_projection and raise explicit error on misconfig instead of disabled-success.'
+  targets:
+  - loop/board_projection/service.py
+  verify: bin/pytest loop/tests/test_board_projection_service.py -q --tb=line
+  evidence: 10 passed in 1.17s via bin/pytest loop/tests/test_board_projection_service.py -q --tb=line
+  done_at: '2026-10-26T19:30:00Z'
+  notes: ''
+verification:
+  status: pass
+  command: bin/pytest loop/tests/test_board_projection* -q --tb=line
+  last_run_at: '2026-10-26T19:30:00Z'
+  evidence: 40 passed in 1.43s via bin/pytest loop/tests/test_board_projection* -q --tb=line

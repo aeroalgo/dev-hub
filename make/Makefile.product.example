@@ -22,6 +22,11 @@ endif
 
 include $(DEV_HUB)/make/product.mk
 
+# Deploy (from make/deploy.mk via product.mk):
+#   cp $(DEV_HUB)/.deploy.env.example ./.deploy.env
+#   make deploy-info
+#   make deploy
+#
 # --- опционально: product-specific targets ---
 #
 # .PHONY: test

@@ -32,6 +32,14 @@ def get_adapter(config: BoardProjectionConfig) -> BoardProjectionAdapter | None:
 
     factory = _REGISTRY.get(provider)
     if factory is None:
+        if provider == "bitrix24":
+            import loop.board_projection.adapters.bitrix24  # noqa: F401
+            factory = _REGISTRY.get(provider)
+        elif provider == "plane":
+            import loop.board_projection.adapters.plane  # noqa: F401
+            factory = _REGISTRY.get(provider)
+
+    if factory is None:
         raise ProjectionConfigError(
             f"No adapter registered for board projection provider '{provider}'."
         )

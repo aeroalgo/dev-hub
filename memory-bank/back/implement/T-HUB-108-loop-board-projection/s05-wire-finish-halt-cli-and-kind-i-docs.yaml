@@ -1,0 +1,133 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-108-loop-board-projection
+task_id: T-HUB-108
+title: s05 — Wire finish and halt transition hooks, board-sync CLI catch-up, and Kind I documentation
+level: L2
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-108-loop-board-projection/yaml/steps/s05-wire-finish-halt-cli-and-kind-i-docs.yaml
+date: 2026-10-26
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+
+done:
+  - "Подключен вызов project_after_transition в loop/kernel/cli.py после успешных engine.finish() и engine.halt() вне блока транзакции"
+  - "Проверено отсутствие прямых импортов вендоров в loop/kernel/cli.py (используется только интерфейс сервиса и протокола)"
+  - "Добавлена CLI команда board-sync с поддержкой опции --epic для догона проекции и сброса sync_error"
+  - "Создан валидный пример конфигурации .loop/board-projection.yaml.example с поддержкой bitrix24 и plane"
+  - "Добавлена Kind I документация в loop/README.md с описанием конфигурации, soft-fail, смены провайдеров и команды board-sync"
+  - "Добавлены всесторонние тесты в loop/tests/test_board_projection_cli.py"
+
+files:
+  - loop/kernel/cli.py
+  - .loop/board-projection.yaml.example
+  - loop/README.md
+  - loop/tests/test_board_projection_cli.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - "loop/kernel/cli.py: finish, halt, run (max_steps_exceeded), board-sync"
+  enforce_path: "loop/kernel/cli.py"
+  dual_path_rg: "git grep -n 'board_sync' loop/ returns no legacy callers; only board_projection used"
+  instruction_rg: "loop/README.md: Kind I section describes board-projection without MCP-as-primary"
+  deny_old_proven: true
+
+tests:
+  - '`bin/pytest loop/tests/test_board_projection_cli.py -k test_cli_finish_halt_wire -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_cli.py -k test_cli_board_sync -q --tb=line` — PASS'
+  - '`bin/pytest loop/tests/test_board_projection_cli.py -q --tb=line` — PASS'
+
+integration_check:
+  - "bin/pytest loop/tests/test_board_projection_*.py -q --tb=line (30 passed)"
+  - "test -f .loop/board-projection.yaml.example && grep -q 'board-projection' loop/README.md (PASS)"
+
+checkpoints:
+  - id: cp1
+    criterion: "finish и halt вызывают сервис проекции без отката транзакции при сбоях (FR-004, AC-7, TM-009)"
+    status: done
+  - id: cp2
+    criterion: "Команда board-sync успешно выполняет синхронизацию и очищает sync_error (FR-012, TM-008)"
+    status: done
+  - id: cp3
+    criterion: "Пример .loop/board-projection.yaml.example существует и loop/README.md содержит документацию по board-projection (FR-014)"
+    status: done
+
+resume_from: cp3
+
+plan_parity_scan:
+  fr_coverage:
+    - id: FR-001
+      step: s01
+      status: completed
+    - id: FR-002
+      step: s01
+      status: completed
+    - id: FR-003
+      step: s01
+      status: completed
+    - id: FR-004
+      step: s05
+      status: completed
+    - id: FR-005
+      step: s04
+      status: completed
+    - id: FR-006
+      step: s04
+      status: completed
+    - id: FR-007
+      step: s02
+      status: completed
+    - id: FR-008
+      step: s03
+      status: completed
+    - id: FR-009
+      step: s04
+      status: completed
+    - id: FR-010
+      step: s01
+      status: completed
+    - id: FR-011
+      step: s01
+      status: completed
+    - id: FR-012
+      step: s05
+      status: completed
+    - id: FR-013
+      step: s04
+      status: completed
+    - id: FR-014
+      step: s05
+      status: completed
+  layout_parity:
+    - path: "loop/board_projection/__init__.py"
+      status: completed
+    - path: "loop/board_projection/protocol.py"
+      status: completed
+    - path: "loop/board_projection/config.py"
+      status: completed
+    - path: "loop/board_projection/registry.py"
+      status: completed
+    - path: "loop/board_projection/service.py"
+      status: completed
+    - path: "loop/board_projection/mapping.py"
+      status: completed
+    - path: "loop/board_projection/adapters/bitrix24.py"
+      status: completed
+    - path: "loop/board_projection/adapters/plane.py"
+      status: completed
+    - path: "loop/board_projection/errors.py"
+      status: completed
+    - path: "loop/kernel/cli.py"
+      status: completed
+    - path: ".loop/board-projection.yaml.example"
+      status: completed

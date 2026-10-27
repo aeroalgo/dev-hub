@@ -37,24 +37,24 @@ steps:
   file: s02-bitrix24-projection-adapter.yaml
   title: s02 — Bitrix24 projection adapter and REST webhook transport
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s03
   file: s03-plane-projection-adapter.yaml
   title: s03 — Plane projection adapter and REST work-item transport
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-projection-service-mapping-and-soft-fail.yaml
   title: s04 — Projection service, mapping sidecar lifecycle, provider switch protection,
     and soft-fail
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-wire-finish-halt-cli-and-kind-i-docs.yaml
   title: s05 — Wire finish and halt transition hooks, board-sync CLI catch-up, and
     Kind I documentation
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 requirements_coverage:
 - id: FR-001
   step: s01

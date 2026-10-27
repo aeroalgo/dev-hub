@@ -20,6 +20,7 @@ def test_bitrix24_implements_protocol() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10", "build": "20"},
     )
     adapter = Bitrix24Adapter(config=cfg)
@@ -35,6 +36,7 @@ def test_bitrix24_ensure_card() -> None:
         assert request.url.path == "/rest/1/abc/tasks.task.add"
         body = json.loads(request.content.decode("utf-8"))
         assert body["fields"]["GROUP_ID"] == 42
+        assert body["fields"]["RESPONSIBLE_ID"] == 1
         assert body["fields"]["STAGE_ID"] == "10"
         assert body["fields"]["TITLE"] == "[T-100] Implement login"
         assert body["fields"]["DESCRIPTION"] == "Login epic description"
@@ -46,6 +48,7 @@ def test_bitrix24_ensure_card() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10", "design": "15"},
     )
     client = make_fake_client(handler)
@@ -69,6 +72,7 @@ def test_bitrix24_ensure_card_numeric_result_format() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10"},
     )
     adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(handler))
@@ -91,6 +95,7 @@ def test_bitrix24_move_card() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10", "build": "20"},
     )
     client = make_fake_client(handler)
@@ -104,6 +109,7 @@ def test_bitrix24_move_card_unknown_phase_raises() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10"},
     )
     adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(lambda r: httpx.Response(200)))
@@ -121,6 +127,7 @@ def test_bitrix24_rest_error_response_raises() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10"},
     )
     adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(handler))
@@ -135,6 +142,7 @@ def test_bitrix24_http_status_error_raises() -> None:
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
+        responsible_id=1,
         stage_map={"backlog": "10"},
     )
     adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(handler))
@@ -149,6 +157,7 @@ def test_bitrix24_registry_get_adapter() -> None:
             bitrix24=Bitrix24Config(
                 webhook_url="https://b24.example.com/rest/1/abc/",
                 group_id=12,
+                responsible_id=1,
                 stage_map={"backlog": "10"},
             )
         ),
@@ -157,3 +166,50 @@ def test_bitrix24_registry_get_adapter() -> None:
     assert adapter is not None
     assert isinstance(adapter, Bitrix24Adapter)
     assert adapter.provider_name == "bitrix24"
+
+
+def test_bitrix24_ensure_card_missing_responsible_id_raises() -> None:
+    cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=None,
+        stage_map={"backlog": "10"},
+    )
+    adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(lambda r: httpx.Response(200)))
+    with pytest.raises(AdapterExecutionError, match="responsible_id is required"):
+        adapter.ensure_card(EpicRef(epic_id="T-301", phase="QUEUED"))
+
+
+def test_bitrix24_ensure_card_unknown_phase_raises() -> None:
+    # BF-002: incomplete stage_map must fail loudly without silent fallback to backlog
+    cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=1,
+        stage_map={"backlog": "10"},
+    )
+    adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(lambda r: httpx.Response(200)))
+    with pytest.raises(AdapterExecutionError, match="unknown phase mapping"):
+        adapter.ensure_card(EpicRef(epic_id="T-300", phase="IMPLEMENT"))
+
+
+def test_bitrix24_validate_mappings() -> None:
+    # BF-002: validate stage_map completeness against phase aliases
+    incomplete_cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=1,
+        stage_map={"backlog": "10"},
+    )
+    adapter_inc = Bitrix24Adapter(config=incomplete_cfg)
+    with pytest.raises(AdapterExecutionError, match="Incomplete Bitrix24 stage_map"):
+        adapter_inc.validate_mappings()
+
+    complete_cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=1,
+        stage_map={"backlog": "1", "design": "2", "build": "3", "verify": "4", "done": "5", "blocked": "6"},
+    )
+    adapter_complete = Bitrix24Adapter(config=complete_cfg)
+    adapter_complete.validate_mappings()  # does not raise

@@ -45,3 +45,11 @@ silent skip · dual SoT · match по title · hard-fail finish из-за зер
 ## Covering
 
 n/a — single epic
+
+---
+
+## Board
+
+title: проекция эпиков loop на Bitrix/Plane
+
+summary: После finish фазы на выбранном таскборде появляется или двигается карточка того же эпика. Loop остаётся источником правды; доска — односторонняя проекция. Провайдер (Bitrix24 или Plane) переключается конфигом.
