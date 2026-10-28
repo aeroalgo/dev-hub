@@ -113,10 +113,32 @@ make hub-link          # обновить symlinks / router stub
 | `model_required` у loop | задать `--model` или `LOOP_MODEL*` в `.env` хаба |
 | два `memory-bank/` | открыта только папка продукта |
 
+## 8. Board / Bitrix (после hub-link)
+
+`make hub-link` один раз кладёт в продукт (если файлов ещё нет):
+
+| Путь | Назначение |
+|------|------------|
+| `.loop/board-projection.yaml` (+ `.example`) | фазы → колонки, role allowlist |
+| `.loop/board-actors.yaml` (+ `.example`) | кто постановщик/исполнитель по эпику |
+| `scripts/board-sync.sh` | sync с учётом актёров |
+| `memory-bank/product/board-publish.md` | правило «после PLAN → доска» |
+
+Дальше в продукте:
+
+```bash
+cp .env.example .env   # или дописать LOOP_BOARD_* / BITRIX_* из хаба .env.example
+# отредактировать .loop/board-actors.yaml (epics → sokolov|erokhin|…)
+./scripts/board-sync.sh --all
+```
+
+Rules (всегда через symlink harness): `workflow-board-sync.mdc`, `workflow-board-after-plan.mdc`, `workflow-board-docs.mdc`.
+
 ## Конфиг, который можно коммитить в продукт
 
 - `Makefile` (тонкий wrapper)
 - `.dev-hub` (путь к tooling)
 - `dev-hub.project.yaml` (targets / workflow_pack)
+- `.loop/board-actors.yaml` (+ examples), `scripts/board-sync.sh`, `memory-bank/product/board-publish.md`
 
 **Не коммитить:** `.env` хаба с секретами, Bitrix/Plane keys, `.deploy.env` с секретами.

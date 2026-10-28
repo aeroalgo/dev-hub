@@ -15,26 +15,45 @@ alwaysApply: false
 
 ## Preconditions
 
-1. В продукте: symlink `harness/` + `.dev-hub`, файл `.loop/board-projection.yaml`
-2. Per-project `.env` (не читать в чат, только `source` в shell):
+1. В продукте: symlink `harness/` + `.dev-hub` (`make hub-link`)
+2. Board seed (ставит hub-link, если ещё нет):
+   - `.loop/board-projection.yaml` (+ `.example`)
+   - `.loop/board-actors.yaml` (+ `.example`) — кто постановщик/исполнитель по эпику
+   - `scripts/board-sync.sh`
+   - `memory-bank/product/board-publish.md`
+3. Per-product `.env` (не читать в чат, только `source` в shell):
    - `LOOP_BOARD_PROVIDER=bitrix24` (или `plane`)
    - Bitrix: `BITRIX_WEBHOOK_URL`, `BITRIX_GROUP_ID`, `BITRIX_RESPONSIBLE_ID`,
-     `BITRIX_STAGE_BACKLOG|DESIGN|BUILD|VERIFY|UAT|DONE` (или `BITRIX_STAGE_MAP`)
-3. Эпик с `prompt.md`; желательна секция `## Board` (`title` / `summary`) —
+     `BITRIX_STAGE_BACKLOG|DESIGN|BUILD|VERIFY|UAT|DONE|BLOCKED` (или `BITRIX_STAGE_MAP`)
+4. Эпик с `prompt.md`; секция `## Board` (`title` / `summary` простым языком) —
    иначе fallback из Epic Outcome / id
-4. Mapping sidecar: `.loop/board-epic-map.yaml` (создаётся/обновляется CLI)
+5. Mapping sidecar: `.loop/board-epic-map.yaml` (создаётся/обновляется CLI)
+
+Шаблоны хаба: `harness/templates/board/`.  
+После PLAN — см. `workflow-board-after-plan.mdc`.
 
 ## Command
 
+Предпочтительно (учитывает `.loop/board-actors.yaml`):
+
 ```bash
 cd /path/to/product
+./scripts/board-sync.sh <EPIC_ID>
+# или
+./scripts/board-sync.sh --all
+```
+
+Низкоуровневый CLI (один `BITRIX_RESPONSIBLE_ID` из `.env`):
+
+```bash
 set -a && source .env && set +a
 python3 "$(cat .dev-hub)/bin/loop.py" board-sync --project "$PWD" --epic <EPIC_ID> --json
 ```
 
 Без `--epic` — активный cursor loop. Первый sync без mapping → `ensure_card`
 (`tasks.task.add`). Повтор с той же фазой / смена фазы → move stage.
-Автоматически вызывается post-finish в loop; CLI — ручной create/catch-up.
+Автоматически вызывается post-finish в loop (только `.env` actor); CLI /
+`scripts/board-sync.sh` — ручной create/catch-up и per-epic актёры.
 
 ## Phase → колонка
 

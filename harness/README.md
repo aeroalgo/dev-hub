@@ -49,6 +49,12 @@ Non-destructive integration designed for external product repositories. It layer
   - `.claude/{agents,commands,instructions,rules,skills}` → harness / hub shells
   - `.codex` → `$DEV_HUB/.codex` (если каталог есть)
 - Optional `--with-skills`: `.agents/skills` → `harness/skills` (`make hub-link` передаёт этот флаг)
+- Seeds Bitrix/Plane board kit **once if missing** from `harness/templates/board/`:
+  - `.loop/board-projection.yaml` (+ `.example`)
+  - `.loop/board-actors.yaml` (+ `.example`) — per-epic creator/assignee
+  - `scripts/board-sync.sh`
+  - `memory-bank/product/board-publish.md`
+  - Rules (via symlink): `shared/workflow-board-sync.mdc`, `shared/workflow-board-after-plan.mdc`
 
 Project targets / workflow pack — только корневой `dev-hub.project.yaml` (`dev-hub-project/v1`). Старые `project.yaml` / `.dev-hub/project.yaml` не читаются. Шаблон: `harness/templates/dev-hub.project.yaml`.
 

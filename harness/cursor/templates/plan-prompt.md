@@ -61,8 +61,22 @@ Outcome, In, Out, Done when, Forbidden after, Chat decisions **этого** эп
 
 ## Board
 
-Опционально. Текст карточки на внешней доске (Bitrix/Plane). **FORBIDDEN:** ID эпиков, пути `plan/`, Role/Deps — их подставляет loop при create. Без секции loop возьмёт fallback из Epic Outcome.
+Текст карточки на внешней доске (Bitrix/Plane). После PLAN обязательна публикация
+(`workflow-board-after-plan.mdc` · `./scripts/board-sync.sh`).
+**FORBIDDEN:** ID эпиков, пути `plan/`, Role/Deps — их подставляет loop при create.
+Без секции loop возьмёт fallback из Epic Outcome.
+
+Пиши **для людей вне разработки** (что / зачем / стадии / результат), без жаргона.
 
 title: <короткий заголовок без ID, 5–12 слов>
 
-summary: <1–3 предложения для наблюдателя доски, без HOW и без ID>
+summary: |
+  Что делаем
+  <…>
+  Зачем
+  <…>
+  Стадии
+  1) …
+  2) …
+  Результат для наблюдателя
+  <…>

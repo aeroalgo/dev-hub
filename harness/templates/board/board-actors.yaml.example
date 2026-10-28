@@ -1,0 +1,17 @@
+# Per-epic Bitrix actor (CREATED_BY = RESPONSIBLE_ID on board-sync).
+# Fill bitrix_user_id for your portal. hub-link seeds .loop/board-actors.yaml once.
+schema: loop-board-actors/v1
+
+actors:
+  erokhin:
+    bitrix_user_id: 274
+    display_name: Андрей Ерохин
+  sokolov:
+    bitrix_user_id: 240
+    display_name: Евгений Соколов
+
+default_actor: erokhin
+
+epics:
+  # T-B01-example-epic: sokolov
+  # T-F01-example-epic: erokhin

@@ -263,6 +263,50 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
+  # 9. Seed Bitrix/Plane board templates into product (.loop + scripts + docs)
+  # Non-destructive: never overwrite existing product files.
+  BOARD_TMPL="$DEV_HUB/harness/templates/board"
+  seed_board_file() {
+    local rel="$1"
+    local src="$2"
+    local mode="${3:-copy}"
+    local dest="$PRODUCT_ROOT/$rel"
+    if [[ ! -f "$src" ]]; then
+      echo "WARN: board template missing: $src" >&2
+      return 0
+    fi
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      if [[ -e "$dest" ]]; then
+        echo "[dry-run] keep    $rel (exists)"
+      else
+        echo "[dry-run] seed    $rel <- $src"
+      fi
+      return 0
+    fi
+    if [[ -e "$dest" ]]; then
+      echo "keep    $rel"
+      return 0
+    fi
+    mkdir -p "$(dirname "$dest")"
+    cp "$src" "$dest"
+    if [[ "$mode" == "exec" ]]; then
+      chmod +x "$dest"
+    fi
+    echo "seed    $rel"
+  }
+
+  if [[ -d "$BOARD_TMPL" ]]; then
+    seed_board_file ".loop/board-projection.yaml.example" "$BOARD_TMPL/board-projection.yaml.example"
+    seed_board_file ".loop/board-actors.yaml.example" "$BOARD_TMPL/board-actors.yaml.example"
+    # Working copies once (product edits these; examples stay refreshable only if missing)
+    seed_board_file ".loop/board-projection.yaml" "$BOARD_TMPL/board-projection.yaml.example"
+    seed_board_file ".loop/board-actors.yaml" "$BOARD_TMPL/board-actors.yaml.example"
+    seed_board_file "scripts/board-sync.sh" "$BOARD_TMPL/board-sync.sh" "exec"
+    seed_board_file "memory-bank/product/board-publish.md" "$BOARD_TMPL/board-publish.md"
+  else
+    echo "WARN: board templates dir missing: $BOARD_TMPL" >&2
+  fi
+
   echo "OK alongside links in $PRODUCT_ROOT"
   exit 0
 fi

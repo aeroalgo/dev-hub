@@ -1,0 +1,34 @@
+---
+description: "После BACK/FRONT PLAN — опубликовать карточки на Bitrix/Plane"
+alwaysApply: true
+---
+
+# BOARD AFTER PLAN
+
+**Триггер:** FINISH PLAN · создан/обновлён `memory-bank/**/plan/*/md/plan.md` + `prompt.md` ·
+«опубликуй на доску» после планирования.
+
+## Обязательно
+
+1. В `prompt.md` секция `## Board`: `title` + `summary` **простым языком**
+   (что / зачем / стадии / результат). Без внутренних ID эпиков в title/summary.
+2. Актёр карточки (постановщик = исполнитель) — `.loop/board-actors.yaml`.
+3. Публикация:
+   ```bash
+   ./scripts/board-sync.sh <epic-id>
+   # или
+   ./scripts/board-sync.sh --all
+   ```
+4. Канон продукта: `memory-bank/product/board-publish.md`
+   (шаблон хаба: `harness/templates/board/board-publish.md`).
+
+## Не оставлять
+
+PLAN без карточки на доске, если в продукте настроены `.env` (`LOOP_BOARD_*`)
+и `.loop/board-projection.yaml`.
+
+## Связано
+
+- Create/move карточки: `workflow-board-sync.mdc` · `bin/loop.py board-sync`
+- Per-epic актёры: `.loop/board-actors.yaml` · `scripts/board-sync.sh`
+- Файлы к карточке: `workflow-board-docs.mdc`

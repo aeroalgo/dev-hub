@@ -1,0 +1,58 @@
+# Shared template — safe to commit as .example.
+# Per-project board identity + secrets live in product .env:
+#   LOOP_BOARD_PROVIDER=bitrix24
+#   BITRIX_WEBHOOK_URL=...
+#   BITRIX_GROUP_ID=...
+#   BITRIX_RESPONSIBLE_ID=...   # default fallback; per-epic → board-actors.yaml
+#   BITRIX_STAGE_* or BITRIX_STAGE_MAP (incl. BITRIX_STAGE_BLOCKED)
+#   PROJECT_DOCS_FOLDER=docs
+#
+# hub-link copies this to .loop/board-projection.yaml.example (and seeds
+# .loop/board-projection.yaml once if missing).
+schema: loop-board-projection/v1
+
+provider: none
+
+role_allowlist:
+  - back
+  - front
+
+phase_alias:
+  QUEUED: backlog
+  PLAN: design
+  CLARIFY: design
+  DECOMPOSE: design
+  ANALYZE: design
+  CREATIVE: design
+  IMPLEMENT: build
+  TASK: build
+  REFACTOR: build
+  SECURITY: build
+  AUDIT: build
+  QA: verify
+  BUGFIX: verify
+  CONTEXT_SYNC: uat
+  DONE: done
+  HALT: blocked
+
+providers:
+  bitrix24:
+    webhook_url: ""
+    group_id: null
+    responsible_id: null
+    stage_map: {}
+
+  plane:
+    base_url: ""
+    api_key: ""
+    workspace_slug: ""
+    project_id: ""
+    state_map: {}
+
+project_docs:
+  folder_name: docs
+  files:
+    - path: memory-bank/product/vision.md
+    - path: memory-bank/product/modules.md
+    - path: memory-bank/techContext.md
+    - path: memory-bank/tasks.md
