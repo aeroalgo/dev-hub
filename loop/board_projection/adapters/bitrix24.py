@@ -74,8 +74,23 @@ class Bitrix24Adapter(BoardProjectionAdapter):
     def resolve_stage_id(self, phase: str) -> str | None:
         """Resolve stage ID from phase using phase_alias and stage_map."""
         normalized_phase = phase.strip()
-        alias = self.phase_alias.get(normalized_phase, self.phase_alias.get(normalized_phase.upper(), normalized_phase.lower()))
+        alias = self._phase_alias(normalized_phase)
         return self.config.stage_map.get(alias, self.config.stage_map.get(normalized_phase))
+
+    def _phase_alias(self, phase: str) -> str:
+        normalized_phase = phase.strip()
+        return self.phase_alias.get(
+            normalized_phase,
+            self.phase_alias.get(normalized_phase.upper(), normalized_phase.lower()),
+        )
+
+    def validate_phase_mapping(self, phase: str) -> None:
+        """Validate the stage needed for this transition only."""
+        alias = self._phase_alias(phase)
+        if not self.resolve_stage_id(phase):
+            raise AdapterExecutionError(
+                f"Incomplete Bitrix24 stage_map: missing mapping for phase aliases [{alias!r}]"
+            )
 
     def validate_mappings(self) -> None:
         """Validate that all phase aliases resolve to a stage ID in stage_map; fail loudly if incomplete."""
@@ -128,6 +143,9 @@ class Bitrix24Adapter(BoardProjectionAdapter):
                 task_id = result.get("id")
         else:
             task_id = result
+            # Some Bitrix-compatible endpoints return a scalar result while
+            # placing the actor fields at the response root.
+            task_info = data
 
         if not task_id:
             raise AdapterExecutionError(f"Failed to extract task ID from Bitrix24 response: {data}")

@@ -198,7 +198,7 @@ def test_plane_validate_mappings() -> None:
         api_key="secret-key",
         workspace_slug="acme",
         project_id="proj-uuid-1",
-        state_map={"backlog": "s-1", "design": "s-2", "build": "s-3", "verify": "s-4", "done": "s-5", "blocked": "s-6"},
+        state_map={"backlog": "s-1", "design": "s-2", "build": "s-3", "verify": "s-4", "uat": "s-5", "done": "s-6", "blocked": "s-7"},
     )
     adapter_complete = PlaneAdapter(config=complete_cfg)
     adapter_complete.validate_mappings()  # does not raise

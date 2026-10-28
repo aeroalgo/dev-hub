@@ -300,6 +300,52 @@ def test_service_real_adapter_incomplete_mapping_fails_loudly(tmp_path: Path):
     assert "incomplete bitrix24 stage_map" in str(exc_info.value).lower()
 
 
+def test_service_validates_only_target_phase_mapping(tmp_path: Path):
+    """A build transition is not blocked by an unrelated missing blocked stage."""
+    from loop.board_projection.adapters.bitrix24 import Bitrix24Adapter
+    from loop.board_projection.config import Bitrix24Config
+    import httpx
+
+    cfg_file = tmp_path / ".loop" / "board-projection.yaml"
+    write_config(cfg_file, provider="bitrix24")
+    map_file = tmp_path / ".loop" / "board-epic-map.yaml"
+    save_board_epic_map(
+        BoardEpicMap(
+            provider="bitrix24",
+            epics={"T-HUB-108": EpicMapEntry(external_id="bx-task-1", last_phase="PLAN")},
+        ),
+        map_file,
+    )
+    b24_cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=1,
+        stage_map={"build": "20"},
+    )
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"result": True})
+
+    adapter = Bitrix24Adapter(
+        config=b24_cfg,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = project_epic_phase(
+        project_root=tmp_path,
+        epic_id="T-HUB-108",
+        phase="IMPLEMENT",
+        config_path=cfg_file,
+        map_path=map_file,
+        adapter=adapter,
+    )
+
+    assert result.status == "success"
+    assert len(requests) == 1
+
+
 def test_service_active_provider_incomplete_config_raises_explicit_error(tmp_path: Path):
     # BF-003: Incomplete active provider config must raise ProjectionConfigError, not return disabled
     cfg_file = tmp_path / ".loop" / "board-projection.yaml"

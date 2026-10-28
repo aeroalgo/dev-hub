@@ -13,6 +13,7 @@ from loop.board_projection.protocol import (
 from loop.board_projection.config import (
     BoardProjectionConfig,
     Bitrix24Config,
+    DEFAULT_PHASE_ALIASES,
     PlaneConfig,
     load_projection_config,
 )
@@ -255,3 +256,40 @@ def test_board_identity_from_env_overrides_yaml(tmp_path: Path, monkeypatch: pyt
     assert cfg.providers.bitrix24.stage_map["backlog"] == "1342"
     assert cfg.providers.bitrix24.stage_map["design"] == "1343"
     assert cfg.project_docs.folder_name == "env-docs"
+
+
+def test_project_dotenv_board_settings_are_loaded_without_shell_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    cfg_path = tmp_path / ".loop" / "board-projection.yaml"
+    cfg_path.parent.mkdir(parents=True)
+    cfg_path.write_text(yaml.safe_dump({"provider": "none"}), encoding="utf-8")
+    (tmp_path / ".env").write_text(
+        "LOOP_BOARD_PROVIDER=bitrix24\n"
+        "BITRIX_WEBHOOK_URL=https://portal.example/rest/1/test/\n"
+        "BITRIX_GROUP_ID=26\n"
+        "BITRIX_RESPONSIBLE_ID=274\n"
+        "BITRIX_STAGE_DESIGN=1343\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("DEV_HUB", raising=False)
+    for key in (
+        "LOOP_BOARD_PROVIDER",
+        "BITRIX_WEBHOOK_URL",
+        "BITRIX_GROUP_ID",
+        "BITRIX_RESPONSIBLE_ID",
+        "BITRIX_STAGE_DESIGN",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    cfg, reason = load_projection_config(config_path=cfg_path)
+
+    assert reason is None
+    assert cfg is not None
+    assert cfg.provider == "bitrix24"
+    assert cfg.providers.bitrix24.group_id == 26
+    assert cfg.providers.bitrix24.stage_map["design"] == "1343"
+
+
+def test_default_context_sync_alias_is_uat():
+    assert DEFAULT_PHASE_ALIASES["PLAN"] == "design"
+    assert DEFAULT_PHASE_ALIASES["IMPLEMENT"] == "build"
+    assert DEFAULT_PHASE_ALIASES["CONTEXT_SYNC"] == "uat"

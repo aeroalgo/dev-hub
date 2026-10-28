@@ -51,7 +51,10 @@ def project_epic_phase(
     resolved_map_path = resolve_map_path(project_root=root_path, explicit_path=map_path)
 
     # 1. Load config
-    config, disabled_reason = load_projection_config(resolved_config_path)
+    config, disabled_reason = load_projection_config(
+        resolved_config_path,
+        project_root=root_path,
+    )
 
     if disabled_reason == "missing_config":
         return ProjectionResult(status="disabled", disabled_reason="missing_config")
@@ -91,9 +94,18 @@ def project_epic_phase(
     if active_adapter is None:
         return ProjectionResult(status="disabled", disabled_reason="provider_none")
 
-    # Validate mappings on active provider (fail loudly on misconfigured stage/state map)
-    if hasattr(active_adapter, "validate_mappings") and callable(getattr(active_adapter, "validate_mappings")):
-        active_adapter.validate_mappings()
+    # Validate only the target phase before dispatch. A missing mapping for an
+    # unrelated terminal phase (for example HALT/blocked) must not prevent a
+    # valid IMPLEMENT/build transition from reaching the board.
+    phase_validator = getattr(active_adapter, "validate_phase_mapping", None)
+    if callable(phase_validator):
+        phase_validator(phase)
+    else:
+        # Backward compatibility for third-party adapters that only implement
+        # the original all-phases validator.
+        all_phase_validator = getattr(active_adapter, "validate_mappings", None)
+        if callable(all_phase_validator):
+            all_phase_validator()
 
     # 6. Check existing card entry
     entry = board_map.epics.get(epic_id)

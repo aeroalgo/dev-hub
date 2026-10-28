@@ -79,8 +79,23 @@ class PlaneAdapter(BoardProjectionAdapter):
     def resolve_state_id(self, phase: str) -> str | None:
         """Resolve state ID from phase using phase_alias and state_map."""
         normalized_phase = phase.strip()
-        alias = self.phase_alias.get(normalized_phase, self.phase_alias.get(normalized_phase.upper(), normalized_phase.lower()))
+        alias = self._phase_alias(normalized_phase)
         return self.config.state_map.get(alias, self.config.state_map.get(normalized_phase))
+
+    def _phase_alias(self, phase: str) -> str:
+        normalized_phase = phase.strip()
+        return self.phase_alias.get(
+            normalized_phase,
+            self.phase_alias.get(normalized_phase.upper(), normalized_phase.lower()),
+        )
+
+    def validate_phase_mapping(self, phase: str) -> None:
+        """Validate the state needed for this transition only."""
+        alias = self._phase_alias(phase)
+        if not self.resolve_state_id(phase):
+            raise AdapterExecutionError(
+                f"Incomplete Plane state_map: missing mapping for phase aliases [{alias!r}]"
+            )
 
     def validate_mappings(self) -> None:
         """Validate that all phase aliases resolve to a state ID in state_map; fail loudly if incomplete."""

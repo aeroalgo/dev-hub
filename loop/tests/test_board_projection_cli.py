@@ -17,6 +17,7 @@ from loop.board_projection.protocol import BoardProjectionAdapter, EpicRef
 from loop.kernel.cli import main
 from loop.kernel.engine import LoopEngine
 from loop.kernel.model import CursorStatus
+from loop.kernel.session import SessionOutcome, SessionRun
 from loop.kernel.store import CursorStore, LoopPaths
 from loop.kernel.verdict import GateVerdict, SCHEMA_GATE_VERDICT
 
@@ -182,6 +183,80 @@ def test_cli_finish_halt_wire(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     cur_halted = engine.store.read()
     assert cur_halted is not None
     assert cur_halted.status == CursorStatus.HALTED
+
+
+def test_cli_start_projects_initial_phase(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Starting an epic after PLAN mirrors DECOMPOSE (the design column)."""
+    _write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# plan\n")
+    calls: list[dict[str, Any]] = []
+
+    def capture(**kwargs: Any):
+        calls.append(kwargs)
+
+    monkeypatch.setattr("loop.kernel.cli.project_after_transition", capture)
+
+    rc = main(["start", "--project", str(tmp_path), "--epic", "E2", "--json"])
+
+    assert rc == 0
+    assert calls[0]["phase"] == "DECOMPOSE"
+    assert calls[0]["role"] == "back"
+
+
+def test_cli_run_projects_auto_committed_transition(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """The normal run path mirrors transitions committed by SessionSupervisor."""
+    _seed_project(tmp_path, epic_id="E1")
+    monkeypatch.setattr(LoopEngine, "_require_gate_pass", lambda *args, **kwargs: None)
+    monkeypatch.setattr("loop.kernel.cli.activate_loop_process", lambda **kwargs: None)
+
+    calls: list[dict[str, Any]] = []
+
+    def capture(**kwargs: Any):
+        calls.append(kwargs)
+
+    monkeypatch.setattr("loop.kernel.cli.project_after_transition", capture)
+    monkeypatch.setattr("loop.kernel.cli.runtime_for", lambda *args, **kwargs: object())
+
+    class FakeSupervisor:
+        def __init__(self, engine, runtime, **kwargs: Any):
+            self.engine = engine
+
+        def run_step(self, prompt: str, *, model: str, project, session_id: str | None = None):
+            transition = self.engine.finish(step_id="s01")
+            return SessionRun(SessionOutcome.COMMITTED, None, transition, "done", 0)
+
+    monkeypatch.setattr("loop.kernel.cli.SessionSupervisor", FakeSupervisor)
+
+    rc = main(
+        [
+            "run",
+            "--project",
+            str(tmp_path),
+            "--epic",
+            "E1",
+            "--model",
+            "test-model",
+            "--max-steps",
+            "1",
+            "--json",
+        ]
+    )
+
+    assert rc == 0
+    assert [call["phase"] for call in calls] == ["IMPLEMENT", "IMPLEMENT"]
+
+
+def test_cli_board_sync_uses_plan_phase_without_cursor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Manual catch-up after PLAN starts the card in design, not backlog."""
+    _write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# plan\n")
+    _write_projection_config(tmp_path, provider="plane")
+    fake_adapter = MockAdapter(provider="plane")
+    monkeypatch.setattr("loop.board_projection.service.get_adapter", lambda cfg: fake_adapter)
+
+    rc = main(["board-sync", "--project", str(tmp_path), "--epic", "E2", "--json"])
+
+    assert rc == 0
+    assert len(fake_adapter.created) == 1
+    assert fake_adapter.created[0].phase == "PLAN"
 
 
 def test_cli_finish_without_config_no_http(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):

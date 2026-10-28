@@ -138,14 +138,15 @@ Loop поддерживает одностороннюю проекцию пер
   - Plane: `PLANE_API_KEY`, `PLANE_BASE_URL`, `PLANE_WORKSPACE_SLUG`, `PLANE_PROJECT_ID`, `PLANE_STATE_*` / `PLANE_STATE_MAP`
   - Docs folder: `PROJECT_DOCS_FOLDER`
 - Если файл yaml отсутствует или итоговый `provider=none` — проекция disabled (AC-5, SC-002).
+- При обычном `loop.py run/start/finish` board-переменные из project `.env` подхватываются автоматически; уже заданные переменные процесса имеют приоритет.
 - Рабочий yaml + sidecar `.loop/board-epic-map.yaml` gitignored; в репо — `.loop/board-projection.yaml.example` + `.env.example`.
 
 ### Жизненный цикл и sidecar-маппинг (.loop/board-epic-map.yaml)
 
 Связка между `epic_id` и внешним идентификатором задачи фиксируется в sidecar-файле `.loop/board-epic-map.yaml`:
 
-- **Lazy create:** При первом вызове `finish` для нового эпика создаётся карточка на внешней доске, а её `external_id` атомарно сохраняется в sidecar.
-- **Move / transition:** При последующих переходах фаз карточка перемещается в колонку согласно `phase_alias` и карте стадий провайдера. Поиск карточки ведётся строго по `external_id` (поиск по заголовку запрещён во избежание коллизий).
+- **Lazy create:** При первом `start`/`run` после появления PLAN (или при ручном `board-sync`) создаётся карточка в `design`, а её `external_id` атомарно сохраняется в sidecar.
+- **Move / transition:** Каждый подтверждённый переход cursor (`run`, `finish`, `rewind`, `halt`) перемещает карточку в колонку согласно `phase_alias` и карте стадий провайдера. Поиск карточки ведётся строго по `external_id` (поиск по заголовку запрещён во избежание коллизий).
 - **Halt:** При ручной или автоматической остановке цикла (`halt`) карточка переводится в колонку `blocked` (алиас фазы `HALT`).
 
 ### Политика soft-fail
@@ -161,13 +162,13 @@ Loop поддерживает одностороннюю проекцию пер
 
 ### Текст карточки (`prompt.md` → `## Board`)
 
-При **первом** create (обычно `finish` после `PLAN`, либо ручной `board-sync`) loop читает `memory-bank/<role>/plan/<epic>/md/prompt.md`:
+При **первом** create (обычно `start`/`run` после `PLAN`, либо ручной `board-sync`) loop читает `memory-bank/<role>/plan/<epic>/md/prompt.md`:
 
 - секция `## Board` с полями `title:` и `summary:` (без ID эпика — ID префиксует adapter);
 - если `## Board` нет — fallback на `## Epic` → `### Outcome`;
 - в описание добавляются `Epic:` и путь к `plan.md`.
 
-Дальнейшие `finish` / `halt` только **двигают** карточку по `phase_alias` → `stage_map` / `state_map`. Отдельной фазы «создать карточку» нет.
+Дальнейшие переходы **двигают** карточку по `phase_alias` → `stage_map` / `state_map`. Отдельной фазы «создать карточку» нет.
 
 ### Ручная публикация документации проекта (`project-docs`)
 

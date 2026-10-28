@@ -23,6 +23,7 @@ from .index import (
     phase_artifacts,
     phase_payload,
     plan_path,
+    resolve_epic_kind,
     resolve_epic_role,
 )
 from .runtime import runtime_for
@@ -121,6 +122,45 @@ def _print(value: object, as_json: bool = True) -> None:
         print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         print(value)
+
+
+def _project_transition(
+    *,
+    project_root: Path,
+    epic_id: str,
+    phase: str,
+    role: str,
+    kind: str | None = None,
+    status: object | None = None,
+    source: str = "transition",
+):
+    """Mirror every committed cursor transition to the external board."""
+    if not epic_id:
+        return None
+    status_value = getattr(status, "value", status)
+    phase_to_project = "DONE" if phase == "DONE" or status_value == "complete" else phase
+    try:
+        return project_after_transition(
+            project_root=project_root,
+            epic_id=epic_id,
+            phase=phase_to_project,
+            role=role,
+            kind=kind,
+        )
+    except Exception as exc:
+        # The local cursor is the source of truth; board projection is a
+        # recoverable mirror and must not undo a committed transition.
+        sys.stderr.write(f"Board projection error after {source}: {exc}\n")
+        return None
+
+
+def _projection_fields(result) -> dict[str, object]:
+    if result is None:
+        return {}
+    return {
+        "projection_status": result.status,
+        "projection_disabled_reason": result.disabled_reason,
+    }
 
 
 def _print_step_banner(
@@ -877,6 +917,15 @@ def run(args: argparse.Namespace) -> int:
     epic_id = _epic(args, engine)
     role = resolve_epic_role(paths.project, epic_id, args.role, kind=args.kind)
     cursor = engine.start(epic_id, role)
+    _project_transition(
+        project_root=paths.project,
+        epic_id=cursor.epic_id,
+        phase=cursor.phase,
+        role=cursor.role,
+        kind=cursor.kind,
+        status=cursor.status,
+        source="start",
+    )
     if cursor.status.value == "complete":
         _print(engine.status(), args.json)
         return 0
@@ -1011,6 +1060,16 @@ def run(args: argparse.Namespace) -> int:
                 effort=cli_effort,
             )
         session_run = supervisor.run_step(prompt, model=model, project=paths.project, session_id=cursor.session_id)
+        if session_run.transition is not None and session_run.transition.changed:
+            _project_transition(
+                project_root=paths.project,
+                epic_id=cursor.epic_id,
+                phase=session_run.transition.phase,
+                role=cursor.role,
+                kind=cursor.kind,
+                status=session_run.transition.status,
+                source="run",
+            )
         if session_run.outcome == SessionOutcome.COMMITTED:
             return 0
         if session_run.outcome == SessionOutcome.PROGRESS_CONTINUE:
@@ -1032,15 +1091,15 @@ def run(args: argparse.Namespace) -> int:
         return session_run.return_code
     halted = engine.halt("max_steps_exceeded")
     if cursor and cursor.epic_id:
-        try:
-            project_after_transition(
-                project_root=paths.project,
-                epic_id=cursor.epic_id,
-                phase="HALT",
-                role=cursor.role,
-            )
-        except Exception as exc:
-            sys.stderr.write(f"Board projection error after halt: {exc}\n")
+        _project_transition(
+            project_root=paths.project,
+            epic_id=cursor.epic_id,
+            phase="HALT",
+            role=cursor.role,
+            kind=cursor.kind,
+            status=halted.status,
+            source="halt",
+        )
     _report_failure(args, cursor, reason="max_steps_exceeded", status=halted.status.value, attempt=halted.attempt, runtime=runtime_name, model=model, cursor_path=paths.cursor)
     return 1
 
@@ -1119,7 +1178,18 @@ def main(argv: list[str] | None = None) -> int:
             epic_id = _epic(args, engine)
             role = resolve_epic_role(paths.project, epic_id, args.role, kind=args.kind)
             cursor = engine.start(epic_id, role)
-            _print(cursor.to_dict(), args.json)
+            projection_result = _project_transition(
+                project_root=paths.project,
+                epic_id=cursor.epic_id,
+                phase=cursor.phase,
+                role=cursor.role,
+                kind=cursor.kind,
+                status=cursor.status,
+                source="start",
+            )
+            payload = cursor.to_dict()
+            payload.update(_projection_fields(projection_result))
+            _print(payload, args.json)
             return 0
         if args.command == "implement-flush":
             from .implement_schema import flush_implement_for_verify
@@ -1161,8 +1231,22 @@ def main(argv: list[str] | None = None) -> int:
                 _print({"ok": False, "error": "--epic is required when no active cursor exists"}, args.json)
                 return 2
 
-            role = cursor.role if (cursor and cursor.epic_id == target_epic) else (args.role if args.role != "auto" else "back")
-            phase = cursor.phase if (cursor and cursor.epic_id == target_epic) else "QUEUED"
+            active_cursor = cursor is not None and cursor.epic_id == target_epic
+            role = cursor.role if active_cursor else args.role
+            if not active_cursor and role == "auto":
+                try:
+                    role = resolve_epic_role(paths.project, target_epic, role="auto", kind=args.kind)
+                except (FileNotFoundError, ValueError):
+                    role = "back"
+
+            kind = cursor.kind if active_cursor else args.kind
+            if not active_cursor and kind is None:
+                try:
+                    kind = resolve_epic_kind(paths.project, target_epic, role=role)
+                except (FileNotFoundError, ValueError):
+                    kind = None
+
+            phase = cursor.phase if active_cursor else "QUEUED"
             if not phase:
                 phase = "QUEUED"
 
@@ -1170,12 +1254,16 @@ def main(argv: list[str] | None = None) -> int:
             map_path = resolve_map_path(paths.project)
             current_map = load_board_epic_map(map_path)
             entry = current_map.epics.get(target_epic)
-            if entry and entry.last_phase and (cursor is None or cursor.epic_id != target_epic):
+            if entry and entry.last_phase and not active_cursor:
                 phase = entry.last_phase
+            elif not active_cursor and plan_path(
+                paths.project,
+                role,
+                target_epic,
+                kind=kind or "feature",
+            ).is_file():
+                phase = "PLAN"
 
-            kind = None
-            if cursor and cursor.epic_id == target_epic:
-                kind = cursor.kind
             result = project_epic_phase(
                 project_root=paths.project,
                 epic_id=target_epic,
@@ -1243,67 +1331,68 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "finish":
             cursor_before = engine.store.read()
             transition = engine.finish(step_id=args.step)
-            projection_result = None
-            if cursor_before and cursor_before.epic_id:
-                try:
-                    phase_to_project = transition.phase
-                    if transition.status.value == "complete" or transition.phase == "DONE":
-                        phase_to_project = "DONE"
-                    projection_result = project_after_transition(
-                        project_root=paths.project,
-                        epic_id=cursor_before.epic_id,
-                        phase=phase_to_project,
-                        role=cursor_before.role,
-                        kind=cursor_before.kind,
-                    )
-                except Exception as exc:
-                    sys.stderr.write(f"Board projection error after finish: {exc}\n")
+            projection_result = _project_transition(
+                project_root=paths.project,
+                epic_id=cursor_before.epic_id if cursor_before else "",
+                phase=transition.phase,
+                role=cursor_before.role if cursor_before else "back",
+                kind=cursor_before.kind if cursor_before else None,
+                status=transition.status,
+                source="finish",
+            )
             payload = {
                 "event": transition.event,
                 "status": transition.status.value,
                 "phase": transition.phase,
                 "step_id": transition.step_id,
             }
-            if projection_result is not None:
-                payload["projection_status"] = projection_result.status
-                payload["projection_disabled_reason"] = projection_result.disabled_reason
+            payload.update(_projection_fields(projection_result))
             _print(payload, args.json)
             return 0
         if args.command == "halt":
             cursor_before = engine.store.read()
             transition = engine.halt(args.reason)
-            projection_result = None
-            if cursor_before and cursor_before.epic_id:
-                try:
-                    projection_result = project_after_transition(
-                        project_root=paths.project,
-                        epic_id=cursor_before.epic_id,
-                        phase="HALT",
-                        role=cursor_before.role,
-                        kind=cursor_before.kind,
-                    )
-                except Exception as exc:
-                    sys.stderr.write(f"Board projection error after halt: {exc}\n")
+            projection_result = _project_transition(
+                project_root=paths.project,
+                epic_id=cursor_before.epic_id if cursor_before else "",
+                phase="HALT",
+                role=cursor_before.role if cursor_before else "back",
+                kind=cursor_before.kind if cursor_before else None,
+                status=transition.status,
+                source="halt",
+            )
             payload = {
                 "event": transition.event,
                 "status": transition.status.value,
                 "phase": transition.phase,
                 "step_id": transition.step_id,
             }
-            if projection_result is not None:
-                payload["projection_status"] = projection_result.status
-                payload["projection_disabled_reason"] = projection_result.disabled_reason
+            payload.update(_projection_fields(projection_result))
             _print(payload, args.json)
             return 0
         if args.command == "rewind":
             if not args.phase:
                 _print({"ok": False, "error": "--phase is required for rewind"}, args.json)
                 return 2
+            cursor_before = engine.store.read()
             transition = engine.rewind(args.phase, reason=args.reason, step_id=args.step)
-            _print(
-                {"event": transition.event, "status": transition.status.value, "phase": transition.phase, "step_id": transition.step_id},
-                args.json,
+            projection_result = _project_transition(
+                project_root=paths.project,
+                epic_id=cursor_before.epic_id if cursor_before else "",
+                phase=transition.phase,
+                role=cursor_before.role if cursor_before else "back",
+                kind=cursor_before.kind if cursor_before else None,
+                status=transition.status,
+                source="rewind",
             )
+            payload = {
+                "event": transition.event,
+                "status": transition.status.value,
+                "phase": transition.phase,
+                "step_id": transition.step_id,
+            }
+            payload.update(_projection_fields(projection_result))
+            _print(payload, args.json)
             return 0
         return run(args)
     except (ValueError, FileNotFoundError, TransitionError) as exc:

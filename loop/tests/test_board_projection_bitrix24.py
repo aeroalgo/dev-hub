@@ -42,7 +42,7 @@ def test_bitrix24_ensure_card() -> None:
         assert body["fields"]["DESCRIPTION"] == "Login epic description"
         return httpx.Response(
             200,
-            json={"result": {"task": {"id": "999"}}},
+            json={"result": {"task": {"id": "999", "createdBy": 1, "responsibleId": 1}}},
         )
 
     cfg = Bitrix24Config(
@@ -67,7 +67,7 @@ def test_bitrix24_ensure_card() -> None:
 
 def test_bitrix24_ensure_card_numeric_result_format() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"result": 888})
+        return httpx.Response(200, json={"result": 888, "createdBy": 1, "responsibleId": 1})
 
     cfg = Bitrix24Config(
         webhook_url="https://b24.example.com/rest/1/abc/",
@@ -209,7 +209,21 @@ def test_bitrix24_validate_mappings() -> None:
         webhook_url="https://b24.example.com/rest/1/abc/",
         group_id=42,
         responsible_id=1,
-        stage_map={"backlog": "1", "design": "2", "build": "3", "verify": "4", "done": "5", "blocked": "6"},
+        stage_map={"backlog": "1", "design": "2", "build": "3", "verify": "4", "uat": "5", "done": "6", "blocked": "7"},
     )
     adapter_complete = Bitrix24Adapter(config=complete_cfg)
     adapter_complete.validate_mappings()  # does not raise
+
+
+def test_bitrix24_validate_phase_mapping_does_not_block_build_on_unrelated_alias() -> None:
+    cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=1,
+        stage_map={"build": "20"},
+    )
+    adapter = Bitrix24Adapter(config=cfg)
+
+    adapter.validate_phase_mapping("IMPLEMENT")
+    with pytest.raises(AdapterExecutionError, match="blocked"):
+        adapter.validate_phase_mapping("HALT")
