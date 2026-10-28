@@ -1,18 +1,21 @@
 # dev-hub
 
-Единый tooling-хаб для ролевых workflow (`BACK PLAN`, `FRONT IMPLEMENT`, `INTEG GAP`, …), skills, Claude/Cursor hooks и автоцикла эпиков (`loop/`).
+Единый tooling-хаб для ролевых workflow (`BACK PLAN`, `FRONT IMPLEMENT`, `INTEG GAP`, …), skills, Claude/Cursor/Codex hooks и автоцикла эпиков (`loop/`).
 
-**Важно:** dev-hub — это **не** продуктовый репозиторий. Код приложения и `memory-bank/` артефакты живут в отдельном репо (продукте). Хаб только подключается к продукту через symlinks и CLI.
+**Важно:** dev-hub — это **не** продуктовый репозиторий. Код приложения и `memory-bank/` артефакты живут в отдельном репо (продукте). Хаб подключается к продукту через `hub-link` (symlinks) и CLI.
+
+Краткий install-runbook: [`docs/install.md`](docs/install.md).
 
 ---
 
 ## Требования
 
-| Компонент | Версия |
-|-----------|--------|
-| **Python** | **3.12+** (код loop/hooks использует синтаксис 3.10+; канон — 3.12) |
-| **jq** | для shell-скриптов security-auditor |
-| **git** | для loop и hub-link |
+| Компонент | Версия / зачем |
+|-----------|----------------|
+| **Python** | **3.12+** (канон; код loop/hooks — 3.10+) |
+| **git** | loop, hub-link |
+| **jq** | shell-скрипты security-auditor |
+| **Claude CLI** и/или **Codex CLI** | runtime для `bin/loop.py` |
 
 ### Окружение для разработки и тестов хаба
 
@@ -22,36 +25,36 @@
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
+cp .env.example .env   # при необходимости подправьте LOOP_* / EPIC_RUNTIME
 bin/pytest
 ```
 
-`requirements-dev.txt` подтягивает `requirements-hub.txt` (pydantic, httpx, pydantic-ai) и pytest/PyYAML.
+`requirements-dev.txt` подтягивает `requirements-hub.txt` (pydantic, httpx, pydantic-ai, …) и pytest/PyYAML.
 
-По умолчанию тесты запускаются параллельно через `pytest-xdist` на 4 ядрах с распределением `loadfile`:
+По умолчанию тесты идут параллельно через `pytest-xdist` (`-n 4`, override: `PYTEST_WORKERS` или `-n`):
 
 ```bash
 bin/pytest -q --tb=line
-PYTEST_WORKERS=8 bin/pytest loop/tests -q  # явное переопределение
+PYTEST_WORKERS=8 bin/pytest loop/tests -q
 ```
 
-Канонический `bin/pytest …` по умолчанию использует 4 воркера (`-n 4`); число можно переопределить через `PYTEST_WORKERS` или `-n`. Тесты должны быть изолированы от общего checkout и runtime-состояния; для изменяющих файлы тестов можно явно отключить параллелизм через `-n 0`.
+Для тестов, которые меняют checkout, отключайте параллелизм: `-n 0`.
 
 ---
 
 ## Рекомендуемая структура на диске
 
-Самый простой и предсказуемый вариант — **соседние папки** в одном родителе:
-
 ```
 ~/PyProject/
-├── dev-hub/              ← этот репозиторий (tooling, rules, loop)
+├── dev-hub/              ← этот репозиторий (tooling, harness, loop)
 ├── my-product/           ← ваш продукт (код + memory-bank/)
 │   ├── Makefile          ← тонкий wrapper → dev-hub/make/product.mk
 │   ├── .dev-hub          ← одна строка: ../dev-hub  (создаёт hub-link)
+│   ├── dev-hub.project.yaml  ← опционально: targets / workflow_pack
 │   ├── memory-bank/      ← артефакты workflow ТОЛЬКО продукта
-│   ├── .cursor/rules     ← symlink → dev-hub/.cursor/rules
-│   ├── .agents           ← symlink → dev-hub/.agents
-│   └── CLAUDE.md         ← symlink → dev-hub/CLAUDE.md
+│   ├── harness/          ← symlink → dev-hub/harness  (alongside)
+│   ├── .cursor/rules …   ← symlinks на harness/cursor/… (после hub-link)
+│   └── AGENTS.md · CLAUDE.md  ← symlinks → dev-hub
 └── another-product/
 ```
 
@@ -60,91 +63,85 @@ PYTEST_WORKERS=8 bin/pytest loop/tests -q  # явное переопределе
 | **dev-hub** | rules, skills, hooks, loop, runtime state | `dev-hub/memory-bank/` — **только** hub-эпики `T-HUB-*` |
 | **продукт** | application code + `memory-bank/` | `my-product/memory-bank/` — все product-эпики |
 
-Хаб может лежать **где угодно** — не обязательно рядом. Главное, чтобы продукт знал путь к нему (см. [Как продукт находит хаб](#как-продукт-находит-хаб-dev_hub)).
+Хаб может лежать **где угодно**. Главное — путь через `.dev-hub` / `DEV_HUB` / соседний `../dev-hub`.
 
 ---
 
-## Поддерживаемые агенты (Cursor / Codex / Claude Code)
+## Поддерживаемые агенты
 
-Один workflow (rules + `memory-bank/`) рассчитан на различные среды и runtimes. **Подключение продукта одинаковое** — `make hub-link`, открыть папку продукта.
+| Runtime | Loop | Prerequisites | Runbook |
+|---------|------|---------------|---------|
+| **claude** | default | Claude CLI + auth | [`loop/README.md`](loop/README.md) |
+| **codex** | opt-in (`EPIC_RUNTIME=codex` / `--runtime codex`) | Codex CLI ≥ 0.152, `codex login`, `bin/runtime-sync` | [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md) |
 
-| Runtime ID | Loop support | Prerequisites | Runbook |
-|------------|--------------|---------------|---------|
-| **claude** | ✅ **default** | Claude CLI (`claude`), auth | [`loop/README.md`](loop/README.md) |
-| **codex** | ✅ opt-in (`EPIC_RUNTIME=codex`) | `codex login`, `bin/runtime-sync --apply --runtime codex` | [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md) |
-
-**Codex CLI — поддерживается в loop:**
-Запуск выполняется напрямую через `bin/loop.py`; `make` используется только для `hub-link`. Настройки runtime и OmniRoute находятся в корневом `.env` и читаются через `loop.config.LoopSettings`. Подробный гайд: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md).
+Подключение продукта одинаковое: `make hub-link`, открыть **только** папку продукта.
 
 ---
 
-## Быстрый старт: подключить новый продукт
+## Быстрый старт: подключить продукт
 
-### 1. Клонировать / положить dev-hub
+### 1. Клонировать dev-hub
 
 ```bash
 git clone <url-dev-hub> ~/PyProject/dev-hub
+cd ~/PyProject/dev-hub
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env
 ```
 
-Рядом создайте или откройте папку продукта:
+### 2. Подготовить продукт
 
 ```bash
-mkdir -p ~/PyProject/my-product
-cd ~/PyProject/my-product
-git init   # если новый реpo
+mkdir -p ~/PyProject/my-product && cd ~/PyProject/my-product
+git init   # если новый репо
+cp ~/PyProject/dev-hub/make/Makefile.product.example ./Makefile
+# опционально: шаблон targets
+cp ~/PyProject/dev-hub/harness/templates/dev-hub.project.yaml ./dev-hub.project.yaml
 ```
 
-### 2. Добавить Makefile в продукт
-
-Скопируйте шаблон из хаба:
-
-```bash
-cp ~/PyProject/dev-hub/make/Makefile.product.example ~/PyProject/my-product/Makefile
-```
-
-Makefile сам ищет хаб в порядке: файл `.dev-hub` → соседний `../dev-hub` → переменная `DEV_HUB`.
-
-Подробнее: [Makefile в продукте](#makefile-в-продукте).
-
-### 3. Подключить rules/skills/hooks (hub-link)
+### 3. Подключить harness (`hub-link`)
 
 Из **корня продукта**:
 
 ```bash
-cd ~/PyProject/my-product
 make hub-link
+# эквивалент (alongside + skills — то, что делает Make):
+~/PyProject/dev-hub/bin/hub-link --with-skills ~/PyProject/my-product
 ```
 
-Или напрямую:
+**Режимы `hub-link`:**
+
+| Mode | Когда | Что делает |
+|------|--------|------------|
+| **`alongside`** (default) | внешний продукт | symlink `harness/`, `.cursor/rules`→`harness/cursor/rules`, Claude/Codex overlays, `AGENTS.md`/`CLAUDE.md`, пишет `.dev-hub`; `--with-skills` → `.agents/skills` |
+| **`full`** | dogfood / полная реплика | symlink `.cursor/rules`, `.agents/skills`, `.claude/*`, `settings.json` напрямую на shell хаба |
 
 ```bash
-~/PyProject/dev-hub/bin/hub-link ~/PyProject/my-product
+# явный alongside
+./bin/hub-link --mode alongside [--with-skills] /path/to/product
+# полная реплика
+./bin/hub-link --mode full /path/to/product
+# dry-run
+./bin/hub-link --dry-run /path/to/product
 ```
 
-`hub-link` создаёт symlinks:
+`make hub-link` всегда вызывает alongside **с** `--with-skills`.
 
-| В продукте | → куда указывает |
-|-----------|------------------|
-| `.cursor/rules`, `.cursor/templates` | `dev-hub/.cursor/…` |
-| `.agents` | `dev-hub/.agents` |
-| `AGENTS.md`, `CLAUDE.md` | `dev-hub/AGENTS.md`, `dev-hub/CLAUDE.md` |
-| `.claude/agents`, `hooks`, `skills`, `commands`, … | `dev-hub/.claude/…` |
-| `.dev-hub` | относительный путь к хабу (только указатель для Make/CLI, не каталог конфигурации) |
+Подробности layout: [`harness/README.md`](harness/README.md).
 
-Конфигурация проекта и targets задаётся строго в корневом `dev-hub.project.yaml` (схема `dev-hub-project/v1`, шаблон: `harness/templates/dev-hub.project.yaml`). Устаревшие пути `project.yaml` и `.dev-hub/project.yaml` более не поддерживаются.
+Конфигурация targets — только корневой **`dev-hub.project.yaml`** (`schema: dev-hub-project/v1`). Устаревшие `project.yaml` / `.dev-hub/project.yaml` **не** читаются. Файл `.dev-hub` — **только** однострочный указатель пути к хабу, не каталог конфигов.
 
-Локальные каталоги `.claude/runtime/` и `.claude/worktrees/` остаются **в продукте** (не symlink).
+Локальные `.claude/runtime/` и `.claude/worktrees/` остаются в продукте (не symlink на хаб).
 
-### 4. Инициализировать memory-bank продукта
-
-Если `memory-bank/` ещё нет — создайте минимальную структуру и запустите VAN:
+### 4. memory-bank продукта
 
 ```bash
 mkdir -p memory-bank
-# В Cursor откройте папку продукта и выполните: BACK VAN
+# В Cursor: BACK VAN
 ```
 
-Эпики hub (`T-HUB-*`) **не** кладите в продукт — они живут в `dev-hub/memory-bank/`.
+Эпики `T-HUB-*` — только в `dev-hub/memory-bank/`.
 
 ### 5. Открыть продукт в Cursor
 
@@ -152,273 +149,186 @@ mkdir -p memory-bank
 cursor ~/PyProject/my-product
 ```
 
-После `hub-link` выполните **Developer → Reload Window**, чтобы подтянулись rules и skills.
+После `hub-link`: **Developer → Reload Window**.
 
-**Не открывайте multi-root workspace** «продукт + dev-hub» — два `memory-bank/` путают агентов. Открывайте **только папку продукта**.
+**Не** открывайте multi-root «продукт + dev-hub» — два `memory-bank/` путают агентов.
 
-### 6. (Опционально) Глобальные skills
-
-Чтобы skills были доступны и вне symlink-дерева:
+### 6. (Опционально) глобальные skills / plugin
 
 ```bash
 ln -sfn ~/PyProject/dev-hub/.agents ~/.agents
-```
-
-### 7. (Опционально) Cursor plugin
-
-Альтернатива или дополнение к `hub-link`:
-
-```bash
 mkdir -p ~/.cursor/plugins/local
 ln -sfn ~/PyProject/dev-hub ~/.cursor/plugins/local/dev-hub
 ```
 
-Для day-to-day работы достаточно `hub-link` + открытая папка продукта.
+Для day-to-day достаточно `hub-link` + папка продукта.
 
 ---
 
 ## Makefile в продукте
 
-В git продукта хранится **только тонкий** `Makefile` (~15 строк). Вся логика hub/loop — в `dev-hub/make/product.mk` (include, не копия).
+В git продукта — **только тонкий** `Makefile`. Логика — в `dev-hub/make/product.mk` (include).
 
-### Канонический Makefile
+Шаблон: [`make/Makefile.product.example`](make/Makefile.product.example).
 
-Положите в **корень продукта** (`my-product/Makefile`):
-
-```makefile
-# Makefile продукта — тонкая обёртка над dev-hub.
-#
-# Установка:
-#   cp /path/to/dev-hub/make/Makefile.product.example ./Makefile
-#
-# Как хаб находится (по приоритету):
-#   1. DEV_HUB=/abs/path/to/dev-hub make …
-#   2. файл .dev-hub в корне продукта (одна строка — путь)
-#   3. соседний каталог ../dev-hub
-#
-# Не копируйте make/product.mk в продукт — только include ниже.
-# Свои цели (test, migrate, …) добавляйте ПОСЛЕ include.
-
-DEV_HUB ?= $(shell \
-  if [ -f .dev-hub ]; then sed -n '1p' .dev-hub | tr -d '[:space:]'; \
-  elif [ -x ../dev-hub/bin/loop.py ]; then printf '%s' "../dev-hub"; \
-  else printf ''; fi)
-
-ifeq ($(strip $(DEV_HUB)),)
-$(error DEV_HUB not found. Set DEV_HUB=/path/to/dev-hub, create .dev-hub, or use sibling ../dev-hub)
-endif
-
-include $(DEV_HUB)/make/product.mk
-
-# --- опционально: product-specific targets ---
-#
-# .PHONY: test
-# test:
-# 	.venv/bin/pytest -q
-```
-
-Готовый файл в хабе: [`make/Makefile.product.example`](make/Makefile.product.example).
-
-### Файл `.dev-hub` (если хаб не рядом)
-
-Создаётся автоматически при `make hub-link`. Или вручную — **одна строка** в корне продукта:
-
-```bash
-# вариант A: хаб соседом (рекомендуется)
-echo '../dev-hub' > .dev-hub
-
-# вариант B: хаб где угодно на диске
-echo '/home/aero/PyProject/dev-hub' > .dev-hub
-```
-
-`.dev-hub` можно коммитить в git продукта — это не секрет, только путь к tooling.
-
-### Цели из product.mk (после include)
+### Цели `product.mk`
 
 | Команда | Назначение |
 |---------|------------|
-| `make hub-link` | Symlinks rules/skills/hooks из хаба |
-| `make hub-unlink` | Убрать symlinks |
-| `make hub-info` | Показать `DEV_HUB`, `PROJECT_ROOT`, состояние links |
-| `python3 "$DEV_HUB/bin/loop.py" …` | Запустить loop с произвольной моделью |
-| `python3 "$DEV_HUB/bin/loop.py" status …` | Статус текущего epic/step |
-| `make cursor-workspace` | Напоминание: открывать только папку продукта |
+| `make hub-link` | alongside + `--with-skills` |
+| `make hub-unlink` | снять installer-owned links |
+| `make hub-info` | `DEV_HUB`, links |
+| `make loop ARGS="codex\|claude <epic> <model> [effort]"` | обёртка над `bin/loop.py run` |
+| `make cursor-workspace` | напоминание: открывать только продукт |
+| `make deploy` / `deploy-info` | см. `make/deploy.mk` + `.deploy.env` |
 
 Примеры:
 
 ```bash
 make hub-info
 make hub-link
-python3 "$DEV_HUB/bin/loop.py" "$PWD" T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max --role front
+make loop ARGS="codex T-054-skyro-quality-dashboard-ui gpt-5.6-luna-max high"
 python3 "$DEV_HUB/bin/loop.py" status --project "$PWD" --json
 ```
 
-Переопределить хаб на один запуск:
+Переопределить хаб на один запуск: `DEV_HUB=/other/path/dev-hub make hub-info`.
 
-```bash
-DEV_HUB=/other/path/dev-hub make hub-info
-```
-
-### Свои цели продукта
-
-Добавляйте **после** `include $(DEV_HUB)/make/product.mk` — не трогайте `product.mk` в хабе:
-
-```makefile
-include $(DEV_HUB)/make/product.mk
-
-.PHONY: test run
-test:
-	.venv/bin/pytest -q
-run:
-	.venv/bin/uvicorn app.main:app --reload
-```
-
-Имена `hub-link`, `loop`, `loop-epic` уже заняты — не переопределяйте их в продукте.
+Свои цели (`test`, `run`, …) — **после** `include $(DEV_HUB)/make/product.mk`. Не переопределяйте `hub-link` / `loop`.
 
 ---
 
-## Как продукт находит хаб (DEV_HUB)
+## Как продукт находит хаб (`DEV_HUB`)
 
-Make и loop разрешают путь к хабу **в таком порядке**:
+Порядок:
 
-1. **Переменная окружения** `DEV_HUB=/abs/path/to/dev-hub`
-2. **Файл `.dev-hub`** в корне продукта (одна строка — относительный или абсолютный путь)
-3. **Соседний каталог** `../dev-hub` (если есть `../dev-hub/bin/loop.py`)
-
-Примеры `.dev-hub`:
+1. env `DEV_HUB=/abs/path/to/dev-hub`
+2. файл `.dev-hub` (одна строка — относительный или абсолютный путь)
+3. соседний `../dev-hub` (если есть `../dev-hub/bin/loop.py`)
 
 ```bash
-# относительный (рекомендуется при соседнем layout)
 echo '../dev-hub' > .dev-hub
-
-# абсолютный (хаб где угодно на диске)
+# или
 echo '/home/aero/PyProject/dev-hub' > .dev-hub
-```
-
-Проверка:
-
-```bash
 make hub-info
 ```
+
+`.dev-hub` можно коммитить — это не секрет.
 
 ---
 
 ## Loop — автоцикл эпиков
 
-Loop **всегда** запускается с указанием продукта (`PROJECT_ROOT`).
-
-Из корня **продукта** (после `hub-link`):
+Канон: [`loop/README.md`](loop/README.md). Запуск **всегда** с `--project` (каталог продукта).
 
 ```bash
-python3 "$DEV_HUB/bin/loop.py" "$PWD" T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max --role front
+# из продукта
+python3 "$DEV_HUB/bin/loop.py" run \
+  --project "$PWD" \
+  --epic T-054-skyro-quality-dashboard-ui \
+  --runtime codex \
+  --model gpt-5.6-luna-max \
+  --role front
+
 python3 "$DEV_HUB/bin/loop.py" status --project "$PWD" --json
+python3 "$DEV_HUB/bin/loop.py" doctor --project "$PWD" --json
 ```
 
-Или напрямую из любого места:
+Или через Make:
 
 ```bash
-python3 ~/PyProject/dev-hub/bin/loop.py ~/PyProject/my-product T-054-skyro-quality-dashboard-ui cx/gpt-5.6-luna-max --role front
+make loop ARGS="codex T-054-skyro-quality-dashboard-ui gpt-5.6-luna-max"
 ```
 
-### Куда пишется runtime
+Настройки — корневой **`.env`** хаба (`LoopSettings`). Шаблон: [`.env.example`](.env.example). Старый `.claude/project.env` не читается.
 
 | Переменная | Значение |
 |-----------|----------|
-| `HUB_ROOT` / `DEV_HUB` | каталог dev-hub (tooling) |
-| `PROJECT_ROOT` | каталог продукта с `memory-bank/` |
+| `HUB_ROOT` / `DEV_HUB` | каталог dev-hub |
+| `PROJECT_ROOT` | продукт с `memory-bank/` |
 | Loop state | `dev-hub/runtime/<basename(PROJECT_ROOT)>/epic/` |
 
-Пример: продукт `~/PyProject/my-product` → runtime в `dev-hub/runtime/my-product/epic/`.
-
-### Как работает Claude Code при loop
-
-- **cwd сессии** = dev-hub (видит `.claude/agents`, hooks, settings)
-- **продукт** подключается через `--add-dir $PROJECT_ROOT`
-- Symlink `.claude` в продукт для loop **не нужен** — достаточно `hub-link` для Cursor и `bin/loop.py` для CLI
+Claude-сессия loop: cwd = hub, продукт через `--add-dir`. Для Cursor достаточно `hub-link`; отдельный ручной symlink `.claude` → hub не нужен.
 
 ---
 
-## Перенос продукта в другой репозиторий / машину
+## Перенос на другую машину
 
-1. Скопируйте в корень продукта:
-   - `Makefile` (из `make/Makefile.product.example`)
-   - при необходимости `.dev-hub` с путём к хабу
-2. На новой машине клонируйте dev-hub и продукт
-3. Выполните `make hub-link` из продукта
-4. Reload Window в Cursor
+1. Клонировать dev-hub + продукт; `pip install -r requirements-dev.txt`; `cp .env.example .env`
+2. В продукте — `Makefile` из example + при необходимости `.dev-hub` / `dev-hub.project.yaml`
+3. `make hub-link` → Reload Window
 
-Общие Make-цели живут в `dev-hub/make/product.mk` — **не копируйте** этот файл в продукт.
+Не копируйте `make/product.mk` в продукт.
 
 ---
 
-## Отключение (hub-unlink)
-
-Удаляет symlinks, оставляет `AGENTS.md` и `.dev-hub`:
+## Отключение
 
 ```bash
 make hub-unlink
 # или
-~/PyProject/dev-hub/bin/hub-unlink ~/PyProject/my-product
+~/PyProject/dev-hub/bin/hub-unlink [--mode alongside|full] ~/PyProject/my-product
 ```
+
+По умолчанию режим `alongside` (симметрично link).
 
 ---
 
 ## Разработка самого dev-hub
 
-Когда вы правите хаб (эпики `T-HUB-*`):
-
-- Открывайте папку **`dev-hub`** в Cursor
-- `PROJECT_ROOT=dev-hub` при loop: `python3 ./bin/loop.py . T-HUB-... <model>`
+- Открывать папку **`dev-hub`**
+- `python3 ./bin/loop.py run --project . --epic T-HUB-… --model …`
 - Артефакты — в `dev-hub/memory-bank/`
-
-Не смешивайте hub-эпики с product `memory-bank/`.
+- Не смешивать hub-эпики с product `memory-bank/`
+- В корне хаба **не** гонять `hub-link --mode alongside` (harness уже dogfood)
 
 ---
 
 ## Частые ошибки
 
-| Ошибка | Почему плохо | Что делать |
-|--------|-------------|------------|
-| Multi-root workspace product+hub | Два `memory-bank/`, агент пишет не туда | Открыть **только** продукт |
-| Product-эпики в `dev-hub/memory-bank/` | Anti-mix нарушен | Эпики продукта — только в `$PROJECT_ROOT/memory-bank/` |
-| Нет `make hub-link` после клона | Rules/skills не видны в Cursor | `make hub-link` + Reload Window |
-| `DEV_HUB not found` в Make | Нет `.dev-hub`, нет `../dev-hub` | Создать `.dev-hub` или положить хаб рядом |
-| Ручной symlink `.claude` → hub | Конфликт с hub-link / runtime | Использовать `bin/hub-link` |
+| Ошибка | Что делать |
+|--------|------------|
+| Multi-root product+hub | Открыть **только** продукт |
+| Product-эпики в `dev-hub/memory-bank/` | Писать в `$PROJECT_ROOT/memory-bank/` |
+| Нет `hub-link` после клона | `make hub-link` + Reload Window |
+| `DEV_HUB not found` | `.dev-hub` или соседний `../dev-hub` или `DEV_HUB=` |
+| `exists and is not a symlink` | Переименовать локальный файл/каталог, повторить link |
+| Ручной symlink `.claude` → hub | Использовать `bin/hub-link` |
+| Старый CLI `loop.py PATH EPIC MODEL` | Использовать `run --project … --epic … --model …` |
 
 ---
 
-## Dashboard (метрики harness)
+## Dashboard
 
 ```bash
 python3 -m loop.context_loop dashboard-render [--days 7] [--format html|json|both]
 ```
 
-Отчёты: `runtime/<project>/reports/`.
-
-Переменная `EPIC_DASHBOARD_HALT_WARN_RATE` (default `0.50`) — порог halt rate для `loop doctor`.
+Отчёты: `runtime/<project>/reports/`.  
+`EPIC_DASHBOARD_HALT_WARN_RATE` (default `0.50`) — порог для `loop doctor`.
 
 ---
 
-## Layout dev-hub (справочно)
+## Layout (справочно)
 
 ```
 dev-hub/
-  .cursor/rules · templates    # workflow rules (BACK PLAN, …)
-  .claude/                     # settings, agents, skills, commands
-  .env                         # local loop settings (ignored)
-  .agents/skills/              # общие skills
-  loop/                        # single-cursor kernel
-  runtime/<project>/           # loop state per product
-  projects/<slug>/             # optional env overrides (см. projects/README.md)
-  bin/loop.py · bin/hub-link   # CLI entrypoints
-  make/product.mk              # shared Make targets для продуктов
-  workspaces/                  # заготовки; multi-root не рекомендуем
+  harness/                 # SoT: rules, skills, agents, hooks policy
+  .cursor/ · .claude/ · .agents/   # thin symlink shells → harness
+  .env                     # local LoopSettings (gitignored)
+  loop/                    # single-cursor kernel
+  runtime/<project>/       # loop state per product
+  bin/loop.py · hub-link · hub-unlink
+  make/product.mk · Makefile.product.example
+  docs/install.md          # этот install-гайд (кратко)
 ```
 
 ---
 
 ## Команды ролей
 
-`BACK PLAN`, `BACK IMPLEMENT`, `FRONT QA`, `INTEG GAP`, … распознаются через rules/skills хаба (после `hub-link` или plugin). В git продукта эти файлы **не** хранятся — только symlinks.
+`BACK PLAN`, `BACK IMPLEMENT`, `FRONT QA`, `INTEG GAP`, `BOARD SYNC`, `PROJECT DOCS`, … — через rules/skills после `hub-link`. В git продукта эти деревья **не** хранятся — только symlinks / router stub.
 
-Документация по loop: [`loop/README.md`](loop/README.md), [`loop/WORKFLOW.md`](loop/WORKFLOW.md).
+- Loop: [`loop/README.md`](loop/README.md), [`loop/WORKFLOW.md`](loop/WORKFLOW.md)
+- Install: [`docs/install.md`](docs/install.md)
+- Harness modes: [`harness/README.md`](harness/README.md)
+- Codex pilot: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md)

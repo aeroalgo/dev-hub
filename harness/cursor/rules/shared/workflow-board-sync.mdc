@@ -1,0 +1,55 @@
+---
+description: "BOARD SYNC — создать/перенести карточку эпика на доске Bitrix24|Plane через loop"
+alwaysApply: false
+---
+# BOARD SYNC (manual / catch-up)
+
+**Триггер:** `BOARD SYNC` · «создай задачу на доске» · «закинь на доску» ·
+«перенеси карточку эпика» · catch-up после finish без projection.
+
+Канон — `loop/board_projection` + `bin/loop.py board-sync`. **Не** браузер Bitrix,
+**не** Playwright, **не** ручной UI канбана.
+
+Связано, но другое: `PROJECT DOCS` / `BOARD DOCS` → workflow-board-docs.mdc
+(файлы на Диск/Pages, не карточка задачи).
+
+## Preconditions
+
+1. В продукте: symlink `harness/` + `.dev-hub`, файл `.loop/board-projection.yaml`
+2. Per-project `.env` (не читать в чат, только `source` в shell):
+   - `LOOP_BOARD_PROVIDER=bitrix24` (или `plane`)
+   - Bitrix: `BITRIX_WEBHOOK_URL`, `BITRIX_GROUP_ID`, `BITRIX_RESPONSIBLE_ID`,
+     `BITRIX_STAGE_BACKLOG|DESIGN|BUILD|VERIFY|UAT|DONE` (или `BITRIX_STAGE_MAP`)
+3. Эпик с `prompt.md`; желательна секция `## Board` (`title` / `summary`) —
+   иначе fallback из Epic Outcome / id
+4. Mapping sidecar: `.loop/board-epic-map.yaml` (создаётся/обновляется CLI)
+
+## Command
+
+```bash
+cd /path/to/product
+set -a && source .env && set +a
+python3 "$(cat .dev-hub)/bin/loop.py" board-sync --project "$PWD" --epic <EPIC_ID> --json
+```
+
+Без `--epic` — активный cursor loop. Первый sync без mapping → `ensure_card`
+(`tasks.task.add`). Повтор с той же фазой / смена фазы → move stage.
+Автоматически вызывается post-finish в loop; CLI — ручной create/catch-up.
+
+## Phase → колонка
+
+`phase_alias` в yaml + `BITRIX_STAGE_*` в env. Типично: `QUEUED→backlog`,
+`PLAN/DECOMPOSE→design`, `IMPLEMENT→build`, `QA→verify`, `DONE→done`,
+`HALT→blocked`.
+
+## Done
+
+CLI JSON: `ok: true`, `status` ∈ {`success`,`disabled`}, непустой `external_id`
+при success; в map есть `epics.<id>.external_id` и `last_phase`.
+
+## Forbidden
+
+- Browser / MCP / Playwright для создания задачи на доске
+- Silent skip при `provider: none` без явной причины в ответе владельцу
+- Печать секретов `.env` / webhook
+- Путать с production Bitrix write продукта (группы, list38, почта)

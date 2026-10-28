@@ -66,6 +66,7 @@ alwaysApply: true
 | `PRODUCT VISION` · `PRODUCT PHASES` · `PRODUCT ROADMAP REBUILD` · `PRODUCT STATUS` | Product-слой (vision/phases/roadmap); .cursor/rules/shared/workflow-product-roadmap.mdc |
 | `EVAL …` | Оценка ниши по шагам (данные → tools → shard); .cursor/rules/eval/mainrule.mdc · карта: `memory-bank/product/eval-pipeline.md` |
 | `PROJECT DOCS` · `BOARD DOCS` | Ручная публикация workflow/gitflow/runbooks на Диск проекта Bitrix / Pages Plane; .cursor/rules/shared/workflow-board-docs.mdc · `bin/loop.py project-docs` |
+| `BOARD SYNC` · «создай задачу на доске» · «закинь на доску» | Карточка эпика на канбане Bitrix24/Plane через webhook; .cursor/rules/shared/workflow-board-sync.mdc · `bin/loop.py board-sync`. **FORBIDDEN** браузер/Playwright/UI портала для создания задачи |
 
 Скиллы без workflow: `find-skills` · `git-commit` · `memory-management` — только по явному запросу.
 
