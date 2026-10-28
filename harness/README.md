@@ -39,20 +39,27 @@ Non-destructive integration designed for external product repositories. It layer
 ```
 
 #### What alongside mode does:
-- Symlinks `harness/` -> `$DEV_HUB/harness`
+- Symlinks `harness/` → `$DEV_HUB/harness`
 - Writes relative path to `$DEV_HUB` in `.dev-hub` (one-line pointer, never YAML/config directory)
-- Places router stub at `.cursor/rules.d/dev-hub-harness-router.mdc`
-- Symlinks `CLAUDE.harness.md` -> `$DEV_HUB/harness/claude/CLAUDE.harness.md`
-- Symlinks `AGENTS.md` and `CLAUDE.md` to the canonical files in `$DEV_HUB`; existing regular entrypoints are left untouched and cause a fail-closed conflict
-- Keeps `harness/claude/settings.harness.json` as an empty runtime overlay; loop state is owned by `loop/kernel`.
+- Copies router stub to `.cursor/rules.d/dev-hub-harness-router.mdc` (installer-owned refresh only)
+- Symlinks `AGENTS.md` / `CLAUDE.md` → `$DEV_HUB/…`; `CLAUDE.harness.md` → harness overlay
+- Mirrors consumer layout (fail-closed if destination exists as regular file/dir):
+  - `.cursor/rules` → `harness/cursor/rules`
+  - `.cursor/templates`, `.cursor/hooks`, `.cursor/hooks-artifacts`, `.cursor/schemas`
+  - `.claude/{agents,commands,instructions,rules,skills}` → harness / hub shells
+  - `.codex` → `$DEV_HUB/.codex` (если каталог есть)
+- Optional `--with-skills`: `.agents/skills` → `harness/skills` (`make hub-link` передаёт этот флаг)
 
-Project targets and workflow pack configuration are defined solely in root `dev-hub.project.yaml` (`dev-hub-project/v1`). Old config locations (`project.yaml`, `.dev-hub/project.yaml`) are removed and not read. Example template: `harness/templates/dev-hub.project.yaml`.
+Project targets / workflow pack — только корневой `dev-hub.project.yaml` (`dev-hub-project/v1`). Старые `project.yaml` / `.dev-hub/project.yaml` не читаются. Шаблон: `harness/templates/dev-hub.project.yaml`.
 
-#### What alongside mode does not touch:
-- Does not overwrite or replace existing `.cursor/rules`
-- Does not replace user `CLAUDE.md` or `.claude/settings.json` permissions
+#### Fail-closed:
+- Existing **regular** `AGENTS.md` / `CLAUDE.md` / `.cursor/rules` / … → ERROR (переименовать вручную, затем повторить)
+- Existing **symlink** → refresh (`ln -sfn`)
+- Не трогает `.claude/settings.json` permissions в alongside (в отличие от `--mode full`)
 
-> **Note:** Never run `alongside` mode directly against dev-hub root (`/home/aero/PyProject/dev-hub`). In dev-hub, harness is dogfooded natively.
+> **Note:** Never run `alongside` against dev-hub root. In hub, harness is dogfooded natively.
+
+Operator install guide: [`docs/install.md`](../docs/install.md).
 
 ---
 
