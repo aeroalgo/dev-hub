@@ -1,17 +1,17 @@
 ---
 name: role-command
-description: "Role command parity chain — BACK/FRONT/INTEG workflow router (graphify, isolation, FINISH gates)"
+description: "Role command parity chain — BACK/FRONT/APP/INTEG workflow router (graphify, isolation, FINISH gates)"
 ---
 
 # Role Command — Cursor parity chain
 
 **Язык:** все user-facing сообщения — **русский** (@.claude/rules/language.md). Subagent/task prompts: добавь «ответ и отчёт пользователю — на русском».
 
-**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub / BACK — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. FRONT — Vitest/Playwright (`npm --prefix frontend …`), **FORBIDDEN** подмена на `bin/pytest`. Для managed-проектов — верификация через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
+**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub / BACK — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. FRONT — Vitest/Playwright (`npm --prefix frontend …`), **FORBIDDEN** подмена на `bin/pytest`. **APP QA** — mixed lanes (backend + front/browser per stack profile + live_smoke); `suite_wrong_stack` не блокирует смесь внутри APP. Для managed-проектов — верификация через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
 
-**FRONT + любой frontend:** тесты (vitest/playwright/npm test/e2e) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
+**FRONT/APP + любой frontend/browser:** тесты (vitest/playwright/npm test/e2e/`run_browser_qa.py`) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
 
-**Claude Code subagents:** `.claude/agents/` — `reviewer` · `verify` · `explorer` + built-in. **Обязательные gate’ы** (packed — `.claude/instructions/spawn-hard.md`): широкий codebase search → `@explorer`; FINISH + `code_changed` → `@verify`; BACK QA → `@reviewer`. IMPLEMENT с полным `files:` / `delta_paths_*` → `@explorer` **SKIP**. Прочие Agent — свободно.
+**Claude Code subagents:** `.claude/agents/` — `reviewer` · `verify` · `explorer` + built-in. **Обязательные gate’ы** (packed — `.claude/instructions/spawn-hard.md`): широкий codebase search → `@explorer`; FINISH + `code_changed` → `@verify`; BACK/APP QA → `@reviewer` / `verify-qa`. IMPLEMENT с полным `files:` / `delta_paths_*` → `@explorer` **SKIP**. Прочие Agent — свободно.
 
 Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
@@ -21,6 +21,7 @@ Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 |--------|----------|-------------------|-----------|
 | BACK | `.cursor/rules/back_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 | FRONT | `.cursor/rules/front_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
+| APP | `.cursor/rules/app_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 | INTEG | `.cursor/rules/integration_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 
 **Нет файла** `.cursor/rules/mainrule-core.mdc` — core только внутри `*_developer/`.
@@ -109,6 +110,8 @@ Fallback на Read/Grep — только после ориентации по г
 | BACK BUGFIX | `.cursor/rules/back_developer/workflow-bugfix.mdc` |
 | BACK IMPLEMENT | `.cursor/rules/back_developer/workflow-implement.mdc` |
 | BACK QA | `.cursor/rules/back_developer/workflow-qa.mdc` |
+| APP QA | `.cursor/rules/app_developer/workflow-qa.mdc` |
+| APP BUGFIX | `.cursor/rules/app_developer/workflow-bugfix.mdc` |
 | FRONT BUGFIX | `.cursor/rules/front_developer/workflow-bugfix.mdc` |
 | INTEG GAP | `.cursor/rules/integration_developer/workflow-gap.mdc` |
 | ARCHIVE NOW | `{role_dir}workflow-archive.mdc` |
@@ -133,6 +136,9 @@ Fallback на Read/Grep — только после ориентации по г
 
 Канон BACK QA:
 `.cursor/rules/back_developer/isolation_rules/_lean/qa.mdc`
+
+Канон APP QA:
+`.cursor/rules/app_developer/isolation_rules/_lean/qa.mdc`
 
 **ЗАПРЕЩЕНО угадывать:**
 - `.cursor/rules/back_developer/_lean/qa.mdc` (пропущен `isolation_rules/`)

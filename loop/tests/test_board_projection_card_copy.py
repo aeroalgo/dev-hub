@@ -105,6 +105,21 @@ def test_resolve_card_fields_from_prompt_board(tmp_path: Path):
     assert "memory-bank/back/plan/E1/md/plan.md" in description
 
 
+def test_resolve_card_fields_from_bugfix_prompt_without_plan(tmp_path: Path):
+    prompt = tmp_path / "memory-bank/back/bugfix/bugfix-demo/prompt.md"
+    prompt.parent.mkdir(parents=True)
+    prompt.write_text(
+        "## Board\n\ntitle: Bugfix: демо\nsummary: |\n  Закрытый баг без plan/.\n",
+        encoding="utf-8",
+    )
+
+    title, description = resolve_card_fields(tmp_path, "bugfix-demo", role="back")
+    assert title == "Bugfix: демо"
+    assert "без plan/" in description
+    assert "memory-bank/back/bugfix/bugfix-demo/prompt.md" in description
+    assert "/plan/" not in description
+
+
 def test_project_epic_phase_create_uses_board_copy(tmp_path: Path):
     prompt = tmp_path / "memory-bank/back/plan/E1/md/prompt.md"
     prompt.parent.mkdir(parents=True)

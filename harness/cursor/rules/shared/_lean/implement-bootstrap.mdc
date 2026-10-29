@@ -4,7 +4,8 @@ alwaysApply: false
 ---
 # Code-phase bootstrap (HARD)
 
-**Канон порядка Read** для `BACK|FRONT|INTEG` × `IMPLEMENT|TASK|REFACTOR` (и для BUGFIX — тот же порядок с `_lean/bugfix.mdc`).
+**Канон порядка Read** для `BACK|FRONT|INTEG` × `IMPLEMENT|TASK|REFACTOR` (и для BUGFIX — тот же порядок с `_lean/bugfix.mdc`).  
+Также: `APP BUGFIX` → `role_dir=app_developer`, mode=`bugfix`.
 
 **SoT слоёв (не пересказывать содержимое в других files):**
 
@@ -15,7 +16,7 @@ alwaysApply: false
 | Role delta | `{role_dir}/workflow-<mode>.mdc` → только `## Hot path` (+ INTEG `## Фазы A–F` / step format если есть) | короткие отличия роли |
 | Work | `activeContext` → `load_now` shard (+ `plan_contract`, bounded `plan_jumps`) | AC · files · verify · skills |
 
-`role_dir`: `back`→`back_developer` · `front`→`front_developer` · `integration`/`integ`→`integration_developer`  
+`role_dir`: `back`→`back_developer` · `front`→`front_developer` · `integration`/`integ`→`integration_developer` · `app`→`app_developer`  
 `mode`: `implement` · `task` · `refactor` · `bugfix`
 
 ## Read order (до exploration / code / tests)

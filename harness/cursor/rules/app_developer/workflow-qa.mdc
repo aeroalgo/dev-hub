@@ -1,0 +1,30 @@
+---
+description: "Режим APP QA — mixed lanes: backend + front + browser + live_smoke"
+alwaysApply: false
+---
+### Команда: APP QA
+**Контекст**: @.cursor/rules/app_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/app_developer/isolation_rules/_lean/qa.mdc
+
+**Скиллы (core — lazy, 1–2 за сессию по gates):**  
+verification-before-completion · playwright-best-practices · python-testing-patterns · frontend-testing · owasp-security-check — `@.agents/skills/<name>/SKILL.md`
+
+**Скиллы (situational — только при триггере в diff/fail):**  
+code-review · mutation-testing · pytest-coverage · postgresql-code-review · insecure-defaults · web-security-review · sast-xss · property-based-testing · ui-ux-pro-max
+
+**FORBIDDEN:** silent skip required lane; PASS без charter; subagent гоняет browser/frontend; подмена live_smoke ASGI/mocks; читать весь situational список «про запас».
+
+## Hot path
+
+1. `OK APP QA - product acceptance` → **Gates**
+2. Lean load: `activeContext` → `load_now` + diff/bugfix scope; **не** полный plan monolith; `qa_consumes` если есть
+3. **Charter** (announce + yaml) → выбрать mode (`diff_aware` default на feature branch; `full` перед ship/PR)
+4. Run **required lanes** (parent): backend → frontend_build → browser → live_smoke → leftover/sot → behavior_smoke; optional exploratory/wire
+5. Evidence packs: `coverage_map` · `review` · `test_audit` · `browser` · `retro` · `lanes[]`
+6. **1× verify-qa** (suite_scope: `app_lanes`; передать все lane results)
+7. qa-артефакт: `memory-bank/app/qa/…` · шаблон `templates/qa/app-epic-step.yaml` (`app-qa/v1`)
+8. **FINISH:** finish-block (`code_changed: no`)
+   - **pass** → `@context-sync` (если loop wired) / Handoff
+   - **fail|blocked** → `memory-bank/app/bugfix/…/bugfix-queue.yaml` → **обязан** finish → **APP BUGFIX**
+
+**Верификация**: gates + verify-qa + все required lanes

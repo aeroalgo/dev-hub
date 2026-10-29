@@ -46,14 +46,23 @@ timeout -k 10s 300s bash scripts/live_smoke.sh
 timeout -k 10s 300s env BASE_URL=http://127.0.0.1:8000 bash scripts/live_smoke.sh --no-start
 # BACK QA live smoke extended (POST audit + poll; live FR / runbook):
 timeout -k 10s 300s env LIVE_SMOKE_LEVEL=extended bash scripts/live_smoke.sh
+# APP QA lanes (parent-only; stack profile may override front/browser):
+timeout -k 10s 300s .venv/bin/pytest -q --tb=line
+timeout -k 10s 300s npm --prefix frontend ci
+timeout -k 10s 300s npm --prefix frontend run build
+timeout -k 10s 300s env NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py --smoke-only
+timeout -k 10s 300s env NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py
+timeout -k 10s 300s bash scripts/live_smoke.sh
 ```
 
 **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита; `timeout 300s` **без** `-k`/`--kill-after` (не добивает hang); применение hub runner команд к managed capability-контрактам; **`FRONT` / `FRONT QA` запускает `bin/pytest` или backend suite** (wrong stack → `suite_wrong_stack`); засчитывать in-process `ASGITransport` e2e как live_smoke.
 
-## Live smoke (BACK QA)
+**APP QA exception:** смесь backend pytest + frontend build + browser в **одной** сессии **разрешена**, если каждый прогон — отдельный **именованный lane** с evidence. Нельзя сдать APP QA одним pytest при required `browser`/`frontend_build`.
+
+## Live smoke (BACK QA / APP QA)
 
 - **Что:** black-box HTTP к реально запущенному API (uvicorn). SoT скрипт: `scripts/live_smoke.sh`. Операторский сценарий: `docs/runbook-mode-a-live.md`.
-- **Где обязательно:** BACK QA (`_lean/qa.mdc` §2c). Не замена full pytest suite.
+- **Где обязательно:** BACK QA (`_lean/qa.mdc` §2c); APP QA — lane `live_smoke` когда charter required. Не замена full pytest suite.
 - **Не путать** с `backend/tests/e2e/*` (ASGI + моки) и с behavior smoke (wire FR).
 - Missing deps → §Environment bootstrap в `role-core-contract.mdc`, затем повтор в том же QA-прогоне.
 - Лимит: тот же внешний `timeout -k 10s 300s` на процесс скрипта (включая подъём/остановку сервера).
@@ -66,8 +75,9 @@ timeout -k 10s 300s env LIVE_SMOKE_LEVEL=extended bash scripts/live_smoke.sh
 - **full suite (QA HARD):**
   - **BACK** hub — `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k`. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
   - **FRONT QA** (parent-only) — full **frontend** suite: Vitest run + types/lint + Playwright (команды Frontend block выше). **FORBIDDEN:** `bin/pytest`. Evidence только pytest → FAIL (`suite_wrong_stack`).
-  - Managed — capability `test.full` **своей** роли/surface (front ≠ backend).
-- **live_smoke (BACK QA HARD, отдельно от suite):** `timeout -k 10s 300s bash scripts/live_smoke.sh` — после full suite в том же QA-прогоне; evidence обязателен.
+  - **APP QA** — все **required** lanes из charter (mode `full` → full backend + full browser profile + live_smoke). Mode `diff_aware`/`quick` допускает targeted backend + smoke browser. Missing required lane → FAIL (`lane_incomplete`).
+  - Managed — capability `test.full` **своей** роли/surface (front ≠ backend); APP читает product stack profile.
+- **live_smoke (BACK QA / APP QA HARD, отдельно от suite):** `timeout -k 10s 300s bash scripts/live_smoke.sh` — в том же QA-прогоне; evidence обязателен.
 - **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
 - если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full** (FRONT=frontend parent-only; BACK=hub pytest / managed capability).
 
@@ -85,7 +95,7 @@ timeout -k 10s 300s env LIVE_SMOKE_LEVEL=extended bash scripts/live_smoke.sh
 - Cursor rules и hooks;
 - Claude Code role commands и subagents;
 - Python entrypoint `bin/loop.py` и prompt из `loop/kernel/cli.py`;
-- BACK, FRONT и INTEG IMPLEMENT/TASK/BUGFIX/QA/REFACTOR;
+- BACK, FRONT, APP и INTEG IMPLEMENT/TASK/BUGFIX/QA/REFACTOR;
 - CI и локального запуска.
 
 Источник политики — этот shared rule. Конкретный runner обязан сохранить лимит при фактическом запуске команды.

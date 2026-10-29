@@ -2,7 +2,7 @@
 description: "Epic-scoped memory-bank paths — ARCHIVE move + CREATIVE/QA/BUGFIX/IMPLEMENT placement"
 alwaysApply: false
 ---
-# Epic-scoped paths (BACK / FRONT / INTEG)
+# Epic-scoped paths (BACK / FRONT / INTEG / APP)
 
 **Канон размещения артефактов.** Роли читают этот файл из ARCHIVE / CREATIVE / QA / BUGFIX / IMPLEMENT / DECOMPOSE gates.
 
@@ -45,7 +45,10 @@ alwaysApply: false
 
 ## Активное дерево (`memory-bank/{role}/`)
 
-`{role}` = `back` | `front` | `integration`.
+`{role}` = `back` | `front` | `integration` | `app`.
+
+**APP** (`memory-bank/app/`): только QA + BUGFIX (нет PLAN/IMPLEMENT у роли APP).  
+`APP QA` → `app/qa/…`; `APP BUGFIX` → `app/bugfix/…`.
 
 | Режим | С эпиком | Без эпика |
 |-------|----------|-----------|
@@ -56,13 +59,17 @@ alwaysApply: false
 | SECURITY | `security/plan/<epic_id>/` + execute `security/implement/<epic_id>/aNN-*.yaml` | `security/security-audit-YYYYMMDD-<slug>.md` (корень `security/`) |
 | CREATIVE | `creative/<epic_id>/creative-<feature>.md` | `creative/creative-<feature>.md` |
 | QA | `qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml` (или `qa.yaml`) | `qa/qa-YYYYMMDD-<slug>.yaml` |
-| BUGFIX | `bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md` | `bugfix/bugfix-YYYYMMDD-<slug>.md` |
+| BUGFIX | `bugfix/<epic_id>/` (`bugfix-queue.yaml` + `bugfix-YYYYMMDD-<slug>.md`) | `bugfix/<slug>/bugfix.md` (отчёт); **доска** — CLI `--title`/`--summary`, без prompt-файла |
 | GAP (INTEG) | `gap/<epic_id>/gap-YYYYMMDD-<slug>.md` | `gap/gap-YYYYMMDD-<slug>.md` |
 | GAP CLOSE (INTEG) | `gap/<epic_id>/close-YYYYMMDD-<slug>.md` | `gap/close-YYYYMMDD-<slug>.md` |
 | reflection archive | `reflection/reflection-<task_id>-….md` | то же — **не** под `<epic_id>/` |
 | TASK | — | `task/task-YYYYMMDD-<slug>.md` |
 
 **FORBIDDEN:** писать epic-артефакт CREATIVE/QA/BUGFIX/GAP в корень `creative/` / `qa/` / `bugfix/` / `gap/` без `<epic_id>/`, если эпик известен. **FORBIDDEN:** `qa|audit|analyze|implement/<epic_id>/yaml/`.
+
+**BUGFIX Board (HARD):** ad-hoc «закинь на доску» → `board-sync --title/--summary`
+(+ `--phase DONE` если закрыт). **FORBIDDEN:** создавать `prompt.md` / `plan.md` /
+`plan/<slug>/` только ради доски. Отчёт bugfix и карточка доски — разные вещи.
 
 **Rewire CREATIVE:** ссылки из `plan/<epic_id>/yaml/steps/sNN` → `../../creative/<epic_id>/creative-….md` (с эпиком) или `../../creative/creative-….md` (без).
 

@@ -81,7 +81,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--step")
     parser.add_argument(
         "--phase",
-        choices=("DECOMPOSE", "CREATIVE", "QA", "BUGFIX", "SECURITY"),
+        choices=("DECOMPOSE", "CREATIVE", "QA", "BUGFIX", "SECURITY", "DONE", "PLAN", "IMPLEMENT", "HALT"),
+        help="rewind target phase; board-sync may pass DONE/BUGFIX to force column",
     )
     parser.add_argument("--reason", default="manual halt")
     parser.add_argument("--payload")
@@ -113,6 +114,16 @@ def _parser() -> argparse.ArgumentParser:
         "--folder",
         default=None,
         help="project-docs: Disk/pages folder name (default from config project_docs.folder_name)",
+    )
+    parser.add_argument(
+        "--title",
+        default="",
+        help="board-sync: card title (skip prompt.md ## Board when set with --summary)",
+    )
+    parser.add_argument(
+        "--summary",
+        default="",
+        help="board-sync: card description/summary (in-memory; no prompt.md required)",
     )
     return parser
 
@@ -1387,7 +1398,10 @@ def main(argv: list[str] | None = None) -> int:
             map_path = resolve_map_path(paths.project)
             current_map = load_board_epic_map(map_path)
             entry = current_map.epics.get(target_epic)
-            if entry and entry.last_phase and not active_cursor:
+            if args.phase:
+                # Explicit override (e.g. closed BUGFIX → DONE without inventing plan/).
+                phase = args.phase
+            elif entry and entry.last_phase and not active_cursor:
                 phase = entry.last_phase
             elif not active_cursor and plan_path(
                 paths.project,
@@ -1403,6 +1417,8 @@ def main(argv: list[str] | None = None) -> int:
                 phase=phase,
                 role=role,
                 kind=kind,
+                title=str(args.title or ""),
+                description=str(args.summary or ""),
             )
             success = result.status in {"success", "disabled"}
             payload = {

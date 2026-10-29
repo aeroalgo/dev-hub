@@ -37,6 +37,49 @@ def prompt_md_path(
     return plan_path(root, resolved_role, epic_id, kind=resolved_kind).with_name("prompt.md")
 
 
+def bugfix_prompt_md_path(
+    project_root: Path | str,
+    epic_id: str,
+    role: str = "back",
+) -> Path:
+    """Ad-hoc / epic BUGFIX Board copy — never invent plan/ for this."""
+
+    root = Path(project_root)
+    resolved_role = role if role and role != "auto" else "back"
+    return root / "memory-bank" / resolved_role / "bugfix" / epic_id / "prompt.md"
+
+
+def resolve_board_prompt_path(
+    project_root: Path | str,
+    epic_id: str,
+    role: str = "back",
+    kind: str | None = None,
+) -> Path | None:
+    """Prefer feature plan prompt; fall back to bugfix/<id>/prompt.md."""
+
+    root = Path(project_root)
+    resolved_role = role if role and role != "auto" else "back"
+    resolved_kind = kind
+    try:
+        resolved_role = resolve_epic_role(root, epic_id, role=role, kind=kind)
+        resolved_kind = resolve_epic_kind(root, epic_id, kind=kind, role=resolved_role)
+    except (ValueError, FileNotFoundError, OSError):
+        pass
+
+    candidates: list[Path] = []
+    try:
+        candidates.append(
+            prompt_md_path(root, epic_id, role=resolved_role, kind=resolved_kind)
+        )
+    except (ValueError, FileNotFoundError, OSError):
+        pass
+    candidates.append(bugfix_prompt_md_path(root, epic_id, role=resolved_role))
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
 def parse_board_card_copy(text: str) -> BoardCardCopy | None:
     board_match = _BOARD_SECTION_RE.search(text or "")
     if not board_match:
@@ -75,8 +118,8 @@ def load_board_card_copy(
     role: str = "back",
     kind: str | None = None,
 ) -> BoardCardCopy | None:
-    path = prompt_md_path(project_root, epic_id, role=role, kind=kind)
-    if not path.is_file():
+    path = resolve_board_prompt_path(project_root, epic_id, role=role, kind=kind)
+    if path is None:
         return None
     text = path.read_text(encoding="utf-8")
     return parse_board_card_copy(text) or parse_outcome_fallback(text)
@@ -88,15 +131,19 @@ def format_card_description(
     summary: str,
     role: str,
     kind: str = "feature",
+    artifact_rel: str | None = None,
 ) -> str:
-    kind_prefix = {
-        "feature": "",
-        "refactor": "refactor/",
-        "security": "security/",
-    }.get(kind, "")
-    plan_rel = f"memory-bank/{role}/{kind_prefix}plan/{epic_id}/md/plan.md"
+    if artifact_rel:
+        ref_line = f"Artifact: {artifact_rel}"
+    else:
+        kind_prefix = {
+            "feature": "",
+            "refactor": "refactor/",
+            "security": "security/",
+        }.get(kind, "")
+        ref_line = f"Plan: memory-bank/{role}/{kind_prefix}plan/{epic_id}/md/plan.md"
     summary_text = summary.strip() or f"Epic: {epic_id}"
-    return f"{summary_text}\n\nEpic: {epic_id}\nPlan: {plan_rel}"
+    return f"{summary_text}\n\nEpic: {epic_id}\n{ref_line}"
 
 
 def resolve_card_fields(
@@ -119,19 +166,38 @@ def resolve_card_fields(
     except (ValueError, FileNotFoundError, OSError):
         pass
 
-    try:
-        copy = load_board_card_copy(root, epic_id, role=resolved_role, kind=resolved_kind)
-    except (ValueError, FileNotFoundError, OSError):
-        copy = None
+    prompt_path = resolve_board_prompt_path(
+        root, epic_id, role=resolved_role, kind=resolved_kind
+    )
+    copy = None
+    if prompt_path is not None:
+        try:
+            text = prompt_path.read_text(encoding="utf-8")
+            copy = parse_board_card_copy(text) or parse_outcome_fallback(text)
+        except (OSError, UnicodeError):
+            copy = None
+
     resolved_title = title.strip() or (copy.title if copy else epic_id)
     if description.strip():
         resolved_description = description.strip()
     elif copy:
+        artifact_rel = None
+        if prompt_path is not None:
+            try:
+                artifact_rel = prompt_path.relative_to(root).as_posix()
+            except ValueError:
+                artifact_rel = str(prompt_path)
+            if "/bugfix/" in artifact_rel.replace("\\", "/"):
+                pass
+            else:
+                # Feature plan prompt → keep Plan: line pointing at plan.md
+                artifact_rel = None
         resolved_description = format_card_description(
             epic_id=epic_id,
             summary=copy.summary,
             role=resolved_role,
             kind=resolved_kind,
+            artifact_rel=artifact_rel,
         )
     else:
         resolved_description = f"Epic: {epic_id}"

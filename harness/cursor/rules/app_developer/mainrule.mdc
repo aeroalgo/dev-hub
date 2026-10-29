@@ -1,0 +1,18 @@
+---
+description: "APP — индекс команд (APP QA, APP BUGFIX) — mixed-surface product gate"
+alwaysApply: false
+---
+# APP Developer — индекс
+
+**Роутер:** @.cursor/rules/mainrule.mdc  
+**Core:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Канон дизайна:** продукт может держать `docs/process/app-qa-bugfix.md` (если есть).
+
+| Команда | Workflow |
+|---------|----------|
+| `APP QA` | @.cursor/rules/app_developer/workflow-qa.mdc |
+| `APP BUGFIX` | @.cursor/rules/app_developer/workflow-bugfix.mdc |
+
+**Gates:** `isolation_rules/_lean/<mode>.mdc` (`qa` | `bugfix`).
+
+Ролевые `BACK|FRONT QA/BUGFIX` **сохраняются** для surface-only. Mixed back+front+browser+live → **APP**.

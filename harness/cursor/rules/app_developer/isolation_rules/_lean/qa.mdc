@@ -1,0 +1,65 @@
+---
+description: "APP QA gates — charter + mixed lanes (lean)"
+alwaysApply: false
+---
+# APP QA — gates
+
+**Артефакт:**
+- с эпиком: `memory-bank/app/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
+- без эпика: `memory-bank/app/qa/qa-YYYYMMDD-<slug>.yaml`
+- шаблон: `.cursor/templates/qa/app-epic-step.yaml` (`app-qa/v1`)
+- **FORBIDDEN:** дубль `qa.yaml` + dated с одним содержимым
+
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · core: @.cursor/rules/app_developer/mainrule-core.mdc  
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc
+
+## Gates
+
+1. Lean load: `load_now` + ONE shard + **diff / bugfix scope**; не полный `plan.md` monolith; `qa_consumes`-first если есть.
+2. **Charter (HARD) до тестов** — записать в yaml и объявить в чате:
+   - `code_under_test.base` + `paths`
+   - `surfaces_required` / `surfaces_optional` / `surfaces_skipped` (+ reason на каждый skip)
+   - `mode`: `diff_aware` | `quick` | `full` | `regression`
+   - `stack_profile` path или `hub-default`
+3. **Select surfaces** (GSTACK-style):
+   - `application/` / `backend/` / non-browser `*.py` → `backend`
+   - `frontend/` / static review bundle → `frontend_build` (+ `browser` если UI)
+   - UI AC / front in diff → `browser`
+   - HTTP API / server → `live_smoke`
+   - FR API↔UI → `wire_journey` (может = browser P0)
+   - docs/rules only → skip suites with reason (не fake green)
+4. **Run required lanes (parent, timeout 300s each)** — порядок:
+   1. `backend` — mode full: full pytest / capability `test.full`; diff_aware/quick: targeted по charter + neighbors (записать command). Hub: `bin/pytest` или `timeout -k 10s 300s .venv/bin/pytest`. Product с profile: следовать profile / AGENTS.
+   2. `frontend_build` — profile: e.g. `npm --prefix frontend ci && npm --prefix frontend run build`; hub-default: vitest run + tsc.
+   3. `browser` — profile: e.g. `NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py` (+ `--smoke-only` для quick/diff_aware); hub-default: Playwright full/smoke.
+   4. `live_smoke` — `timeout -k 10s 300s bash scripts/live_smoke.sh` (если script есть; иначе blocked + reason, не pass).
+   5. `leftover_sot` — если plan sunset A/B/C/I; иначе `n/a`.
+   6. `behavior_smoke` — если agent/hook/gate FR; иначе `n/a`.
+   7. optional: `wire_journey`, `exploratory` (time-box; skip если no live app).
+5. Каждый lane → `status` + `command` + `evidence` в `lanes[]`.
+6. Evidence packs: `coverage_map` · `review` · `test_audit` · `browser` · `retro` (как BACK/FRONT QA).
+7. Security spot-check: OWASP short на auth/API в diff.
+8. **verify-qa** после всех required lanes: parent pack `suite_scope: app_lanes` + lane results + Frozen checklist. **FORBIDDEN** mid-lane FINISH.
+9. Anti-ratchet: blockers prefix `lane:<id>|suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:|live_smoke:`.
+10. fail|blocked → merge `memory-bank/app/bugfix/<epic|slug>/bugfix-queue.yaml`; queue в `load_now`.
+11. FINISH: finish-block; pass → context-sync если wired; fail → finish всё равно → APP BUGFIX.
+
+## Modes (сжато)
+
+| mode | backend | front | browser | live |
+|------|---------|-------|---------|------|
+| quick | targeted | build | smoke/P0 | health |
+| diff_aware | targeted+neighbors | build if front | smoke if UI | health if API |
+| full | full suite | full profile | full browser | health (+ extended if live FR) |
+| regression | full + prior fails | same | same + prior fails | same |
+
+## Abort
+
+- PASS без charter / без `lanes[]` → FAIL
+- required lane skipped без reason / silent → FAIL
+- PASS только backend при required browser/frontend_build → FAIL (`lane_incomplete`)
+- live_smoke = ASGI/mocks → FAIL
+- subagent ran frontend/browser → FAIL
+- FINISH до завершения required lanes + verify-qa → FAIL
+- blockers без eligible prefix → FAIL
+- epic известен, qa вне `app/qa/<epic_id>/` → FAIL

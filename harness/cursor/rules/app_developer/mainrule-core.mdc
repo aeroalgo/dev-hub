@@ -1,0 +1,21 @@
+---
+description: "APP core — mixed-surface QA/BUGFIX, stack profile, parent-only lanes"
+alwaysApply: false
+---
+# APP — core
+
+Только при командах `APP QA` / `APP BUGFIX`.
+
+## Политика
+
+1. **Charter first** — до тестов: code under test, surfaces required/optional/skipped(+reason), mode, stack_profile.
+2. **Lanes** — именованные: `backend` · `frontend_build` · `browser` · `live_smoke` · `wire_journey` · `leftover_sot` · `behavior_smoke` · `exploratory`. PASS = все **required** lanes pass.
+3. **`suite_wrong_stack` не применяется** к смеси pytest+browser внутри APP QA (lanes разделены). FORBIDDEN: PASS только по pytest, если charter требовал `browser` / `frontend_build`.
+4. **Stack profile** — SoT команд front/browser:
+   - если есть `docs/testing/front-stack-profile.md` (или путь в charter) → читать и следовать;
+   - иначе hub-default: Vitest + Playwright (`npm --prefix frontend …`) для front/browser.
+5. **Parent-only** — frontend build, Vitest, Playwright, `run_browser_qa.py`, browser scripts: только parent. Subagent не гоняет эти команды.
+6. **Live smoke** — живой HTTP (`scripts/live_smoke.sh`); ASGI/mocks ≠ live_smoke.
+7. **Timeout** — @.cursor/rules/shared/test-timeout.mdc (APP block).
+8. **Артефакты** — `memory-bank/app/…` · @.cursor/rules/shared/epic-scoped-paths.mdc.
+9. **После APP BUGFIX** → повторный `APP QA` (не одиночный `BACK QA`).

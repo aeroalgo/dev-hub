@@ -1,0 +1,32 @@
+---
+description: "APP BUGFIX gates — mixed-surface TDD (lean)"
+alwaysApply: false
+---
+# APP BUGFIX — gates
+
+**Артефакты:**
+- с эпиком: `memory-bank/app/bugfix/<epic_id>/bugfix-queue.yaml` + `bugfix-YYYYMMDD-<slug>.md`
+- без эпика: `memory-bank/app/bugfix/<slug>/bugfix.md` (+ queue если из APP QA)
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc  
+**Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc
+
+## Gates
+
+1. Баг описан; `load_now` first; queue из APP QA — SoT статусов.
+2. Root cause — не симптом; no mask/fallback; dual path SoT FORBIDDEN.
+3. Item `surfaces:` может включать backend+frontend — править оба конца одного root cause в одном item.
+4. Regression red → fix → green:
+   - backend surface → targeted pytest / capability `test.targeted` (timeout 300s);
+   - frontend surface → build + targeted browser/script per stack profile (parent-only);
+   - оба → оба green до `done`.
+5. Swarm: parent spawn ≤3 `bugfix-fix`; 1 child = 1 item; parent держит сессию до пустой open-очереди.
+6. Все terminal → `verification.command` покрывает touched surfaces → `verification.status=pass` → FINISH → **APP QA**.
+7. §0.11 если refs.
+
+## Abort
+
+- Mask · skip tests · fix only UI string when blocker is contract → FAIL
+- Subagent runs browser/frontend suite → FAIL
+- FINISH с open/in_progress или verification ≠ pass → FAIL
+- Epic известен, bugfix вне `app/bugfix/<epic_id>/` → FAIL
+- Next mode = BACK QA alone после mixed fix → FAIL (нужен APP QA)

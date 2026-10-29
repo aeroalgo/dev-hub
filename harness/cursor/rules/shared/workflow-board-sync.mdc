@@ -25,9 +25,13 @@ alwaysApply: false
    - `LOOP_BOARD_PROVIDER=bitrix24` (или `plane`)
    - Bitrix: `BITRIX_WEBHOOK_URL`, `BITRIX_GROUP_ID`, `BITRIX_RESPONSIBLE_ID`,
      `BITRIX_STAGE_BACKLOG|DESIGN|BUILD|VERIFY|UAT|DONE|BLOCKED` (или `BITRIX_STAGE_MAP`)
-4. Эпик с `prompt.md`; секция `## Board` (`title` / `summary` простым языком) —
-   иначе fallback из Epic Outcome / id
+4. Текст карточки (в порядке приоритета):
+   1. **In-memory / CLI** `--title` + `--summary` — **предпочтительно для
+      ad-hoc BUGFIX** («закинь на доску»). Файлы под Board **не** создавать.
+   2. `## Board` в feature `plan/<epic>/md/prompt.md` — после PLAN.
+   3. Fallback: Epic Outcome / epic id.
 5. Mapping sidecar: `.loop/board-epic-map.yaml` (создаётся/обновляется CLI)
+6. Актёр в `.loop/board-actors.yaml` (или `BITRIX_RESPONSIBLE_ID` из `.env`)
 
 Шаблоны хаба: `harness/templates/board/`.  
 После PLAN — см. `workflow-board-after-plan.mdc`.
@@ -50,6 +54,20 @@ set -a && source .env && set +a
 python3 "$(cat .dev-hub)/bin/loop.py" board-sync --project "$PWD" --epic <EPIC_ID> --json
 ```
 
+**Закрытый BUGFIX сразу в Done — без файлов Board** (только slug в map + текст в CLI):
+
+```bash
+set -a && source .env && set +a
+BITRIX_RESPONSIBLE_ID=<uid> \
+  python3 "$(cat .dev-hub)/bin/loop.py" board-sync \
+  --project "$PWD" --epic <bugfix-slug> --role back --phase DONE \
+  --title "Bugfix: …" --summary "Что / зачем / результат…" --json
+```
+
+**FORBIDDEN:** писать `prompt.md` / `plan.md` / scaffold `plan/<slug>/` или
+`bugfix/<slug>/prompt.md` **только** ради board-sync. Отчёт bugfix — по желанию
+в `bugfix/<slug>/bugfix.md`; доска от него не зависит.
+
 Без `--epic` — активный cursor loop. Первый sync без mapping → `ensure_card`
 (`tasks.task.add`). Повтор с той же фазой / смена фазы → move stage.
 Автоматически вызывается post-finish в loop (только `.env` actor); CLI /
@@ -58,8 +76,9 @@ python3 "$(cat .dev-hub)/bin/loop.py" board-sync --project "$PWD" --epic <EPIC_I
 ## Phase → колонка
 
 `phase_alias` в yaml + `BITRIX_STAGE_*` в env. Типично: `QUEUED→backlog`,
-`PLAN/DECOMPOSE→design`, `IMPLEMENT→build`, `QA→verify`, `DONE→done`,
-`HALT→blocked`.
+`PLAN/DECOMPOSE→design`, `IMPLEMENT→build`, `QA/BUGFIX→verify`, `DONE→done`,
+`HALT→blocked`.  
+Для уже закрытого ad-hoc bugfix на доску — явный `--phase DONE`.
 
 ## Done
 
@@ -72,3 +91,5 @@ CLI JSON: `ok: true`, `status` ∈ {`success`,`disabled`}, непустой `ext
 - Silent skip при `provider: none` без явной причины в ответе владельцу
 - Печать секретов `.env` / webhook
 - Путать с production Bitrix write продукта (группы, list38, почта)
+- Создавать любые файлы (`plan/…`, `bugfix/…/prompt.md`) **только** ради board-sync —
+  для ad-hoc бага хватает `--title` / `--summary`

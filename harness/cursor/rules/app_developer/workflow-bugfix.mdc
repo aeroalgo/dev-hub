@@ -1,0 +1,21 @@
+---
+description: "Режим APP BUGFIX — mixed-surface fix из APP QA queue"
+alwaysApply: false
+---
+### Команда: APP BUGFIX
+**Контекст**: @.cursor/rules/app_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/app_developer/isolation_rules/_lean/bugfix.mdc
+**Bootstrap:** @.cursor/rules/shared/_lean/implement-bootstrap.mdc (`role_dir=app_developer`, mode=bugfix)
+
+**Скиллы:** systematic-debugging · diagnosing-bugs · tdd · test-driven-development · python-testing-patterns · python-error-handling · frontend-testing · playwright-best-practices · verification-before-completion · requesting-code-review — `@.agents/skills/<name>/SKILL.md`
+
+## Hot path
+
+1. `OK APP BUGFIX - [суть]` → **Gates** + epic-scoped-paths (`app`)
+2. Вход: `bugfix-queue.yaml` из `load_now` (APP QA) — SoT статусов
+3. Item может иметь `surfaces: [backend, frontend]` — один root cause, оба конца в одном fix
+4. Swarm: parent spawn ≤3 `bugfix-fix`; **1 child = 1 queue item**; parent-only browser/frontend tests
+5. Red → fix → green на нужных стеках item; verification.command покрывает touched surfaces
+6. Все items terminal + verification PASS → FINISH → **APP QA** (regression или тот же mode)
+
+**Верификация**: gates + root cause + queue all-terminal + FINISH

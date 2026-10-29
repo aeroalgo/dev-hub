@@ -27,6 +27,11 @@ alwaysApply: true
 PLAN без карточки на доске, если в продукте настроены `.env` (`LOOP_BOARD_*`)
 и `.loop/board-projection.yaml`.
 
+## Не путать с BUGFIX
+
+Публикация закрытого бага — **не** этот workflow: `board-sync --phase DONE
+--title … --summary …` без файлов Board. Канон: `workflow-board-sync.mdc`.
+
 ## Связано
 
 - Create/move карточки: `workflow-board-sync.mdc` · `bin/loop.py board-sync`

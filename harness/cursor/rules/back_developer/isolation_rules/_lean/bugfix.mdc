@@ -7,8 +7,10 @@ alwaysApply: false
 **Артефакты:**
 - с эпиком: `memory-bank/back/bugfix/<epic_id>/bugfix-queue.yaml` (`epic-bugfix-queue/v1`, status SoT)
 - отчёт: `memory-bank/back/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`
-- без эпика: `memory-bank/back/bugfix/bugfix-YYYYMMDD-<slug>.md`  
-Канон: @.cursor/rules/shared/epic-scoped-paths.mdc
+- без эпика: `memory-bank/back/bugfix/<slug>/bugfix.md` (или legacy flat
+  `bugfix/bugfix-YYYYMMDD-<slug>.md`)
+- Board: **не** писать файлы — `board-sync --title/--summary` (см. workflow-board-sync)  
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · board: @.cursor/rules/shared/workflow-board-sync.mdc
 **Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — local bug partial OK; contract/SoT regression → DENY old / `wire_complete` bar (не dual path «чтобы green»)
 
 ## Gates
