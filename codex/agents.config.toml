@@ -60,15 +60,6 @@ requires_model = true
 allow_worktree = false
 verdict = "pass-fail"
 
-[agents."analyze-verify"]
-model_reasoning_effort = "high"
-sandbox_mode = "read-only"
-workflow_mode = "gate"
-max_turns = 10
-requires_model = true
-allow_worktree = false
-verdict = "pass-fail"
-
 [agents."explorer"]
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"

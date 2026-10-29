@@ -33,7 +33,6 @@ MANAGED_GATE_AGENTS = frozenset(
         "verify-bugfix",
         "verify-qa",
         "verify-decompose",
-        "analyze-verify",
         "verify-script",
         "verify-edit",
         "verify-publish",

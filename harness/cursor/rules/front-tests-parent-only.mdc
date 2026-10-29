@@ -8,11 +8,11 @@ alwaysApply: true
 Канон: `~/.claude/rules/02-front-tests-parent-only.md`.
 Claude Code: `.claude/rules/front-tests-parent-only.md`.
 
-**Железное правило:** frontend-тесты (Vitest / RTL / Playwright / `npm|pnpm test` / e2e) запускает **только parent**. Subagent — **никогда**.
+**Железное правило:** frontend-тесты (Vitest / RTL / Playwright / `npm|pnpm test` / e2e / product `run_browser_qa.py` / `test_*_browser.py`) запускает **только parent**. Subagent — **никогда**.
 
 ## Subagent — FORBIDDEN
 
-- Subagent (только parent): любой запуск `vitest`, `playwright`, `npm/pnpm/yarn test`, e2e в `frontend/`
+- Subagent (только parent): любой запуск `vitest`, `playwright`, `npm/pnpm/yarn test`, e2e в `frontend/`, `run_browser_qa.py`, `scripts/test_*_browser.py`
 - «Быстро один файл» / «проверить green» — тоже запрет
 
 Писать `*.test.*` / `*.spec.*` / e2e-файлы — можно. Запуск — нет.
@@ -29,10 +29,11 @@ HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/play
 
 3. После отчёта subagent — parent прогоняет тесты.
 
-## FRONT *
+## FRONT * / APP *
 
-TDD red/green и Playwright в `FRONT IMPLEMENT|TASK|BUGFIX|QA|REFACTOR` — **только parent**.
+TDD red/green и Playwright / browser profile в `FRONT IMPLEMENT|TASK|BUGFIX|QA|REFACTOR` и `APP IMPLEMENT|TASK|BUGFIX|QA|REFACTOR` — **только parent**.
 
-**FAIL:** subagent прогнал frontend-тесты; parent spawn без HARD RULE строки.
+**FAIL:** subagent прогнал frontend/browser-тесты; parent spawn без HARD RULE строки.
 
 **FORBIDDEN (wrong stack):** в FRONT-режимах запускать `bin/pytest` / backend pytest вместо Vitest/Playwright → `suite_wrong_stack`.
+**APP QA:** смесь backend+browser в parent **разрешена** (именованные lanes); wrong_stack на смесь внутри APP не вешать.

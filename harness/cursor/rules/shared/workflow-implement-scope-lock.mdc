@@ -1,12 +1,12 @@
 ---
-description: "IMPLEMENT scope lock — one shard, file allowlist, rules-edit gate (BACK/FRONT/INTEG)"
+description: "IMPLEMENT scope lock — one shard, file allowlist, rules-edit gate (BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # IMPLEMENT scope lock (HARD)
 
 **Инцидент-класс:** агент на `BACK IMPLEMENT` (обходит §0.9 `implement this`) меняет `.cursor/rules/**`, чужие `sNN`, удаляет тесты, закрывает весь эпик до QA — без команды пользователя.
 
-**Канон для:** `BACK|FRONT|INTEG IMPLEMENT` · loop epic code sessions · любой режим с work shard `sNN|eNN`.
+**Канон для:** `BACK|FRONT|INTEG|APP IMPLEMENT` · loop epic code sessions · любой режим с work shard `sNN|eNN`.
 
 ---
 
@@ -19,7 +19,7 @@ alwaysApply: false
 | **FORBIDDEN** | IMPLEMENT других шагов «догоном» в том же чате |
 | **FORBIDDEN** | два разных `T-HUB-*` / plan_id в одной code-сессии |
 | **FORBIDDEN** | `index.yaml` / `index.md`: `completed` для шагов ≠ текущий `step_id` (кроме `finalize-step` CLI) |
-| **FORBIDDEN** | `BACK QA` · QA artifacts — без **отдельной** user-команды режима |
+| **FORBIDDEN** | `BACK|APP QA` · QA artifacts — без **отдельной** user-команды режима |
 
 ---
 

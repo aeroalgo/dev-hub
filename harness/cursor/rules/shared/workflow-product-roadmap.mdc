@@ -46,7 +46,7 @@ alwaysApply: false
 
 **FORBIDDEN:** править `roadmap.md` руками как SoT · класть полный `vision`/`phases` в IMPLEMENT `load_now` · дублировать code-queue длинным текстом в roadmap · **пропуск `product/` в L2+ `* PLAN`, если каталог существует** (нет `product/` → OK).
 
-**Code queue (отдельный слой):** `memory-bank/back|front|integration/roadmap/queue.yaml` — нарезается из product roadmap через `* PLAN`, не заменяет product-слой.
+**Code queue (отдельный слой):** `memory-bank/back|front|app|integration/roadmap/queue.yaml` — нарезается из product roadmap через `* PLAN`, не заменяет product-слой.
 
 ---
 
@@ -57,7 +57,7 @@ alwaysApply: false
 2. Меняется порядок / волны    → PRODUCT PHASES   → phases.md
 3. После 1 и/или 2             → PRODUCT ROADMAP REBUILD → roadmap.md
 4. Ориентация в коде / STATUS  → читать roadmap.md (+ role shard), не monolith vision/phases
-5. Новый code-эпик             → из roadmap.wave → BACK|FRONT|INTEG PLAN → queue.yaml
+5. Новый code-эпик             → из roadmap.wave → BACK|FRONT|INTEG|APP PLAN → queue.yaml
 ```
 
 ---
@@ -142,7 +142,7 @@ alwaysApply: false
 - …
 
 ## Нарезка кода
-- Следующий PLAN из этой карты: `BACK|FRONT PLAN …` (не invent epic в ROADMAP REBUILD)
+- Следующий PLAN из этой карты: `BACK|FRONT|APP PLAN …` (не invent epic в ROADMAP REBUILD)
 ```
 
 ### 3. Doc-router / IMPLEMENT

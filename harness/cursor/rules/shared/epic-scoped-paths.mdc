@@ -47,8 +47,8 @@ alwaysApply: false
 
 `{role}` = `back` | `front` | `integration` | `app`.
 
-**APP** (`memory-bank/app/`): только QA + BUGFIX (нет PLAN/IMPLEMENT у роли APP).  
-`APP QA` → `app/qa/…`; `APP BUGFIX` → `app/bugfix/…`.
+**APP** (`memory-bank/app/`): полноценный vertical-slice lifecycle.
+`APP PLAN|DECOMPOSE|IMPLEMENT` используют `app/plan/<epic_id>/` и `app/implement/<epic_id>/`; `APP QA` → `app/qa/…`; `APP BUGFIX` → `app/bugfix/…`. `APP` не создаёт отдельную INTEG-очередь: contract, back, front, wire и mixed tests живут в одном эпике.
 
 | Режим | С эпиком | Без эпика |
 |-------|----------|-----------|
@@ -109,7 +109,7 @@ alwaysApply: false
 2. **Снаружи** (остались на месте): `reflection/**`, `tasks.md`, `tasks/log/**`, `activeContext`, другие живые docs — **rewrite**  
    `memory-bank/{role}/<path>` → `memory-bank/archive/{role}/<path>`  
    и relative из reflection: пересчитать глубину (`../qa/` → `../../archive/{role}/qa/…` и т.п.).
-3. Канон-инструмент (опционально): `scripts/mb-archive-epic.py` — агент **может** вызвать для move+rewrite. Пользователь запускает **`BACK|FRONT|INTEG ARCHIVE NOW`**, не скрипт. Ручной move без rewrite = FAIL.
+3. Канон-инструмент (опционально): `scripts/mb-archive-epic.py` — агент **может** вызвать для move+rewrite. Пользователь запускает **`BACK|FRONT|INTEG|APP ARCHIVE NOW`**, не скрипт. Ручной move без rewrite = FAIL.
 
 ### После переноса
 

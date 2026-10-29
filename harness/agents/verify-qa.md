@@ -26,11 +26,12 @@ Parent **обязан** передать:
 | `Suite results` | да (команды + кратко pass/fail) — **обязан** содержать full-suite результат при `suite_scope: full` (роль: BACK/hub pytest · FRONT Vitest+Playwright · Managed: capability_checks своей surface). При `suite_scope: app_lanes` — **все** required `lanes[]` (backend / frontend_build / browser / live_smoke / …) со status+command+evidence |
 | `ALLOW READ` | да (≤40; plan / freeze source / touched paths) |
 | `## Frozen QA checklist` + `checklist_sha256` | да (machine SoT матрицы; inject loop / parent) |
-| `## QA evidence packs` | да: `coverage_map`, `review`, `test_audit`, `browser`, `retro` |
+| `test_plan` | да: scope-driven selection from `test-catalog.yaml`; selected, not_applicable with reasons, not_run with next actions |
+| `## QA evidence packs` | да: `test_plan`, `coverage_map`, `review`, `test_audit`, `browser`, `retro` |
 
 **AC+/AC−/§0.11 в prompt как отдельные packed секции не обязательны.** Матрица = **только** Frozen checklist (`### AC+` / `### AC−` / `### §0.11` / `### Prior blockers`). Parent-packed AC вне freeze **игнорировать**.
 
-Нет Suite results / ALLOW READ / QA evidence packs → `FAIL` `prompt_incomplete:<секция>`. Нет freeze sha → `prompt_incomplete` / freeze violation.
+Нет Suite results / ALLOW READ / `test_plan` / QA evidence packs → `FAIL` `prompt_incomplete:<секция>`. Нет freeze sha → `prompt_incomplete` / freeze violation.
 
 ## QA evidence packs (HARD)
 
@@ -38,21 +39,36 @@ Parent **обязан** передать:
 алиасами `/review` и `/test-audit`. Они выполняются внутри одного QA gate и не
 создают отдельные loop-фазы или пользовательские команды.
 
-1. `coverage_map` — пройди каждую literal строку AC и BN из freeze: один
+1. `test_plan` — прочитай `.cursor/templates/qa/test-catalog.yaml` и проверь
+   каждую каталоговую обязанность. `selected` обязан иметь статус и наблюдаемое
+   evidence; `not_applicable` обязан иметь причину; `not_run` обязан иметь
+   причину и next action. В `full` все применимые обязанности должны быть
+   selected; в `diff_aware`/`quick` — все обязанности, затронутые scope и его
+   рисками; в `regression` — полный применимый набор плюс prior failures.
+   Каталог задаёт только имена: конкретные команды, адреса, порты, fixtures и
+   credentials проверяй по implement shard, stack profile и lane evidence.
+   Отсутствующая реализация теста для selected obligation — это gap, а не
+   `not_applicable` и не PASS.
+2. `coverage_map` — пройди каждую literal строку AC и BN из freeze: один
    конкретный browser/API scenario и наблюдаемое evidence. `status-only` или
    «функция вызвана» без outcome = gap.
-2. `review` — сверка diff с AC/contract, negative paths, rollback и ownership;
+3. `review` — сверка diff с AC/contract, negative paths, rollback и ownership;
    findings должны иметь path/line или быть `none`.
-3. `test_audit` — ищи ослабленные assertions, `assert True`, status/build-only
+4. `test_audit` — ищи ослабленные assertions, `assert True`, status/build-only
    проверки, широкие `route.fulfill`/global API mocks, бездоказательные
    skip/xfail и тесты, не включённые в CI. Не требуй «больше тестов» вне freeze:
    фиксируй только то, что делает заявленное evidence бесполезным.
-4. `browser` — для UI/API wire указаны stack profile, P0/P1 journeys и
-   evidence (URL/response/trace/screenshot/report). Synthetic fixture допустим
-   только если production server/HTTP/assets/auth path реально подняты; он не
-   заменяет live P0 journey. `status: skip` требует причины и применимого
+5. `browser` — для UI/API wire указаны stack profile, P0/P1 journeys и
+   evidence (URL/response/trace/screenshot/report). Любой `status: pass` с
+   journeys обязан иметь `evidence_file` внутри ALLOW READ. Для JSON/YAML
+   evidence_file это typed runtime artifact: `status: pass`,
+   `live_evidence: true`, timestamp, executed `command`, `exit_code: 0` и
+   наблюдаемые responses/journeys/checks; `mock_*`, ASGI/in-process и
+   status-only trace запрещены. Synthetic fixture допустим только если
+   production server/HTTP/assets/auth path реально подняты; он не заменяет
+   live P0 journey. `status: skip` требует причины и применимого
    non-UI/non-wire scope.
-5. `retro` — проверь четыре поля: пропущенный дефект, лишний gate, flaky test,
+6. `retro` — проверь четыре поля: пропущенный дефект, лишний gate, flaky test,
    изменение следующего цикла. Пустые «всё хорошо» без evidence = gap; если
    ничего нет, записать `none`.
 
@@ -66,6 +82,9 @@ Parent передаёт `suite_scope` + ровно один suite-command. **Н�
   - Managed projects: верификация через stack profile `capability_checks` **роли/surface**, без generic fallback к raw pytest для FRONT.
 - `suite_scope: app_lanes` (APP QA): каждый **required** lane из charter в Suite results / `lanes[]` с pass|fail|blocked (+ skip только с reason). Смесь pytest+browser **OK**. Missing required lane → FAIL `lane_incomplete`. live_smoke ≠ ASGI mocks.
 - `suite_scope: targeted` (после BUGFIX без runtime-path changes) → допустим targeted path/nodeid или targeted capability checks; **FAIL** только если suite claims противоречат evidence или command отсутствует.
+- Для `live_smoke`/browser/wire claims PASS требует реальный runtime artifact,
+  привязанный к выполненной команде; unit tests, simulation helpers и статический
+  JSON без raw runtime capture не закрывают такой пункт.
 - Если `suite_scope` не указан — требуй full (fail-closed). APP QA без `app_lanes` → FAIL `prompt_incomplete:suite_scope`.
 
 **FORBIDDEN:** PASS при отсутствии full-команды (`suite_not_full`); FRONT QA сдал pytest вместо Vitest/Playwright (`suite_wrong_stack`); APP QA PASS без required browser/frontend_build/live_smoke (`lane_incomplete`). Не гоняй suite сам.
@@ -73,7 +92,7 @@ Parent передаёт `suite_scope` + ровно один suite-command. **Н�
 ## Exhaustive pass (HARD) — no fail-fast
 
 1. Сверь Suite results с claims parent + Full suite gate выше.
-2. Проверь `coverage_map`, `review`, `test_audit`, `browser`, `retro` по правилам выше.
+2. Проверь `test_plan`, `coverage_map`, `review`, `test_audit`, `browser`, `retro` по правилам выше.
 3. **Пройди каждый** пункт `AC+`, затем каждый `AC−`, затем каждый `§0.11` — без пропуска.
 4. На каждый пункт зафиксируй: `ok` + evidence `file:line` **или** gap id.
 5. **FORBIDDEN:** остановиться на первом дефекте и сразу emit FAIL/JSON.

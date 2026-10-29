@@ -1,37 +1,38 @@
 ---
 name: role-command
-description: "Role command parity chain — BACK/FRONT/INTEG workflow router (graphify, isolation, FINISH gates)"
+description: "Role command parity chain — BACK/FRONT/APP/INTEG workflow router (graphify, isolation, FINISH gates)"
 ---
 
 # Role Command — Cursor parity chain
 
 **Язык:** все user-facing сообщения — **русский** (@.claude/rules/language.md). Subagent/task prompts: добавь «ответ и отчёт пользователю — на русском».
 
-**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub / BACK — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. FRONT — Vitest/Playwright (`npm --prefix frontend …`), **FORBIDDEN** подмена на `bin/pytest`. Для managed-проектов — верификация через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
+**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub / BACK — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. FRONT — Vitest/Playwright (`npm --prefix frontend …`), **FORBIDDEN** подмена на `bin/pytest`. **APP QA** — mixed lanes (backend + front/browser per stack profile + live_smoke); `suite_wrong_stack` не блокирует смесь внутри APP. Для managed-проектов — верификация через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
 
-**FRONT + любой frontend:** тесты (vitest/playwright/npm test/e2e) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
+**FRONT/APP + любой frontend/browser:** тесты (vitest/playwright/npm test/e2e/`run_browser_qa.py`) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
 
-**Claude Code subagents:** `.claude/agents/` — `reviewer` · `verify` · `explorer` + built-in. **Обязательные gate’ы** (packed — `.claude/instructions/spawn-hard.md`): широкий codebase search → `@explorer`; FINISH + `code_changed` → `@verify`; BACK QA → `@reviewer`. IMPLEMENT с полным `files:` / `delta_paths_*` → `@explorer` **SKIP**. Прочие Agent — свободно.
+**Claude Code subagents:** `.claude/agents/` — `reviewer` · `verify` · `explorer` + built-in. **Обязательные gate’ы** (packed — `.claude/instructions/spawn-hard.md`): широкий codebase search → `@explorer`; FINISH + `code_changed` → `@verify`; BACK/APP QA → `@reviewer` / `verify-qa`. IMPLEMENT с полным `files:` / `delta_paths_*` → `@explorer` **SKIP**. Прочие Agent — свободно.
 
 Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
-`analyze-verify` — внутренний gate DECOMPOSE; отдельной пользовательской команды для него нет.
+`verify-decompose` — единственный internal gate DECOMPOSE; он сам выполняет structural + semantic closure.
 
 | Prefix | Role dir | Core (полный путь) | Isolation |
 |--------|----------|-------------------|-----------|
 | BACK | `.cursor/rules/back_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 | FRONT | `.cursor/rules/front_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
+| APP | `.cursor/rules/app_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 | INTEG | `.cursor/rules/integration_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 
 **Нет файла** `.cursor/rules/mainrule-core.mdc` — core только внутри `*_developer/`.
 
-Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP` (алиас `INTEGRATION GAP`), `INTEG GAP CLOSE` (алиас `INTEGRATION GAP CLOSE`), `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`.
+Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP` (алиас `INTEGRATION GAP`), `INTEG GAP CLOSE` (алиас `INTEGRATION GAP CLOSE`), `APP ARCHIVE NOW`, `APP ROADMAP MERGE`, `APP PLAN REFACTOR`, `APP SECURITY PLAN`, `APP SECURITY DECOMPOSE`, `APP REFACTOR PLAN`, `APP REFACTOR DECOMPOSE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`.
 
 ## Step 0 — graphify (parity with Cursor `mainrule.mdc`)
 
 Читай @.cursor/rules/graphify.mdc и ориентируйся по графу **до** Grep/Read по codebase — **кроме** IMPLEMENT, когда shard `files:` уже полный (тогда query до правки известных путей не обязателен).
 
-**Обязателен** для: `IMPLEMENT` (если `files:` неполные / широкий поиск) · `TASK` · `BUGFIX` · `REFACTOR` · `QA` · **`SECURITY` execute** (`@aNN` / `S` one-shot); также `PM DISCOVER`, `TL SYNC DEV`; **brownfield** `BACK/FRONT/INTEG VAN`.
+**Обязателен** для: `IMPLEMENT` (если `files:` неполные / широкий поиск) · `TASK` · `BUGFIX` · `REFACTOR` · `QA` · **`SECURITY` execute** (`@aNN` / `S` one-shot); также `PM DISCOVER`, `TL SYNC DEV`; **brownfield** `BACK/FRONT/APP/INTEG VAN`.
 
 **Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `REFLECT` · `ARCHIVE NOW` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают. IMPLEMENT + полный `files:` / `delta_paths_*` — query skip.
 
@@ -60,7 +61,7 @@ Fallback на Read/Grep — только после ориентации по г
 2. FINISH / `* FINISH`: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc (+ graphify update если code changed). Грузить **перед FINISH**, не на старте IMPLEMENT.
 3. Tool unclear → recommend: **Cursor** + fast-editing (default) | **Claude Code** + premium-coding (E2E / multi-file / **any PLAN**)
 
-### Если MODE = PLAN (BACK/FRONT/INTEG/PM) или SECURITY PLAN / REFACTOR PLAN
+### Если MODE = PLAN (BACK/FRONT/APP/INTEG/PM) или SECURITY PLAN / REFACTOR PLAN
 
 **Сразу после acknowledgement** выведи в чат:
 
@@ -109,6 +110,21 @@ Fallback на Read/Grep — только после ориентации по г
 | BACK BUGFIX | `.cursor/rules/back_developer/workflow-bugfix.mdc` |
 | BACK IMPLEMENT | `.cursor/rules/back_developer/workflow-implement.mdc` |
 | BACK QA | `.cursor/rules/back_developer/workflow-qa.mdc` |
+| APP QA | `.cursor/rules/app_developer/workflow-qa.mdc` |
+| APP BUGFIX | `.cursor/rules/app_developer/workflow-bugfix.mdc` |
+| APP VAN | `.cursor/rules/app_developer/workflow-van.mdc` |
+| APP PLAN | `.cursor/rules/app_developer/workflow-plan.mdc` |
+| APP DECOMPOSE | `.cursor/rules/app_developer/workflow-decompose.mdc` |
+| APP IMPLEMENT | `.cursor/rules/app_developer/workflow-implement.mdc` |
+| APP TASK | `.cursor/rules/app_developer/workflow-task.mdc` |
+| APP REFACTOR | `.cursor/rules/app_developer/workflow-refactor.mdc` |
+| APP ARCHIVE NOW | `.cursor/rules/app_developer/workflow-archive.mdc` |
+| APP REPLAN | `.cursor/rules/app_developer/workflow-replan.mdc` |
+| APP RECONCILE | `.cursor/rules/app_developer/workflow-reconcile.mdc` |
+| APP CLARIFY | `.cursor/rules/app_developer/workflow-clarify.mdc` |
+| APP ROADMAP MERGE | `.cursor/rules/app_developer/workflow-roadmap-merge.mdc` |
+| APP JANITOR | `.cursor/rules/app_developer/workflow-janitor.mdc` |
+| APP SECURITY | `.cursor/rules/app_developer/workflow-security.mdc` |
 | FRONT BUGFIX | `.cursor/rules/front_developer/workflow-bugfix.mdc` |
 | INTEG GAP | `.cursor/rules/integration_developer/workflow-gap.mdc` |
 | ARCHIVE NOW | `{role_dir}workflow-archive.mdc` |
@@ -133,6 +149,9 @@ Fallback на Read/Grep — только после ориентации по г
 
 Канон BACK QA:
 `.cursor/rules/back_developer/isolation_rules/_lean/qa.mdc`
+
+Канон APP QA:
+`.cursor/rules/app_developer/isolation_rules/_lean/qa.mdc`
 
 **ЗАПРЕЩЕНО угадывать:**
 - `.cursor/rules/back_developer/_lean/qa.mdc` (пропущен `isolation_rules/`)
@@ -159,7 +178,7 @@ ONLY skills declared by the current workflow and its current decompose-step. Do 
 
 ## Step 6 — execute
 
-Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integration grep §0.11 token-economy before FINISH. Code modes: graphify Step 0 уже выполнен **или** skip по полному `files:`; FINISH → из корня репо `.venv/bin/graphify update .` если code changed.
+Follow workflow. BACK/FRONT/APP QA → lean load §7 context-session-economy. Integration grep §0.11 token-economy before FINISH. Code modes: graphify Step 0 уже выполнен **или** skip по полному `files:`; FINISH → из корня репо `.venv/bin/graphify update .` если code changed.
 
 ## IDEA PIPELINE
 
@@ -171,7 +190,7 @@ Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integr
 
 Если MODE=PLAN или MODE=`SECURITY PLAN` или MODE=`REFACTOR PLAN` (или SECURITY/REFACTOR с args PLAN): сразу вторая строка `SUSPENSION GUARD active — plan output unlimited`, затем читай `.claude/rules/plan-artifact.md`. Artifact SECURITY: `memory-bank/{role}/security/plan/<id>/md/plan.md`.
 
-Если MODE=DECOMPOSE (BACK/FRONT/INTEG): сразу `SUSPENSION GUARD active — decompose output unlimited`, затем `.claude/rules/plan-artifact.md` (секция DECOMPOSE) + `workflow-decompose.mdc` §Maximal detail + §Replacement cleanup.
+Если MODE=DECOMPOSE (BACK/FRONT/APP/INTEG): сразу `SUSPENSION GUARD active — decompose output unlimited`, затем `.claude/rules/plan-artifact.md` (секция DECOMPOSE) + `workflow-decompose.mdc` §Maximal detail + §Replacement cleanup.
 Если MODE=VAN и brownfield (есть код/compose): сразу `SUSPENSION GUARD active — architecture map output unlimited`, затем `.cursor/rules/shared/workflow-van-brownfield.mdc` + `.claude/rules/plan-artifact.md` (architecture paths).
 
 Перед FINISH на PLAN / SECURITY PLAN / REFACTOR PLAN: shell `wc -l` на plan-файл; TOC-only / слишком короткий → FAIL, дописать. На L2+ планах зафиксирован guard: `Review readiness` не содержит pending, а секция `qa_consumes` создана.  

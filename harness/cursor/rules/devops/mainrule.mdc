@@ -1,0 +1,25 @@
+---
+description: "DEVOPS — индекс команды (подгрузка infra-скиллов: Docker, K8s, nginx, Ansible, Terraform)"
+alwaysApply: false
+---
+# DEVOPS WORKFLOW — ИНДЕКС
+
+Папка: `.cursor/rules/devops/`  
+**Роутер:** @.cursor/rules/mainrule.mdc  
+**Core:** @.cursor/rules/devops/mainrule-core.mdc  
+**Процесс:** @.cursor/rules/devops/workflow.mdc  
+**Gates:** @.cursor/rules/devops/isolation_rules/_lean/ops.mdc  
+**Pack skill:** @.agents/skills/devops/SKILL.md
+
+**Не путать с BACK/FRONT/APP:** нет PLAN/DECOMPOSE/IMPLEMENT/QA lifecycle и нет epic queue.  
+DEVOPS = выбрать и Read infra-скиллы → сделать задачу (Docker / K8s / nginx / Ansible / Terraform).
+
+## Happy path
+
+| Команда | Процесс |
+|---------|---------|
+| `DEVOPS CHECK SERVER` | read-only SSH-аудит через `scripts/devops_check_server.py`; JSON/text отчёт, без lifecycle |
+| `DEVOPS` | @.cursor/rules/devops/workflow.mdc — тема из сообщения или один уточняющий вопрос |
+| `DEVOPS <темы>` | тот же — темы: docker · k8s/helm · nginx/proxy · ansible · terraform/opentofu |
+
+Примеры: `DEVOPS docker nginx` · `DEVOPS k8s helm` · `DEVOPS terraform aws` · `DEVOPS ansible`.

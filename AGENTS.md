@@ -116,16 +116,23 @@ Write `activeContext` — `.cursor/rules/token-economy-stub.mdc` §0.7.
 Команды `EVAL FRAME|SEARCH|PRICE|GATE|…` — не BACK. Индекс: `.cursor/rules/eval/mainrule.mdc`.  
 Карта: `memory-bank/product/eval-pipeline.md`. Артефакты: `memory-bank/niche/<slug>/`.
 
+## DEVOPS (infra skills)
+
+Команда `DEVOPS` / `DEVOPS <темы>` — не BACK. Индекс: `.cursor/rules/devops/mainrule.mdc`.  
+Только подгрузка pack-скиллов из `.agents/skills/` (Docker, K8s/Helm, nginx, Ansible, Terraform/OpenTofu).  
+Pack loader: `.agents/skills/devops/SKILL.md`. **Не** пишет `activeContext`.
+
 ## Root classification & Testing
 
 - Hub (dev-hub self-test) / **BACK**: Python tests — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
 - **BACK QA live_smoke (HARD):** `timeout -k 10s 300s bash scripts/live_smoke.sh` — живой uvicorn+HTTP; ASGI e2e/моки не считаются. Missing deps → установить в `.venv` (`pip install -e ".[dev]"`) и повторить (канон: `role-core-contract` §Environment bootstrap · `_lean/qa.mdc` §2c).
+- **APP QA / APP BUGFIX:** смешанная приёмка back+front+browser+live_smoke (именованные lanes). Канон: `docs/process/app-qa-bugfix.md` · rules `app_developer/`. Артефакты: `memory-bank/app/qa|bugfix/`. Default после mixed BUGFIX — `APP QA`, не два formal BACK+FRONT QA.
 - **FRONT** (IMPLEMENT/TASK/QA): используй project-specific stack profile; **FORBIDDEN:** `bin/pytest` / backend pytest как FRONT suite.
-- **Neftegaz FRONT profile:** `docs/testing/front-stack-profile.md` — Vite build + Python Playwright; Vitest, TypeScript и `@playwright/test` намеренно не добавляются. PR gate: `npm --prefix frontend ci && npm --prefix frontend run build` + `NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py`; browser evidence загружается как CI artifact.
+- **Neftegaz FRONT profile:** `docs/testing/front-stack-profile.md` — Vite build + Python Playwright; Vitest, TypeScript и `@playwright/test` намеренно не добавляются. PR gate: `npm --prefix frontend ci && npm --prefix frontend run build` + `NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py`; browser evidence загружается как CI artifact. Используется lane’ами `APP QA`.
 - **CRM Playwright runtime:** `BASE_URL=http://erp.localhost:8000`. Compose держит `sleep infinity` — нужен отдельно `bench start` в контейнере. Editable `crm/`+`frappe/`+`design-system/` ≠ `frappe-bench/apps/*` (копии get-app). `npx playwright test` → `e2e/global-setup.ts` → `scripts/e2e-preflight.sh` (sync hooks/frontend/design-system/**и** Desk SCSS wires `desktop.scss`/`desk.bundle.scss` → CRM `yarn build` → **`bench build --app frappe`** → clear-cache → **HTTP 200** tokens.css + desk.bundle содержит `--ds-desk-rail-width` если есть shell). Clear-cache alone ≠ Desk CSS update. Канон: `crm/AGENTS.md` § E2E.
 - **CRM QA contract finish:** `verdict: FAIL` / `converged: false` → **обязан** `@gate-repair` (BLOCKERS|path|fix + ALLOW WRITE + VERIFY) → повторный QA contract check. **Нельзя** закончить сессию «просто отчётом» — loop даст `finish_not_committed` / `retry_exhausted`. `mb-finish` при `converged: false` отклоняет FINISH. **FORBIDDEN** выдуманный parent-driven review. Negative `rg` без hit = exit 1 = PASS. Канон: `workflow-qa.mdc` + `spawn-hard.md`.
 - **CRM QA finish:** `verify-qa` FAIL + `qa-*.yaml` (`verdict: fail`) + open `bugfix-queue.yaml` → **обязан** `loop.py finish --step QA` → BUGFIX. FAIL ≠ запрет finish (это не IMPLEMENT). Без finish → `finish_not_committed` / retry QA. Канон: `workflow-qa.mdc` + `_lean/qa.mdc`.
 - **CRM BUGFIX sessions:** одна parent-сессия закрывает **все** open; spawn ≤3 `bugfix-fix`, **1 child = 1 bug** (disjoint files в волне). Выход с ещё open без finish = `finish_not_committed` (не `PROGRESS_CONTINUE`). `verify-bugfix` + `finish --step BUGFIX` когда все items `done` и `verification.status=pass`. Канон: `_lean/bugfix.mdc`.
-- **DECOMPOSE YAML:** в `verify:`/`command:` double-quoted нельзя писать `\.` (YAML unknown escape → `verdict hook error` → `finish_not_committed`). Используй single quotes или block `|`. Один step в index ↔ один файл в `yaml/steps/`; orphan yaml запрещены. Нельзя объявлять DECOMPOSE done без accepted `verify-decompose` PASS и последующего `analyze-verify` PASS: именно `analyze-verify` атомарно продвигает фазу.
+- **DECOMPOSE YAML:** в `verify:`/`command:` double-quoted нельзя писать `\.` (YAML unknown escape → `verdict hook error` → `finish_not_committed`). Используй single quotes или block `|`. Один step в index ↔ один файл в `yaml/steps/`; orphan yaml запрещены. Нельзя объявлять DECOMPOSE done без accepted `verify-decompose` PASS: этот единственный gate сам проверяет структуру и semantic closure и атомарно продвигает фазу.
 - **CRM purge `rg`:** только bounded theme/instruction paths; **FORBIDDEN** `sync.*disabled` по всему `frappe/` (ложный hit в jquery). Канон: `crm/AGENTS.md` § Purge.
 - Managed projects: верификация через stack profile `capability_checks` и typed execution evidence; без generic fallback к raw pytest. Role surface сохраняется (front checks ≠ backend suite).

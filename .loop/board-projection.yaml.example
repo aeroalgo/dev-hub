@@ -19,6 +19,7 @@ provider: none
 
 role_allowlist:
   - back
+  - app
 
 # Shared phase compression (same across projects unless you fork this file)
 phase_alias:

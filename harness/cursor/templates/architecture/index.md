@@ -1,7 +1,7 @@
 # Architecture map — index
 
 **Last refresh:** YYYY-MM-DD  
-**Refreshed by:** BACK VAN | FRONT VAN | INTEG VAN  
+**Refreshed by:** BACK VAN | FRONT VAN | APP VAN | INTEG VAN
 **Mode:** brownfield  
 **Repo:** …
 

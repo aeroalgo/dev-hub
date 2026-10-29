@@ -32,7 +32,7 @@ Parent **обязан** передать только:
 ## Validation rules
 
 0. **Первый Read** = `bugfix-queue.yaml` из ALLOW (обязателен). Нет файла → `FAIL` (`bugfix_queue_missing`). Затем прочитай report. Queue должен быть `epic-bugfix-queue/v1`.
-0a. **Queue progress:** нет `open|in_progress|blocked`; один current item закрыт по порядку; каждый `done` имеет targeted evidence + done_at. `verification.status=pass` только после full `verification.command` и evidence; fail → gate repair в ту же queue.
+0a. **Queue progress:** нет `open|in_progress|blocked`; один current item закрыт по порядку; каждый `done` имеет targeted evidence + done_at. Для item/verification с `live_smoke`, browser, HTTP, runtime или wire claim обязателен `evidence_file` с typed runtime capture: `status: pass`, `live_evidence: true`, timestamp, выполненная command, `exit_code: 0`, наблюдаемые responses/journeys/checks и без `mock_*`/ASGI/in-process. `verification.status=pass` только после full `verification.command` и evidence; если команда runtime-sensitive, queue должна ссылаться на тот же runtime artifact. fail → gate repair в ту же queue.
 0b. Построй checklist из report:
    - `AC+` ← секция Changes Implemented / список изменённых файлов+поведения (≥1; иначе `FAIL checklist_empty:AC+`)
    - `AC−` ← не ломать unrelated / dispositions ineligible / явный out-of-scope (≥1; иначе `FAIL checklist_empty:AC−`)
@@ -46,6 +46,8 @@ Parent **обязан** передать только:
    - Test verify:
      - Hub (dev-hub self-test): `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …` из VERIFY.
      - Managed projects: верификация выполняется строго через stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest / unmanaged commands.
+     - Runtime-sensitive VERIFY must leave the declared `evidence_file`; prose such as
+       "HTTP 200" or a static/mock trace is not execution evidence.
    - Inspect: `git diff -- <ALLOW path>` · `rg …` · `ls` · `head` · `wc`.
    - Единственное исключение — ровно один финальный `validate-verdict` command ниже.
    - **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout; unmanaged / generic raw test runner execution for managed projects without capability_checks; `git status` / whole-repo `git diff` без path filter; FAIL/BLOCKERS по файлам вне ALLOW. Red → `FAIL`.

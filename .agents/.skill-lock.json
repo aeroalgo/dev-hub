@@ -126,6 +126,153 @@
       "skillFolderHash": "3642ecef471a6ee4d9d485feea6df8ba92616b78",
       "installedAt": "2026-09-02T05:37:03.621Z",
       "updatedAt": "2026-09-02T05:37:03.621Z"
+    },
+    "docker-compose": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "devops/containers/docker-compose/SKILL.md",
+      "skillFolderHash": "9508c16784dd87f36c4cd76d3d435f029ea78997",
+      "installedAt": "2026-10-29T16:09:33.933Z",
+      "updatedAt": "2026-10-29T16:09:33.933Z"
+    },
+    "docker-management": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "devops/containers/docker-management/SKILL.md",
+      "skillFolderHash": "e62dbcfef9a62d920a0eea4739707777146e14f1",
+      "installedAt": "2026-10-29T16:09:33.937Z",
+      "updatedAt": "2026-10-29T16:09:33.937Z"
+    },
+    "helm-charts": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "devops/orchestration/helm-charts/SKILL.md",
+      "skillFolderHash": "14f61d879eba797aa1a800ee8b85085afe60ea84",
+      "installedAt": "2026-10-29T16:09:33.939Z",
+      "updatedAt": "2026-10-29T16:09:33.939Z"
+    },
+    "kubernetes-ops": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "devops/orchestration/kubernetes-ops/SKILL.md",
+      "skillFolderHash": "0074e994d6dd89a7906a66e746b0c35e66e4eee9",
+      "installedAt": "2026-10-29T16:09:33.941Z",
+      "updatedAt": "2026-10-29T16:09:33.941Z"
+    },
+    "kustomize": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "devops/orchestration/kustomize/SKILL.md",
+      "skillFolderHash": "989c822e051889ccdb4aed3c4bc3fcdc5357173f",
+      "installedAt": "2026-10-29T16:09:33.944Z",
+      "updatedAt": "2026-10-29T16:09:33.944Z"
+    },
+    "terraform-aws": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "infrastructure/cloud-aws/terraform-aws/SKILL.md",
+      "skillFolderHash": "1ad9912ee56d6bb01469fad07a980e70ed224b3a",
+      "installedAt": "2026-10-29T16:09:33.945Z",
+      "updatedAt": "2026-10-29T16:09:33.945Z"
+    },
+    "terraform-azure": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "infrastructure/cloud-azure/terraform-azure/SKILL.md",
+      "skillFolderHash": "81a2dd29378d6bc90a090281e053272df9f8a235",
+      "installedAt": "2026-10-29T16:09:33.947Z",
+      "updatedAt": "2026-10-29T16:09:33.947Z"
+    },
+    "terraform-gcp": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "infrastructure/cloud-gcp/terraform-gcp/SKILL.md",
+      "skillFolderHash": "c0eb3ded2b3314148a2954e652260f599e239be3",
+      "installedAt": "2026-10-29T16:09:33.948Z",
+      "updatedAt": "2026-10-29T16:09:33.948Z"
+    },
+    "opentofu-migration": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "infrastructure/iac/opentofu-migration/SKILL.md",
+      "skillFolderHash": "0c89bdd39d08741d072a6076a888e1887b0d28b6",
+      "installedAt": "2026-10-29T16:09:33.951Z",
+      "updatedAt": "2026-10-29T16:09:33.951Z"
+    },
+    "load-balancing": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "infrastructure/networking/load-balancing/SKILL.md",
+      "skillFolderHash": "3d27747b99e6b91e551e0b56c652935bc0ef4cd7",
+      "installedAt": "2026-10-29T16:09:33.954Z",
+      "updatedAt": "2026-10-29T16:09:33.954Z"
+    },
+    "reverse-proxy": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "infrastructure/networking/reverse-proxy/SKILL.md",
+      "skillFolderHash": "c4d31c77d46c61fb239848e8c5a9b9cc81e9874a",
+      "installedAt": "2026-10-29T16:09:33.956Z",
+      "updatedAt": "2026-10-29T16:09:33.956Z"
+    },
+    "firewall-config": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "security/network/firewall-config/SKILL.md",
+      "skillFolderHash": "7fa322fa5be04a6100145e1f0f1c389a18e0a303",
+      "installedAt": "2026-10-29T16:09:33.959Z",
+      "updatedAt": "2026-10-29T16:09:33.959Z"
+    },
+    "ssl-tls-management": {
+      "source": "bagelhole/devops-security-agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bagelhole/devops-security-agent-skills.git",
+      "skillPath": "security/network/ssl-tls-management/SKILL.md",
+      "skillFolderHash": "7b1d146dea635ab8de6a2b4baccc34046c2ea501",
+      "installedAt": "2026-10-29T16:09:33.960Z",
+      "updatedAt": "2026-10-29T16:09:33.960Z"
+    },
+    "ansible": {
+      "source": "full-stack-skills/devops-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/full-stack-skills/devops-skills.git",
+      "skillPath": "skills/ansible/SKILL.md",
+      "skillFolderHash": "acafe79ad7d947c80b32f6a587dba201d2e78d9b",
+      "pluginName": "devops-skills",
+      "installedAt": "2026-10-29T16:09:46.729Z",
+      "updatedAt": "2026-10-29T16:09:46.729Z"
+    },
+    "kubernetes": {
+      "source": "full-stack-skills/devops-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/full-stack-skills/devops-skills.git",
+      "skillPath": "skills/kubernetes/SKILL.md",
+      "skillFolderHash": "517310a48d9cc0b1a735c79c58de0b94c3c2823c",
+      "pluginName": "devops-skills",
+      "installedAt": "2026-10-29T16:09:46.731Z",
+      "updatedAt": "2026-10-29T16:09:46.731Z"
+    },
+    "terraform": {
+      "source": "full-stack-skills/devops-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/full-stack-skills/devops-skills.git",
+      "skillPath": "skills/terraform/SKILL.md",
+      "skillFolderHash": "2f79a13338283e8edd1353be41214f2b6a5a9b58",
+      "pluginName": "devops-skills",
+      "installedAt": "2026-10-29T16:09:46.739Z",
+      "updatedAt": "2026-10-29T16:09:46.739Z"
     }
   },
   "dismissed": {

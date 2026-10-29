@@ -1,5 +1,5 @@
 ---
-description: "REFACTOR epic — S vs M/L, paths under refactor/plan|implement (shared BACK/FRONT/INTEG)"
+description: "REFACTOR epic — S vs M/L, paths under refactor/plan|implement (shared BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # REFACTOR epic — shared
@@ -21,7 +21,7 @@ alwaysApply: false
 ## Layout (все роли)
 
 ```
-memory-bank/{back|front|integration}/refactor/
+memory-bank/{back|front|integration|app}/refactor/
   plan/
     analysis-<id>.md              # опц. PLAN / brief
     <id>/md/plan.md               # REFACTOR PLAN (M/L: §0.0 unlimited)

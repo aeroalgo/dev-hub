@@ -1,5 +1,5 @@
 ---
-description: "APP — индекс команд (APP QA, APP BUGFIX) — mixed-surface product gate"
+description: "APP — полный lifecycle vertical slice: contract, backend, frontend, wire и QA"
 alwaysApply: false
 ---
 # APP Developer — индекс
@@ -10,9 +10,23 @@ alwaysApply: false
 
 | Команда | Workflow |
 |---------|----------|
+| `APP VAN` | @.cursor/rules/app_developer/workflow-van.mdc |
+| `APP PLAN` | @.cursor/rules/app_developer/workflow-plan.mdc |
+| `APP DECOMPOSE` | @.cursor/rules/app_developer/workflow-decompose.mdc |
+| `APP CREATIVE` | @.cursor/rules/app_developer/workflow-creative.mdc |
+| `APP IMPLEMENT` | @.cursor/rules/app_developer/workflow-implement.mdc |
+| `APP TASK` | @.cursor/rules/app_developer/workflow-task.mdc |
+| `APP REFACTOR` | @.cursor/rules/app_developer/workflow-refactor.mdc |
 | `APP QA` | @.cursor/rules/app_developer/workflow-qa.mdc |
 | `APP BUGFIX` | @.cursor/rules/app_developer/workflow-bugfix.mdc |
+| `APP ARCHIVE NOW` | @.cursor/rules/app_developer/workflow-archive.mdc |
+| `APP REPLAN` | @.cursor/rules/app_developer/workflow-replan.mdc |
+| `APP RECONCILE` | @.cursor/rules/app_developer/workflow-reconcile.mdc |
+| `APP CLARIFY` | @.cursor/rules/app_developer/workflow-clarify.mdc |
+| `APP ROADMAP MERGE` | @.cursor/rules/app_developer/workflow-roadmap-merge.mdc |
+| `APP JANITOR` | @.cursor/rules/app_developer/workflow-janitor.mdc |
+| `APP SECURITY` | @.cursor/rules/app_developer/workflow-security.mdc |
 
-**Gates:** `isolation_rules/_lean/<mode>.mdc` (`qa` | `bugfix`).
+**Gates:** `isolation_rules/_lean/<mode>.mdc` (`van` | `plan` | `decompose` | `creative` | `implement` | `task` | `refactor` | `qa` | `bugfix` | `archive` | `replan` | `reconcile` | `clarify` | `security`).
 
-Ролевые `BACK|FRONT QA/BUGFIX` **сохраняются** для surface-only. Mixed back+front+browser+live → **APP**.
+APP = один vertical slice и один done-критерий: контракт (method/path, in/out, ошибки, роли, UI journey) → back + front + wire + mixed tests. API без UI-контракта и UI на mock без реального API не являются done. `BACK|FRONT` сохраняются только для surface-only; APP не создаёт отдельную INTEG-очередь и не использует INTEG как третью стадию склейки.

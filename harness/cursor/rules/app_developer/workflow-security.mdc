@@ -1,0 +1,12 @@
+---
+description: "APP SECURITY — mixed-surface security audit"
+alwaysApply: false
+---
+### Команда: APP SECURITY
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/security.mdc
+
+## Hot path
+
+Run the security audit for the APP contract, API, roles and UI journey using the security artifact under `memory-bank/app/security/implement/<epic_id>/aNN-*.yaml`. Security evidence does not replace the APP IMPLEMENT/QA lifecycle for a product slice.

@@ -1,0 +1,12 @@
+---
+description: "APP DECOMPOSE gates — mixed shard and transition contract"
+alwaysApply: false
+---
+# APP DECOMPOSE — gates
+
+1. Write `memory-bank/app/plan/<epic_id>/yaml/decompose-index.yaml` and exactly one `steps/sNN-*.yaml` per index step.
+2. Every shard uses `schema: epic-decompose/v1`, `role: app`, `next_phase: APP IMPLEMENT`, and includes plan contract, files, verify, TDD, deletes and mixed skills.
+3. A shard may list backend, frontend, wire and test files together. `wire_complete_required: true` for a machine boundary.
+4. Use the single `verify-decompose` closure gate before APP IMPLEMENT; unresolved critical gaps fail it.
+
+Abort: orphan shard, missing contract coverage, separate integration queue for the same slice, or an open creative gate without a creative step.

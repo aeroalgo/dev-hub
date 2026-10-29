@@ -1,5 +1,5 @@
 ---
-description: "Режим APP QA — mixed lanes: backend + front + browser + live_smoke"
+description: "Режим APP QA — product acceptance for one complete vertical slice"
 alwaysApply: false
 ---
 ### Команда: APP QA
@@ -19,12 +19,13 @@ code-review · mutation-testing · pytest-coverage · postgresql-code-review · 
 1. `OK APP QA - product acceptance` → **Gates**
 2. Lean load: `activeContext` → `load_now` + diff/bugfix scope; **не** полный plan monolith; `qa_consumes` если есть
 3. **Charter** (announce + yaml) → выбрать mode (`diff_aware` default на feature branch; `full` перед ship/PR)
-4. Run **required lanes** (parent): backend → frontend_build → browser → live_smoke → leftover/sot → behavior_smoke; optional exploratory/wire
-5. Evidence packs: `coverage_map` · `review` · `test_audit` · `browser` · `retro` · `lanes[]`
+3a. **Scope-driven test plan** → заполнить `test_plan` по `.cursor/templates/qa/test-catalog.yaml`: выбрать применимые тесты из implement shard/contract/diff, явно указать `not_applicable` с причиной и `not_run` с next action. Каталог задаёт названия обязанностей, implement shard и stack profile задают конкретные тесты/команды.
+4. Run **required lanes** (parent): backend → frontend_build → browser → live_smoke → wire_journey → leftover/sot → behavior_smoke; optional exploratory. `suite_wrong_stack` не применяется к mixed APP lanes.
+5. Evidence packs: `test_plan` · `coverage_map` · `review` · `test_audit` · `browser` · `retro` · `lanes[]`
 6. **1× verify-qa** (suite_scope: `app_lanes`; передать все lane results)
-7. qa-артефакт: `memory-bank/app/qa/…` · шаблон `templates/qa/app-epic-step.yaml` (`app-qa/v1`)
+7. qa-артефакт: `memory-bank/app/qa/…` · шаблон `templates/qa/app-epic-step.yaml` (`app-qa/v1`); charter обязан отражать contract + touched surfaces.
 8. **FINISH:** finish-block (`code_changed: no`)
    - **pass** → `@context-sync` (если loop wired) / Handoff
-   - **fail|blocked** → `memory-bank/app/bugfix/…/bugfix-queue.yaml` → **обязан** finish → **APP BUGFIX**
+   - **fail|blocked** → `memory-bank/app/bugfix/…/bugfix-queue.yaml` → **обязан** finish → **APP BUGFIX** → повторный APP QA
 
 **Верификация**: gates + verify-qa + все required lanes

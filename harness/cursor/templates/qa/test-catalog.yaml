@@ -1,0 +1,102 @@
+schema: qa-test-catalog/v1
+title: Scope-driven product QA test catalog
+purpose: >-
+  Universal names for QA obligations. QA selects the applicable obligations from
+  the current implement shards, product contract, diff, and prior blockers.
+  Concrete commands, routes, hosts, ports, fixtures, and credentials belong to
+  the implement shard, stack profile, or lane evidence and never to this catalog.
+
+scope_signals:
+  - backend
+  - frontend
+  - browser
+  - api
+  - wire
+  - auth
+  - roles
+  - data
+  - migration
+  - external_integration
+  - async
+  - security
+  - accessibility
+  - responsive
+  - performance
+  - reliability
+  - observability
+  - brownfield
+  - compatibility
+
+tests:
+  - id: contract_acceptance
+    name: Contract and acceptance criteria tests
+    select_when: Any product behavior or acceptance criterion is in scope
+  - id: regression
+    name: Changed behavior and prior-defect regression tests
+    select_when: The diff changes behavior or prior blockers exist
+  - id: backend_unit_component
+    name: Backend unit and component tests
+    select_when: Backend logic, validation, parsing, or transformation is in scope
+  - id: backend_integration_state
+    name: Backend integration and state tests
+    select_when: Persistence, framework state, transactions, or service boundaries are in scope
+  - id: api_contract
+    name: API contract, schema, status, and error tests
+    select_when: An API, method, endpoint, webhook, or machine contract is in scope
+  - id: data_persistence_migration
+    name: Data persistence, migration, idempotency, and rollback tests
+    select_when: Data, schema, migration, import, or repeatability behavior is in scope
+  - id: frontend_build_assets
+    name: Frontend build, type, lint, and asset delivery tests
+    select_when: Frontend source, styles, generated assets, or runtime bundles are in scope
+  - id: browser_functional
+    name: Browser functional user-flow tests
+    select_when: A user-visible UI or browser interaction is in scope
+  - id: wire_journey
+    name: Real UI-to-API wire journey tests
+    select_when: A user-visible flow crosses frontend, API, backend, or an external service
+  - id: live_http_smoke
+    name: Live HTTP smoke tests
+    select_when: A running HTTP service or operator-visible runtime is in scope
+  - id: negative_error_paths
+    name: Negative, validation, denial, timeout, and recovery tests
+    select_when: The contract has errors, invalid input, denial, retry, or fail-closed behavior
+  - id: auth_session_rbac
+    name: Authentication, session, authorization, and role tests
+    select_when: Login, logout, identity, session, permissions, or roles are in scope
+  - id: external_integration
+    name: Real external integration and provider tests
+    select_when: An external provider, broker, payment, storage, or third-party API is in scope
+  - id: async_jobs_workers_webhooks
+    name: Async job, worker, queue, retry, and webhook tests
+    select_when: Background execution, delivery, retries, or concurrency is in scope
+  - id: security_owasp
+    name: Security and OWASP spot-check tests
+    select_when: Auth, secrets, external input, permissions, redirects, or sensitive data are in scope
+  - id: accessibility
+    name: Accessibility and keyboard interaction tests
+    select_when: A user-visible UI is in scope
+  - id: responsive_compatibility
+    name: Responsive, viewport, browser, and compatibility tests
+    select_when: A user-visible UI or supported client matrix is in scope
+  - id: visual_states
+    name: Visual states, layout, styling, and asset-cascade tests
+    select_when: Visual behavior, CSS, layout, or design acceptance is in scope
+  - id: console_network
+    name: Browser console, network, and client-error tests
+    select_when: A browser or client runtime is in scope
+  - id: performance_resilience
+    name: Performance, timeout, retry, load, and resilience tests
+    select_when: Performance or availability is a product requirement or risk
+  - id: observability
+    name: Logging, metrics, tracing, and failure-observability tests
+    select_when: Operational signals or diagnosability are part of the contract
+  - id: content_i18n
+    name: Content, localization, formatting, and empty-state tests
+    select_when: User-facing text, locale, formatting, or empty states are in scope
+  - id: cleanup_sot
+    name: Legacy, fallback, duplicate-owner, and source-of-truth cleanup tests
+    select_when: The change replaces, removes, or consolidates an existing path
+  - id: exploratory
+    name: Exploratory edge-case and usability tests
+    select_when: A live surface exists and time-boxed exploratory coverage is useful

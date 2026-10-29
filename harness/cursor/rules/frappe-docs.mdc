@@ -1,0 +1,15 @@
+---
+description: "Frappe Framework — сначала локальное зеркало docs/vendor/framework"
+alwaysApply: true
+---
+# Frappe docs (HARD)
+
+При любой работе с Frappe API, hooks, DocType, Desk, whitelist, permissions, Social Login, OAuth, bench:
+
+1. **Сначала** локальное зеркало: `docs/vendor/framework/` (индекс `docs/vendor/framework/llms.txt`).
+2. Открыть нужную страницу `.md` из зеркала через Read/Grep — не выдумывать API из памяти.
+3. Онлайн `https://docs.frappe.io/framework` — только если страницы нет локально.
+4. Context7 / веб-поиск по Frappe — после локального зеркала, не вместо него.
+5. Зеркало = справочник вендора. Продуктовый SoT ELMS = `memory-bank/` + код `elms/` + `frappe/` as-built.
+
+Как устроено зеркало: `docs/vendor/README.md`.

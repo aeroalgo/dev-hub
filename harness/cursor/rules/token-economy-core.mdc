@@ -11,8 +11,8 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 ## 0.0 SUSPENSION GUARD — PLAN / gap-plan / architecture / **DECOMPOSE** artifacts (AUTHORITATIVE)
 
 **Trigger (any of):**
-- Role command: `BACK PLAN`, `FRONT PLAN`, `INTEG PLAN`, `PM PLAN`, `BACK PLAN REFACTOR`, `* SECURITY PLAN`, `* REFACTOR PLAN`, or any `* PLAN`
-- Role command: `BACK DECOMPOSE`, `FRONT DECOMPOSE`, `INTEG DECOMPOSE` (and SECURITY/REFACTOR DECOMPOSE when writing step shards)
+- Role command: `BACK PLAN`, `FRONT PLAN`, `APP PLAN`, `INTEG PLAN`, `PM PLAN`, `BACK PLAN REFACTOR`, `* SECURITY PLAN`, `* REFACTOR PLAN`, or any `* PLAN`
+- Role command: `BACK DECOMPOSE`, `FRONT DECOMPOSE`, `APP DECOMPOSE`, `INTEG DECOMPOSE` (and SECURITY/REFACTOR DECOMPOSE when writing step shards)
 - Role command brownfield: `BACK VAN`, `FRONT VAN`, `INTEG VAN` when writing `memory-bank/architecture/**`
 - Writing/updating: `memory-bank/**/plan/**/md/plan.md`, `memory-bank/**/plan/<epic>/yaml/**`, `memory-bank/integration/gap/**/gap-*.md`, gap closing plans, `memory-bank/**/security/plan/**/md/plan.md`, `memory-bank/**/refactor/plan/**/md/plan.md`, или `memory-bank/architecture/**`
 
@@ -79,7 +79,7 @@ Applies to implement/task/qa shards and other live workflow steps.
 | Role | Reads | Does NOT read |
 |------|-------|---------------|
 | PM | user chat, `pm/*` | full ARCHITECTURE, all code |
-| BACK/FRONT/INTEG dev | `activeContext.md` **`load_now`**: work shard + `plan/<epic>/yaml/decompose-index.yaml`; AC = work shard | **full `plan/<epic>/md/plan.md`**, markdown coverage, `tasks.md`/`systemPatterns` as load, all shards, `done` section |
+| BACK/FRONT/INTEG/APP dev | `activeContext.md` **`load_now`**: work shard + `plan/<epic>/yaml/decompose-index.yaml`; AC = work shard | **full `plan/<epic>/md/plan.md`**, markdown coverage, `tasks.md`/`systemPatterns` as load, all shards, `done` section |
 | TL | `tl/*`, `activeContext.md`, delivery refs | full design docs |
 | Reviewer (BACK QA) | qa/bugfix shard + changed files; plan **§N** only if AC unclear | full `plan/<epic_id>/md/plan.md`, full memory-bank |
 | Architect (BACK PLAN) | `DECISION_LOG` / plan refs + stage summary | unrelated task shards |
@@ -232,8 +232,8 @@ Mandatory in **BACK IMPLEMENT** (before finish) and **BACK QA**.
 |----------------|--------------|
 | PM | `PM *` |
 | Architect | `BACK PLAN`, `creative-*` |
-| Developer | `BACK/FRONT IMPLEMENT` |
-| Reviewer | `BACK QA` |
+| Developer | `BACK/FRONT/APP IMPLEMENT` |
+| Reviewer | `BACK/APP QA` |
 | Tester | TDD in IMPLEMENT |
 | Designer | `FRONT CREATIVE` |
 

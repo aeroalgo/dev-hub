@@ -37,11 +37,12 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 
 ## 0.7 Handoff (HARD)
 
-**activeContext write gate (HARD):** Write/Edit/Delete `memory-bank/activeContext.md` **только** в сессии распознанной специализированной команды роутера (`BACK|FRONT|INTEG|EVAL …`, `PRODUCT …`, и прочие UPPERCASE role/pipeline команды из `mainrule.mdc`). Обычно — на FINISH этой команды (агент или `loop.py finish` / loop-generated).
+**activeContext write gate (HARD):** Write/Edit/Delete `memory-bank/activeContext.md` **только** в сессии распознанной специализированной команды роутера (`BACK|FRONT|APP|INTEG|EVAL …`, `PRODUCT …`, и прочие UPPERCASE role/pipeline команды из `mainrule.mdc`). Обычно — на FINISH этой команды (агент или `loop.py finish` / loop-generated).
 
 | Триггер | Write `activeContext.md` |
 |---------|--------------------------|
-| `BACK IMPLEMENT`, `FRONT QA`, `INTEG PLAN`, `EVAL GATE`, `PRODUCT STATUS`, … | **да** (FINISH / loop) |
+| `BACK IMPLEMENT`, `FRONT QA`, `APP QA`, `APP BUGFIX`, `INTEG PLAN`, `EVAL GATE`, `PRODUCT STATUS`, … | **да** (FINISH / loop) |
+| `DEVOPS` / `DEVOPS <темы>` | **нет** (только skills pack; без FINISH lifecycle) |
 | точная фраза `implement this` **без** role-команды | **нет** (это только §0.9 approval) |
 | обычный чат / Q&A / ad-hoc код без префикса роли | **нет** |
 

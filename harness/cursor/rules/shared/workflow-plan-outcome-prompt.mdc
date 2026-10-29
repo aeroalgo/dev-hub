@@ -2,9 +2,9 @@
 description: "PLAN outcome prompt — один md/prompt.md: секция Epic + секция Covering; SoT REPLAN = Epic"
 alwaysApply: false
 ---
-# PLAN outcome prompt (BACK / FRONT / INTEG)
+# PLAN outcome prompt (BACK / FRONT / INTEG / APP)
 
-**Когда:** любой `* PLAN` / `* REPLAN` Phase 1, в момент записи `plan/<epic_id>/`.
+**Когда:** любой `* PLAN` / `* REPLAN` Phase 1, в момент записи `plan/<epic_id>/` (для APP — `memory-bank/app/plan/<epic_id>/`).
 **Шаблон:** @.cursor/templates/plan-prompt.md
 **Канон пути:** `memory-bank/{role}/plan/<epic_id>/md/prompt.md`
 

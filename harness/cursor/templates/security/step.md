@@ -1,6 +1,6 @@
 # Шаг aNN: <title>
 **Plan ID:** <plan_id>
-**Next Phase:** BACK SECURITY | FRONT SECURITY | INTEG SECURITY
+**Next Phase:** BACK SECURITY | FRONT SECURITY | APP SECURITY | INTEG SECURITY
 **needs_creative:** no
 
 > **Policy:** статус шага здесь не хранить. Статус — в `implement/<epic_id>/aNN-*.yaml` (`epic-security/v1`) и `yaml/decompose-index.yaml`.

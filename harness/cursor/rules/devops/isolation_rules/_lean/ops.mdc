@@ -1,0 +1,22 @@
+---
+description: "DEVOPS ops gates — lean load (skills pack only)"
+alwaysApply: false
+---
+# DEVOPS OPS gates (lean)
+
+## Load
+1. `.cursor/rules/devops/mainrule-core.mdc`
+2. `.agents/skills/devops/SKILL.md`
+3. Только выбранные `.agents/skills/<name>/SKILL.md` из pack-таблицы
+4. При необходимости — файлы/конфиги из задачи пользователя (compose, nginx, tf, chart)
+
+## Forbidden
+- BACK/FRONT/APP lifecycle (PLAN/DECOMPOSE/IMPLEMENT/QA) под видом DEVOPS
+- Write `memory-bank/activeContext.md`
+- Read всех devops-скиллов сразу без темы/задачи
+- Silent fallback / «временно обойдём» infra-ошибки
+
+## Done when
+- Нужные skills прочитаны
+- Задача выполнена или явный blocker с причиной
+- Чат: загруженные skills + итог

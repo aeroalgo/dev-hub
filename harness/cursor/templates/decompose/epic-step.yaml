@@ -99,6 +99,8 @@ tdd: []
 
 # needs_creative (BACK/FRONT): no | yes (CR-…) | yes (CR-…) — **closed**
 #
+# role: app — next_phase: APP IMPLEMENT; один shard может содержать backend + frontend + wire + tests
+#
 # role: front — next_phase: FRONT IMPLEMENT; code_surface: ui
 #   deletes: legacy components/hooks/clients; rg/import-audit cp обязателен если непустой
 #

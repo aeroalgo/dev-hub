@@ -1,11 +1,11 @@
 ---
-description: "Code-phase bootstrap — sole load order for IMPLEMENT/TASK/REFACTOR (BACK/FRONT/INTEG)"
+description: "Code-phase bootstrap — sole load order for IMPLEMENT/TASK/REFACTOR (BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # Code-phase bootstrap (HARD)
 
-**Канон порядка Read** для `BACK|FRONT|INTEG` × `IMPLEMENT|TASK|REFACTOR` (и для BUGFIX — тот же порядок с `_lean/bugfix.mdc`).  
-Также: `APP BUGFIX` → `role_dir=app_developer`, mode=`bugfix`.
+**Канон порядка Read** для `BACK|FRONT|INTEG|APP` × `IMPLEMENT|TASK|REFACTOR` (и для BUGFIX — тот же порядок с `_lean/bugfix.mdc`).
+Также: `APP IMPLEMENT|TASK|REFACTOR|BUGFIX` → `role_dir=app_developer` с тем же bootstrap.
 
 **SoT слоёв (не пересказывать содержимое в других files):**
 

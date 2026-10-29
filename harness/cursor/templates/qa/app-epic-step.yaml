@@ -19,6 +19,17 @@ charter:
   surfaces_skipped: []
   stack_profile: "docs/testing/front-stack-profile.md"
 
+# Scope-driven test obligations. Keep names/IDs from test-catalog.yaml; concrete
+# commands and runtime details belong to implement shards, stack profiles, and lanes.
+test_plan:
+  catalog: ".cursor/templates/qa/test-catalog.yaml"
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: diff_aware
+  scope_signals: []
+  selected: []
+  not_applicable: []
+  not_run: []
+
 lanes:
   - id: backend
     required: true
@@ -101,6 +112,8 @@ test_audit:
 browser:
   status: pass
   stack_profile: "<profile path>"
+  evidence_file: ""
+  last_run_at: ""
   journeys: []
   artifacts: []
 
@@ -136,6 +149,8 @@ limitations: []
 live_smoke:
   status: pass
   command: "timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: ""
+  last_run_at: ""
   base_url: "http://127.0.0.1:8000"
   level: health
   notes: ""

@@ -3,7 +3,7 @@
 **План:** [plan-<id>.md](../plan-<id>.md)
 **Machine index:** [index.yaml](index.yaml) — канон status  
 **Дата:** YYYY-MM-DD
-**Режим:** BACK SECURITY DECOMPOSE | FRONT SECURITY DECOMPOSE | INTEG SECURITY DECOMPOSE
+**Режим:** BACK SECURITY DECOMPOSE | FRONT SECURITY DECOMPOSE | APP SECURITY DECOMPOSE | INTEG SECURITY DECOMPOSE
 
 Каждый шаг — атомарный audit под один заход `* SECURITY`. Детали — в `aNN-<slug>.md` (шаблон: [step.md](step.md)).
 
@@ -22,7 +22,7 @@
 
 | step_id | title & scope | implement | audit_surface | next_phase | status |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| **a01** | [a01-<slug>.yaml](../../implement/<plan_id>/a01-<slug>.yaml) | auth\|api\|… | BACK/FRONT/INTEG SECURITY | pending |
+| **a01** | [a01-<slug>.yaml](../../implement/<plan_id>/a01-<slug>.yaml) | auth\|api\|… | BACK/FRONT/APP/INTEG SECURITY | pending |
 
 **status:** `pending` | `active` | `completed` | `blocked`  
 **next_phase:** `* SECURITY` (не IMPLEMENT / не REFACTOR)

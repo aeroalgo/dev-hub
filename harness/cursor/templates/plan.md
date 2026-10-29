@@ -1,7 +1,7 @@
 # [T-xxx | slug] PLAN
 
 **Дата:** YYYY-MM-DD  
-**Режим:** BACK PLAN | FRONT PLAN | PM PLAN  
+**Режим:** BACK PLAN | FRONT PLAN | APP PLAN | PM PLAN
 **Уровень:** L1–L3  
 **Статус:** draft | active | done  
 **Clarify:** `memory-bank/{role}/clarify/clarify-…md` | Phase 0 skipped — taxonomy clear | n/a
@@ -134,9 +134,9 @@ Evidence: ссылка на вход, решение владельца или `
 > L2+ и любой cross-layer эпик. Infra — ownership surface, не обязательная
 > отдельная роль агента.
 
-| Surface / outcome | BACK owner | FRONT owner | Infra owner | QA owner | Contract / evidence | Rollback | Independent check |
-|-------------------|------------|-------------|-------------|----------|---------------------|----------|-------------------|
-| `<surface>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name>` | `<request/response, event or artifact>` | `<bounded reversal>` | `<test/journey + evidence>` |
+| Surface / outcome | APP owner | BACK owner | FRONT owner | Infra owner | QA owner | Contract / evidence | Rollback | Independent check |
+|-------------------|-----------|------------|-------------|-------------|----------|---------------------|----------|-------------------|
+| `<surface>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name>` | `<request/response, event or artifact>` | `<bounded reversal>` | `<test/journey + evidence>` |
 
 ## AC
 
@@ -334,10 +334,11 @@ Brownfield: в конце очереди заложить `sNN-legacy-fallback-p
 | Bounded L1: один домен, небольшой scope, полноценный эпик не нужен | `BACK TASK` / `FRONT TASK` по роли |
 | L1 feature: WHAT/AC готовы, один production slice, scope разрешён планом | `BACK IMPLEMENT` / `FRONT IMPLEMENT` по роли |
 | L2/L3 или несколько связанных production slices | `BACK DECOMPOSE` → `BACK IMPLEMENT sNN` / `FRONT DECOMPOSE` → `FRONT IMPLEMENT sNN` |
+| Новый mixed vertical slice: contract + backend + frontend + wire | `APP DECOMPOSE` → `APP IMPLEMENT sNN` |
 
-**Рекомендованный маршрут:** `BACK TASK` | `BACK IMPLEMENT` | `BACK DECOMPOSE → BACK IMPLEMENT sNN` | `FRONT TASK` | `FRONT IMPLEMENT` | `FRONT DECOMPOSE → FRONT IMPLEMENT sNN`
+**Рекомендованный маршрут:** `BACK TASK` | `BACK IMPLEMENT` | `BACK DECOMPOSE → BACK IMPLEMENT sNN` | `FRONT TASK` | `FRONT IMPLEMENT` | `FRONT DECOMPOSE → FRONT IMPLEMENT sNN` | `APP PLAN → APP DECOMPOSE → APP IMPLEMENT sNN`
 **Основание:** …
 
 ## Следующий режим
 
-→ BACK/FRONT DECOMPOSE | CREATIVE | IMPLEMENT
+→ BACK/FRONT/APP DECOMPOSE | CREATIVE | IMPLEMENT

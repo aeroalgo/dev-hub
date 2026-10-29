@@ -43,7 +43,7 @@ tdd: []
 """
 
 
-def _seed_analyze_ready(tmp_path: Path, epic_id: str, *, needs_creative: str) -> LoopPaths:
+def _seed_decompose_ready(tmp_path: Path, epic_id: str, *, needs_creative: str) -> LoopPaths:
     write(tmp_path / f"memory-bank/back/plan/{epic_id}/md/plan.md", f"# Plan: {epic_id}\n")
     write(
         tmp_path / f"memory-bank/back/plan/{epic_id}/yaml/decompose-index.yaml",
@@ -62,27 +62,23 @@ steps:
         tmp_path / f"memory-bank/back/plan/{epic_id}/yaml/steps/s01.yaml",
         _full_step_yaml(epic_id=epic_id, needs_creative=needs_creative),
     )
-    write(
-        tmp_path / f"memory-bank/back/analyze/{epic_id}/analyze-20260921-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
-    )
     return LoopPaths(project=tmp_path, hub=tmp_path / "hub")
 
 
-def _finish_analyze(engine: LoopEngine) -> None:
+def _finish_verify_decompose(engine: LoopEngine) -> None:
     cursor = engine.store.read()
     assert cursor is not None
     engine.accept_verdict(
         GateVerdict(
             schema=SCHEMA_GATE_VERDICT,
-            agent_id="analyze-verify",
+            agent_id="verify-decompose",
             verdict="PASS",
             step_id=cursor.step_id,
             session_id=cursor.session_id,
             epic_id=cursor.epic_id,
             recorded_at="2026-09-18T19:00:00+00:00",
         ),
-        expected_agent_id="analyze-verify",
+        expected_agent_id="verify-decompose",
     )
 
 
@@ -134,19 +130,24 @@ def test_missing_needs_creative_keeps_explicit_creative_next_phase() -> None:
     )
 
 
-def test_analyze_hands_off_to_creative_when_gate_open(tmp_path: Path) -> None:
-    paths = _seed_analyze_ready(tmp_path, "E-CR", needs_creative="yes (CR-ELIB-1)")
+def test_decompose_hands_off_to_creative_when_gate_open(tmp_path: Path) -> None:
+    paths = _seed_decompose_ready(tmp_path, "E-CR", needs_creative="yes (CR-ELIB-1)")
     engine = LoopEngine(paths)
 
     cursor = engine.start("E-CR")
+    assert cursor.phase == "DECOMPOSE"
+    _finish_verify_decompose(engine)
+    cursor = engine.store.read()
+    assert cursor is not None
     assert cursor.phase == "CREATIVE"
     assert cursor.step_id == "s01"
 
 
 def test_creative_finish_requires_artifact_and_closed_gate(tmp_path: Path) -> None:
-    paths = _seed_analyze_ready(tmp_path, "E-CR2", needs_creative="yes (CR-ELIB-1)")
+    paths = _seed_decompose_ready(tmp_path, "E-CR2", needs_creative="yes (CR-ELIB-1)")
     engine = LoopEngine(paths)
     engine.start("E-CR2")
+    _finish_verify_decompose(engine)
 
     with pytest.raises(TransitionError, match="creative_gate_still_open"):
         engine.finish(step_id="s01")
@@ -177,7 +178,7 @@ def test_creative_finish_requires_artifact_and_closed_gate(tmp_path: Path) -> No
 
 
 def test_creative_finish_rejects_missing_artifact(tmp_path: Path) -> None:
-    paths = _seed_analyze_ready(
+    paths = _seed_decompose_ready(
         tmp_path,
         "E-CR3",
         needs_creative="yes (CR-ELIB-1) — **closed**",
@@ -186,6 +187,10 @@ def test_creative_finish_rejects_missing_artifact(tmp_path: Path) -> None:
     # closed gate alone still must not skip CREATIVE if next_phase says CREATIVE... 
     # but with closed needs_creative, start goes to IMPLEMENT. Force rewind.
     cursor = engine.start("E-CR3")
+    assert cursor.phase == "DECOMPOSE"
+    _finish_verify_decompose(engine)
+    cursor = engine.store.read()
+    assert cursor is not None
     assert cursor.phase == "IMPLEMENT"
     transition = engine.rewind("CREATIVE")
     assert transition.phase == "CREATIVE"
@@ -195,37 +200,14 @@ def test_creative_finish_rejects_missing_artifact(tmp_path: Path) -> None:
         engine.finish(step_id="s01")
 
 
-def test_analyze_verdict_routes_to_creative(tmp_path: Path) -> None:
-    paths = _seed_analyze_ready(tmp_path, "E-CR4", needs_creative="yes (CR-T-F01-token-contract)")
-    # remove analyze so start lands on DECOMPOSE (analyze gate folded into DECOMPOSE)
-    analyze = tmp_path / "memory-bank/back/analyze/E-CR4/analyze-20260921-pass.yaml"
-    analyze.unlink()
-    analyze.parent.rmdir()
-
+def test_verify_decompose_verdict_routes_to_creative(tmp_path: Path) -> None:
+    paths = _seed_decompose_ready(tmp_path, "E-CR4", needs_creative="yes (CR-T-F01-token-contract)")
     engine = LoopEngine(paths)
     cursor = engine.start("E-CR4")
     assert cursor.phase == "DECOMPOSE"
 
-    write(
-        tmp_path / "memory-bank/back/analyze/E-CR4/analyze-20260921-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
-    )
-    # verify-decompose validates the tree, then analyze-verify atomically promotes to CREATIVE.
-    cursor = engine.store.read()
-    assert cursor is not None
-    engine.accept_verdict(
-        GateVerdict(
-            schema=SCHEMA_GATE_VERDICT,
-            agent_id="verify-decompose",
-            verdict="PASS",
-            step_id=cursor.step_id,
-            session_id=cursor.session_id,
-            epic_id=cursor.epic_id,
-            recorded_at="2026-09-18T18:59:00+00:00",
-        ),
-        expected_agent_id="verify-decompose",
-    )
-    _finish_analyze(engine)
+    # verify-decompose validates the tree and atomically promotes to CREATIVE.
+    _finish_verify_decompose(engine)
     after = engine.store.read()
     assert after is not None
     assert after.phase == "CREATIVE"

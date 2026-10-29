@@ -35,7 +35,7 @@ alwaysApply: false
 
 0. **WIRE:** если FR требует API — client/hooks + §0.11 endpoint↔fetch в том же shard; mock forever FORBIDDEN (см. mainrule-core §WIRE)
 
-1. Analyze gate уже закрыт в DECOMPOSE (`critical_count=0` / `@analyze-verify`); иначе REJECT
+1. DECOMPOSE closure уже закрыт accepted `@verify-decompose` PASS; иначе REJECT
 2. `skills.impl` + Design если `visible_ui` · TDD targeted Vitest/RTL
 3. User-visible scenario → **parent-only** Playwright targeted · все `deletes:` · `wire_complete` на SoT
 4. Last sNN → `plan_parity_scan` (FR+layout)

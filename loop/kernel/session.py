@@ -188,8 +188,8 @@ class SessionSupervisor:
                 else:
                     reason = (
                         "finish_not_committed: decompose tree parses but the DECOMPOSE gate "
-                        "did not reach IMPLEMENT/CREATIVE; verify-decompose PASS is only structural, "
-                        "then analyze-verify PASS must be accepted — FORBIDDEN claim DECOMPOSE done"
+                        "did not reach IMPLEMENT/CREATIVE; accepted verify-decompose PASS is required "
+                        "— FORBIDDEN claim DECOMPOSE done"
                     )
         elif result.timed_out or result.hung:
             outcome = SessionOutcome.TIMEOUT

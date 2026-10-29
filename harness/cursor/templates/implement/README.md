@@ -1,10 +1,11 @@
 # Implement templates
 
-**Shard (BACK / FRONT / INTEG):** [epic-step.yaml](epic-step.yaml) — `schema: epic-implement/v1`, `role: back|front|integ`
+**Shard (BACK / FRONT / APP / INTEG):** [epic-step.yaml](epic-step.yaml) — `schema: epic-implement/v1`, `role: back|front|app|integ`
 
 | Роль | Путь shard |
 |------|------------|
 | BACK / FRONT | `memory-bank/{back\|front}/implement/<plan_id>/sNN-<slug>.yaml` |
+| APP | `memory-bank/app/implement/<plan_id>/sNN-<slug>.yaml` |
 | INTEG | `memory-bank/integration/implement/<plan_id>/eNN-<slug>.yaml` |
 
 Implement index **не создавать**. Навигация — колонка `implement` в decompose index + сами YAML-шарды.

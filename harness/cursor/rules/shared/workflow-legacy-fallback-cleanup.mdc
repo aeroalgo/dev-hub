@@ -1,12 +1,12 @@
 ---
-description: "Legacy + fallback cleanup — PLAN sunset A/B/C/I, DECOMPOSE purge sNN, QA leftover + sot_enforce (shared BACK/FRONT/INTEG)"
+description: "Legacy + fallback cleanup — PLAN sunset A/B/C/I, DECOMPOSE purge sNN, QA leftover + sot_enforce (shared BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # Legacy / fallback cleanup (HARD — brownfield replace)
 
 **Когда:** любой `* PLAN` / `* DECOMPOSE` / `* QA` / `* IMPLEMENT`, если эпик **заменяет** существующий runtime (cutover, rewrite, mock→live, dual-path collapse).  
 **Greenfield:** таблицы sunset = `n/a`; purge sNN не обязателен.  
-**Роли:** BACK · FRONT · INTEG. Детали роли — в `workflow-*-decompose.mdc` §Replacement cleanup; этот файл = **канон policy**.
+**Роли:** BACK · FRONT · INTEG · APP. Детали роли — в `workflow-*-decompose.mdc` §Replacement cleanup; этот файл = **канон policy**.
 
 **Принцип done:** новый путь — **единственный**; старый удалён из кода, entrypoints, **instruction surfaces** и fallbacks; misconfig **падает**, не деградирует в legacy/stub/fallback.
 

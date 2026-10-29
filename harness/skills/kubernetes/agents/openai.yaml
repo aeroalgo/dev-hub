@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kubernetes"
+  short_description: "Kubernetes including pods, services, deployments, ingress, and…"
+  default_prompt: "Use $kubernetes to help with my current task: Provides comprehensive guidance for Kubernetes including pods, services, deployments, ingress, and cluster management."

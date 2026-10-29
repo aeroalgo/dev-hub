@@ -1,5 +1,5 @@
 ---
-description: "Anti-minimal done stub — sole path / DENY old / wire_complete (shared BACK/FRONT/INTEG)"
+description: "Anti-minimal done stub — sole path / DENY old / wire_complete (shared BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # Anti-minimal done (shared stub)

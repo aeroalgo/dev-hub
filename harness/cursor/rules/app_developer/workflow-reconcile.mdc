@@ -1,0 +1,12 @@
+---
+description: "APP RECONCILE — resync mixed epic state"
+alwaysApply: false
+---
+### Команда: APP RECONCILE
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/reconcile.mdc
+
+## Hot path
+
+Reconcile APP roadmap, plan, queue, implement, QA and bugfix artifacts after drift. Preserve the contract and route unresolved mixed work back to the current APP phase; never invent an INTEG phase.

@@ -1,11 +1,11 @@
 ---
-description: "Spec-first replace — не размазывать новые фичи об as-built; technology axiom lock (shared BACK/FRONT/INTEG)"
+description: "Spec-first replace — не размазывать новые фичи об as-built; technology axiom lock (shared BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # Spec-first replace (HARD — anti legacy blur)
 
 **Когда:** `* PLAN` · `* CLARIFY` · `* DECOMPOSE` · обсуждение новой фичи/эпика · пользователь фиксирует стек (pydantic, JSON, enums, typed contracts).  
-**Роли:** BACK · FRONT · INTEG. **Purge/delete детали:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc.
+**Роли:** BACK · FRONT · INTEG · APP. **Purge/delete детали:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc.
 
 **Проблема:** агент читает as-built → предлагает «добавить pydantic рядом с regex» → кодовая база растёт dual-path, требования размываются.
 

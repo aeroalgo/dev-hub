@@ -1,0 +1,36 @@
+---
+description: "DEVOPS core — только pack skills, без product lifecycle"
+alwaysApply: false
+---
+# DEVOPS — CORE
+
+## 1. Назначение
+
+Инфра-помощь через локальные скиллы в `.agents/skills/` (= `harness/skills/`).  
+Команда включает нужные SKILL.md; остальной harness не грузить.
+
+## 2. Pack (SoT выбора)
+
+Канон таблицы тем → скиллов: @.agents/skills/devops/SKILL.md  
+
+| Тема | Скиллы |
+|------|--------|
+| docker | `docker-compose`, `docker-management` |
+| k8s / helm | `kubernetes`, `kubernetes-ops`, `helm-charts`, `kustomize` |
+| nginx / proxy / порты | `reverse-proxy`, `ssl-tls-management`, `load-balancing`, `firewall-config` |
+| ansible | `ansible` |
+| terraform / opentofu | `terraform`, `opentofu-migration`, `terraform-aws`, `terraform-gcp`, `terraform-azure` |
+
+Пути Read: `.agents/skills/<name>/SKILL.md`.
+
+## 3. Политика
+
+- **Policy lazy:** Read только выбранные skills + этот core + workflow + gates.
+- **Fail-closed:** без silent fallback; ошибки явные.
+- **FORBIDDEN:** BACK/FRONT/APP PLAN|DECOMPOSE|IMPLEMENT|QA из DEVOPS без явной смены команды пользователя.
+- **FORBIDDEN:** Write `memory-bank/activeContext.md` в DEVOPS (нет FINISH lifecycle).
+- **FORBIDDEN:** грузить все 16 скиллов пачкой без темы/задачи.
+
+## 4. Ответ
+
+Русский язык. В конце — модель ИИ. Кратко: какие skills загружены + результат задачи.

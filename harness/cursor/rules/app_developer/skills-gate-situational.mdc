@@ -1,0 +1,14 @@
+---
+description: "APP skills gate — union of backend, frontend, wire and design skills"
+alwaysApply: false
+---
+# APP skills gate
+
+APP DECOMPOSE выбирает только навыки, нужные текущему vertical slice:
+
+- contract/API/wire: `tdd`, `python-testing-patterns`, `python-error-handling`, CRM/API-contract skills;
+- backend: `modern-python` и профиль backend-проекта;
+- frontend: `frontend-testing`, `playwright-best-practices` и `design` только при `visible_ui: yes`;
+- mixed acceptance: `verification-before-completion` перед QA evidence.
+
+Пути записываются в текущий shard `skills.impl` / `skills.design*`. IMPLEMENT читает только этот allowlist; APP не создаёт отдельный `app-tdd` skill и не дублирует shared skills.

@@ -24,7 +24,7 @@ alwaysApply: false
 
 **INTEG delta (после bootstrap):**
 
-1. Analyze gate уже закрыт в DECOMPOSE (`critical_count=0` / `@analyze-verify`); иначе REJECT
+1. DECOMPOSE closure уже закрыт accepted `@verify-decompose` PASS; иначе REJECT
 2. Work shard = `eNN`; **AC = eNN §Contract** (пуст → допиши до кода)
 3. Фазы A–F ниже · `deletes:` · `wire_complete` на SoT
 4. Last eNN → `plan_parity_scan`

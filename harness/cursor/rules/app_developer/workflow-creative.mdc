@@ -1,0 +1,15 @@
+---
+description: "APP CREATIVE — close the design gate inside the same epic"
+alwaysApply: false
+---
+### Команда: APP CREATIVE
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/creative.mdc
+
+## Hot path
+
+1. Read only the current APP shard and the declared design skill paths.
+2. Write the bounded creative artifact under `memory-bank/app/creative/<epic_id>/`.
+3. Close `needs_creative: yes (CR-…) — **closed**` in the same shard; keep its status pending.
+4. Return to APP IMPLEMENT. CREATIVE is not a second integration queue and does not own code.

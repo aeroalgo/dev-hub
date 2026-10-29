@@ -20,7 +20,7 @@ code-review · frontend-testing · requesting-code-review
 2a. **Full frontend suite (HARD):** parent-only lint/types/**Vitest**/UX/a11y/**Playwright** (не pytest). Команды — Frontend block в `shared/test-timeout.mdc`. leftover A/B/C/I + `sot_enforce_scan`; behavior smoke. Канон: `_lean/qa.mdc`
 2b. Epic QA load rule: если plan содержит `#qa-consumes` — читать только секцию через offset/grep.
 2w. **WIRE:** FR с API → Playwright/journey на wire path; вечный mock / §0.11 orphan = FAIL (mainrule-core §WIRE).
-2x. `qa-*.yaml` обязан содержать `coverage_map` (AC/BN → browser/API scenario → evidence), `review`, `test_audit`, `browser` и `retro`. Внутри того же gate `/review` проверяет diff/contract/ownership/rollback, а `/test-audit` — weakened/status-only assertions, global API mocks, uncontrolled `route.fulfill`, skip/xfail, CI inclusion и реальный wire/auth/iframe/assets; это не отдельные loop-фазы.
+2x. `qa-*.yaml` обязан содержать `test_plan` из `.cursor/templates/qa/test-catalog.yaml` (scope → selected/not_applicable/not_run) и `coverage_map` (AC/BN → browser/API scenario → evidence), `review`, `test_audit`, `browser` и `retro`. Внутри того же gate `/review` проверяет diff/contract/ownership/rollback, а `/test-audit` — weakened/status-only assertions, global API mocks, uncontrolled `route.fulfill`, skip/xfail, CI inclusion и реальный wire/auth/iframe/assets; это не отдельные loop-фазы.
 3. qa-артефакт: `memory-bank/front/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml` (шаблон `.cursor/templates/qa/epic-step.yaml`). Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
 4. fail|blocked → §Fix plan: **полный eligible** список; anti-ratchet.
 5. **FINISH:** finish-block (`code_changed: no`) + `## Handoff FRONT QA` — только после полного прохода  

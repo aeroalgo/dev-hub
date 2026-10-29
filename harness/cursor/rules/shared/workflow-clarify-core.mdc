@@ -1,10 +1,10 @@
 ---
-description: "CLARIFY core — shared taxonomy, frontier ≤20 Q / ≤4 rounds, CRITICAL markers, Completion Report (BACK/FRONT/INTEG)"
+description: "CLARIFY core — shared taxonomy, frontier ≤20 Q / ≤4 rounds, CRITICAL markers, Completion Report (BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # CLARIFY — shared core
 
-**Роли:** BACK · FRONT · INTEG (роль-обёртки вызывают этот файл).
+**Роли:** BACK · FRONT · APP · INTEG (роль-обёртки вызывают этот файл).
 **Не** клонировать `spec-kit/templates/commands/clarify.md` целиком — адаптировать таксономию и лимиты под hub workflow.
 **Артефакт сессии:** `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` (шаблон `@.cursor/templates/clarify.md`).
 
@@ -159,7 +159,7 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 - Resolved: …
 - Deferred: … (severity + next)
 - Coverage: scope=… data=… UX-API=… NFR=… integrations=… edge=… constraints=… terminology=… design_pack=… (FRONT UI) | n/a
-- Next: BACK|FRONT|INTEG PLAN <slug> Phase 1 | continue CLARIFY | to-prd/to-spec (optional) | spike (skip warning)
+- Next: BACK|FRONT|INTEG|APP PLAN <slug> Phase 1 | continue CLARIFY | to-prd/to-spec (optional) | spike (skip warning)
 
 Если Completion Report внутри сессии `* PLAN` Phase 0 — **не** FINISH CLARIFY; перейти к Phase 1 в той же сессии.
 ```

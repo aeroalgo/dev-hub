@@ -154,6 +154,37 @@ def test_flush_requires_evidence(tmp_path: Path) -> None:
         flush_implement_for_verify(path)
 
 
+def test_app_flush_requires_wire_complete_evidence(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path / "s01-app.yaml",
+        """
+        schema: epic-implement/v1
+        role: app
+        step_id: s01
+        plan_id: APP-1
+        status: in_progress
+        done:
+          - contract and UI wired
+        files:
+          - backend/contract.py
+          - frontend/feature.ts
+        tests:
+          - bin/pytest loop/tests/test_app_lifecycle.py -q
+        integration_check:
+          - real wire journey
+        checkpoints:
+          - id: cp1
+            criterion: mixed slice
+            status: pending
+        """,
+    )
+
+    from loop.kernel.implement_schema import flush_implement_for_verify
+
+    with pytest.raises(ValueError, match="requires wire_complete"):
+        flush_implement_for_verify(path, expected_step_id="s01", expected_plan_id="APP-1")
+
+
 def test_validate_step_id_mismatch(tmp_path: Path) -> None:
     path = _write(
         tmp_path / "s01.yaml",

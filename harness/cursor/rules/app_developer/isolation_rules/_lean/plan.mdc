@@ -1,0 +1,12 @@
+---
+description: "APP PLAN gates — one contract-first epic"
+alwaysApply: false
+---
+# APP PLAN — gates
+
+1. Artifact: `memory-bank/app/plan/<epic_id>/md/plan.md` (+ `prompt.md` when board projection is used).
+2. The plan must define product outcome, contract (method/path, in/out, errors, roles), UI journey, wire completion and independent tests.
+3. One APP epic owns backend + frontend + wire. BACK/FRONT are referenced as surfaces/owners only; do not create an INTEG child epic.
+4. Finish only with a resolved decision, explicit non-goals, ownership matrix, QA charter and a path to DECOMPOSE.
+
+Abort: foundation-only without follow-up epic, missing contract, unresolved product decision, or split done criteria.

@@ -13,16 +13,15 @@ adapter переводит нативные события провайдера 
 - `DECOMPOSE` считается завершённым только когда `yaml/decompose-index.yaml`
   и каждый `sNN/eNN` из него физически существуют и
   проходят `validate-decompose-tree`.
-- Перед следующим шагом обязательны `validate-traceability` с
-  `CRITICAL=0`, свежий `verify-decompose` PASS и свежий `analyze-verify` PASS.
-- Внутренний `analyze-verify` не может компенсировать отсутствующий shard. Артефакт с
-  `critical_count: 0` при неполном дереве недействителен.
+- Перед следующим шагом обязательны `validate-traceability`/semantic closure внутри
+  свежего `verify-decompose` PASS.
+- Один `verify-decompose` не может компенсировать отсутствующий shard: неполное дерево
+  всегда FAIL.
 - Resolver и `arm` обязаны fail-closed: при отсутствии shard следующий
-  маршрут — повторный `BACK/FRONT/INTEG DECOMPOSE <epic_id>`, а не внутренний gate или
+  маршрут — повторный `BACK/FRONT/INTEG/APP DECOMPOSE <epic_id>`, а не внутренний gate или
   IMPLEMENT. `plan-next` не является обходом этого правила.
-- `DECOMPOSE → IMPLEMENT/CREATIVE` разрешён только после повторной
-  structural-проверки decompose-графа и accepted `analyze-verify` PASS;
-  `verify-decompose` PASS сам по себе фазу не завершает.
+- `DECOMPOSE → IMPLEMENT/CREATIVE` разрешён только после structural + semantic
+  проверки decompose-графа и accepted `verify-decompose` PASS.
 - Ненулевой exit, timeout, abort или отсутствие обязательного terminal result
   означает незавершённую сессию, даже если в хвосте лога встретилось слово
   `FINISH`. Повторяется текущая фаза; completion marker не создаётся.

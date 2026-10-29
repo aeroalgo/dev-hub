@@ -5,7 +5,7 @@ paths:
 
 # Context economy — Claude Code (IMPLEMENT/TASK/BUGFIX)
 
-Применяется при role commands BACK/FRONT/INTEG IMPLEMENT · TASK · BUGFIX.
+Применяется при role commands BACK/FRONT/APP/INTEG IMPLEMENT · TASK · BUGFIX.
 **Не** применяется к PLAN / DECOMPOSE / gap-*.md (там §0.0 — без лимитов).
 
 ## Silent chat (HARD — anti-bloat)
@@ -48,7 +48,7 @@ paths:
 
 ## Agent spawn — IMPLEMENT / REFACTOR / BUGFIX / QA
 
-**Обязательные** gate’ы: `@explorer` только на **широкий** codebase search (полный `files:` / `delta_paths_*` → SKIP) · `@verify` (FINISH + `code_changed`) · `@reviewer` (BACK QA после suite). Общая политика — `harness/instructions/spawn-hard.md`; Claude transport — `harness/claude/instructions/spawn-hard.md`. Прочие Agent — свободно.
+**Обязательные** gate’ы: `@explorer` только на **широкий** codebase search (полный `files:` / `delta_paths_*` → SKIP) · `@verify` (FINISH + `code_changed`) · `@reviewer` (BACK/APP QA после suite). Общая политика — `harness/instructions/spawn-hard.md`; Claude transport — `harness/claude/instructions/spawn-hard.md`. Прочие Agent — свободно.
 
 ## Bash / logs / test execution (HARD — anti-bloat)
 

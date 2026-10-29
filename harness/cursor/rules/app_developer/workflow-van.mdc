@@ -1,0 +1,15 @@
+---
+description: "APP VAN — architecture and vertical-slice boundary"
+alwaysApply: false
+---
+### Команда: APP VAN
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/van.mdc
+
+## Hot path
+
+1. `OK APP VAN` → определить один user-facing outcome и границу vertical slice.
+2. Собрать bounded as-built карту backend, frontend, wire и required test runners.
+3. Зафиксировать production entrypoint, contract boundary, owner/runners и failure path.
+4. Передать один epic в `APP PLAN`; не создавать отдельную INTEG очередь.

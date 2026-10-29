@@ -1,0 +1,12 @@
+---
+description: "APP CLARIFY — contract questions before planning"
+alwaysApply: false
+---
+### Команда: APP CLARIFY
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/clarify.mdc
+
+## Hot path
+
+Close only ambiguity that changes the vertical slice contract, ownership, UI journey or done criteria, then return to APP PLAN.

@@ -18,6 +18,7 @@ alwaysApply: true
 | «Примени workflow» / «от идеи до реализации» | @.cursor/rules/shared/workflow-idea-pipeline.mdc |
 | `PRODUCT VISION` / `PHASES` / `ROADMAP` / `STATUS` | @.cursor/rules/shared/workflow-product-roadmap.mdc |
 | `EVAL …` (FRAME/SEARCH/PRICE/GATE/…) | @.cursor/rules/eval/mainrule.mdc — оценка ниши по шагам; **не** BACK |
+| `DEVOPS` / `DEVOPS <темы>` | @.cursor/rules/devops/mainrule.mdc — только infra-скиллы; **не** BACK lifecycle |
 | Команда роли PLAN/DECOMPOSE/VAN | Цепочка ниже + **Read** .cursor/rules/token-economy-core.mdc |
 | Команда роли IMPLEMENT/TASK/BUGFIX | Цепочка ниже; stub already-on — **не** грузить full token-economy-core |
 
@@ -43,7 +44,7 @@ alwaysApply: true
 
 Пропущенный Read из bootstrap — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
 
-Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`, `PRODUCT VISION`, `PRODUCT PHASES`, `PRODUCT ROADMAP REBUILD`, `PRODUCT ROADMAP`, `PRODUCT STATUS`, `APP QA`, `APP BUGFIX`, `EVAL FRAME`, `EVAL HYPOTHESIS`, `EVAL PAIN`, `EVAL PAY`, `EVAL PRICE`, `EVAL SEARCH`, `EVAL MATCH`, `EVAL ADS`, `EVAL ECONOMICS`, `EVAL COMPETE`, `EVAL GATE`, `EVAL TALK`, `EVAL LANDING`, `EVAL SMOKE`, `EVAL SCALE`, `EVAL STATUS`, `EVAL ASSEMBLE`, `EVAL FINISH`, `EVAL CLARIFY`. `BACK|FRONT RECONCILE` → `<epic_id>`. `BACK|FRONT REPLAN` → `<epic_id>`.
+Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`, `PRODUCT VISION`, `PRODUCT PHASES`, `PRODUCT ROADMAP REBUILD`, `PRODUCT ROADMAP`, `PRODUCT STATUS`, `APP QA`, `APP BUGFIX`, `APP VAN`, `APP PLAN`, `APP DECOMPOSE`, `APP CREATIVE`, `APP IMPLEMENT`, `APP TASK`, `APP REFACTOR`, `APP SECURITY`, `APP ARCHIVE NOW`, `APP ROADMAP MERGE`, `APP JANITOR`, `APP REPLAN`, `APP RECONCILE`, `APP CLARIFY`, `EVAL FRAME`, `EVAL HYPOTHESIS`, `EVAL PAIN`, `EVAL PAY`, `EVAL PRICE`, `EVAL SEARCH`, `EVAL MATCH`, `EVAL ADS`, `EVAL ECONOMICS`, `EVAL COMPETE`, `EVAL GATE`, `EVAL TALK`, `EVAL LANDING`, `EVAL SMOKE`, `EVAL SCALE`, `EVAL STATUS`, `EVAL ASSEMBLE`, `EVAL FINISH`, `EVAL CLARIFY`, `DEVOPS`, `DEVOPS CHECK SERVER`. `BACK|FRONT|APP RECONCILE` → `<epic_id>`. `BACK|FRONT|APP REPLAN` → `<epic_id>`.
 
 ## Префикс → индекс → core
 
@@ -53,10 +54,12 @@ alwaysApply: true
 | `FRONT` | @.cursor/rules/front_developer/mainrule.mdc | @.cursor/rules/front_developer/mainrule-core.mdc |
 | `APP` | @.cursor/rules/app_developer/mainrule.mdc | @.cursor/rules/app_developer/mainrule-core.mdc |
 | `EVAL` | @.cursor/rules/eval/mainrule.mdc | @.cursor/rules/eval/mainrule-core.mdc |
+| `DEVOPS` | @.cursor/rules/devops/mainrule.mdc | @.cursor/rules/devops/mainrule-core.mdc |
 | `PM` `TL` `CONTENT` `MARKETING` `SEO` | archived — `_archive/cursor-rules/` | archived |
 
 В индексе роли — таблица «команда → workflow». Isolation: `{role}/isolation_rules/_lean/<mode>.mdc` (шаг `1a` в workflow).  
-**EVAL:** шаговые команды → `eval/workflow-step.mdc` + строка в `eval/catalog/steps.yaml`; STATUS/ASSEMBLE/FINISH → `workflow-assemble.mdc`; CLARIFY → `workflow-clarify.mdc`.
+**EVAL:** шаговые команды → `eval/workflow-step.mdc` + строка в `eval/catalog/steps.yaml`; STATUS/ASSEMBLE/FINISH → `workflow-assemble.mdc`; CLARIFY → `workflow-clarify.mdc`.  
+**DEVOPS:** `devops/workflow.mdc` + pack `.agents/skills/devops/SKILL.md`; Isolation `_lean/ops.mdc`; **не** пишет `activeContext`.
 
 ## Cross-role
 
@@ -64,8 +67,10 @@ alwaysApply: true
 |---------|----------|
 | `IDEA PIPELINE` · `CONTINUE` · `FINISH` · `STATUS` | DECIDE scorecard/verdict перед VAN/PLAN; детали: .cursor/rules/shared/workflow-idea-pipeline.mdc |
 | `PRODUCT VISION` · `PRODUCT PHASES` · `PRODUCT ROADMAP REBUILD` · `PRODUCT STATUS` | Product-слой (vision/phases/roadmap); .cursor/rules/shared/workflow-product-roadmap.mdc |
-| `APP QA` · `APP BUGFIX` | Mixed-surface product gate (back+front+browser+live); .cursor/rules/app_developer/mainrule.mdc · дизайн: `docs/process/app-qa-bugfix.md` |
+| `APP VAN/PLAN/DECOMPOSE/IMPLEMENT/QA/BUGFIX/ARCHIVE` | Full mixed vertical slice: one contract-first epic owns back+front+wire+tests; .cursor/rules/app_developer/mainrule.mdc |
 | `EVAL …` | Оценка ниши по шагам (данные → tools → shard); .cursor/rules/eval/mainrule.mdc · карта: `memory-bank/product/eval-pipeline.md` |
+| `DEVOPS` · `DEVOPS <темы>` | Infra-скиллы (Docker/K8s/nginx/Ansible/Terraform); .cursor/rules/devops/mainrule.mdc · pack `.agents/skills/devops/` |
+| `DEVOPS CHECK SERVER` | Read-only server audit; .cursor/rules/devops/workflow.mdc · `scripts/devops_check_server.py` |
 | `PROJECT DOCS` · `BOARD DOCS` | Ручная публикация workflow/gitflow/runbooks на Диск проекта Bitrix / Pages Plane; .cursor/rules/shared/workflow-board-docs.mdc · `bin/loop.py project-docs` |
 | `BOARD SYNC` · «создай задачу на доске» · «закинь на доску» | Карточка эпика на канбане Bitrix24/Plane через webhook; .cursor/rules/shared/workflow-board-sync.mdc · `bin/loop.py board-sync` / `scripts/board-sync.sh`. **FORBIDDEN** браузер/Playwright/UI портала для создания задачи |
 | После `BACK PLAN` / `FRONT PLAN` | Обязательная публикация карточек: .cursor/rules/shared/workflow-board-after-plan.mdc · `## Board` в prompt · `.loop/board-actors.yaml` · `./scripts/board-sync.sh` |
@@ -73,4 +78,5 @@ alwaysApply: true
 Скиллы без workflow: `find-skills` · `git-commit` · `memory-management` — только по явному запросу.
 
 
-Вызов: `BACK IMPLEMENT сделай эндпоинт` — @-упоминание rules опционально.
+Вызов: `BACK IMPLEMENT сделай эндпоинт` — @-упоминание rules опционально.  
+Вызов: `DEVOPS docker nginx` — подгрузка infra-скиллов без epic lifecycle.

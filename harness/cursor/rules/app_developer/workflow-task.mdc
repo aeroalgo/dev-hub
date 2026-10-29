@@ -1,0 +1,15 @@
+---
+description: "APP TASK — bounded mixed-surface change"
+alwaysApply: false
+---
+### Команда: APP TASK
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/task.mdc
+
+## Hot path
+
+1. `OK APP TASK` с одним bounded outcome и явным списком mixed files.
+2. Зафиксировать contract impact, root cause/intent, tests и touched surfaces в task artifact.
+3. TDD red → green на backend/front/wire lanes; browser/frontend только parent.
+4. APP TASK не создаёт скрытую вторую очередь: при новом product slice перейти в APP PLAN.

@@ -2,9 +2,9 @@
 description: "ROADMAP MERGE — reconcile memory-bank/<role>/roadmap/queue.yaml (yaml-only)"
 alwaysApply: false
 ---
-# ROADMAP MERGE (BACK / FRONT / INTEG)
+# ROADMAP MERGE (BACK / FRONT / INTEG / APP)
 
-**Команды:** `BACK ROADMAP MERGE` · `FRONT ROADMAP MERGE` · `INTEG ROADMAP MERGE`
+**Команды:** `BACK ROADMAP MERGE` · `FRONT ROADMAP MERGE` · `INTEG ROADMAP MERGE` · `APP ROADMAP MERGE`
 
 **Зачем:** единый SoT `memory-bank/<role>/roadmap/queue.yaml` для loop (`roadmap-advance`).  
 PLAN **дописывает** этот файл (queue + batches) для каждого эпика, включая single-epic; отдельный slug `roadmap-<slug>-epics.*` **FORBIDDEN**.
@@ -20,7 +20,7 @@ MERGE = reconcile (перенос done, topo deps, опциональный impo
 
 **FORBIDDEN:** `plan/roadmap-*.md` · `plan/roadmap-*.queue.yaml` · генерация sibling `.md` для roadmap.
 
-Роли → dirs: back `memory-bank/back/roadmap/` · front `…/front/roadmap/` · integ `…/integration/roadmap/`.
+Роли → dirs: back `memory-bank/back/roadmap/` · front `…/front/roadmap/` · integ `…/integration/roadmap/` · app `…/app/roadmap/`.
 
 ## Правила reconcile (HARD)
 

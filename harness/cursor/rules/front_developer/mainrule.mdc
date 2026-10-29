@@ -18,7 +18,6 @@ alwaysApply: false
 | `FRONT PLAN REFACTOR` | @.cursor/rules/front_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (фаза 2 cadence-блока: строго после replan pair_ids; refactor epic или noop) |
 | `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
-| `analyze-verify` | internal DECOMPOSE gate; не пользовательская команда |
 | `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |
 | `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
 | `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |

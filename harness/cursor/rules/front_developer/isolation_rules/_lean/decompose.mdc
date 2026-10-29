@@ -23,7 +23,7 @@ alwaysApply: false
 4. Каждый `sNN`: skills gate — **copy paths** Impl Core(6) ∪ situational (@.cursor/rules/front_developer/skills-gate-situational.mdc + @.cursor/rules/shared/_lean/decompose-skills-load.mdc)
 5. `visible_ui: yes` → **copy** Design groups (минимум D0 Lean Core; + D1/D2/D3/D4 из clarify pack / surface map) в `skills.design`; `no` → `**Design skills:** —` + причина. **FORBIDDEN:** Read / `cat` Design SKILL.md на DECOMPOSE; all-or-nothing Taste 13; >1 D2 dialect
 6. Папка создана
-7a. **Promote gate (HARD):** validate-decompose-tree + traceability CRITICAL=0 + analyze-*.yaml + `@analyze-verify` PASS. Next = **IMPLEMENT**. **FORBIDDEN** skip analyze
+7a. **Promote gate (HARD):** validate-decompose-tree + полный structural/semantic closure + `@verify-decompose` PASS. Next = **IMPLEMENT**. **FORBIDDEN** deferred second gate
 8. `load_now` → `s01-*.yaml`
 
 ## Abort

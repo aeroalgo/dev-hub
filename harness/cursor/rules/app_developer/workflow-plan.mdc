@@ -1,0 +1,16 @@
+---
+description: "APP PLAN — contract-first mixed vertical slice"
+alwaysApply: false
+---
+### Команда: APP PLAN
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/plan.mdc
+
+## Hot path
+
+1. `OK APP PLAN` → один plan в `memory-bank/app/plan/<epic_id>/md/plan.md`.
+2. Сначала WHAT и done-критерий, затем контракт: method/path, input, output, typed errors, roles/RBAC, UI journey и wire success/failure.
+3. Ownership matrix допускает один mixed owner; BACK/FRONT остаются surface-only lanes, INTEG не создаётся.
+4. План обязан включать backend targeted, frontend targeted, wire journey и APP QA charter lanes.
+5. После PLAN → `APP DECOMPOSE`; foundation-only допустим только с явным follow-up epic.

@@ -22,7 +22,7 @@ alwaysApply: false
 6a. **Skills HARD:** `code_surface ≠ docs` ⇒ `impl` не `[]` + Core(4); surface defaults ∈ impl|omit_justification; template empty-impl = FAIL; DECOMPOSE = **copy paths** only (@.cursor/rules/shared/_lean/decompose-skills-load.mdc) — Read тел SKILL на DECOMPOSE = incomplete
 7. Brownfield ≠ n/a → `deletes` + `*-legacy-fallback-purge` (+ Kind I)
 8. CLI: `validate-decompose-tree` exit 0 (incl. skills gate) · `validate-traceability` **CRITICAL=0**
-9. Next = **IMPLEMENT** (analyze-*.yaml + `@analyze-verify` уже в DECOMPOSE) — **FORBIDDEN** skip analyze
+9. Next = **IMPLEMENT** (`@verify-decompose` уже закрыл полный closure) — **FORBIDDEN** deferred second gate
 10. Goal/NFR не сжаты до infra-only
 
 ## Abort (incomplete)

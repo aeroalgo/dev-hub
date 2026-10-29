@@ -1,0 +1,9 @@
+---
+description: "APP RECONCILE gates — fail-closed state resync"
+alwaysApply: false
+---
+# APP RECONCILE — gates
+
+1. Read the active APP cursor, roadmap, plan/index, current implement/QA/BUGFIX artifact and context-sync evidence.
+2. Record drift and repair only the canonical owner; do not invent an INTEG phase or duplicate a contract.
+3. Re-enter the valid APP phase and require its normal gate before advancing.

@@ -48,6 +48,14 @@ checkpoints:
 
 resume_from: cp1
 
+# role: app — для mixed vertical slice дополнительно обязателен wire_complete:
+# wire_complete:
+#   call_sites: []
+#   enforce_path: ""
+#   dual_path_rg: ""
+#   instruction_rg: ""
+#   deny_old_proven: true
+#
 # role: integ — дополнительно обязательны:
 # element_ref: memory-bank/integration/plan/<plan_id>/yaml/steps/eNN-<slug>.yaml
 # gaps: { status: none }

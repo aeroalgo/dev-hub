@@ -15,6 +15,8 @@ records для recovery и не является вторым state owner. Ин�
 
 ```bash
 python3 bin/loop.py start --project /path/to/project --epic E1
+# Для mixed vertical slice используйте APP-план в memory-bank/app/:
+python3 bin/loop.py start --project /path/to/project --epic APP-01 --role app
 # Для security-эпика (или при неоднозначности kind) явно передаётся --kind:
 python3 bin/loop.py start --project /path/to/project --epic SEC-01 --kind security
 python3 bin/loop.py run --project /path/to/project --epic E1 --model <model>
@@ -66,6 +68,7 @@ python3 bin/loop.py validate-verdict --project /path/to/project \
 Loop поддерживает типы эпиков `feature`, `refactor` и `security` (`--kind`):
 
 - **Feature (`kind=feature`):** `memory-bank/<role>/plan/<id>/` и `implement/<id>/`. Жизненный цикл: `DECOMPOSE → IMPLEMENT (sNN) → QA(+contract; context-sync worker) → DONE`.
+- **APP feature (`role=app`, `kind=feature`):** `memory-bank/app/plan/<id>/`, `app/implement/<id>/`, `app/qa/<id>/` и `app/bugfix/<id>/`. Жизненный цикл тот же, но один shard и один done-критерий покрывают contract → backend → frontend → wire: `DECOMPOSE → CREATIVE? → IMPLEMENT (sNN) → APP QA → APP BUGFIX ↺ APP QA → DONE`.
 - **Refactor (`kind=refactor`):** `memory-bank/<role>/refactor/plan/<id>/` и `refactor/implement/<id>/`. Жизненный цикл: `DECOMPOSE → REFACTOR (rNN) → QA(+contract; context-sync worker) → DONE`.
 - **Security (`kind=security`):** `memory-bank/<role>/security/plan/<id>/` и `security/implement/<id>/`. Жизненный цикл: `DECOMPOSE → SECURITY (aNN) → DONE`. Аудит выполняется по шагам `aNN` с гейтом `verify-security` и артефактами `schema: epic-security/v1` в `security/implement/<id>/aNN-*.yaml`. После всех `aNN` → `DONE` (без feature QA).
 

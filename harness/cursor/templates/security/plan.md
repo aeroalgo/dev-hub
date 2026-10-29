@@ -4,13 +4,13 @@
 > Chat brief OK. **FORBIDDEN:** TOC-only · telegraph · size cap на этот файл.
 
 **Дата:** YYYY-MM-DD  
-**Режим:** BACK SECURITY PLAN | FRONT SECURITY PLAN | INTEG SECURITY PLAN  
+**Режим:** BACK SECURITY PLAN | FRONT SECURITY PLAN | APP SECURITY PLAN | INTEG SECURITY PLAN
 **Статус:** draft | active | done  
 **Scope:** S (one-shot) | M/L (эпик)
 
 ## Контекст
 
-- role scope: BACK api/auth/db/jobs | FRONT client/XSS/CSP | INTEG wire/authz
+- role scope: BACK api/auth/db/jobs | FRONT client/XSS/CSP | APP contract/API/UI/wire | INTEG wire/authz
 - refs: techContext, architecture/, prior security-audit-*
 - out of scope: …
 

@@ -6,6 +6,7 @@
 # Roles:
 #   BACK  → memory-bank/back/roadmap/queue.yaml         role: back
 #   FRONT → memory-bank/front/roadmap/queue.yaml        role: front
+#   APP   → memory-bank/app/roadmap/queue.yaml          role: app
 #   INTEG → memory-bank/integration/roadmap/queue.yaml  role: integration
 #
 # version: roadmap-queue/v2

@@ -1,5 +1,5 @@
 ---
-description: "Brownfield VAN — as-built architecture map (shared by BACK/FRONT/INTEG VAN)"
+description: "Brownfield VAN — as-built architecture map (shared by BACK/FRONT/INTEG/APP VAN)"
 alwaysApply: false
 ---
 # VAN BROWNFIELD — as-built map
@@ -25,10 +25,12 @@ alwaysApply: false
 | `INTEG VAN` | **все** shards `architecture/` (front нет → `frontend.md` = `status: absent`) |
 | `BACK VAN` | `overview` (backend slice) · `services` · `data-flow` · `erd` · `workers` · `containers` — **не** обязан полный `frontend.md` |
 | `FRONT VAN` | `overview` (UI slice) · `frontend.md` · ссылки на API/consumers; backend ERD/workers — только если нужны для UI |
+| `APP VAN` | `overview` · `services` · `data-flow` · `frontend.md` · contract/wire links для одного vertical slice |
 
 Session log (тонкий, telegraph OK):
 - BACK → `memory-bank/back/van/van-YYYYMMDD.md`
 - FRONT → `memory-bank/front/van/van-YYYYMMDD.md`
+- APP → `memory-bank/app/van/van-YYYYMMDD.md`
 - INTEG → `memory-bank/integration/van/van-YYYYMMDD-<slug>.md`
 
 Session log = mode + L + next + **links** на обновлённые architecture shards. Не дублировать схемы в van-логе.

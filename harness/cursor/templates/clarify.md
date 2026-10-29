@@ -2,7 +2,7 @@
 
 **plan_id:** T-xxx | n/a  
 **slug:** <feature-slug>  
-**role:** back | front | integ  
+**role:** back | front | app | integ
 **date:** YYYY-MM-DD  
 **feature_description:** <1–3 предложения>  
 **status:** draft | active | done

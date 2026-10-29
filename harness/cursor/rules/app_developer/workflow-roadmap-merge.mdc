@@ -1,0 +1,11 @@
+---
+description: "APP ROADMAP MERGE — merge role queue without splitting slices"
+alwaysApply: false
+---
+### Команда: APP ROADMAP MERGE
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc
+
+## Hot path
+
+Merge only APP roadmap entries into `memory-bank/app/roadmap/queue.yaml`; preserve one epic per vertical slice and do not reintroduce an INTEG queue.

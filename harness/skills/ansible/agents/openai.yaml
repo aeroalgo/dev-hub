@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ansible"
+  short_description: "Ansible automation including playbooks, roles, inventory, and…"
+  default_prompt: "Use $ansible to help with my current task: Provides comprehensive guidance for Ansible automation including playbooks, roles, inventory, and module usage."

@@ -2,7 +2,7 @@
 
 ## Правило
 
-После **BACK PLAN** / **FRONT PLAN** (есть `plan.md` + `prompt.md` с `## Board`)
+После **BACK PLAN** / **FRONT PLAN** / **APP PLAN** (есть `plan.md` + `prompt.md` с `## Board`)
 сразу опубликовать карточки на Bitrix — не ждать DECOMPOSE/IMPLEMENT.
 
 После **BUGFIX** / «закинь на доску»: **без файлов** — только CLI

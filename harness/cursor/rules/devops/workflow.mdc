@@ -1,0 +1,83 @@
+---
+description: "DEVOPS — hot path: выбрать и подгрузить infra-скиллы"
+alwaysApply: false
+---
+### Команда: DEVOPS
+**Контекст:** @.cursor/rules/devops/mainrule-core.mdc  
+**Gates:** @.cursor/rules/devops/isolation_rules/_lean/ops.mdc  
+**Индекс:** @.cursor/rules/devops/mainrule.mdc  
+**Pack:** @.agents/skills/devops/SKILL.md
+
+---
+
+## Hot path
+
+1. `OK DEVOPS` (+ темы из хвоста сообщения, если есть).
+2. Read Gates + Core + `.agents/skills/devops/SKILL.md`.
+3. Выбери набор скиллов по таблице pack (темы в команде **или** слова задачи).
+4. **Read** каждый выбранный `.agents/skills/<name>/SKILL.md` целиком.
+5. Выполни задачу пользователя по этим скиллам.
+6. В чат: список загруженных skills · результат / артефакты · что проверить руками.
+
+**graphify:** skip (не code-phase epic).  
+**token-economy-core:** skip.  
+**activeContext:** не писать.
+
+---
+
+## Вход
+
+```text
+DEVOPS
+DEVOPS CHECK SERVER
+DEVOPS docker nginx
+DEVOPS k8s helm
+DEVOPS terraform aws
+DEVOPS ansible
+```
+
+## `DEVOPS CHECK SERVER`
+
+Это read-only аудит удалённого сервера. Он не выполняет `pull`, `build`,
+`up`, `restart`, `exec` с изменением состояния и не читает container env.
+
+Для этой команды workflow загружает subset `docker-compose`,
+`docker-management`, `reverse-proxy`, `ssl-tls-management`, `load-balancing` и
+`firewall-config`: они покрывают контейнеры/сети, edge proxy, TLS, порты и
+firewall. Другие infra-skills не загружаются.
+
+Канонический запуск из репозитория:
+
+```bash
+.venv/bin/python scripts/devops_check_server.py \
+  --ssh-host "${DEVOPS_SSH_HOST:-vps-devhub}" \
+  --format text
+```
+
+Для CI или сохранения артефакта:
+
+```bash
+.venv/bin/python scripts/devops_check_server.py \
+  --ssh-host "${DEVOPS_SSH_HOST:-vps-devhub}" \
+  --format json --output artifacts/server-check.json
+```
+
+Отчёт содержит разделы `host`, `network`, `listeners`, `firewall`, `docker`,
+`compose`, `proxy`, `tls`, `databases`, `backups`, `ci_cd`, `smoke`, список
+`findings` и итоговый `verdict` (`PASS` / `WARN` / `FAIL`). Результат с
+`FAIL` имеет exit code 1; `WARN` по умолчанию информативен, а
+`--strict-warnings` делает его неуспешным для CI. Секреты, env-значения,
+cookie/token/authorization и private keys не попадают в отчёт.
+
+При расширении аудита сохраняются два обязательных свойства: удалённая
+команда остаётся фиксированным probe-скриптом, а отсутствие инструмента или
+доступа отображается как явный `WARN`/`FAIL`, не как успешный fallback.
+
+Без темы и без задачи в сообщении → один вопрос: какая тема (docker / k8s / nginx / ansible / terraform).
+
+---
+
+## Skills
+
+Только выбранный subset pack.  
+**FORBIDDEN:** весь каталог `.agents/skills/` · marketing/eval/back packs.

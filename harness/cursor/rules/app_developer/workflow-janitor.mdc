@@ -1,0 +1,11 @@
+---
+description: "APP JANITOR — bounded cleanup of mixed workflow artifacts"
+alwaysApply: false
+---
+### Команда: APP JANITOR
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc
+
+## Hot path
+
+Remove only orphan APP artifacts and stale references after a bounded inventory. Never delete an active plan, implement, QA or bugfix artifact and never use janitor to hide an incomplete slice.

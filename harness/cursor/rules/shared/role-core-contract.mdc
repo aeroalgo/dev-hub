@@ -65,5 +65,5 @@ Evidence: команда install + повторный exit code — в `verifica
 ## Role-only boundary markers (Границы ответственности ролей)
 
 Общий контракт владеет исключительно общими правилами loading, format и runner policy. Ролевые ядра сохраняют изолированные role-only обязанности:
-- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT (`@analyze-verify` в DECOMPOSE), L1..L3 (1/2/3 sNN), REPLAN/RECONCILE/PLAN REFACTOR/JANITOR.
+- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT (единый `@verify-decompose` closure gate), L1..L3 (1/2/3 sNN), REPLAN/RECONCILE/PLAN REFACTOR/JANITOR.
 - **FRONT:** visible_ui + **WIRE UI↔API**, DESIGN STACK, front-tests-parent-only, E2E/Playwright, contract в FR при API, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR.

@@ -1,6 +1,6 @@
 ---
 name: verify-decompose
-description: "Structural coverage gate for DECOMPOSE. Reads plan + decompose index/shards from ALLOW READ. Parent packs paths only — no COVERAGE/PLAN EXCERPT prompt. Never edits; no pytest."
+description: "Complete structural and semantic closure gate for DECOMPOSE. Reads plan + decompose index/shards from ALLOW READ. Never edits; no pytest."
 tools: Read, Grep, Bash
 disallowedTools: Write, Edit, Agent, Skill, Glob, NotebookEdit, WebFetch, WebSearch, TodoWrite
 maxTurns: 10
@@ -15,7 +15,8 @@ overlay:
   allow_worktree: false
 ---
 
-Ты subagent `verify-decompose`. Semantic verify gate для фазы DECOMPOSE. **Не меняй код и артефакты.**
+Ты subagent `verify-decompose`. Единственный gate фазы DECOMPOSE: сам проверь и структуру, и
+семантическую полноту plan → decompose. **Не меняй код и артефакты.**
 
 ## Prompt contract (HARD)
 
@@ -23,27 +24,39 @@ Parent **обязан** передать только:
 
 | Секция | Обязательна |
 |--------|-------------|
-| `ALLOW READ` | да (≤10) — **обязан** включать `…/plan/…/md/plan.md` (или plan artifact) + `…/yaml/decompose-index.yaml` + step shards по необходимости |
+| `ALLOW READ` | да (≤10) — **обязан** включать `…/yaml/decompose-index.yaml` + `…/plan/…/md/plan.md` (или plan artifact) + все нужные step shards |
 
 Нет `ALLOW READ` → `FAIL` `prompt_incomplete:ALLOW READ`.
 
-**Coverage SoT = plan + decompose index/shards в ALLOW** (не parent-packed `COVERAGE` / `PLAN EXCERPT` / таблицы в prompt). Parent-packed coverage **игнорировать**.
+**Coverage SoT = plan + decompose index/shards в ALLOW**. Parent-packed `FINDINGS`, `COVERAGE`,
+`PLAN EXCERPT` и таблицы в prompt **игнорировать**.
 
 ## Status contract
 
 - Вход: parent/CLI подготовил decompose tree (`yaml/decompose-index.yaml` + shards) и прошёл `validate-decompose-tree`.
-- Выход: coverage и replacement cleanup присутствуют в YAML-контракте и shards, нет orphan-replace или пустых строк, семантика совпадает с plan → `PASS`; иначе `FAIL` с blocker списком.
-- Accepted `PASS` фиксирует только structural readiness и оставляет parent в DECOMPOSE; terminal promotion выполняет следующий `analyze-verify` PASS.
+- Выход: structural readiness и semantic closure подтверждены одним чтением plan/index/shards:
+  coverage, stages, outcomes, replacement cleanup, plan_contract/layout, skills,
+  traceability, dilution, optional-SoT, ambiguity и отсутствие блокирующих gaps → `PASS`;
+  иначе `FAIL`.
+- Accepted `PASS` — единственный terminal result DECOMPOSE и атомарно открывает `IMPLEMENT/CREATIVE`.
+- `analyze-verify` и `analyze-*.yaml` не являются частью нового контракта и не должны требоваться.
 
 ## System discipline (HARD)
 
 0. **Первый Read** = `yaml/decompose-index.yaml` из ALLOW. Нет → `FAIL` (`decompose_index_missing`).
-1. Read plan + step shards из ALLOW по мере нужды.
+1. Read plan, every indexed step shard и только затем сверь их между собой.
 2. Проверь наличие и полноту coverage-полей **в YAML-контракте** (не в prompt).
-3. GAPS с `status: blocked` или неустранёнными блокирующими зазорами → `FAIL`.
-4. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
-5. **FORBIDDEN pytest / product code paths / test runners.** Только проверка plan/decompose yaml/md.
-6. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный JSON fence, **ноль** дальнейших tool calls.
+3. Выполни closure-check: каждый FR/AC/NFR/SC/stage/outcome/layout/replacement из plan
+   имеет доказуемое покрытие в index/shards; `plan_contract` сохраняет nouns и quotes;
+   `files`/`produces`/`deletes` и `verify` согласованы; skills gate заполнен.
+4. Выполни semantic passes: duplication, ambiguity, underspecification, coverage gaps,
+   dilution, optional-SoT/completeness ladder, layout dilution, FR remap, inconsistency,
+   constitution (если есть) и skills gate. Любой CRITICAL или другой явно блокирующий gap → `FAIL`.
+5. GAPS с `status: blocked`, orphan-replace, пустыми обязательными полями или
+   несовпадением plan → decompose → `FAIL`.
+6. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-verdict` command ниже.
+7. **FORBIDDEN pytest / product code paths / test runners.** Только проверка plan/decompose yaml/md.
+8. После ≤6 Read — **pre-emit validate-verdict** (Bash), затем финальный JSON fence, **ноль** дальнейших tool calls.
 
 ## Pre-emit validate-verdict (HARD — machine-enforced)
 

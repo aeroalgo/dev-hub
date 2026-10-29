@@ -1,5 +1,5 @@
 ---
-description: "SECURITY epic — S vs M/L, PLAN → DECOMPOSE → aNN audit slices (shared BACK/FRONT/INTEG)"
+description: "SECURITY epic — S vs M/L, PLAN → DECOMPOSE → aNN audit slices (shared BACK/FRONT/INTEG/APP)"
 alwaysApply: false
 ---
 # SECURITY epic — shared
@@ -21,7 +21,7 @@ alwaysApply: false
 ## Layout (все роли)
 
 ```
-memory-bank/{back|front|integration}/security/
+memory-bank/{back|front|integration|app}/security/
   plan/
     <id>/md/plan.md               # SECURITY PLAN (M/L: §0.0 unlimited)
     <id>/yaml/                    # SECURITY DECOMPOSE (эпик)
@@ -50,10 +50,10 @@ M/L: **FORBIDDEN** полный аудит в PLAN/DECOMPOSE; execute тольк
 
 | Command | Writes |
 |---------|--------|
-| `BACK\|FRONT\|INTEG SECURITY PLAN` | `security/plan/<id>/md/plan.md` |
-| `BACK\|FRONT\|INTEG SECURITY DECOMPOSE` | `security/plan/<id>/yaml/` |
-| `BACK\|FRONT\|INTEG SECURITY` @aNN (эпик) | **только** `implement/<id>/aNN-*.yaml` (+ findings; код не чинить) |
-| `BACK\|FRONT\|INTEG SECURITY` (без эпика) | **только** `security/security-audit-YYYYMMDD-<slug>.md` |
+| `BACK\|FRONT\|APP\|INTEG SECURITY PLAN` | `security/plan/<id>/md/plan.md` |
+| `BACK\|FRONT\|APP\|INTEG SECURITY DECOMPOSE` | `security/plan/<id>/yaml/` |
+| `BACK\|FRONT\|APP\|INTEG SECURITY` @aNN (эпик) | **только** `implement/<id>/aNN-*.yaml` (+ findings; код не чинить) |
+| `BACK\|FRONT\|APP\|INTEG SECURITY` (без эпика) | **только** `security/security-audit-YYYYMMDD-<slug>.md` |
 
 ## Behavior freeze (HARD — все scopes)
 
@@ -88,7 +88,7 @@ Token-economy lean = **load** unrelated docs, **not** lean **write** of security
 
 ### PLAN must include
 
-- Threat / surface inventory (роли: BACK=api/auth/db/jobs; FRONT=XSS/tokens/CSP/bundle; INTEG=wire/authz/IDOR/contract) — **paths + routes**, не только заголовки
+- Threat / surface inventory (роли: BACK=api/auth/db/jobs; FRONT=XSS/tokens/CSP/bundle; APP=contract/API/UI/wire; INTEG=wire/authz/IDOR/contract) — **paths + routes**, не только заголовки
 - Для BACK при наличии filter/SQL SoT: **отдельный раздел** querystring → `PaginateQueryParams` / ORM QueryBuilder / `build_sql_query` (dataflow, call sites, residual SQLi vs over-filter)
 - Priority matrix Critical→Low с обоснованием
 - Inventory findings (candidate Critical/High) с path:line — **без** копирования plaintext secrets в plan

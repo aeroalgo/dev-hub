@@ -1,5 +1,5 @@
 ---
-description: "PLAN Phase 0 — auto-clarify orchestration (BACK/FRONT/INTEG); * CLARIFY остаётся для добора и revisit"
+description: "PLAN Phase 0 — auto-clarify orchestration (BACK/FRONT/INTEG/APP); * CLARIFY остаётся для добора и revisit"
 alwaysApply: false
 ---
 # PLAN ↔ CLARIFY orchestration
@@ -8,7 +8,7 @@ alwaysApply: false
 **`* CLARIFY`** — отдельная команда для добора (квота 20/20), pipeline-revisit, CRITICAL после draft plan.
 
 **Shared clarify mechanics:** `workflow-clarify-core.mdc`
-**Role wrappers:** `workflow-clarify.mdc` (back/front/integration)
+**Role wrappers:** `workflow-clarify.mdc` (back/front/integration/app)
 **Шаблон:** `clarify.md`
 **Skills:** `grill-me` → `grilling` (+ situational companions)
 

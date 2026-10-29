@@ -5,7 +5,7 @@ Runtime adapter добавляет только транспортный dialect
 субагента; он не меняет карту gate-агентов, repair-loop или finish-инварианты.
 
 Parent **MAY** spawn любых Agent по нужде.  
-**Обязательные** gate’ы (когда agent enabled в scope): **explorer** (codebase search) · **verify** (pre-FINISH) · **reviewer** (BACK QA).
+**Обязательные** gate’ы (когда agent enabled в scope): **explorer** (codebase search) · **verify** (pre-FINISH) · **reviewer** (BACK/APP QA).
 
 | `subagent_type` | Phase / Когда | Обязателен? | Alias compatibility |
 |-----------------|---------------|-------------|---------------------|
@@ -14,9 +14,8 @@ Parent **MAY** spawn любых Agent по нужде.
 | `verify-bugfix` | BUGFIX pre-FINISH (`code_changed: yes`) | **да** (если gate active в loop) | `@verify` |
 | `bugfix-fix` | BUGFIX swarm — fix **one** queue item | **да** (parent spawn ≤3 parallel) | `@bugfix-fix`, `bugfix` |
 | `context-sync` | QA pass — root canon sync + `sync-*.md` | **да** after verify-qa PASS | `@context-sync`, `ctx-sync` |
-| `analyze-verify` | Internal DECOMPOSE closure gate | **да** after analyze-*.yaml | — |
-| `verify-qa` | BACK/FRONT QA после suite | **да** (если gate active в loop) | `@reviewer` |
-| `verify-decompose` | DECOMPOSE structural gate | **да** (если gate active в loop) | — |
+| `verify-qa` | BACK/FRONT/APP QA после suite | **да** (если gate active в loop) | `@reviewer` |
+| `verify-decompose` | DECOMPOSE structural + semantic closure gate | **да** (если gate active в loop) | — |
 | `gate-repair` | после `@verify-*` FAIL/BLOCKED **или actionable QA contract finding** | **да** (если enabled в loop) | — |
 | `sunset-inventory` | discovery / scan sunset targets (legacy fallbacks, dual-paths, shims) | **да** (если shard `sunset_scope.required: true`) | `@sunset-inventory`, `sunset` |
 | `verify` (alias) | pre-FINISH IMPLEMENT / BUGFIX | legacy alias → `verify-implement` / `verify-bugfix` | `@verify` |
@@ -27,12 +26,12 @@ Parent **MAY** spawn любых Agent по нужде.
 
 | Phase / Role Mode | Expected Agent | Fallback / Alias |
 |-------------------|----------------|------------------|
-| BACK/FRONT IMPLEMENT | `verify-implement` | `verify` |
-| BACK/FRONT REFACTOR | `verify-implement` | `verify` |
-| BACK/FRONT TASK | `verify-implement` | `verify` |
-| BACK/FRONT BUGFIX | `verify-bugfix` (pre-FINISH) + `bugfix-fix`×≤3 (swarm) | `verify` / `bugfix` |
-| BACK/FRONT QA | `verify-qa` + `context-sync` (after PASS) | `reviewer` / `ctx-sync` |
-| BACK/FRONT DECOMPOSE | `verify-decompose` + `analyze-verify` | — |
+| BACK/FRONT/APP IMPLEMENT | `verify-implement` | `verify` |
+| BACK/FRONT/APP REFACTOR | `verify-implement` | `verify` |
+| BACK/FRONT/APP TASK | `verify-implement` | `verify` |
+| BACK/FRONT/APP BUGFIX | `verify-bugfix` (pre-FINISH) + `bugfix-fix`×≤3 (swarm) | `verify` / `bugfix` |
+| BACK/FRONT/APP QA | `verify-qa` + `context-sync` (after PASS) | `reviewer` / `ctx-sync` |
+| BACK/FRONT/APP DECOMPOSE | `verify-decompose` | — |
 
 ## Политика
 
@@ -43,11 +42,10 @@ Parent **MAY** spawn любых Agent по нужде.
 | Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: implement yaml + decompose yaml + code; checklist SoT = decompose; alias `@verify`); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
 | BUGFIX work | parent **spawn `bugfix-fix`≤3** (1 item / child, disjoint files); затем **`@verify-bugfix`** |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (`ALLOW READ` с bugfix queue + report; queue SoT статусов, report SoT Changes/Verification; alias `@verify`); FAIL/DENY → fix → retry до PASS |
-| Перед DECOMPOSE promotion | **`@verify-decompose` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: plan.md + decompose-index.yaml; coverage SoT = shards); PASS оставляет parent в DECOMPOSE |
+| Перед DECOMPOSE promotion | **`@verify-decompose` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: plan.md + decompose-index.yaml + shards; coverage/semantic closure SoT = ALLOW READ); PASS атомарно продвигает фазу |
 | После `@verify-*` VERDICT: FAIL или QA contract finding | **`@gate-repair` ОБЯЗАТЕЛЬНО**; repair → retry тот же verify/QA до PASS |
-| Перед DECOMPOSE promotion (closure check) | **`@analyze-verify`** после analyze-*.yaml; FAIL → `@gate-repair` → retry; PASS → атомарно продвигает DECOMPOSE и завершает parent |
 | После verify-qa PASS | **`@context-sync` ОБЯЗАТЕЛЬНО** → `sync-*.md`; `done` атомарно закрывает QA (parent не вызывает finish) |
-| BACK/FRONT QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (Suite results + ALLOW + Frozen checklist; alias `@reviewer`); pytest — у parent |
+| BACK/FRONT/APP QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (Suite results + ALLOW + Frozen checklist; alias `@reviewer`); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
 
 ### Generic registry policy
@@ -85,7 +83,7 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 
 ## Gate Verdict Contract (JSON Fenced Block) — machine SoT
 
-Субагенты `verify-implement`, `verify-bugfix`, `verify-qa`, `verify-decompose`, `analyze-verify` (и алиасы) **ОБЯЗАНЫ**:
+Субагенты `verify-implement`, `verify-bugfix`, `verify-qa`, `verify-decompose` (и алиасы) **ОБЯЗАНЫ**:
 
 1. Bash `validate-verdict` до `valid: true` (пишет pre-emit stamp + `emit_exactly`; без stamp SubagentStop → reject).
 2. В финальный ответ — ровно один fenced `` ```json `` = `emit_exactly` (кроме `recorded_at`); **без лишних ключей**. Parent: `handoff REJECTED` ≠ PASS.
@@ -122,7 +120,7 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 | Event | Эффект |
 |-------|--------|
 | PreToolUse Agent | HARD RULE на все Agent; strip worktree/model на overlay; deny неполного prompt на verify/reviewer/explorer |
-| SubagentStop | verify-* / analyze-verify: invalid fence, forbidden keys, или нет matching pre-emit stamp после validate-verdict → block (+ schema retry / halt) |
+| SubagentStop | verify-*: invalid fence, forbidden keys, или нет matching pre-emit stamp после validate-verdict → block (+ schema retry / halt) |
 | Stop | FINISH без verify / QA без verify-qa (reviewer) / QA без Handoff → block; **исключение:** no-VERDICT retries исчерпаны + Handoff `NEED_HUMAN: verify_no_verdict` → allow stop |
 
 State: `.claude/runtime/spawn-gate/<session>.json` (gitignore).

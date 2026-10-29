@@ -1,5 +1,5 @@
 ---
-description: "Режим APP BUGFIX — mixed-surface fix из APP QA queue"
+description: "Режим APP BUGFIX — root-cause fix из APP QA queue"
 alwaysApply: false
 ---
 ### Команда: APP BUGFIX
@@ -12,7 +12,7 @@ alwaysApply: false
 ## Hot path
 
 1. `OK APP BUGFIX - [суть]` → **Gates** + epic-scoped-paths (`app`)
-2. Вход: `bugfix-queue.yaml` из `load_now` (APP QA) — SoT статусов
+2. Вход: `bugfix-queue.yaml` из `load_now` (APP QA) — SoT статусов; один item может закрывать backend+frontend+wire один root cause
 3. Item может иметь `surfaces: [backend, frontend]` — один root cause, оба конца в одном fix
 4. Swarm: parent spawn ≤3 `bugfix-fix`; **1 child = 1 queue item**; parent-only browser/frontend tests
 5. Red → fix → green на нужных стеках item; verification.command покрывает touched surfaces

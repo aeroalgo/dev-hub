@@ -1,21 +1,23 @@
 ---
-description: "APP core — mixed-surface QA/BUGFIX, stack profile, parent-only lanes"
+description: "APP core — contract-first mixed-surface lifecycle, stack profile, parent-only lanes"
 alwaysApply: false
 ---
 # APP — core
 
-Только при командах `APP QA` / `APP BUGFIX`.
+Только при командах `APP *`.
 
 ## Политика
 
-1. **Charter first** — до тестов: code under test, surfaces required/optional/skipped(+reason), mode, stack_profile.
-2. **Lanes** — именованные: `backend` · `frontend_build` · `browser` · `live_smoke` · `wire_journey` · `leftover_sot` · `behavior_smoke` · `exploratory`. PASS = все **required** lanes pass.
-3. **`suite_wrong_stack` не применяется** к смеси pytest+browser внутри APP QA (lanes разделены). FORBIDDEN: PASS только по pytest, если charter требовал `browser` / `frontend_build`.
-4. **Stack profile** — SoT команд front/browser:
+1. **Contract first** — в APP PLAN фиксируются method/path, input/output, ошибки, роли, UI journey и done-критерий. В IMPLEMENT один shard может менять backend+frontend файлы.
+2. **Charter first** — до тестов: code under test, surfaces required/optional/skipped(+reason), mode, stack_profile.
+3. **Lanes** — именованные: `backend` · `frontend_build` · `browser` · `live_smoke` · `wire_journey` · `leftover_sot` · `behavior_smoke` · `exploratory`. PASS = все **required** lanes pass.
+4. **Test plan** — до lanes выбрать применимые обязанности из `.cursor/templates/qa/test-catalog.yaml` по implement shard/contract/diff/prior blockers; каждый каталоговый тест должен быть selected, `not_applicable` с reason или `not_run` с next action. Каталог содержит только имена, конкретные команды задают shard/profile/lane.
+5. **`suite_wrong_stack` не применяется** к смеси pytest+browser внутри APP QA (lanes разделены). FORBIDDEN: PASS только по pytest, если charter требовал `browser` / `frontend_build`.
+6. **Stack profile** — SoT команд front/browser:
    - если есть `docs/testing/front-stack-profile.md` (или путь в charter) → читать и следовать;
    - иначе hub-default: Vitest + Playwright (`npm --prefix frontend …`) для front/browser.
-5. **Parent-only** — frontend build, Vitest, Playwright, `run_browser_qa.py`, browser scripts: только parent. Subagent не гоняет эти команды.
-6. **Live smoke** — живой HTTP (`scripts/live_smoke.sh`); ASGI/mocks ≠ live_smoke.
-7. **Timeout** — @.cursor/rules/shared/test-timeout.mdc (APP block).
-8. **Артефакты** — `memory-bank/app/…` · @.cursor/rules/shared/epic-scoped-paths.mdc.
-9. **После APP BUGFIX** → повторный `APP QA` (не одиночный `BACK QA`).
+7. **Parent-only** — frontend build, Vitest, Playwright, `run_browser_qa.py`, browser scripts: только parent. Subagent не гоняет эти команды.
+8. **Live smoke** — живой HTTP (`scripts/live_smoke.sh`); ASGI/mocks ≠ live_smoke.
+9. **Timeout** — @.cursor/rules/shared/test-timeout.mdc (APP block).
+10. **Артефакты** — `memory-bank/app/…` · @.cursor/rules/shared/epic-scoped-paths.mdc.
+11. **После APP BUGFIX** → повторный `APP QA` (не одиночный `BACK QA`).

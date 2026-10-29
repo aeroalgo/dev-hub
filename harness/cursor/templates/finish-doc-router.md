@@ -29,11 +29,11 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 
 При QA `fail|blocked` обязательно добавляется `memory-bank/{role}/bugfix/<epic>/bugfix-queue.yaml`; при BUGFIX queue идёт первым в `load_now`, затем bugfix report и optional QA source.
 
-Канон внутреннего `analyze-verify` gate:
+Канон единого `verify-decompose` gate:
 
-1. `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` — read-only findings, coverage и `metrics.critical_count`;
-2. при `critical_count = 0` + accepted `analyze-verify` PASS → следующий `* IMPLEMENT` (первый pending shard);
-3. при `critical_count > 0` → repair внутри DECOMPOSE; не вводить отдельную пользовательскую фазу.
+1. агент читает plan, `yaml/decompose-index.yaml` и каждый indexed shard;
+2. он сам проверяет structural + semantic closure и при отсутствии блокирующих gaps accepted PASS атомарно открывает следующий `* IMPLEMENT`/`* CREATIVE`;
+3. при любом блокирующем gap → FAIL/repair внутри DECOMPOSE; отдельный analyze artifact или пользовательская фаза не вводятся.
 
 **FORBIDDEN в `load_now`:** полный `plan/<epic>/md/plan.md` · «acceptance context = plan» · completed shards · `tasks.md` / `systemPatterns.md` · markdown indexes
 **OK index в `load_now`:** только `plan/<epic>/yaml/decompose-index.yaml`
@@ -67,7 +67,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 
 ## Shard checkbox / implement (ORDER — до decompose completed)
 
-- [ ] **Файл существует:** `memory-bank/{back|front|integration}/implement/<plan>/sNN|eNN-<slug>.yaml`
+- [ ] **Файл существует:** `memory-bank/{back|front|app|integration}/implement/<plan>/sNN|eNN-<slug>.yaml`
 - [x] Канон: `.cursor/templates/implement/epic-step.yaml` (`schema: epic-implement/v1`, `role`, `checkpoints`, FINISH только при все cp `done`)
 - [ ] **ЗАПРЕЩЕНО** legacy `.md` implement shards и Handoff внутри yaml step
 - [ ] **## Handoff** этого `sNN|eNN` уже в `activeContext.md` (шаг ниже) — **до** галки decompose
@@ -100,7 +100,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 - **Следующий:** `<ROLE> <MODE>` @target — по Handoff / index (не выдумывать цепочку).
 ```
 
-QA (обязателен всегда — pass и blocked). Роль: `BACK` | `FRONT` | `INTEG` — подставить в заголовок и пути.
+QA (обязателен всегда — pass и blocked). Роль: `BACK` | `FRONT` | `APP` | `INTEG` — подставить в заголовок и пути.
 
 ```markdown
 ## Handoff BACK QA T-xxx <plan_id>
@@ -212,13 +212,13 @@ BUGFIX завершён. Повторная валидация эпики.
 3. memory-bank/back/bugfix/bugfix-YYYYMMDD-<slug>.md (что исправлено)
 ```
 
-Для FRONT/INTEG — заменить префикс (`FRONT QA`, `INTEG BUGFIX`, пути `front/` / `integration/`).
+Для FRONT/APP/INTEG — заменить префикс (`FRONT QA`, `APP QA`, `INTEG BUGFIX`, пути `front/` / `app/` / `integration/`).
 
 Подставить реальные T-xxx, plan_id, subject, paths.
 
 ---
 
-Internal QA context-sync result (после QA pass). Роль: `BACK` | `FRONT` | `INTEG`.
+Internal QA context-sync result (после QA pass). Роль: `BACK` | `FRONT` | `APP` | `INTEG`.
 
 ```markdown
 ## Internal QA context-sync result <epic_id>

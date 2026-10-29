@@ -21,7 +21,13 @@ alwaysApply: false
    - `surfaces_required` / `surfaces_optional` / `surfaces_skipped` (+ reason на каждый skip)
    - `mode`: `diff_aware` | `quick` | `full` | `regression`
    - `stack_profile` path или `hub-default`
-3. **Select surfaces** (GSTACK-style):
+3. **Build the scope-driven test plan (HARD)** — use `.cursor/templates/qa/test-catalog.yaml` and derive applicability from the current implement shards (`files`, `tests`, `integration_check`, `wire_complete`), product contract/AC/BN, diff, and prior blockers. Record `test_plan.selected[]`, `test_plan.not_applicable[]` with a reason, and `test_plan.not_run[]` with a next action. Every catalog item must be accounted for; omission is not a skip.
+   - `full` selects every applicable catalog test.
+   - `diff_aware` selects changed and adjacent behavior plus all risk categories signaled by scope.
+   - `regression` selects the full applicable set plus all prior failed obligations.
+   - Catalog entries contain names only. Concrete commands, routes, hosts, ports, fixtures, and credentials come from implement shards, stack profiles, and named lanes.
+   - A selected obligation without executable test evidence is an `ac_gap`/`suite_red` finding; do not mark it PASS because a build or status check is green. If the implementation needs a new regression test, record that obligation explicitly and route it through the normal fix plan.
+3a. **Select surfaces** (GSTACK-style):
    - `application/` / `backend/` / non-browser `*.py` → `backend`
    - `frontend/` / static review bundle → `frontend_build` (+ `browser` если UI)
    - UI AC / front in diff → `browser`
@@ -37,7 +43,7 @@ alwaysApply: false
    6. `behavior_smoke` — если agent/hook/gate FR; иначе `n/a`.
    7. optional: `wire_journey`, `exploratory` (time-box; skip если no live app).
 5. Каждый lane → `status` + `command` + `evidence` в `lanes[]`.
-6. Evidence packs: `coverage_map` · `review` · `test_audit` · `browser` · `retro` (как BACK/FRONT QA).
+6. Evidence packs: `test_plan` · `coverage_map` · `review` · `test_audit` · `browser` · `retro` (как BACK/FRONT QA).
 7. Security spot-check: OWASP short на auth/API в diff.
 8. **verify-qa** после всех required lanes: parent pack `suite_scope: app_lanes` + lane results + Frozen checklist. **FORBIDDEN** mid-lane FINISH.
 9. Anti-ratchet: blockers prefix `lane:<id>|suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:|live_smoke:`.
@@ -56,6 +62,8 @@ alwaysApply: false
 ## Abort
 
 - PASS без charter / без `lanes[]` → FAIL
+- PASS без полного `test_plan` по каталогу → FAIL (`test_plan_incomplete`)
+- applicable catalog test omitted, silently skipped, or selected without evidence → FAIL (`test_catalog_gap`)
 - required lane skipped без reason / silent → FAIL
 - PASS только backend при required browser/frontend_build → FAIL (`lane_incomplete`)
 - live_smoke = ASGI/mocks → FAIL

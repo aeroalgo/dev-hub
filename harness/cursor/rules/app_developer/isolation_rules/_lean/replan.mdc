@@ -1,0 +1,9 @@
+---
+description: "APP REPLAN gates — explicit new mixed epic"
+alwaysApply: false
+---
+# APP REPLAN — gates
+
+1. Consume QA, bugfix and product drift evidence for the completed APP epic.
+2. Create a new APP epic or a no-op record; never overwrite the prior contract or carry open FR silently.
+3. The new queue follows APP PLAN → DECOMPOSE → IMPLEMENT → QA.

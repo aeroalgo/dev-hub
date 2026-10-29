@@ -1,12 +1,14 @@
 ---
-description: "Internal pre-IMPLEMENT analysis core — deterministic DECOMPOSE detection passes"
+description: "DECOMPOSE verification checklist — deterministic semantic closure passes"
 alwaysApply: false
 ---
-# Pre-IMPLEMENT analysis — shared detection core (internal DECOMPOSE contract)
+# DECOMPOSE semantic closure — shared detection core (verify-decompose contract)
 
-Роли BACK · FRONT · INTEG вызывают этот core из DECOMPOSE. Это **STRICTLY READ-ONLY**: исходные plan, decompose и code не изменяются; отдельной пользовательской команды для него нет.
-
-Артефакт: `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`, шаблон `@.cursor/templates/analyze/epic-analyze.yaml`.
+Роли BACK · FRONT · APP · INTEG используют этот core внутри единственного
+`verify-decompose`. Это **STRICTLY READ-ONLY**: исходные plan, decompose и code не
+изменяются; отдельной пользовательской команды и обязательного `analyze-*.yaml`
+артефакта нет. Старый analyze artifact — только исторические данные и не является
+условием promotion.
 
 ## Detection passes
 
@@ -20,14 +22,14 @@ alwaysApply: false
 6. **Optional-SoT / completeness ladder (HARD)** — FR обещает sole/единый machine path, смену контракта границы, или Technology axiom replace, а очередь: (a) только add без wire и/или enforce; (b) wording optional/soft/preferred / enforce-off default без follow-up epic ID в queue; (c) нет Kind I / instruction rewrite при смене формата границы; (d) нет `*-legacy-fallback-purge` при sunset ≠ n/a. Category: `optional_sot`. P0/P1 → CRITICAL; иначе HIGH. Канон: behavior-first §3–§4 · legacy-fallback-cleanup §2.1a.
 7. **Layout dilution (HARD)** — (a) path nodes из plan **Target layout** / tree (NEW/SoT/`git mv` dest) не ∈ step `produces`/`files`/`deletes` и нет `out_of_scope`+`follow_up:`+ID ∈ `roadmap-*.queue.yaml`; (b) Requirements coverage Notes: `deferred`/`partial`/`leave for later` без queue ID; (c) Appetite/Product probe «Cut: X» при X всё ещё в Target layout/FR/AC; (d) index remaps FR «Кратко», отбрасывая plan nouns — category `layout_dilution` **и** `FR remap`. → CRITICAL. Канон: behavior-first §1a.
 8. **FR remap (HARD)** — coverage/index колонка Requirements переписывает plan FR (другой title / урезанные nouns / перенумерация). Category: `FR remap` / `layout_dilution`. → CRITICAL. Inventory analysis = **полный текст plan FR**, не remapped «Кратко».
-9. **Step granularity / level cap** — BACK/FRONT: нет `level`/`sNN_cap` в index; `sNN_count > sNN_cap` (L1→1 · L2→2 · L3→3); L4 / Effort probe leftover; добивание пустых sNN до cap; micro-ladder (schema→core→CLI→wire×N→docs→tests как отдельные sNN без outcome); audit-* хвост >1 sNN без product outcome; **`s01-*-red-tests` отдельный shard** (TDD внутри шага). INTEG: нет `level` **или** layer-first micro-split одного element (registry 1:1 не режется cap). Categories: `step_granularity` · `effort_cap_violation`. → **HIGH** (ре-DECOMPOSE preferred; сам по себе не блокирует IMPLEMENT если coverage FR ок). Канон: behavior-first §3a.
+9. **Step granularity / level cap** — BACK/FRONT: нет `level`/`sNN_cap` в index; `sNN_count > sNN_cap` (L1→1 · L2→2 · L3→3); L4 / Effort probe leftover; добивание пустых sNN до cap; micro-ladder (schema→core→CLI→wire×N→docs→tests как отдельные sNN без outcome); audit-* хвост >1 sNN без product outcome; **`s01-*-red-tests` отдельный shard** (TDD внутри шага). APP: те же `sNN`/level limits, но backend + frontend + wire одного outcome остаются в одном mixed shard; отдельный INTEG/eNN split = dilution. INTEG: нет `level` **или** layer-first micro-split одного element (registry 1:1 не режется cap). Categories: `step_granularity` · `effort_cap_violation`. → **HIGH** (ре-DECOMPOSE preferred; сам по себе не блокирует IMPLEMENT если coverage FR ок). Канон: behavior-first §3a.
 10. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
 11. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
 12. **Skills gate (HARD)** — на **каждый** `sNN`/`eNN` из index: секция `skills.code_surface` + `skills.impl`.  
     - `code_surface: docs` → `impl: []` только.  
-    - иначе (api|service|sql|ws|model|infra|test|ui): `impl` **не** пустой; BACK Core(4) / FRONT Impl Core(6) целиком ∈ `impl`; session skills (`writing-plans`/…) в `impl` = FAIL.  
+    - иначе (api|service|sql|ws|model|infra|test|ui): `impl` **не** пустой; BACK Core(4) / FRONT Impl Core(6) / APP mixed union целиком ∈ `impl`; session skills (`writing-plans`/…) в `impl` = FAIL.
     - Surface defaults (BACK: `api`→fastapi+async+errors; `service`→async+errors; `ws`→+websocket; `sql`→sqlalchemy; FRONT `ui`→playwright-best-practices) — каждый missing id либо в `impl`, либо в `skills.omit_justification` / `skills_omit` с **непустой** причиной. Bare omit / copy-paste `impl: []` с template = FAIL.  
-    - Situational вне role allowlist или >cap (BACK ≤6 / FRONT ≤4) = FAIL.  
+    - Situational вне role allowlist или >cap (BACK ≤6 / FRONT ≤4 / APP ≤6) = FAIL.
     Categories: `skills_core_missing` · `skills_situational_unjustified` · `skills_impl_empty` · `skills_allowlist`. → **CRITICAL**. Канон: `skills-gate-situational.mdc` · `validate-decompose-tree` (machine). FRONT при `visible_ui: yes` — check Design groups в step `skills.design`/`design_skills`: отсутствие **D0 Lean Core** = CRITICAL `skills_design_core_missing`; >1 D2 dialect = CRITICAL `skills_design_dialect_conflict`; лишние D1/D3/D4 без surface/pack обоснования = HIGH `skills_design_group_unjustified`.
 
 Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
@@ -39,13 +41,19 @@ alwaysApply: false
 - **MEDIUM** — non-core gap, частичное покрытие или неоднозначность, которую можно закрыть до cutover.
 - **LOW** — naming/style drift без влияния на decomposition, tests или runtime behavior.
 
-`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution, Optional-SoT, Layout dilution, FR remap, Skills gate**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`. **step_granularity** = HIGH → IMPLEMENT допустим, но DECOMPOSE lean preferred на следующем эпике.
+При внутренней проверке считай coverage и severity детерминированно: любой CRITICAL
+(включая Dilution, Optional-SoT, Layout dilution, FR remap, Skills gate) блокирует
+PASS; `step_granularity` = HIGH требует предупреждения, но не блокирует сам по себе.
 
-**Promote:** deferred pre-IMPLEMENT analysis **FORBIDDEN** как путь в IMPLEMENT. Только analysis artifact с `critical_count=0`.
+**Promote:** deferred semantic analysis **FORBIDDEN** как путь в IMPLEMENT. Только
+accepted `verify-decompose` PASS после применения всех detection passes открывает
+IMPLEMENT/CREATIVE.
 
 ## 50-cap
 
-В `findings[]` допускается не более 50 строк. Если кандидатов больше, сохрани первые 50 в детерминированном порядке и добавь summary finding с количеством overflow и категориями, не скрывая наличие переполнения.
+Внутренний список findings ограничен 50 строками. Если кандидатов больше, учитывай
+overflow в итоговом FAIL; parent не передаёт findings в prompt и не пишет отдельный
+analysis artifact.
 
 ## Output checklist
 
@@ -56,9 +64,9 @@ alwaysApply: false
 - Layout dilution pass выполнен; Target layout paths + Notes deferred без queue ≠ `covered`;
 - FR remap pass выполнен; coverage `plan_text_verbatim` совпадает с plan FR nouns;
 - Skills gate pass выполнен по **каждому** step (`skills_*` CRITICAL → DECOMPOSE);
-- metrics пересчитаны после всех passes;
-- **Нет** рекомендации IMPLEMENT при `critical_count>0` и **нет** soft-defer в Handoff.
-- CRITICAL вынесены в `next_actions[]`;
+- severity пересчитана после всех passes;
+- **Нет** PASS при CRITICAL и **нет** soft-defer в Handoff;
+- все CRITICAL зазоры перечислены в internal blocker set до финального verdict;
 - исходные файлы, code и implement artifacts не изменены.
 
 ## analyze-convergence vs validate-traceability vs reconcile-spec

@@ -8,10 +8,17 @@ from typing import Any, Literal
 
 import yaml
 
+from .evidence import (
+    evidence_file_ref,
+    is_runtime_claim,
+    requires_runtime_verification,
+    validate_runtime_artifact_path,
+    validate_runtime_evidence,
+)
 from .store import FileMutation
 
 
-SUPPORTED_ROLES = ("back", "front", "integration")
+SUPPORTED_ROLES = ("back", "front", "integration", "app")
 
 
 @dataclass(frozen=True)
@@ -402,6 +409,7 @@ def decompose_yaml_problems(project: Path, role: str, epic_id: str) -> list[str]
 _INDEX_STEP_STATUSES = frozenset({"pending", "completed", "done", "in_progress"})
 _FRESH_DECOMPOSE_STATUSES = frozenset({"pending"})
 _COMPLETED_INDEX_STATUSES = frozenset({"completed", "done"})
+_QA_SCHEMAS = frozenset({"epic-qa/v1", "app-qa/v1"})
 
 
 def validate_decompose_tree(
@@ -623,6 +631,107 @@ def latest_phase_payload(paths: list[Path]) -> tuple[Path | None, dict[str, Any]
 
 
 
+def _terminal_item_evidence_state(project: Path, item: dict[str, Any]) -> tuple[bool, str]:
+    """Validate evidence for a terminal queue item before it can be trusted."""
+
+    status = str(item.get("status") or "").strip().lower()
+    if status not in {"done", "closed"}:
+        return True, "bugfix_item_not_terminal"
+    if status == "done" and not str(item.get("done_at") or "").strip():
+        return False, "bugfix_item_done_at_required"
+    if not str(item.get("evidence") or "").strip():
+        return False, "bugfix_item_evidence_required"
+    if not is_runtime_claim(item):
+        return True, "bugfix_item_evidence_valid"
+
+    reference = evidence_file_ref(item)
+    return validate_runtime_evidence(
+        project,
+        reference,
+        expected_command=item.get("verify"),
+        anchor=item.get("done_at"),
+    )
+
+
+def _queue_verification_state(project: Path, verification: dict[str, Any]) -> tuple[bool, str]:
+    """Validate the queue-level verification receipt when it represents a live run."""
+
+    status = str(verification.get("status") or "").strip().lower()
+    if status != "pass":
+        return False, "bugfix_verification_required"
+    if not all(
+        str(verification.get(field) or "").strip()
+        for field in ("command", "last_run_at", "evidence")
+    ):
+        return False, "bugfix_verification_required"
+    if not requires_runtime_verification(verification.get("command")):
+        return True, "bugfix_verification_valid"
+
+    reference = evidence_file_ref(verification)
+    return validate_runtime_evidence(
+        project,
+        reference,
+        expected_command=verification.get("command"),
+        anchor=verification.get("last_run_at"),
+    )
+
+
+def qa_runtime_evidence_state(project: Path, payload: dict[str, Any]) -> tuple[bool, str]:
+    """Validate runtime claims embedded in a QA artifact.
+
+    Unit-only QA artifacts remain valid without a live lane. Once an artifact
+    declares a passing live smoke or browser journey, the claim must point to
+    a real, typed runtime artifact; prose and static/mock traces are rejected.
+    """
+
+    live_smoke = payload.get("live_smoke")
+    if isinstance(live_smoke, dict):
+        live_status = str(live_smoke.get("status") or "").strip().lower()
+        if live_status != "pass":
+            return False, "qa_live_smoke_not_pass"
+        reference = evidence_file_ref(live_smoke)
+        return validate_runtime_evidence(
+            project,
+            reference,
+            expected_command=live_smoke.get("command"),
+            anchor=live_smoke.get("last_run_at") or live_smoke.get("recorded_at"),
+        )
+
+    browser = payload.get("browser")
+    if isinstance(browser, dict) and str(browser.get("status") or "").strip().lower() == "pass":
+        journeys = browser.get("journeys")
+        if not isinstance(journeys, list) or not journeys:
+            return False, "qa_browser_journeys_required"
+        reference = evidence_file_ref(browser)
+        if not reference:
+            return False, "qa_browser_evidence_required"
+        if Path(reference).suffix.lower() in {".json", ".yaml", ".yml"}:
+            return validate_runtime_evidence(
+                project,
+                reference,
+                expected_command=browser.get("command"),
+                anchor=browser.get("last_run_at") or browser.get("recorded_at"),
+            )
+        return validate_runtime_artifact_path(project, reference)
+
+    return True, "qa_runtime_evidence_not_declared"
+
+
+def qa_pass_state(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
+    """Return whether the latest QA PASS has valid declared runtime evidence."""
+
+    artifacts = phase_artifacts(project, role, epic_id, "qa")
+    if not artifacts:
+        return False, "qa_artifact_missing"
+    payload = phase_payload(artifacts[-1])
+    if payload is None:
+        return False, "qa_artifact_invalid"
+    verdict = str(payload.get("verdict") or payload.get("status") or "").strip().lower()
+    if verdict not in {"pass", "passed", "complete", "completed"}:
+        return False, "qa_verdict_not_pass"
+    return qa_runtime_evidence_state(project, payload)
+
+
 def bugfix_queue_path(project: Path, role: str, epic_id: str) -> Path:
     return project / "memory-bank" / normalize_role(role) / "bugfix" / epic_id / "bugfix-queue.yaml"
 
@@ -650,14 +759,18 @@ def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, st
         status = str(item.get("status") or "").strip().lower()
         if status not in {"open", "in_progress", "blocked", "done", "closed", "cancelled"}:
             return False, "bugfix_queue_item_invalid"
+        item_ok, item_reason = _terminal_item_evidence_state(project, item)
+        if not item_ok:
+            return False, item_reason
         statuses.append(status)
     if any(status in {"open", "in_progress", "blocked"} for status in statuses):
         return False, "bugfix_queue_open"
     verification = payload.get("verification")
-    if not isinstance(verification, dict) or str(verification.get("status") or "").strip().lower() != "pass":
+    if not isinstance(verification, dict):
         return False, "bugfix_verification_required"
-    if not all(str(verification.get(field) or "").strip() for field in ("command", "last_run_at", "evidence")):
-        return False, "bugfix_verification_required"
+    verification_ok, verification_reason = _queue_verification_state(project, verification)
+    if not verification_ok:
+        return False, verification_reason
     return True, "bugfix_queue_ready"
 
 
@@ -679,7 +792,15 @@ def bugfix_queue_intake(project: Path, role: str, epic_id: str) -> tuple[bool, s
         status = str(item.get("status") or "").strip().lower()
         if status not in {"open", "in_progress", "blocked", "done", "closed", "cancelled"}:
             return False, "bugfix_queue_item_invalid"
+        item_ok, item_reason = _terminal_item_evidence_state(project, item)
+        if not item_ok:
+            return False, item_reason
         statuses.append(status)
+    verification = payload.get("verification")
+    if isinstance(verification, dict) and str(verification.get("status") or "").strip().lower() == "pass":
+        verification_ok, verification_reason = _queue_verification_state(project, verification)
+        if not verification_ok:
+            return False, verification_reason
     return True, "bugfix_queue_valid"
 
 
@@ -687,6 +808,6 @@ def qa_verdict(path: Path) -> str | None:
     payload = phase_payload(path)
     if payload is None:
         return None
-    if payload.get("schema") != "epic-qa/v1":
+    if payload.get("schema") not in _QA_SCHEMAS:
         return None
     return str(payload.get("verdict") or payload.get("status") or "").lower() or None

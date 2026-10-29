@@ -1,0 +1,12 @@
+---
+description: "APP REPLAN — revise a mixed-slice epic without carrying open work"
+alwaysApply: false
+---
+### Команда: APP REPLAN
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/replan.mdc
+
+## Hot path
+
+Aggregate QA evidence and product drift into a new APP plan/epic or an explicit no-op. Do not overwrite the completed epic or silently carry uncovered contract requirements.

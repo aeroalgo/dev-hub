@@ -70,6 +70,23 @@ alwaysApply: false
 | QA context-sync worker | `front/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` — worker после QA PASS; shared/workflow-context-sync.mdc |
 | SECURITY | `front/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. .cursor/rules/shared/workflow-security-epic.mdc |
 
+**APP `memory-bank/app/`** — один mixed vertical slice: contract + backend + frontend + wire и их evidence в одном эпике; ARCHIVE → `memory-bank/archive/app/`.
+
+| Режим | Папка | Именование |
+|-------|--------|------------|
+| VAN | `app/van/` | `van-YYYYMMDD.md` |
+| CLARIFY | `app/clarify/` | `clarify-YYYYMMDD-<slug>.md` |
+| PLAN | `app/plan/<epic_id>/` | `md/plan.md` + `md/prompt.md`; queue → `app/roadmap/queue.yaml` |
+| DECOMPOSE | `app/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml` |
+| CREATIVE | `app/creative/<epic_id>/` | `creative-<feature>.md` |
+| IMPLEMENT | `app/implement/<epic_id>/` | `sNN-<slug>.yaml` |
+| TASK | `app/task/` | `task-YYYYMMDD-<slug>.md` |
+| BUGFIX | `app/bugfix/<epic_id>/` | `bugfix-YYYYMMDD-<slug>.md` + `bugfix-queue.yaml` |
+| REFACTOR | `app/refactor/` | эпик: `plan/<id>/` + `implement/<id>/rNN-*.yaml` |
+| QA | `app/qa/<epic_id>/` | `qa-YYYYMMDD-<slug>.yaml` (`app-qa/v1`) |
+| QA context-sync | `app/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` |
+| SECURITY | `app/security/` | эпик: `plan/<id>/` + `implement/<id>/aNN-*.yaml` |
+
 **`memory-bank/integration/`:** роль снята. Новые артефакты — только `front/` (wire UI↔API в FRONT). Каталог оставлен read-only для незакрытых legacy-эпиков; **FORBIDDEN** создавать новые деревья под `integration/`.
 
 **Корневой архив эпиков:** `memory-bank/archive/{back\|front}/` (legacy `archive/integration/` — только дочитать). Legacy `memory-bank/{role}/archive/` не использовать для новых файлов.

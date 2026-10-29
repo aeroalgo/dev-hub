@@ -1,0 +1,19 @@
+---
+description: "APP IMPLEMENT — contract-first vertical slice with mixed TDD"
+alwaysApply: false
+---
+### Команда: APP IMPLEMENT
+
+**Bootstrap (HARD):** @.cursor/rules/shared/_lean/implement-bootstrap.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/implement.mdc  
+**Scope lock:** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
+## Hot path
+
+1. One APP shard = one mixed slice; `files:` may include backend, frontend, wire and their tests.
+2. Red → green for the contract and each touched surface. Backend targeted tests, frontend build/test and wire journey are named checkpoints from the shard.
+3. Frontend/browser commands are parent-only; no mock-only UI completion when production API/wire is in scope.
+4. Seed the implement artifact, run only shard checkpoints, then `verify-implement` and `loop.py finish`.
+5. The last APP IMPLEMENT step must prove contract + back + front + wire coverage; only then does the loop route to APP QA.
+
+**Верификация:** gates + scope-lock + plan contract + mixed targeted evidence + FINISH → APP QA.

@@ -1,0 +1,12 @@
+---
+description: "APP VAN gates — bounded mixed vertical slice"
+alwaysApply: false
+---
+# APP VAN — gates
+
+1. Read `AGENTS.md`, `mainrule.mdc`, APP index/core, workflow and this gate in the canonical order.
+2. Inventory only bounded backend, frontend, wire, data and test surfaces required by the outcome.
+3. Record production entrypoint, owner/runners, contract boundary and failure behavior before APP PLAN.
+4. Do not create an INTEG phase or write product code during VAN.
+
+Abort: unbounded discovery, missing outcome boundary, or a plan that splits one vertical slice into separate role queues.

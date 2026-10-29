@@ -1,0 +1,10 @@
+---
+description: "APP CREATIVE gates — design closure inside the epic"
+alwaysApply: false
+---
+# APP CREATIVE — gates
+
+1. Read only the current APP shard and declared design paths.
+2. Write the epic-scoped creative artifact under `memory-bank/app/creative/<epic_id>/`.
+3. Close the shard's `needs_creative` marker; do not mark the implementation step complete and do not write production code.
+4. Return to APP IMPLEMENT with the same step and contract.

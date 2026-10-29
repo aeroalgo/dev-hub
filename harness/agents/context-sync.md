@@ -22,7 +22,7 @@ overlay:
 | Секция | Обязательна |
 |--------|-------------|
 | `EPIC_ID` | да |
-| `ROLE` | да (`back` / `front` / `integration`) |
+| `ROLE` | да (`back` / `front` / `app` / `integration`) |
 | `QA` | да — путь к pass `qa-*.yaml` |
 | `ALLOW WRITE` | да — subset of root canon + sync artifact path |
 

@@ -15,7 +15,7 @@ verification-before-completion · query-builder · playwright-best-practices · 
 1. `OK INTEG QA - Выполняю техническую валидацию` → **Gates**
 2. Lean load §7; §0.11 + contract; проверки — gates
 2a. **Full suite (HARD):** Hub full `bin/pytest -q --tb=line` + parent-only Vitest/Playwright; leftover + `sot_enforce_scan`; behavior smoke. Канон: `_lean/qa.mdc`
-2c. Внутри того же QA gate `/review` сверяет back↔front contract, ownership, rollback и negative paths, а `/test-audit` проверяет weakened/status-only assertions, global mocks, uncontrolled `route.fulfill`, skip/xfail и CI inclusion; результаты идут в `review`/`test_audit`, отдельные loop-фазы не создаются.
+2c. Сначала заполнить `test_plan` по `.cursor/templates/qa/test-catalog.yaml` и scope implement shard; затем внутри того же QA gate `/review` сверяет back↔front contract, ownership, rollback и negative paths, а `/test-audit` проверяет weakened/status-only assertions, global mocks, uncontrolled `route.fulfill`, skip/xfail и CI inclusion; результаты идут в `review`/`test_audit`, отдельные loop-фазы не создаются.
 2b. Epic QA load: `#qa-consumes` через offset/grep когда есть.
 3. qa-артефакт: `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`. Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
 4. fail|blocked → §Fix plan: полный eligible список; anti-ratchet.

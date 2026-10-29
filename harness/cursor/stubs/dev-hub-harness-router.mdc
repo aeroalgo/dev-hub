@@ -6,6 +6,6 @@ alwaysApply: true
 
 # Dev-Hub Harness Router
 
-When the user command starts with a harness role command prefix (`BACK `, `FRONT `, `INTEG `):
+When the user command starts with a harness role command prefix (`BACK `, `FRONT `, `APP `, `INTEG `):
 - Follow the corresponding workflow rules in `harness/cursor/rules/`.
 - Maintain role isolation and memory-bank conventions.

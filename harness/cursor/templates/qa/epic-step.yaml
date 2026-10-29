@@ -9,6 +9,17 @@ verdict: pass
 checklist_sha256: <from Frozen QA checklist>
 verify_scope: full
 
+# Scope-driven test obligations. Keep names/IDs from test-catalog.yaml; concrete
+# commands and runtime details belong to implement shards, stack profiles, and lanes.
+test_plan:
+  catalog: ".cursor/templates/qa/test-catalog.yaml"
+  source: [implement_shards, plan_contract, diff, prior_blockers]
+  mode: full
+  scope_signals: []
+  selected: []
+  not_applicable: []
+  not_run: []
+
 scope:
   - "task: T-xxx"
   - "epic: <plan_id>"
@@ -50,6 +61,8 @@ test_audit:
 browser:
   status: pass
   stack_profile: "<project profile: Vite build + Python Playwright | n/a>"
+  evidence_file: ""
+  last_run_at: ""
   journeys: []
   artifacts: []
 
@@ -96,6 +109,8 @@ suite:
 live_smoke:
   status: pass
   command: "timeout -k 10s 300s bash scripts/live_smoke.sh"
+  evidence_file: ""
+  last_run_at: ""
   base_url: "http://127.0.0.1:8000"
   level: health
   notes: "healthz+readyz+list; extended только при live FR/runbook"

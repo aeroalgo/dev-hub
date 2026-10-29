@@ -1,0 +1,9 @@
+---
+description: "APP CLARIFY gates — close contract ambiguity before plan"
+alwaysApply: false
+---
+# APP CLARIFY — gates
+
+1. Ask only questions that change outcome, contract, ownership, UI journey or done criteria.
+2. Record decisions in the APP plan/clarify artifact; do not write production code.
+3. Return to APP PLAN with no unresolved blocking questions.

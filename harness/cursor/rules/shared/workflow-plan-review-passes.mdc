@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # PLAN — interactive review passes
 
-Этот контракт добавляется к `BACK|FRONT|INTEG PLAN` после определения level и до
+Этот контракт добавляется к `BACK|FRONT|INTEG|APP PLAN` после определения level и до
 финальной фиксации HOW. Он не заменяет `CLARIFY`: CLARIFY остаётся отдельным
 маршрутом и запускается только по своим триггерам.
 

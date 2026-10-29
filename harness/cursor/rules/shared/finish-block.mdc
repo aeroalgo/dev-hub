@@ -8,7 +8,7 @@ alwaysApply: false
 
 # FINISH Block
 
-**Единая точка FINISH для BACK / FRONT / INTEG.**  
+**Единая точка FINISH для BACK / FRONT / INTEG / APP.**
 Workflow `* IMPLEMENT` только ссылается сюда.
 
 Handoff fill-in: .cursor/templates/finish-doc-router.md  
@@ -33,8 +33,8 @@ Write `activeContext.md` — только если stub §0.7 разрешает
 
 1. **Pre-FINISH skills** — если workflow указал
 2. **Role artifact (IMPLEMENT):** yaml step  
-   - `$PROJECT_ROOT/memory-bank/{back|front|integration}/implement/<plan>/sNN|eNN-<slug>.yaml`
-   **Формат:** `schema: epic-implement/v1`, `role: back|front|integ`  
+   - `$PROJECT_ROOT/memory-bank/{back|front|integration|app}/implement/<plan>/sNN|eNN-<slug>.yaml`
+   **Формат:** `schema: epic-implement/v1`, `role: back|front|integ|app`
    Seed: cp `pending`, step `in_progress`. Агент заполняет **только** evidence (`done`/`files`/`tests`/…).  
    Status Literals пишет **только машина:**  
    - pre-verify: `python3 $DEV_HUB/bin/loop.py implement-flush --project "$PROJECT_ROOT"` (или auto на spawn `@verify-implement`) → step=`in_progress`, все cp=`done`  
@@ -59,7 +59,7 @@ Write `activeContext.md` — только если stub §0.7 разрешает
 seed → flush cp → suite → evidence (in_progress) → validate-step → Handoff → @verify → PASS → finalize-step → doc-router → graphify
 ```
 
-Для `FRONT` и `INTEG` действует тот же порядок, что и для `BACK`.
+Для `FRONT`, `INTEG` и `APP` действует тот же порядок, что и для `BACK`; APP дополнительно подтверждает mixed contract/wire evidence.
 
 
 ## 5 точек перед «готово»

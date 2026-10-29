@@ -810,9 +810,8 @@ class CodexRuntime(Runtime):
             event = str(transition.get("event") or "")
             verdict = str(metadata.get("verdict") or "")
             reason = str(transition.get("reason") or "")
-            # After a committed terminal gate, end parent session. A structural
-            # DECOMPOSE PASS is deliberately recorded without ending the parent;
-            # the parent must still run analyze-verify in the same session.
+            # After a committed terminal gate, end the parent session. The
+            # verify-decompose PASS is the complete DECOMPOSE gate.
             if (
                 transition.get("changed")
                 and not action.continue_session

@@ -1,0 +1,14 @@
+---
+description: "APP ARCHIVE NOW — archive a completed vertical-slice epic"
+alwaysApply: false
+---
+### Команда: APP ARCHIVE NOW
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/archive.mdc
+
+## Hot path
+
+1. Archive only an epic whose APP QA and context-sync are complete and whose cursor is DONE.
+2. Move the full `memory-bank/app/{plan,implement,creative,qa,bugfix}/<epic_id>/` tree to the mirrored archive path.
+3. Rewrite external references and preserve the single epic history; do not split it into BACK/FRONT/INTEG archives.

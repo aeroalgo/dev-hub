@@ -1,0 +1,10 @@
+---
+description: "APP SECURITY gates — contract and surface audit"
+alwaysApply: false
+---
+# APP SECURITY — gates
+
+1. Audit only the current APP security shard and its declared surfaces.
+2. Record findings in `memory-bank/app/security/implement/<epic_id>/aNN-*.yaml`; do not change product code in the audit.
+3. Cover API authorization, UI visibility, wire exposure and relevant external boundaries.
+4. Security PASS is evidence for APP; it does not create an INTEG lifecycle.

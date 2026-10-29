@@ -1,0 +1,10 @@
+---
+description: "APP TASK gates — bounded mixed change"
+alwaysApply: false
+---
+# APP TASK — gates
+
+1. Use one task artifact and one bounded file allowlist; no unrelated surface cleanup.
+2. State contract impact and whether backend, frontend, wire and browser lanes are required or skipped with reasons.
+3. Run targeted red → green checks for every touched surface; parent owns frontend/browser commands.
+4. Finish with evidence and a follow-up APP PLAN when the change is a new vertical slice.

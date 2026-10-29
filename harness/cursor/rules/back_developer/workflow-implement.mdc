@@ -32,7 +32,7 @@ alwaysApply: false
 
 **BACK delta (после bootstrap):**
 
-1. Analyze gate уже закрыт в DECOMPOSE (`critical_count=0` / `@analyze-verify`); иначе REJECT
+1. DECOMPOSE closure уже закрыт accepted `@verify-decompose` PASS; иначе REJECT
 2. Hub: targeted `bin/pytest` · Managed: `capability_checks: [test.targeted]` + evidence · TDD red→green
 3. Выполнить все `deletes:` · `wire_complete` на SoT/boundary steps
 4. Last sNN / pre-QA → `plan_parity_scan` (FR+layout)

@@ -18,7 +18,6 @@ alwaysApply: false
 | `BACK PLAN REFACTOR` | @.cursor/rules/back_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (строго после QA aggregate REPLAN-эпика; refactor epic или noop) |
 | `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
-| `analyze-verify` | internal DECOMPOSE gate; не пользовательская команда |
 | `BACK CREATIVE` | @.cursor/rules/back_developer/workflow-creative.mdc |
 | `BACK IMPLEMENT` | @.cursor/rules/back_developer/workflow-implement.mdc |
 | `BACK QA` | @.cursor/rules/back_developer/workflow-qa.mdc |

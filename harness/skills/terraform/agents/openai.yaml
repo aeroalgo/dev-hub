@@ -1,0 +1,4 @@
+interface:
+  display_name: "Terraform"
+  short_description: "Terraform including infrastructure as code, providers…"
+  default_prompt: "Use $terraform to help with my current task: Provides comprehensive guidance for Terraform including infrastructure as code, providers, modules, and state management."

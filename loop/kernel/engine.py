@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from .boundary import BoundaryService
-from .analyze import analyze_required_before_implement
 from .creative import (
     creative_finish_ready,
     phase_for_pending_step,
@@ -28,6 +27,7 @@ from .index import (
     phase_artifacts,
     plan_path,
     prepare_step_status,
+    qa_pass_state,
     qa_verdict,
     queue_implement_gaps,
     queue_ready_for_qa,
@@ -81,16 +81,6 @@ class LoopEngine:
     def _queue(self, cursor: Cursor) -> Queue:
         return load_queue(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind)
 
-    def _analyze_gate(self, queue: Queue, *, force: bool = False) -> dict[str, Any]:
-        return analyze_required_before_implement(
-            self.paths.project,
-            queue.role,
-            queue.epic_id,
-            ({"id": step.step_id, "status": step.status} for step in queue.steps),
-            index_path_override=queue.path,
-            force=force,
-        )
-
     def _plan_path(self, cursor: Cursor) -> Path:
         return plan_path(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind or "feature")
 
@@ -129,12 +119,26 @@ class LoopEngine:
             return ()
         return tuple(step for step, _reason in queue_implement_gaps(self.paths.project, queue))
 
+    def _has_implementation_progress(self, queue: Queue) -> bool:
+        kind = getattr(queue, "kind", None) or "feature"
+        return any(
+            implement_path(
+                self.paths.project,
+                queue.role,
+                queue.epic_id,
+                step,
+                kind=kind,
+            ).is_file()
+            for step in queue.steps
+        )
+
     def _target(
         self,
         cursor: Cursor,
         queue: Queue | None = None,
         *,
         context_sync_completed: bool = False,
+        decompose_verified: bool = False,
     ) -> tuple[str, str, str]:
         if queue is None:
             canonical_index = index_path(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind or "feature")
@@ -148,11 +152,14 @@ class LoopEngine:
             active_queue = queue
         work = self._work_steps(active_queue)
         if work:
-            if getattr(active_queue, "kind", None) != "security" and cursor.kind != "security":
-                gate = self._analyze_gate(active_queue)
-                if gate["required"]:
-                    # The analysis gate is an internal DECOMPOSE subagent, not a user phase.
-                    return "DECOMPOSE", "DECOMPOSE", f"analyze gate in DECOMPOSE: {gate['reason']}"
+            if (
+                cursor.phase in {"", "DECOMPOSE"}
+                and getattr(active_queue, "kind", None) != "security"
+                and cursor.kind != "security"
+                and not decompose_verified
+                and not self._has_implementation_progress(active_queue)
+            ):
+                return "DECOMPOSE", "DECOMPOSE", "decompose closure gate required"
             step = work[0]
             phase, reason = phase_for_pending_step(self.paths.project, active_queue, step)
             if step.status in {"completed", "done"} and step not in active_queue.pending:
@@ -471,29 +478,6 @@ class LoopEngine:
             return None
         return event
 
-    @staticmethod
-    def _decompose_gate_pass_event(
-        transaction: StoreTransaction,
-        cursor: Cursor,
-        agent_id: str,
-    ) -> dict[str, Any] | None:
-        if cursor.phase != "DECOMPOSE":
-            return None
-        event = transaction.event_with_fields(
-            "verdict_accepted",
-            {
-                "phase": "DECOMPOSE",
-                "agent_id": agent_id,
-                "verdict": "PASS",
-                "session_id": cursor.session_id,
-                "epic_id": cursor.epic_id,
-                "step_id": cursor.step_id,
-                "verdict_step_id": cursor.step_id,
-                "verdict_phase_epoch": cursor.phase_epoch,
-            },
-        )
-        return event
-
     def _context_sync_path(self, cursor: Cursor, raw_path: str) -> Path:
         candidate = Path(raw_path)
         if not candidate.is_absolute():
@@ -518,9 +502,8 @@ class LoopEngine:
     def _qa_pass_ready(self, cursor: Cursor) -> bool:
         if cursor.phase != "QA":
             return False
-        artifacts = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "qa")
-        verdict = qa_verdict(artifacts[-1]) if artifacts else None
-        return verdict in {"pass", "passed", "complete", "completed"}
+        ready, _reason = qa_pass_state(self.paths.project, cursor.role, cursor.epic_id)
+        return ready
 
     def _context_sync_ready(self, cursor: Cursor) -> bool:
         if cursor.phase != "QA":
@@ -796,18 +779,14 @@ class LoopEngine:
         gate_pass: GateVerdict | None,
     ) -> None:
         if cursor.phase == "DECOMPOSE":
-            if gate_pass is not None and gate_pass.agent_id == "analyze-verify":
-                if gate_pass.verdict != "PASS":
-                    raise TransitionError("cannot finish DECOMPOSE: analyze-verify PASS is required")
-                if self._decompose_gate_pass_event(transaction, cursor, "verify-decompose") is None:
-                    raise TransitionError(
-                        "cannot accept analyze-verify PASS before accepted verify-decompose PASS"
-                    )
-                return
-            if self._decompose_gate_pass_event(transaction, cursor, "analyze-verify") is not None:
+            if (
+                gate_pass is not None
+                and gate_pass.agent_id == "verify-decompose"
+                and gate_pass.verdict == "PASS"
+            ):
                 return
             raise TransitionError(
-                "cannot finish DECOMPOSE: accepted analyze-verify PASS is required"
+                "cannot finish DECOMPOSE: accepted verify-decompose PASS is required"
             )
         agent_id = self._required_gate_agent(cursor.phase)
         if agent_id is None:
@@ -881,12 +860,6 @@ class LoopEngine:
         self._require_gate_pass(cursor, transaction, gate_pass=gate_pass)
         next_queue = queue
         mutations = []
-        if cursor.phase in {"DECOMPOSE", "IMPLEMENT", "TASK", "REFACTOR"}:
-            gate = self._analyze_gate(queue, force=cursor.phase == "DECOMPOSE")
-            if gate["required"]:
-                raise TransitionError(
-                    f"cannot finish {cursor.phase}: DECOMPOSE readiness gate {gate['reason']}"
-                )
         if cursor.phase == "CREATIVE":
             step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
             if step is None:
@@ -964,6 +937,13 @@ class LoopEngine:
                 if not queue_valid:
                     raise TransitionError(f"cannot finish QA: {queue_reason}")
             elif verdict in {"pass", "passed", "complete", "completed"}:
+                runtime_ready, runtime_reason = qa_pass_state(
+                    self.paths.project,
+                    queue.role,
+                    queue.epic_id,
+                )
+                if not runtime_ready:
+                    raise TransitionError(f"cannot finish QA pass: {runtime_reason}")
                 if resolved_context_sync_path is None:
                     sync_event = self._context_sync_event(transaction, cursor)
                     if sync_event is not None:
@@ -981,7 +961,11 @@ class LoopEngine:
             if not queue_ready:
                 raise TransitionError(f"cannot finish BUGFIX: {queue_reason}")
         if cursor.phase == "DECOMPOSE":
-            phase, next_step, target_reason = self._target(cursor, next_queue)
+            phase, next_step, target_reason = self._target(
+                cursor,
+                next_queue,
+                decompose_verified=True,
+            )
         elif cursor.phase == "CREATIVE":
             phase, next_step, target_reason = self._target(cursor, next_queue)
             if phase == "CREATIVE":
@@ -1417,14 +1401,9 @@ class LoopEngine:
             if current.step_id != record.step_id:
                 raise TransitionError(f"verdict step mismatch: cursor={current.step_id}, received={record.step_id}")
             required_agent = self._required_gate_agent(current.phase)
-            decompose_analyze = (
-                current.phase == "DECOMPOSE"
-                and record.agent_id == "analyze-verify"
-                and required_agent == "verify-decompose"
-            )
             if required_agent is None:
                 raise TransitionError(f"no subagent gate is valid for phase {current.phase}")
-            if record.agent_id != required_agent and not decompose_analyze:
+            if record.agent_id != required_agent:
                 raise TransitionError(
                     f"verdict agent mismatch for {current.phase}: expected={required_agent}, received={record.agent_id}"
                 )
@@ -1455,24 +1434,15 @@ class LoopEngine:
                     raise TransitionError(
                         f"cannot accept verify-decompose PASS: invalid decompose tree — {exc}"
                     ) from exc
-                event["gate_role"] = "decompose_structure"
-                event["session_keep_alive"] = True
-                return TransactionPlan(None, event)
-            if decompose_analyze:
-                event["gate_role"] = "decompose_analyze"
-                if record.verdict == "PASS":
-                    if self._decompose_gate_pass_event(transaction, current, "verify-decompose") is None:
-                        raise TransitionError(
-                            "cannot accept analyze-verify PASS before accepted verify-decompose PASS"
-                        )
-                    return self._finish_plan(
-                        current,
-                        transaction,
-                        step_id=record.step_id,
-                        reason=f"{source}:{record.agent_id}:PASS",
-                        event=event,
-                        gate_pass=record,
-                    )
+                event["gate_role"] = "decompose_complete"
+                return self._finish_plan(
+                    current,
+                    transaction,
+                    step_id=record.step_id,
+                    reason=f"{source}:{record.agent_id}:PASS",
+                    event=event,
+                    gate_pass=record,
+                )
             if record.verdict != "PASS":
                 if current.phase == "QA" and record.verdict == "FAIL":
                     if self._qa_failure_ready(current):

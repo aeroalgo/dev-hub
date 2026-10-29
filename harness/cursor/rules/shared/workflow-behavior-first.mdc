@@ -117,7 +117,7 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 
 **Одной фразой:** *Число `sNN` = уровень сложности эпика. Больше 3 шагов — нельзя; режь на два эпика.*
 
-### Level → step cap (BACK / FRONT `sNN`)
+### Level → step cap (BACK / FRONT / APP `sNN`)
 
 | Level | Сложность | `sNN_cap` | Маршрут |
 |-------|-----------|-----------|---------|
@@ -130,6 +130,9 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 **Где:** в `yaml/decompose-index.yaml` поля `level: L1|L2|L3` и `sNN_cap: 1|2|3` (cap = уровню). `sNN_count ≤ sNN_cap`. Без `level`/`sNN_cap` → DECOMPOSE incomplete.
 
 **Если outcomes не влезают в cap:** multi-epic / Appetite cut — **не** поднимать cap и не возвращать L4/8 шагов.
+
+APP использует тот же cap, но backend + frontend + wire одного user outcome остаются
+в одном `sNN`; их нельзя разносить по отдельным BACK/FRONT/INTEG эпикам.
 
 **Plan outline `~N sNN`:** hint; финальный SoT = `level` → `sNN_cap`.
 

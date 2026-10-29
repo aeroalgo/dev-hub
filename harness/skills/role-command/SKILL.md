@@ -1,6 +1,6 @@
 ---
 name: role-command
-description: "Role command parity chain — BACK/FRONT/APP/INTEG workflow router (graphify, isolation, FINISH gates)"
+description: "Role command parity chain — BACK/FRONT/APP/INTEG/EVAL/DEVOPS workflow router (graphify, isolation, FINISH gates)"
 ---
 
 # Role Command — Cursor parity chain
@@ -15,7 +15,7 @@ description: "Role command parity chain — BACK/FRONT/APP/INTEG workflow router
 
 Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
-`analyze-verify` — внутренний gate DECOMPOSE; отдельной пользовательской команды для него нет.
+`verify-decompose` — единственный internal gate DECOMPOSE; он сам выполняет structural + semantic closure.
 
 | Prefix | Role dir | Core (полный путь) | Isolation |
 |--------|----------|-------------------|-----------|
@@ -23,6 +23,8 @@ Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 | FRONT | `.cursor/rules/front_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 | APP | `.cursor/rules/app_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
 | INTEG | `.cursor/rules/integration_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
+| EVAL | `.cursor/rules/eval/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
+| DEVOPS | `.cursor/rules/devops/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/ops.mdc` |
 
 **Нет файла** `.cursor/rules/mainrule-core.mdc` — core только внутри `*_developer/`.
 

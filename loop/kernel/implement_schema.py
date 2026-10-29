@@ -240,6 +240,7 @@ def validate_implement_artifact(
         raise ValueError(
             f"implement plan_id mismatch: expected {expected_plan_id!r}, got {model.plan_id!r} ({path})"
         )
+    _validate_app_wire_contract(model, path)
 
     if rewrite and repairs:
         rewritten = _rewrite_status_aliases(original)
@@ -310,6 +311,32 @@ def _evidence_ready(model: ImplementArtifact) -> bool:
     return bool(model.done or model.files or model.tests or model.integration_check)
 
 
+def _validate_app_wire_contract(model: ImplementArtifact, path: Path) -> None:
+    """Keep APP IMPLEMENT fail-closed at the mixed contract boundary."""
+
+    if model.role.strip().lower() != "app":
+        return
+    extra = model.model_extra or {}
+    wire = extra.get("wire_complete")
+    if not isinstance(wire, dict):
+        raise ValueError(
+            f"APP implement artifact requires wire_complete evidence: {path}"
+        )
+    if wire.get("deny_old_proven") is not True:
+        raise ValueError(
+            f"APP wire_complete.deny_old_proven must be true: {path}"
+        )
+    missing = [
+        key
+        for key in ("call_sites", "enforce_path", "dual_path_rg", "instruction_rg")
+        if not wire.get(key)
+    ]
+    if missing:
+        raise ValueError(
+            f"APP wire_complete missing evidence fields {missing}: {path}"
+        )
+
+
 def flush_implement_for_verify(
     path: Path,
     *,
@@ -334,6 +361,7 @@ def flush_implement_for_verify(
             f"cannot flush implement statuses: evidence empty "
             f"(need non-empty done|files|tests|integration_check): {path}"
         )
+    _validate_app_wire_contract(model, path)
     original = path.read_text(encoding="utf-8")
     rewritten = _force_status_literals(
         original, step_status="in_progress", checkpoint_status="done"

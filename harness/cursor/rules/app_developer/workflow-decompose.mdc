@@ -1,0 +1,16 @@
+---
+description: "APP DECOMPOSE — one queue, mixed shards, contract coverage"
+alwaysApply: false
+---
+### Команда: APP DECOMPOSE
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/decompose.mdc
+
+## Hot path
+
+1. `OK APP DECOMPOSE` → `memory-bank/app/plan/<epic_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`.
+2. Один shard может содержать `backend + frontend + wire` paths; не разносить один contract по BACK/FRONT/INTEG эпикам.
+3. В shard копируются FR/AC, layout paths, `files:`, `verify:`, `tdd:` и union skills (`skills.impl`, `skills.design*` при UI).
+4. `next_phase: APP IMPLEMENT`; `needs_creative` закрывается до IMPLEMENT, если нужен дизайн.
+5. Один `verify-decompose` выполняет structural + semantic closure; PASS атомарно открывает APP IMPLEMENT.

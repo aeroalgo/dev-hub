@@ -2,7 +2,7 @@
 description: "PLAN multi-epic — из research/audit нарезать N эпиков, не один mega-plan"
 alwaysApply: false
 ---
-# PLAN multi-epic (BACK / FRONT / INTEG)
+# PLAN multi-epic (BACK / FRONT / INTEG / APP)
 
 **Когда грузить:** любой `* PLAN`, если вход — research / audit / большой spec / несколько приоритетов (P0…Pn) / ≥2 независимых subsystem.
 
@@ -46,6 +46,7 @@ alwaysApply: false
 |------|-------------|--------------|
 | BACK | `memory-bank/back/roadmap/queue.yaml` | `memory-bank/back/plan/<epic_id>/md/plan.md` |
 | FRONT | `memory-bank/front/roadmap/queue.yaml` | `memory-bank/front/plan/<epic_id>/md/plan.md` |
+| APP | `memory-bank/app/roadmap/queue.yaml` | `memory-bank/app/plan/<epic_id>/md/plan.md` |
 | INTEG | `memory-bank/integration/roadmap/queue.yaml` | `memory-bank/integration/plan/<epic_id>/md/plan.md` |
 
 **Шаблоны:**

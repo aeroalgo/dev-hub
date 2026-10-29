@@ -2,7 +2,7 @@
 
 **Канон FINISH:** `.cursor/templates/qa/epic-step.yaml` (`epic-qa/v1`)
 
-Путь: `memory-bank/{back|front|integration}/qa/<epic>/qa-YYYYMMDD-<slug>.yaml`
+Путь: `memory-bank/{back|front|app|integration}/qa/<epic>/qa-YYYYMMDD-<slug>.yaml`
 
 Поля: `verdict`, `scope[]`, `checks[]`, `fix_plan[]` (при fail/blocked), `issues[]`, `blockers[]`, `suite[]`.
 

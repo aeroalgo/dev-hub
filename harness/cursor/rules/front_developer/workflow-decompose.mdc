@@ -117,8 +117,8 @@ IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. 
 5c. **FAIL** если план заменяет UI-поверхность, а нет sNN с `deletes` (и нет out_of_scope+follow-up)
 5d. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
 6. Layout v2: `yaml/decompose-index.yaml` (`epic-decompose-index/v1` по `templates/decompose/index.yaml`) + `yaml/steps/sNN-*.yaml`. **FORBIDDEN** markdown index and non-canonical flat layouts. Формат roadmap `queue:` для decompose запрещён.
-7a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` CRITICAL=0 + analyze-*.yaml + `@verify-decompose` PASS + `@analyze-verify` PASS. Next = **IMPLEMENT/CREATIVE**; analyze PASS атомарно завершает DECOMPOSE. **FORBIDDEN** skip analyze / deferred.
-7b. **FINISH:** parent не вызывает `loop.py finish` после analyze-verify PASS; `load_now` → `s01-*.yaml`
+7a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `@verify-decompose` PASS с полным structural/semantic closure. Next = **IMPLEMENT/CREATIVE**; этот PASS атомарно завершает DECOMPOSE. **FORBIDDEN** deferred second gate.
+7b. **FINISH:** parent не вызывает `loop.py finish` после verify-decompose PASS; `load_now` → `s01-*.yaml`
 8. `tasks.md` append-only
 9. Next: CREATIVE optional → IMPLEMENT
 10. **Новый чат** для IMPLEMENT

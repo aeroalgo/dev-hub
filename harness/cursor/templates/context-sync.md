@@ -1,7 +1,7 @@
 # Context sync — <epic_id>
 
 **Дата:** YYYY-MM-DD  
-**Роль:** BACK | FRONT | INTEG  
+**Роль:** BACK | FRONT | APP | INTEG
 **Worker:** `agent_type=context-sync` (запускается parent после QA PASS)  
 **Epic:** <epic_id>  
 **QA evidence:** `memory-bank/{role}/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`  

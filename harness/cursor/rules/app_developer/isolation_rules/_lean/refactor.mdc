@@ -1,0 +1,10 @@
+---
+description: "APP REFACTOR gates — preserve mixed contract"
+alwaysApply: false
+---
+# APP REFACTOR — gates
+
+1. Refactor artifacts use `memory-bank/app/refactor/plan/<epic_id>/` and `refactor/implement/<epic_id>/rNN-*.yaml`.
+2. Preserve method/path, input/output/errors, roles and UI wire journey unless the plan explicitly changes the contract.
+3. Replaced paths go into `deletes:` with an import/rg check; no compatibility shim without a follow-up epic.
+4. Targeted backend + frontend + wire regressions are required before APP QA.

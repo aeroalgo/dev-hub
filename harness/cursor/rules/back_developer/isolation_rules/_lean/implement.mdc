@@ -16,7 +16,7 @@ alwaysApply: false
 ## Gates
 
 1. `load_now`: work shard `plan/<epic>/yaml/steps/sNN-*.yaml` (**+ plan_contract**) + `yaml/decompose-index.yaml`; **не** полный `plan.md` как monolith AC; **обязательны** `plan_jumps` / plan §FR — формула: `L=end−start`; `L′=L×2`; jump=`start..(start+L′)` (ex `120–160`→`120–200`)
-1a. **Analyze gate:** закрыт в DECOMPOSE (`critical_count=0`); иначе REJECT
+1a. **DECOMPOSE closure gate:** закрыт accepted `verify-decompose` PASS; иначе REJECT
 1b. **Search scope:** loop `delta_paths_scoped` / `delta_paths_exist` **или полный shard `files:`** → SKIP @explorer **и** graphify query; ALLOW = shard paths + parent dirs. Широкий поиск / неизвестные callers → graphify затем `@explorer`.
 1c. **Last sNN / pre-QA:** `plan_parity_scan` (все plan FR + Target layout) в implement yaml / Handoff
 2. Level из step — L2 substep → L2

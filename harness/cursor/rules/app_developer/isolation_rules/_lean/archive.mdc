@@ -1,0 +1,10 @@
+---
+description: "APP ARCHIVE gates — archive only a completed epic"
+alwaysApply: false
+---
+# APP ARCHIVE — gates
+
+1. Cursor must be `DONE`; APP QA PASS and context-sync must already be recorded.
+2. Move the complete epic tree to `memory-bank/archive/app/` with relative links preserved.
+3. Rewrite references outside the archive and leave `activeContext.md` / roadmap ownership to the archive tool.
+4. Never archive only QA while leaving APP plan/implement as a live second source.

@@ -14,6 +14,7 @@ alwaysApply: false
 ## Gates (обязательные — узкий путь)
 
 1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика**; **не** полный `plan/<epic_id>/md/plan.md`; при эпике с plan L2+ — `qa_consumes`-first; parent гоняет **full frontend** suite + Playwright; `epic_id` → путь артефакта
+1a. **Scope-driven test plan (HARD):** прочитать `.cursor/templates/qa/test-catalog.yaml` и заполнить `test_plan` по implement shard (`files`, `tests`, `integration_check`, `wire_complete`), contract/AC/BN, diff и prior blockers. Каждый каталоговый тест обязан быть в `selected`, `not_applicable` с причиной или `not_run` с next action. `full` выбирает весь применимый каталог; конкретные команды и runtime details остаются в shard/stack profile/lane, не в каталоге.
 2. verification-before-completion · §0.11 · линт · типы · **полный frontend suite (HARD)**:
    - **suite = Vitest/RTL full + tsc/types + Playwright** (parent only). Канон команд: @.cursor/rules/shared/test-timeout.mdc (Frontend block).
    - Managed с `frontend/`: `timeout -k 10s 300s npm --prefix frontend exec vitest run` (+ lint/types по package scripts) + `timeout -k 10s 300s npm --prefix frontend exec playwright test` (или `npx playwright test` из `frontend/`).
@@ -26,7 +27,7 @@ alwaysApply: false
 3a. **Exhaustive QA (HARD):** parent обязан завершить **все** checks прогона (frontend suite → leftover/sot → behavior smoke → verify-qa / Playwright) **до** записи `qa-*.yaml`. `verify-qa` — no fail-fast. **FORBIDDEN:** mid-check FINISH / qa fail на первом finding.
 3b. **Anti-ratchet (HARD):** `blockers`/`fix_plan` только **eligible** B* с префиксом `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`. Style/naming/comments ≠ BUGFIX. Cap: ≥3 QA↔BUGFIX на одном sha → `NEED_HUMAN`.
 3c. **Enforce:** spawn verify-qa без matching `checklist_sha256` → deny; finish_qa при drift sha/`ac_plus` или blockers без class → FAIL.
-3d. **Coverage / review / test-audit:** до verify-qa заполнить `coverage_map` (AC/BN → browser/API scenario → evidence), `review`, `test_audit`, `browser` и `retro`. Проверить weakened/status-only assertions, global API mocks и uncontrolled `route.fulfill`, skip/xfail, CI inclusion, real wire/auth/iframe/assets. Build green без browser evidence не считается.
+3d. **Coverage / review / test-audit:** до verify-qa заполнить `test_plan`, `coverage_map` (AC/BN → browser/API scenario → evidence), `review`, `test_audit`, `browser` и `retro`. Проверить weakened/status-only assertions, global API mocks и uncontrolled `route.fulfill`, skip/xfail, CI inclusion, real wire/auth/iframe/assets. Build green без browser evidence не считается.
 4. Exploratory browser если live app; иначе `skip: no live app`
 5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список. `retro` обязателен даже при PASS.
 5a. **fail|blocked:** до FINISH создать/merge `memory-bank/front/bugfix/<epic_id>/bugfix-queue.yaml`; Handoff `load_now` обязан включать queue — `finish-doc-router.md`.

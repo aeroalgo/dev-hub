@@ -11,7 +11,7 @@ from ..config import LoopSettings
 from ..config import activate_loop_process
 from .engine import LoopEngine, TransitionError
 from .boundary import BoundaryService
-from .analyze import latest_analyze_with_path
+from .evidence import evidence_file_ref
 from .index import (
     bugfix_queue_path,
     bugfix_report_paths,
@@ -61,7 +61,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--project", "--cwd", dest="project")
     parser.add_argument("--epic")
-    parser.add_argument("--role", default="auto", help="back|front|integration(legacy)|auto (discover under memory-bank/<role>/{,refactor/,security/}plan/<epic>; new wire epics → front)")
+    parser.add_argument("--role", default="auto", help="back|front|app|integration(legacy)|auto (discover under memory-bank/<role>/{,refactor/,security/}plan/<epic>)")
     parser.add_argument(
         "--kind",
         choices=("feature", "refactor", "security"),
@@ -298,6 +298,7 @@ def _normalize_legacy_args(argv: list[str]) -> list[str]:
 _ROLE_RULES_DIR = {
     "back": "back_developer",
     "front": "front_developer",
+    "app": "app_developer",
     # legacy memory-bank/integration/* epics still resolve role=integration; rules = FRONT (wire)
     "integration": "front_developer",
     "integ": "front_developer",
@@ -388,17 +389,16 @@ def _phase_instruction(cursor, project: Path, engine: LoopEngine | None = None) 
             f"Read the plan at {project / 'memory-bank' / cursor.role / 'plan' / epic / 'md' / 'plan.md'}. "
             "Create yaml/decompose-index.yaml + yaml/steps/sNN-*.yaml (L1→1 / L2→2 / L3→3 sNN_cap). "
             "Prefer single-quoted or block scalars for rg patterns. One index step ↔ one steps file. "
-            "HARD before promotion: (1) spawn verify-decompose → PASS; "
-            f"(2) write memory-bank/{cursor.role}/analyze/{epic}/analyze-*.yaml with metrics.critical_count=0; "
-            "(3) spawn analyze-verify (FINDINGS/COVERAGE/ALLOW READ) → PASS; "
-            "analyze-verify PASS atomically promotes DECOMPOSE → IMPLEMENT/CREATIVE and ends this parent session; "
-            "do not call loop.py finish after either gate. "
+            "HARD before promotion: spawn verify-decompose (ALLOW READ: plan + index + shards). "
+            "The agent performs both structural and semantic/traceability checks; its PASS "
+            "atomically promotes DECOMPOSE → IMPLEMENT/CREATIVE and ends this parent session; "
+            "do not call loop.py finish after the gate. "
             "No separate user review phase. Do not write production code. "
         )
     if cursor.phase in {"ANALYZE", "AUDIT", "CONTEXT_SYNC"}:
         return (
             f"{cursor.phase} is not a loop phase for {epic}. "
-            "Use the current DECOMPOSE/analyze-verify and QA/context-sync contracts; "
+            "Use the current DECOMPOSE/verify-decompose and QA/context-sync contracts; "
             "the next valid product gate is QA. "
         )
     if cursor.phase == "CREATIVE":
@@ -427,9 +427,32 @@ def _phase_instruction(cursor, project: Path, engine: LoopEngine | None = None) 
                 f"memory-bank/{cursor.role}/context-sync/{epic}/sync-*.md, and do not call finish; "
                 "a valid done result atomically completes QA and ends this parent session. "
             )
+        if cursor.role == "app":
+            return (
+                f"Run APP QA for {epic}. HARD order: "
+                "1) Freeze the mixed charter: backend, frontend_build, browser, live_smoke, and "
+                "wire_journey when required. "
+                "1a) Build test_plan from .cursor/templates/qa/test-catalog.yaml and the current "
+                "implement shard/contract/diff; account for every catalog item as selected, "
+                "not_applicable with a reason, or not_run with a next action. Keep concrete "
+                "commands and runtime details in shards, stack profiles, and lanes. "
+                "2) Run every required lane as separate parent-owned evidence; suite_wrong_stack "
+                "does not reject the backend+frontend mix inside APP. "
+                "3) Write ONE app-qa/v1 qa-*.yaml with verdict pass|fail|blocked before verify-qa. "
+                "4) fail|blocked → app bugfix-queue + verify-qa + finish QA → APP BUGFIX "
+                "(bugfix-fix×≤3). "
+                "5) pass → verify-qa PASS, then spawn agent_type=context-sync "
+                f"(write memory-bank/{cursor.role}/context-sync/{epic}/sync-*.md); context-sync done "
+                "atomically finishes APP QA → DONE/next epic, so the parent must not call finish afterward. "
+                "No separate integration phase. FORBIDDEN: finish APP QA before context-sync result. "
+            )
         return (
             f"Run {role} QA for {epic}. HARD order: "
             "1) Iteration contract: every FR/AC/delete of current iteration has evidence. "
+            "1a) Build test_plan from .cursor/templates/qa/test-catalog.yaml and the current "
+            "implement shard/contract/diff; account for every catalog item as selected, "
+            "not_applicable with a reason, or not_run with a next action. Keep concrete "
+            "commands and runtime details in shards, stack profiles, and lanes. "
             "2) Full verification suite (+ live_smoke when BACK). "
             "3) Write ONE qa-*.yaml with verdict pass|fail|blocked before verify-qa. "
             "4) fail|blocked → bugfix-queue + verify-qa + finish QA → BUGFIX (bugfix-fix×≤3). "
@@ -493,7 +516,8 @@ def _bugfix_swarm_protocol(cursor, project: Path) -> str:
         "Child validates via `loop.py validate --schema loop-bugfix-fix-result/v1`. "
         "FORBIDDEN: invent other fix agent types; one child fixing 2+ items; parent exit while open remain; "
         "PROGRESS_CONTINUE. When ALL items terminal: set verification.status=pass "
-        "(command/last_run_at/evidence), spawn verify-bugfix, then MUST "
+        "(command/last_run_at/evidence); runtime-sensitive verification additionally "
+        "requires evidence_file pointing to a typed runtime capture, spawn verify-bugfix, then MUST "
         "`loop.py finish --step BUGFIX` → re-QA. "
     )
 
@@ -507,7 +531,15 @@ def _relative_paths(project: Path, paths: list[Path]) -> str:
     for path in paths:
         if not path.is_file():
             continue
-        value = path.resolve().relative_to(project.resolve()).as_posix()
+        try:
+            # Preserve the project-visible path for symlinked harness files
+            # (for example, product/.cursor/templates -> dev-hub/harness).
+            value = path.absolute().relative_to(project.absolute()).as_posix()
+        except ValueError:
+            try:
+                value = path.resolve().relative_to(project.resolve()).as_posix()
+            except ValueError:
+                value = str(path.resolve())
         if value not in values:
             values.append(value)
     return "\n".join(f"- {value}" for value in values)
@@ -550,6 +582,8 @@ def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
             "- none",
             "### Prior blockers",
             "- none",
+            "## Test plan",
+            "missing: parent must provide scope-driven selected/not_applicable/not_run catalog entries",
             "## QA evidence packs",
             "### coverage_map",
             "missing: parent must provide AC/BN → browser/API scenario → evidence",
@@ -580,6 +614,8 @@ def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
         lines.extend(f"- {item}" for item in items or ["none"])
     lines.extend(
         [
+            "## Test plan",
+            _qa_prompt_value(payload, "test_plan"),
             "## QA evidence packs",
             "### coverage_map",
             _qa_prompt_value(payload, "coverage_map"),
@@ -593,7 +629,37 @@ def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
             _qa_prompt_value(payload, "retro"),
         ]
     )
-    return lines, [qa_path]
+    evidence_paths: list[Path] = [qa_path]
+    catalog_path = project / ".cursor/templates/qa/test-catalog.yaml"
+    if not catalog_path.is_file():
+        catalog_path = Path(__file__).resolve().parents[2] / "harness/cursor/templates/qa/test-catalog.yaml"
+    if catalog_path.is_file():
+        evidence_paths.append(catalog_path)
+    for section_name in ("live_smoke", "browser"):
+        section = payload.get(section_name)
+        reference = evidence_file_ref(section)
+        if reference:
+            candidate = Path(reference)
+            evidence_paths.append(candidate if candidate.is_absolute() else project / candidate)
+    coverage_map = payload.get("coverage_map")
+    if isinstance(coverage_map, list):
+        for row in coverage_map:
+            reference = evidence_file_ref(row)
+            if reference:
+                candidate = Path(reference)
+                evidence_paths.append(candidate if candidate.is_absolute() else project / candidate)
+    test_plan = payload.get("test_plan")
+    if isinstance(test_plan, dict):
+        for group_name in ("selected", "not_run"):
+            entries = test_plan.get(group_name)
+            if not isinstance(entries, list):
+                continue
+            for row in entries:
+                reference = evidence_file_ref(row)
+                if reference:
+                    candidate = Path(reference)
+                    evidence_paths.append(candidate if candidate.is_absolute() else project / candidate)
+    return lines, evidence_paths
 
 
 def _bugfix_gate_paths(project: Path, role: str, epic_id: str) -> tuple[list[Path], bool]:
@@ -617,11 +683,24 @@ def _bugfix_gate_paths(project: Path, role: str, epic_id: str) -> tuple[list[Pat
             paths.append(path)
 
     add(queue_path)
+    payload = phase_payload(queue_path)
+    if isinstance(payload, dict):
+        verification = payload.get("verification")
+        evidence_path = evidence_file_ref(verification)
+        if evidence_path:
+            candidate = Path(evidence_path)
+            add(candidate if candidate.is_absolute() else project / candidate)
+        items = payload.get("items")
+        if isinstance(items, list):
+            for item in items:
+                evidence_path = evidence_file_ref(item)
+                if evidence_path:
+                    candidate = Path(evidence_path)
+                    add(candidate if candidate.is_absolute() else project / candidate)
     reports = bugfix_report_paths(project, role, epic_id)
     for report in reports:
         add(report)
 
-    payload = phase_payload(queue_path)
     if isinstance(payload, dict):
         source_qa = payload.get("source_qa")
         if isinstance(source_qa, str) and source_qa.strip():
@@ -675,7 +754,7 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
     kind = getattr(cursor, "kind", "feature") or "feature"
     plan = plan_path(project, cursor.role, cursor.epic_id, kind=kind)
     index = index_path(project, cursor.role, cursor.epic_id, kind=kind)
-    paths: list[Path] = [plan, index]
+    paths: list[Path] = [index, plan]
     try:
         queue = load_queue(project, cursor.role, cursor.epic_id, kind=kind)
     except (FileNotFoundError, ValueError):
@@ -713,31 +792,15 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 "ALLOW READ:",
                 _relative_paths(project, paths),
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
-                "PASS only records structural readiness and keeps the parent in DECOMPOSE; parent must then run analyze-verify.",
+                "Read yaml/decompose-index.yaml first, then the plan and every indexed shard.",
+                "Check structural and semantic closure: requirements, stages, "
+                "outcomes, replacement cleanup, plan_contract/layout, skills, traceability, "
+                "dilution, optional-SoT, ambiguity, and unresolved critical gaps.",
+                "PASS is the complete DECOMPOSE gate and atomically promotes to IMPLEMENT/CREATIVE; "
+                "do not request or expect a legacy analysis artifact, parent-packed FINDINGS, or a second gate.",
                 "Before PASS: every indexed shard must parse with yaml.safe_load. Loop auto-repairs "
                 "invalid double-quoted escapes and purges orphan steps/*.yaml not listed in the index; "
                 "re-load after repair if a shard was rewritten.",
-            ]
-        )
-    elif gate_agent == "analyze-verify":
-        analyze_path, _ = latest_analyze_with_path(project, cursor.role, cursor.epic_id)
-        if analyze_path is not None:
-            paths.insert(0, analyze_path)
-        lines.extend(
-            [
-                "Required sections in the analyze-verify spawn prompt:",
-                "FINDINGS:",
-                "- List every finding id from the exact analyze artifact; write none only when the artifact proves zero findings.",
-                "COVERAGE:",
-                "- Verify the plan, decompose index, every referenced shard, index fingerprint, and metrics.critical_count.",
-                "ALLOW READ:",
-                _relative_paths(project, paths),
-                "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
-                "A PASS atomically promotes DECOMPOSE to IMPLEMENT/CREATIVE and ends the parent session; do not call finish afterward.",
-                "After verify-qa PASS, keep this QA session alive and spawn exactly one "
-                "agent_type=context-sync with fork_context=false. The context-sync child must "
-                "write sync-*.md and return loop-context-sync-result/v1; that done result "
-                "atomically completes QA and ends the parent session. Do not call finish after it.",
             ]
         )
     elif gate_agent in {"verify-implement", "verify-security"}:
@@ -785,6 +848,8 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 *qa_context,
                 "ALLOW READ:",
                 _relative_paths(project, paths),
+                "Any passing live_smoke/browser/wire claim must include an evidence_file "
+                "with typed runtime capture; unit tests and static/mock traces do not close a live claim.",
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
             ]
         )
@@ -980,9 +1045,9 @@ def _decompose_retry_context(cursor, project: Path) -> str:
         )
     else:
         lines.append(
-            "Tree parses. Run verify-decompose, write the analyze artifact, then run analyze-verify; "
-            "analyze-verify PASS promotes DECOMPOSE atomically. "
-            "FORBIDDEN exit with only a prose 'завершён' after a previous finish_not_committed."
+            "Tree parses. Run verify-decompose; its PASS performs the complete structural and semantic "
+            "DECOMPOSE check and promotes atomically. FORBIDDEN exit with only a prose 'завершён' "
+            "after a previous finish_not_committed."
         )
     return "\n".join(lines) + "\n"
 
@@ -1152,8 +1217,8 @@ def run(args: argparse.Namespace) -> int:
                 "When the phase work is genuinely complete, spawn the required gate before any finish attempt. "
                 "Do not edit cursor.json or generated activeContext.md. "
                 "A managed gate subagent PASS is validated by the boundary hook. In DECOMPOSE, "
-                "verify-decompose PASS only records structural readiness; spawn analyze-verify in the same parent, "
-                "whose PASS promotes DECOMPOSE atomically. For other non-QA gates, PASS finishes the phase atomically; "
+                "verify-decompose PASS performs the complete structural and semantic check and promotes the phase atomically. "
+                "For other non-QA gates, PASS finishes the phase atomically; "
                 "for non-QA gates a direct finish without the required PASS is rejected and prose verdicts are not machine state. "
                 "HARD: handoff REJECTED / verdict_json_fence_missing / qa_artifact_required_before_pass means "
                 "NOT accepted — fix artifact + ```json fence "

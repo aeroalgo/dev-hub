@@ -31,7 +31,7 @@ alwaysApply: false
 3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
 4. `validate-decompose-tree` exit 0 (+ plan_contract machine)
 5. `validate-traceability` CRITICAL=0 (deferred OOS без follow_up = CRITICAL)
-6. PROMOTION → analyze-*.yaml + `@verify-decompose` PASS + `@analyze-verify` PASS → **IMPLEMENT/CREATIVE** (нет deferred skip; analyze PASS атомарно закрывает DECOMPOSE)
+6. PROMOTION → полный structural + semantic closure внутри `@verify-decompose` PASS → **IMPLEMENT/CREATIVE** (нет deferred skip и второго gate)
 
 → anti-dilution: shared/workflow-behavior-first.mdc §1 · §1a · §3a
 → plan outline count = hint; level → `sNN_cap` = SoT (макс 3; не раздувать)
@@ -80,10 +80,10 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 5a–5j. FAIL-условия = Gates Abort (+ dilution / optional_sot / Kind I / purge / short plan_id)
 6. Layout v2: `yaml/decompose-index.yaml` (`epic-decompose-index/v1`) + `yaml/steps/sNN-*.yaml` — **FORBIDDEN** markdown index and any non-canonical flat layout.
 7. Goal/NFR не infra-only
-7a. **Promote:** validate-decompose-tree · validate-traceability CRITICAL=0 · analyze-*.yaml + `@verify-decompose` PASS + `@analyze-verify` PASS · Next = **IMPLEMENT/CREATIVE**. **FORBIDDEN** skip analyze / deferred
-7b. **FINISH:** `@analyze-verify` PASS atomically promotes the phase; parent не вызывает `loop.py finish` после gate
+7a. **Promote:** validate-decompose-tree · traceability/semantic closure · `@verify-decompose` PASS · Next = **IMPLEMENT/CREATIVE**. **FORBIDDEN** deferred promotion
+7b. **FINISH:** `@verify-decompose` PASS atomically promotes the phase; parent не вызывает `loop.py finish` после gate
 8. `tasks.md` append-only
-9. Next: CREATIVE если нужно; иначе **IMPLEMENT** (analyze gate уже в DECOMPOSE)
+9. Next: CREATIVE если нужно; иначе **IMPLEMENT** (closure gate уже в DECOMPOSE)
 10. **Новый чат** для IMPLEMENT
 
 **Границы:** нет кода; нет ужимания intent/coverage.

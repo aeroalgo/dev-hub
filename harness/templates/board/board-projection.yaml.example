@@ -16,6 +16,7 @@ provider: none
 role_allowlist:
   - back
   - front
+  - app
 
 phase_alias:
   QUEUED: backlog

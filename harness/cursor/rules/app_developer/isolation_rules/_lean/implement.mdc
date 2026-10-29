@@ -1,0 +1,17 @@
+---
+description: "APP IMPLEMENT gates — mixed TDD, one shard, wire complete"
+alwaysApply: false
+---
+# APP IMPLEMENT — gates
+
+**Bootstrap:** @.cursor/rules/shared/_lean/implement-bootstrap.mdc  
+**Scope:** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
+1. `activeContext` → current APP shard → Gates → scope → APP `## Hot path`; do not load another shard.
+2. One shard and one epic. `files:` is the write allowlist and may contain backend + frontend + wire + tests.
+3. TDD red → green: run only targeted commands from the shard. Backend, frontend/build and wire evidence are separate checkpoints; frontend/browser is parent-only.
+4. Seed `memory-bank/app/implement/<epic_id>/sNN-*.yaml`; machine finish owns status/checkpoint literals.
+5. Boundary steps require `wire_complete` with `deny_old_proven: true`; API-only or mock-only UI is not done.
+6. Before FINISH: targeted green, `verify-implement` PASS, scope check, then `loop.py finish --step sNN`. Last step routes to APP QA.
+
+Abort: missing decompose gate, creative gate open, scope violation, skipped mixed lane, missing implement artifact, or silent fallback/no-op.

@@ -23,7 +23,6 @@ from loop.kernel.cli import (
     _phase_instruction,
 )
 from loop.kernel.verdict import extract_json_fence
-from loop.kernel.analyze import analyze_required_before_implement, index_content_fingerprint
 from loop.kernel.index import (
     Step,
     _load_yaml_mapping,
@@ -145,35 +144,14 @@ steps:
     write(root / "memory-bank/back/plan/E1/yaml/s02-two.yaml", "step_id: s02\n")
     _seed_implement(root, step_id="s01", filename="s01-one.yaml")
     _seed_implement(root, step_id="s02", filename="s02-two.yaml")
-    write(
-        root / "memory-bank/back/analyze/E1/analyze-20260921-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
-    )
     return LoopPaths(project=root, hub=root / "hub")
 
 
 def _finish_via_gate(engine: LoopEngine):
     cursor = engine.store.read()
     assert cursor is not None
-    if cursor.phase == "DECOMPOSE":
-        verify_agent = "verify-decompose"
-        engine.accept_verdict(
-            GateVerdict(
-                schema=SCHEMA_GATE_VERDICT,
-                agent_id=verify_agent,
-                verdict="PASS",
-                step_id=cursor.step_id,
-                session_id=cursor.session_id,
-                epic_id=cursor.epic_id,
-                recorded_at="2026-09-18T18:59:00+00:00",
-            ),
-            expected_agent_id=verify_agent,
-        )
-        cursor = engine.store.read()
-        assert cursor is not None and cursor.phase == "DECOMPOSE"
     agent = {
-        "DECOMPOSE": "analyze-verify",
-        "ANALYZE": "analyze-verify",
+        "DECOMPOSE": "verify-decompose",
         "IMPLEMENT": "verify-implement",
         "TASK": "verify-implement",
         "REFACTOR": "verify-implement",
@@ -199,7 +177,6 @@ def _start_decompose_gate_project(
     root: Path,
     *,
     epic_id: str = "E-DECOMPOSE-GATE",
-    with_analyze: bool = True,
 ) -> tuple[LoopPaths, LoopEngine]:
     write(root / f"memory-bank/back/plan/{epic_id}/md/plan.md", f"# Plan: {epic_id}\n")
     paths = LoopPaths(project=root, hub=root / "hub")
@@ -222,11 +199,6 @@ steps:
         root / f"memory-bank/back/plan/{epic_id}/yaml/steps/s01.yaml",
         _minimal_decompose_shard(step_id="s01", plan_id=epic_id, verify_line="true"),
     )
-    if with_analyze:
-        write(
-            root / f"memory-bank/back/analyze/{epic_id}/analyze-20260921-pass.yaml",
-            "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
-        )
     return paths, engine
 
 
@@ -301,8 +273,8 @@ def test_rewind_to_decompose_after_implementation_progress(tmp_path: Path) -> No
     assert engine.store.read().status == CursorStatus.ACTIVE
 
 
-def test_verify_decompose_pass_is_recorded_without_advancing_parent(tmp_path: Path) -> None:
-    paths, engine = _start_decompose_gate_project(tmp_path, with_analyze=False)
+def test_verify_decompose_pass_atomically_promotes_without_analyze_artifact(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path)
     cursor = engine.store.read()
     assert cursor is not None
 
@@ -320,86 +292,16 @@ def test_verify_decompose_pass_is_recorded_without_advancing_parent(tmp_path: Pa
 
     assert action.ok
     assert action.continue_session is False
-    assert action.transition["phase"] == "DECOMPOSE"
+    assert action.transition["phase"] == "IMPLEMENT"
     assert action.transition["changed"] is True
-    assert action.transition["metadata"]["session_keep_alive"] is True
-    after = engine.store.read()
-    assert after is not None
-    assert after.phase == "DECOMPOSE"
-    assert after.session_id == cursor.session_id
-    assert '"event": "verdict_accepted"' in paths.events.read_text(encoding="utf-8")
-
-
-def test_analyze_pass_requires_current_decompose_gate(tmp_path: Path) -> None:
-    paths, engine = _start_decompose_gate_project(tmp_path)
-    cursor = engine.store.read()
-    assert cursor is not None
-
-    action = SubagentLifecycle(paths).stop(
-        {
-            "cwd": str(tmp_path),
-            "agent_type": "analyze-verify",
-            "last_assistant_message": _verdict_message(
-                cursor,
-                agent_id="analyze-verify",
-                paths=paths,
-            ),
-        }
-    )
-
-    assert not action.ok
-    assert "verify-decompose PASS" in action.reason
-    after = engine.store.read()
-    assert after is not None
-    assert after.phase == "DECOMPOSE"
-    assert engine.store.latest_event("verdict_accepted") is None
-
-
-def test_analyze_pass_atomically_promotes_decompose_and_ends_gate(tmp_path: Path) -> None:
-    paths, engine = _start_decompose_gate_project(tmp_path)
-    cursor = engine.store.read()
-    assert cursor is not None
-    lifecycle = SubagentLifecycle(paths)
-
-    verify = lifecycle.stop(
-        {
-            "cwd": str(tmp_path),
-            "agent_type": "verify-decompose",
-            "last_assistant_message": _verdict_message(
-                cursor,
-                agent_id="verify-decompose",
-                paths=paths,
-            ),
-        }
-    )
-    assert verify.ok
-    analyze_cursor = engine.store.read()
-    assert analyze_cursor is not None and analyze_cursor.phase == "DECOMPOSE"
-
-    analyze = lifecycle.stop(
-        {
-            "cwd": str(tmp_path),
-            "agent_type": "analyze-verify",
-            "last_assistant_message": _verdict_message(
-                analyze_cursor,
-                agent_id="analyze-verify",
-                paths=paths,
-            ),
-        }
-    )
-
-    assert analyze.ok
-    assert analyze.continue_session is False
-    assert analyze.transition["event"] == "verdict_accepted"
-    assert analyze.transition["changed"] is True
-    assert analyze.transition["phase"] == "IMPLEMENT"
     after = engine.store.read()
     assert after is not None
     assert after.phase == "IMPLEMENT"
     assert after.step_id == "s01"
+    assert '"event": "verdict_accepted"' in paths.events.read_text(encoding="utf-8")
 
 
-def test_codex_runtime_ends_only_after_analyze_pass(tmp_path: Path) -> None:
+def test_codex_runtime_ends_after_verify_decompose_pass(tmp_path: Path) -> None:
     paths, engine = _start_decompose_gate_project(tmp_path)
     runtime = CodexRuntime(progress=False)
     runtime._progress_project = tmp_path
@@ -413,16 +315,6 @@ def test_codex_runtime_ends_only_after_analyze_pass(tmp_path: Path) -> None:
         _verdict_message(cursor, agent_id="verify-decompose", paths=paths),
     )
     assert verify_output is not None
-    assert runtime._end_session_requested is False
-
-    analyze_cursor = engine.store.read()
-    assert analyze_cursor is not None and analyze_cursor.phase == "DECOMPOSE"
-    analyze_output = runtime._child_verdict(
-        "analyze-thread",
-        "analyze-verify",
-        _verdict_message(analyze_cursor, agent_id="analyze-verify", paths=paths),
-    )
-    assert analyze_output is not None
     assert runtime._end_session_requested is True
     assert engine.store.read().phase == "IMPLEMENT"
 
@@ -516,57 +408,28 @@ done: []
     assert after.phase == "DECOMPOSE"
 
 
-def test_decompose_finish_cannot_bypass_analyze_verdict(tmp_path: Path) -> None:
+def test_decompose_finish_cannot_bypass_verify_decompose_verdict(tmp_path: Path) -> None:
     paths, engine = _start_decompose_gate_project(tmp_path)
-    cursor = engine.store.read()
-    assert cursor is not None
-    engine.accept_verdict(
-        GateVerdict(
-            schema=SCHEMA_GATE_VERDICT,
-            agent_id="verify-decompose",
-            verdict="PASS",
-            step_id=cursor.step_id,
-            session_id=cursor.session_id,
-            epic_id=cursor.epic_id,
-            recorded_at="2026-09-18T18:59:00+00:00",
-        ),
-        expected_agent_id="verify-decompose",
-    )
-
-    with pytest.raises(TransitionError, match="accepted analyze-verify PASS"):
+    with pytest.raises(TransitionError, match="accepted verify-decompose PASS"):
         engine.finish(step_id="DECOMPOSE")
 
     after = engine.store.read()
     assert after is not None and after.phase == "DECOMPOSE"
 
 
-def test_analyze_fail_keeps_decompose_open_for_repair(tmp_path: Path) -> None:
+def test_verify_decompose_fail_keeps_decompose_open_for_repair(tmp_path: Path) -> None:
     paths, engine = _start_decompose_gate_project(tmp_path)
     cursor = engine.store.read()
     assert cursor is not None
     lifecycle = SubagentLifecycle(paths)
 
-    verify = lifecycle.stop(
+    fail = lifecycle.stop(
         {
             "cwd": str(tmp_path),
             "agent_type": "verify-decompose",
             "last_assistant_message": _verdict_message(
                 cursor,
                 agent_id="verify-decompose",
-                paths=paths,
-            ),
-        }
-    )
-    assert verify.ok
-    analyze_cursor = engine.store.read()
-    assert analyze_cursor is not None
-    fail = lifecycle.stop(
-        {
-            "cwd": str(tmp_path),
-            "agent_type": "analyze-verify",
-            "last_assistant_message": _verdict_message(
-                analyze_cursor,
-                agent_id="analyze-verify",
                 verdict="FAIL",
                 paths=paths,
             ),
@@ -582,7 +445,7 @@ def test_analyze_fail_keeps_decompose_open_for_repair(tmp_path: Path) -> None:
     assert after.status == CursorStatus.ACTIVE
 
 
-def test_decompose_finish_requires_analyze_then_hands_off_to_implement(tmp_path: Path) -> None:
+def test_decompose_finish_hands_off_without_analyze_artifact(tmp_path: Path) -> None:
     write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# Plan: E2\n")
     paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
     engine = LoopEngine(paths)
@@ -622,13 +485,6 @@ verify: []
 tdd: []
 """,
     )
-    with pytest.raises(TransitionError, match="ANALYZE gate|analyze_missing"):
-        _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/analyze/E2/analyze-20260921-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
-    )
-    _seed_implement(tmp_path, step_id="s01", filename="s01.yaml", epic_id="E2")
     transition = _finish_via_gate(engine)
     assert transition.phase == "IMPLEMENT"
     assert transition.step_id == "s01"
@@ -689,7 +545,7 @@ steps:
     assert engine.store.read().phase == "DECOMPOSE"
 
 
-def test_decompose_with_analyze_routes_to_implement_when_index_completed_without_artifacts(tmp_path: Path) -> None:
+def test_decompose_does_not_skip_to_qa_without_implement_artifacts(tmp_path: Path) -> None:
     """Hole regression: false completed in index must not skip to QA without implement evidence."""
     paths = seed_project(tmp_path)
     write(
@@ -848,7 +704,7 @@ steps:
     assert yaml.safe_load(text)["verify"][0].endswith("rg \\.token path")
 
 
-def test_loop_holds_decompose_until_zero_critical_analyze_artifact_exists(tmp_path: Path) -> None:
+def test_loop_decompose_promotion_does_not_depend_on_legacy_analyze_artifact(tmp_path: Path) -> None:
     write(tmp_path / "memory-bank/back/plan/E3/md/plan.md", "# Plan: E3\n")
     write(
         tmp_path / "memory-bank/back/plan/E3/yaml/decompose-index.yaml",
@@ -888,43 +744,9 @@ tdd: []
     paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
     engine = LoopEngine(paths)
     assert engine.start("E3").phase == "DECOMPOSE"
-    write(
-        tmp_path / "memory-bank/back/analyze/E3/analyze-20260921-fail.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 1\n",
-    )
-    with pytest.raises(TransitionError, match="critical_findings|ANALYZE gate"):
-        _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/analyze/E3/analyze-20260922-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
-    )
-    _seed_implement(tmp_path, step_id="s01", filename="s01.yaml", epic_id="E3")
     transition = _finish_via_gate(engine)
     assert transition.phase == "IMPLEMENT"
     assert transition.step_id == "s01"
-
-
-
-def test_analyze_gate_rejects_stale_index_and_unknown_step_refs(tmp_path: Path) -> None:
-    index = tmp_path / "memory-bank/back/plan/E4/yaml/decompose-index.yaml"
-    write(index, "schema: epic-decompose-index/v1\nplan_id: E4\nsteps:\n- id: s01\n  status: pending\n")
-    fingerprint = index_content_fingerprint(index)
-    write(
-        tmp_path / "memory-bank/back/analyze/E4/analyze-20260921-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\n"
-        f"index_fingerprint: {fingerprint}\nmetrics:\n  critical_count: 0\n"
-        "findings:\n- id: A1\n  step_ref: s99\n",
-    )
-
-    result = analyze_required_before_implement(
-        tmp_path,
-        "back",
-        "E4",
-        [{"id": "s01", "status": "pending"}],
-        index_path_override=index,
-    )
-    assert result["required"] is True
-    assert result["reason"] == "analyze_stale"
 
 
 def test_implement_artifact_path_has_no_duplicate_epic_prefix(tmp_path: Path) -> None:
@@ -971,6 +793,8 @@ verification:
 items:
   - id: BF-001
     status: done
+    done_at: 2026-09-21T00:00:00Z
+    evidence: bin/pytest -q --tb=line — 1 passed
 """,
     )
     _finish_via_gate(engine)
@@ -998,6 +822,28 @@ items:
     )
     assert sync.event == "context_sync_completed"
     assert engine.store.read().status == CursorStatus.COMPLETE
+
+
+def test_qa_pass_cannot_cross_with_unverified_browser_claim(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20260921-browser.yaml",
+        """schema: epic-qa/v1
+verdict: pass
+browser:
+  status: pass
+  journeys:
+    - name: OAuth redirect
+      status: pass
+""",
+    )
+
+    with pytest.raises(TransitionError, match="qa_browser_evidence_required"):
+        _finish_via_gate(engine)
 
 
 
@@ -1176,13 +1022,15 @@ def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: 
     assert "repair_result_rejected" in prompt
     assert "T-004-mode-a-live-ready-analyze-verify" not in prompt
     engine.rewind("DECOMPOSE")
-    analyze_cursor = engine.store.read()
-    assert analyze_cursor is not None
-    analyze_prompt = _gate_protocol(analyze_cursor, tmp_path, "analyze-verify")
-    assert "FINDINGS:" in analyze_prompt
-    assert "COVERAGE:" in analyze_prompt
-    assert "ALLOW READ:" in analyze_prompt
-    assert f"GATE_IDENTITY session_id={analyze_cursor.session_id} epic_id=E1 step_id=DECOMPOSE" in analyze_prompt
+    decompose_cursor = engine.store.read()
+    assert decompose_cursor is not None
+    decompose_prompt = _gate_protocol(decompose_cursor, tmp_path, "verify-decompose")
+    assert "Read yaml/decompose-index.yaml first" in decompose_prompt
+    assert "structural and semantic" in decompose_prompt
+    assert "PASS is the complete DECOMPOSE gate" in decompose_prompt
+    assert "FINDINGS:" not in decompose_prompt
+    assert "legacy analysis artifact" in decompose_prompt
+    assert f"GATE_IDENTITY session_id={decompose_cursor.session_id} epic_id=E1 step_id=DECOMPOSE" in decompose_prompt
 
 
 def test_verify_qa_prompt_injects_frozen_checklist_and_suite(tmp_path: Path) -> None:
@@ -1196,6 +1044,17 @@ def test_verify_qa_prompt_injects_frozen_checklist_and_suite(tmp_path: Path) -> 
 verdict: fail
 checklist_sha256: abc123
 verify_scope: full
+test_plan:
+  catalog: .cursor/templates/qa/test-catalog.yaml
+  mode: full
+  scope_signals: [backend, api]
+  selected:
+    - id: contract_acceptance
+      name: Contract and acceptance criteria tests
+      status: pass
+      evidence: qa-evidence.json
+  not_applicable: []
+  not_run: []
 suite:
   - 'bin/pytest -q --tb=line (10 passed)'
 ac_plus:
@@ -1219,6 +1078,9 @@ section_011:
     assert "### AC−" in prompt and "- no fallback" in prompt
     assert "### §0.11" in prompt and "- no orphan refs" in prompt
     assert "### Prior blockers" in prompt
+    assert "## Test plan" in prompt
+    assert "contract_acceptance" in prompt
+    assert "qa-evidence.json" in prompt
 
 
 def test_verify_bugfix_prompt_packs_contract_paths_under_limit(tmp_path: Path) -> None:
@@ -2012,6 +1874,8 @@ def test_bugfix_partial_exit_is_finish_not_committed(tmp_path: Path) -> None:
 items:
   - id: BF-001
     status: done
+    done_at: 2026-09-21T00:00:00Z
+    evidence: targeted test passed
   - id: BF-002
     status: open
 """,

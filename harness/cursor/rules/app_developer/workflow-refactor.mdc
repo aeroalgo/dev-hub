@@ -1,0 +1,15 @@
+---
+description: "APP REFACTOR — mixed-surface refactor with contract preservation"
+alwaysApply: false
+---
+### Команда: APP REFACTOR
+
+**Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/refactor.mdc
+
+## Hot path
+
+1. Preserve the APP contract and user journey while changing implementation ownership.
+2. Use `refactor/plan/<epic_id>/` and `refactor/implement/<epic_id>/rNN-*.yaml` when an epic exists.
+3. Include backend, frontend and wire regressions in the shard; delete replaced paths explicitly.
+4. Finish into APP QA, never into a separate integration phase.
