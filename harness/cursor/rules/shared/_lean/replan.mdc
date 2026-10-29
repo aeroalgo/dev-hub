@@ -13,7 +13,7 @@ alwaysApply: false
 2. Секция `## Epic` в **parent** `md/prompt.md` — единственный критерий outcome
    (не Covering, не plan.md). Parent prompt **не** переписывать.
 3. **Context allowlist (HARD):** REPLAN читает только parent `## Epic` + код.
-   Parent plan/decompose/implement/analyze/audit/QA (кроме факта PASS) и
+   Parent plan/decompose/implement/pre-IMPLEMENT checks/QA (кроме факта PASS) и
    соседние `plan/**` — **не** вход анализа.
 4. **Spawn model (HARD):** critical gaps → **новые** epic_id + `plan/<new>/`;
    parent `plan.md` / decompose / `done:` **не** overwrite / не reset.

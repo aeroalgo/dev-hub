@@ -22,19 +22,19 @@ alwaysApply: false
 ## Hot path
 
 1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
-1a. **Effort probe (HARD):** до нарезки — таблица outcomes→hours + `effort_class` / `sNN_cap` / `sNN_target` в `decompose-index.yaml`. Канон: shared/workflow-behavior-first.mdc §3a Effort probe
-2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp — count ≈ `sNN_target`, **≤ `sNN_cap`**
-2a. **Granularity:** SoT = Effort probe (`sNN_cap`: S→3 · M→5 · L→8); outcome-first — schema+CLI / harness+loop / docs+Kind I / audit-хвост сливать; apply≠purge отдельно. **FORBIDDEN** добивать до 5–8. `>cap` или `>9` → justification в index. Канон: shared/workflow-behavior-first.mdc §3a
+1a. **Level cap (HARD):** в `decompose-index.yaml` — `level: L1|L2|L3` + `sNN_cap` (L1→1 · L2→2 · L3→3). Канон: shared/workflow-behavior-first.mdc §3a
+2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp — **`sNN_count ≤ sNN_cap`**
+2a. **Granularity:** SoT = level cap; outcome-first — schema+CLI / harness+loop / docs+Kind I / contract-check хвост сливать; apply≠purge отдельно. **FORBIDDEN** L4 · Effort probe · добивание до cap · `>cap` (→ multi-epic). Канон: shared/workflow-behavior-first.mdc §3a
 2b. **TDD внутри шага (HARD):** TDD = процесс внутри `sNN`, *не* отдельный shard. `s01-*-red-tests` как самостоятельный шаг — **FORBIDDEN**. Failing tests + impl + green = один `sNN` с cp: `[tdd red, impl, green]`. Поле `tdd:` шага = список pytest-имён; шаг = одна production capability.
 2c. **Test scope (HARD):** в каждом `sNN` записывай только targeted `verify` по `files`/`delta`/`plan_contract`; full suite не добавляй в `verify` или `checkpoints[].verify`. Полный suite — отдельный **BACK QA** outcome после IMPLEMENT.
 3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
 3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
 4. `validate-decompose-tree` exit 0 (+ plan_contract machine)
 5. `validate-traceability` CRITICAL=0 (deferred OOS без follow_up = CRITICAL)
-6. FINISH → **BACK ANALYZE** (обязателен; **нет** ANALYZE deferred → IMPLEMENT)
+6. PROMOTION → analyze-*.yaml + `@verify-decompose` PASS + `@analyze-verify` PASS → **IMPLEMENT/CREATIVE** (нет deferred skip; analyze PASS атомарно закрывает DECOMPOSE)
 
 → anti-dilution: shared/workflow-behavior-first.mdc §1 · §1a · §3a
-→ plan outline count = hint; Effort probe = SoT cap (не раздувать до 5–8 / 10–12)
+→ plan outline count = hint; level → `sNN_cap` = SoT (макс 3; не раздувать)
 
 ---
 
@@ -42,7 +42,7 @@ alwaysApply: false
 
 DECOMPOSE = **максимально подробная** нарезка **по coverage** (FR/AC/Stages/Replacement), не по числу файлов. Артефакты **без** telegraph/200-line economy. Chat MAY be brief.
 
-**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; число шагов = Effort probe (`sNN_target`≤`sNN_cap`); **5–8 не min**. Канон: shared/workflow-behavior-first.mdc §3a.
+**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; число шагов = level → `sNN_cap` (L1→1 · L2→2 · L3→3). Канон: shared/workflow-behavior-first.mdc §3a.
 
 **TDD — процесс внутри шага, не отдельный shard (HARD):** failing tests + impl + green = один `sNN`. `s01-*-red-tests` как самостоятельный шаг без production behavior — **FORBIDDEN**. Checkpoints: `[tdd red, impl, green]` внутри одного шага. Поле `tdd:` = список pytest-имён, которые должны стать green.
 
@@ -65,14 +65,14 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 `api` → fastapi-templates + async-python-patterns + python-error-handling · `service` → async + errors · `ws` → + websocket-engineer · `sql` → sqlalchemy-postgres · `infra`/`model`/`test` → Core only (situational по факту).  
 `omit_justification:` map `skill_id → reason` (непустая причина). Bare omit = FAIL.
 
-**Machine:** `validate-decompose-tree` / `validate_decompose_full` fail-closed на empty impl / Core partial / unjustified situational / allowlist / cap. **ANALYZE** pass 12 (`skills_*`) = CRITICAL → обратно в DECOMPOSE.
+**Machine:** `validate-decompose-tree` / `validate_decompose_full` fail-closed на empty impl / Core partial / unjustified situational / allowlist / cap. Pre-IMPLEMENT pass 12 (`skills_*`) = CRITICAL → обратно в DECOMPOSE.
 
 ---
 
 **Процесс**:
 1. `OK BACK DECOMPOSE - [plan_id]` → Gates + skills-gate + **Hot path**
-2. Прочитай план (L3–4: все shards) — AC±/FR/NFR/этапы/ADR/тесты/§0.11/Outcome
-3. Index: четыре coverage-секции + **Effort probe** (`effort_class` / `sNN_cap` / `sNN_target`)
+2. Прочитай план (L3: все shards при наличии) — AC±/FR/NFR/этапы/ADR/тесты/§0.11/Outcome
+3. Index: четыре coverage-секции + **`level` / `sNN_cap`**
 4. Нарежь `sNN` ≤ `sNN_cap` (+ `needs_creative` hard-stop на open CR)
 5. Каждый `sNN` по `templates/decompose/epic-step.yaml` + skills gate
 5z. `validate-decompose-tree` exit 0 · schema `epic-decompose/v1` only
@@ -80,11 +80,11 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 5a–5j. FAIL-условия = Gates Abort (+ dilution / optional_sot / Kind I / purge / short plan_id)
 6. Layout v2: `yaml/decompose-index.yaml` (`epic-decompose-index/v1`) + `yaml/steps/sNN-*.yaml` — **FORBIDDEN** markdown index and any non-canonical flat layout.
 7. Goal/NFR не infra-only
-7a. **Promote:** validate-decompose-tree · validate-traceability CRITICAL=0 · `@verify-decompose` · Next = **BACK ANALYZE** only (**FORBIDDEN** ANALYZE deferred)
-7b. **FINISH:** finish-block (`code_changed: no`); next ANALYZE
+7a. **Promote:** validate-decompose-tree · validate-traceability CRITICAL=0 · analyze-*.yaml + `@verify-decompose` PASS + `@analyze-verify` PASS · Next = **IMPLEMENT/CREATIVE**. **FORBIDDEN** skip analyze / deferred
+7b. **FINISH:** `@analyze-verify` PASS atomically promotes the phase; parent не вызывает `loop.py finish` после gate
 8. `tasks.md` append-only
-9. Next: CREATIVE если нужно; иначе **BACK ANALYZE** → IMPLEMENT только при `critical_count=0`
-10. **Новый чат** для ANALYZE/IMPLEMENT
+9. Next: CREATIVE если нужно; иначе **IMPLEMENT** (analyze gate уже в DECOMPOSE)
+10. **Новый чат** для IMPLEMENT
 
 **Границы:** нет кода; нет ужимания intent/coverage.
 

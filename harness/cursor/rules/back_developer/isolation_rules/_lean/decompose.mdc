@@ -11,26 +11,26 @@ alwaysApply: false
 
 ## PASS checklist
 
-1. Plan из `load_now` / `plan-<id>`; L3–4 → все shards
+1. Plan из `load_now` / `plan-<id>`; L3 → все shards при наличии
 2. Index: Requirements coverage · Stages coverage · Outcome map · Replacement cleanup (A|B|C|**I**)
 3. Каждый AC+/AC−/BN-*/FR/NFR → sNN или `out_of_scope`+`follow_up` **в queue**; FR nouns verbatim ∈ `produces`/`files`; applicable `BN-*` → targeted verify (не только happy-path)
 4. Covered row ⇒ measurable `verify` (не map-only / не surrogate-only для product FR)
 4a. **Test scope (HARD):** каждый `sNN` содержит только targeted `verify` по своему `files`/`delta`; full pytest suite в shard запрещён и передаётся **BACK QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
 5. Titles outcome-first; matrix/lifecycle/existing-services → отдельные sNN **только при отдельном outcome** (не micro-ladder schema→CLI→wire)
-5a. **Effort probe + Granularity:** index содержит `effort_probe` / `effort_class` / `sNN_cap` / `sNN_target`; `sNN_count ≤ sNN_cap`; S→cap3 (FAIL если S и count≥5); **FORBIDDEN** min-5; audit-хвост / docs+Kind I / core+CLI — сливать. shared/workflow-behavior-first.mdc §3a
+5a. **Level cap + Granularity:** index содержит `level: L1|L2|L3` + `sNN_cap` (1|2|3); `sNN_count ≤ sNN_cap`; **FORBIDDEN** L4 · Effort probe · добивание до cap; audit-хвост / docs+Kind I / core+CLI — сливать. shared/workflow-behavior-first.mdc §3a
 6. Каждый `sNN`: `epic-decompose/v1` + `role: back` + list `as_built`/`delta` + `deletes` + `plan_contract` + `skills.code_surface` + Core(4) ∪ situational ≤6 (или `omit_justification` на каждый omitted default)
 6a. **Skills HARD:** `code_surface ≠ docs` ⇒ `impl` не `[]` + Core(4); surface defaults ∈ impl|omit_justification; template empty-impl = FAIL; DECOMPOSE = **copy paths** only (@.cursor/rules/shared/_lean/decompose-skills-load.mdc) — Read тел SKILL на DECOMPOSE = incomplete
 7. Brownfield ≠ n/a → `deletes` + `*-legacy-fallback-purge` (+ Kind I)
 8. CLI: `validate-decompose-tree` exit 0 (incl. skills gate) · `validate-traceability` **CRITICAL=0**
-9. Next = **BACK ANALYZE** only — **FORBIDDEN** `ANALYZE deferred`
+9. Next = **IMPLEMENT** (analyze-*.yaml + `@analyze-verify` уже в DECOMPOSE) — **FORBIDDEN** skip analyze
 10. Goal/NFR не сжаты до infra-only
 
 ## Abort (incomplete)
 
 - Нет Requirements/Stages/Outcome/Replacement · dilution · optional_sot ladder gap
-- Micro-ladder / нет Effort probe / `sNN_count > sNN_cap` без justification / `effort_class=S` ∧ count≥5 / sNN&lt;0.5ч · audit-* пачкой без outcome
-- Отказ добавить sNN «слишком много шагов» при непокрытом FR/AC → incomplete (coverage > cap)
-- Добивание sNN «чтобы было 5–8» → incomplete (`effort_cap_violation`)
+- Micro-ladder / нет `level`/`sNN_cap` / `sNN_count > sNN_cap` · audit-* пачкой без outcome
+- Отказ добавить sNN при непокрытом FR/AC и `count==cap` → multi-epic (не поднимать cap) или incomplete
+- Добивание пустых sNN до cap / L4 / Effort probe → incomplete (`effort_cap_violation`)
 - CRITICAL>0 · schema ≠ `epic-decompose/v1` · **skills:** empty impl на code · Core partial · situational unjustified / >6 / вне allowlist · Read тел Core/situational SKILL на DECOMPOSE
-- `ANALYZE deferred` · short `plan_id` без slug · код/тесты реализации
+- deferred pre-IMPLEMENT analysis · short `plan_id` без slug · код/тесты реализации
 - `needs_creative` open CR без hard-stop · `impl:` с session skills (writing-plans/…)

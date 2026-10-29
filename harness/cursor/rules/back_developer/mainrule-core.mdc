@@ -16,23 +16,21 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 
 ## УРОВНИ
 
-| L | Scope |
-|---|-------|
-| L1 | 1–2 файла, <1ч |
-| L2 | 3–5 файлов, <4ч |
-| L3 | новая фича / дизайн, <2д |
-| L4 | архитектура, >2д |
+| L | Сложность | sNN |
+|---|-----------|-----|
+| L1 | лёгкая | 1 |
+| L2 | средняя | 2 |
+| L3 | сложная | 3 |
 
 ## ПЕРЕХОДЫ
 
 ```text
-VAN → PLAN(I1) → DECOMPOSE → ANALYZE → CREATIVE? → IMPLEMENT* → AUDIT → QA → CONTEXT SYNC → REPLAN(I2/I3) ↺ → FINAL REVIEW → DONE → ARCHIVE
-                 ↘ RECONCILE (hotfix drift)                         ↘ BUGFIX from QA
-                                                                      ↘ CONTEXT SYNC after QA PASS (root canon)
+VAN → PLAN(I1) → DECOMPOSE → CREATIVE? → IMPLEMENT* → QA(+contract; context-sync worker) → REPLAN(I2/I3) ↺ → FINAL REVIEW → DONE → ARCHIVE
+                 ↘ RECONCILE (hotfix drift)              ↘ BUGFIX swarm (bugfix-fix≤3) from QA fail
 ```
 
 Next: Handoff в `memory-bank/activeContext.md`; следующий шаг — activeContext + decompose index.
-Promote DECOMPOSE→IMPLEMENT: traceability CRITICAL=0 + **ANALYZE artifact critical_count=0** (workflow-decompose §7a). **FORBIDDEN** ANALYZE deferred skip.
+Promote DECOMPOSE→IMPLEMENT: в DECOMPOSE — analyze-*.yaml + `@analyze-verify` PASS (`critical_count=0`) + verify-decompose. **FORBIDDEN** skip analyze / deferred.
 Post-QA: I1/I2 → explicit `BACK REPLAN` (spawn new epic_id или skip marker; parent plan/prompt/done не overwrite). I3 → FINAL OUTCOME REVIEW. Runner/loop пока не ведёт счётчик iterations. Reflection artifacts не участвуют в lifecycle.
 
 Не дублировать таблицы «после QA → …» здесь — только FINISH sync ledger.

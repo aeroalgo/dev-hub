@@ -14,14 +14,14 @@ alwaysApply: false
 1a. Прочитай **Gates** (shared + role patch) + **Brownfield map** (+ paths если create MB)
 2. Detect greenfield | brownfield (shared rule)
 3. `tasks.md`, `projectbrief.md`, `activeContext.md`
-4. **greenfield:** структура MB → L1–L4 → tasks append → van log (опц.) → FINISH
+4. **greenfield:** структура MB → L1–L3 → tasks append → van log (опц.) → FINISH
    **brownfield:**
    - announce: `SUSPENSION GUARD active — architecture map output unlimited`
    - graphify + inventory (shared)
    - refresh backend-scope shards: `overview` (BE) · `services` · `data-flow` · `erd` · `workers` · `containers`
    - update `memory-bank/architecture/index.md`
    - session log: `memory-bank/back/van/van-YYYYMMDD.md` (links only)
-5. L1–L4 в `tasks.md` (append-only)
+5. L1–L3 в `tasks.md` (append-only)
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`)
 7. Next: L1 → IMPLEMENT; L2–4 → PLAN
 

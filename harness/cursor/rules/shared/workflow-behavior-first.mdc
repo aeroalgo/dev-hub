@@ -1,10 +1,11 @@
 ---
-description: "Behavior-first / anti-dilution / wire-complete — plan WHAT must ship as sole runtime SoT (shared BACK/FRONT/INTEG)"
+description: "Behavior-first / anti-dilution / wire-complete — plan WHAT must ship as sole runtime SoT (shared BACK/FRONT)"
 alwaysApply: false
 ---
 # Behavior-first / anti-dilution (HARD)
 
-**Канон для:** PLAN · DECOMPOSE · ANALYZE · AUDIT · QA · IMPLEMENT (BACK/FRONT/INTEG).
+**Канон для:** PLAN · DECOMPOSE · QA · IMPLEMENT (BACK/FRONT). Pre-IMPLEMENT
+consistency и contract checks folded внутрь DECOMPOSE/QA; отдельных фаз нет.
 
 **Проблема, которую закрываем:** FR/US в плане («агенты», «wire», «CLI», «новый контракт границы») закрывают шагом «строка в registry / alias / unit на lookup / модуль существует» → IMPLEMENT `completed`, продукт не работает; старый путь остаётся optional → повторные эпики на ту же поверхность.
 
@@ -110,54 +111,27 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 
 ---
 
-## 3a. DECOMPOSE granularity — outcome-first (HARD)
+## 3a. DECOMPOSE granularity — level caps (HARD)
 
-**Проблема:** нарезка «один слой ladder / один файл / один audit = один sNN» раздувает эпик (часто 11–15 шагов) без роста coverage; одновременно «band 5–8» ошибочно читают как **нижнюю цель** и добирают пустые шаги. Fat-хвост и micro-ladder — anti-pattern.
+**Проблема:** Effort probe (часы / S·M·L·XL / band 5–8) и L4 раздували эпик до 8+ шагов без роста coverage.
 
-**Одной фразой:** *Maximal detail = полнота coverage и глубина внутри sNN, не максимальное число sNN. Число sNN якорится на Effort probe (часы × outcomes × rollback), не на LOC и не на «попасть в 5–8».*
+**Одной фразой:** *Число `sNN` = уровень сложности эпика. Больше 3 шагов — нельзя; режь на два эпика.*
 
-### Effort probe (HARD — до нарезки `sNN`/`eNN`)
+### Level → step cap (BACK / FRONT `sNN`)
 
-**Когда:** каждый `BACK|FRONT DECOMPOSE` (и INTEG — для оценки объёма / anti-micro-split; **не** для схлопывания Element registry).
+| Level | Сложность | `sNN_cap` | Маршрут |
+|-------|-----------|-----------|---------|
+| **L1** | лёгкая | **1** | PLAN optional → IMPLEMENT (один шаг) |
+| **L2** | средняя | **2** | DECOMPOSE → IMPLEMENT×2 |
+| **L3** | сложная | **3** | DECOMPOSE → IMPLEMENT×3 |
 
-**Где:** секция `effort_probe:` (или `## Effort probe`) в `yaml/decompose-index.yaml` **до** финального списка steps. Без probe → DECOMPOSE incomplete.
+**FORBIDDEN:** L4 · Effort probe (hours / `effort_class` S|M|L|XL / band 5–8) · рубрика «по числу файлов» · добивание шагов «чтобы было N» · `sNN_count > sNN_cap`.
 
-Заполнить таблицу **по наблюдаемым outcomes** (не по файлам / не по слоям ladder):
+**Где:** в `yaml/decompose-index.yaml` поля `level: L1|L2|L3` и `sNN_cap: 1|2|3` (cap = уровню). `sNN_count ≤ sNN_cap`. Без `level`/`sNN_cap` → DECOMPOSE incomplete.
 
-| Outcome (поведение) | hours_mid | hours_range | confidence | notes |
-|---------------------|-----------|-------------|------------|-------|
-| … | 3 | 2–4 | med | … |
+**Если outcomes не влезают в cap:** multi-epic / Appetite cut — **не** поднимать cap и не возвращать L4/8 шагов.
 
-Затем агрегаты в index:
-
-| Field | Rule |
-|-------|------|
-| `effort_hours_total` | sum `hours_mid` |
-| `effort_class` | **S** ≤4ч · **M** ≤16ч · **L** ≤40ч · **XL** >40ч |
-| `independent_outcomes` | число строк таблицы (observables) |
-| `split_seams` | только швы с **разным rollback** (часто 0–1); flaky/live ≠ автоматический новый sNN |
-| `sNN_cap` | S→**3** · M→**5** · L→**8** · XL→**STOP** (сначала multi-epic / Appetite cut — не 12 sNN) |
-| `sNN_target` | `clamp(independent_outcomes + split_seams, 1, sNN_cap)` |
-
-**1 sNN ≈ 2–6 ч** осмысленной работы (код + targeted verify).  
-LOC — только sanity («~200 строк vs ~2к»), **не** вход в формулу и не коэффициент.
-
-**XL:** stop-and-split эпик (multi-epic / cut_list); FORBIDDEN набивать sNN вместо разрезания эпика.
-
-### Band (BACK / FRONT `sNN`) — cap от effort, не пол «5»
-
-| | |
-|---|---|
-| **SoT count** | `sNN_target` / `sNN_cap` из Effort probe |
-| Typical M | часто 3–5; **5–8** = потолок для среднего L, **не** нижняя цель |
-| L + migrate/enforce | до **8–9** только с justification (blast / apply≠purge) **и** ≤ cap (L=8; выше → justification + не XL-маскировка) |
-| Soft FAIL | `sNN_count > sNN_cap` без justification в index; или `>9` без blast/enforce justification |
-| HARD FAIL | нет Effort probe · `effort_class=S` и `sNN_count ≥ 5` · sNN с estimate &lt; **0.5ч** · добивание шагов «чтобы было ≥5» · отказ добавить sNN при непокрытом FR/AC |
-| Plan outline `~N sNN` | **hint**, не контракт; DECOMPOSE **не** копирует outline 1:1 |
-
-**Никогда** не добирать sNN до нижней границы band.
-
-**INTEG `eNN`:** Effort probe **обязателен** (hours / class / anti-micro-split одного element). Cap **не** схлопывает Element registry (**1 element = 1 eNN**). Запрет: layer-first micro-split одного element; audit/docs хвосты — один eNN. При XL — резать portal batch / multi-epic, не «лишние layer eNN».
+**Plan outline `~N sNN`:** hint; финальный SoT = `level` → `sNN_cap`.
 
 ### Сливать по умолчанию
 
@@ -166,9 +140,9 @@ LOC — только sanity («~200 строк vs ~2к»), **не** вход в 
 | schema + resolver/paths | один path/contract boundary |
 | core module + CLI | один deliverable operator invoke |
 | harness wire + loop wire | один resolver/SoT, разные call-sites |
-| audit-* хвост | **один** sNN (несколько cp / TM), не s08…s15 audit |
+| contract-check хвост | **один** sNN (несколько cp / TM) |
 | docs + Kind I rewrite | один instruction surface pass |
-| Hub TDD / pytest (managed: capability_checks) | внутри шага `tdd`/`checkpoints`, не финальный «ещё tests» sNN без нового behavior |
+| Hub TDD / pytest (managed: capability_checks) | внутри шага `tdd`/`checkpoints`, не отдельный tests-only sNN |
 | harness-only / env-only / docs-only / purge-checklist без нового behavior | с соседним outcome того же SoT |
 
 ### Не сливать
@@ -179,18 +153,20 @@ LOC — только sanity («~200 строк vs ~2к»), **не** вход в 
 | migrate **apply** ≠ **purge** | apply → green → fail-closed purge |
 | enforce / rg-gate при большом blast radius | отдельный verify, что старый путь DENY |
 | wire с несовместимыми rollback | нельзя откатить одним шагом |
-| outcome &gt; ~1д mid-estimate | дробить **outcome**, не добавлять layer-соседей |
+
+Если «не сливать» даёт `count > sNN_cap` → **два эпика**, не 4-й шаг.
 
 ### FORBIDDEN (micro-ladder + fake sizing)
 
-- schema → core → CLI → harness-wire → loop-wire → docs → tests → purge как **восемь** sNN без отдельных outcome
-- отдельный sNN на каждый `finish_<mode>` / каждый audit finding class без отдельного product outcome
+- schema → core → CLI → harness-wire → loop-wire → docs → tests → purge как много sNN без отдельных outcome
+- отдельный sNN на каждый audit finding class без product outcome
 - «лимит шагов» как оправдание дыры в Requirements/Stages/Replacement coverage
-- «band 5–8» как **min** / добивание пустых sNN
-- Effort probe с ровными «всем по 4ч» без notes (подогнанный estimate) — переписать честно
-- коэффициент от LOC → число sNN
+- добивание пустых sNN до cap
+- L4 / Effort probe / S→3·M→5·L→8
 
-Category finding (ANALYZE): `layout_dilution` · `step_granularity` · **`effort_cap_violation`** (нет probe / count>cap / S≥5 sNN / micro-ladder).
+**FRONT wire:** level L1–L3 = `sNN_cap`; UI×API slice в тех же `sNN`. Запрет: layer-first micro-split; contract/docs хвосты — один sNN. Слишком много surfaces → multi-epic.
+
+Category finding (pre-IMPLEMENT gate): `layout_dilution` · `step_granularity` · **`effort_cap_violation`** (нет level/sNN_cap / count>cap / micro-ladder).
 
 ---
 
@@ -207,11 +183,11 @@ Category finding (ANALYZE): `layout_dilution` · `step_granularity` · **`effort
 
 **Формула:** новый контракт либо **единственный SoT в этом эпике**, либо **явный follow-up эпик в queue** — не «потом когда-нибудь».
 
-Category finding (ANALYZE/AUDIT): `optional_sot`.
+Category finding (DECOMPOSE/QA contract check): `optional_sot`.
 
 ---
 
-## 5. AUDIT — inventory из **plan**, presence ≠ satisfied
+## 5. QA contract checks — inventory из **plan**, presence ≠ satisfied
 
 1. Intent Inventory = **все** FR/US/SC/AC±/NFR из `plan/<epic_id>/md/plan.md` (полный список). Decompose coverage / remapped `plan_refs` — **вторичный** индекс.
 2. Plan FR без step → finding `missing` **CRITICAL** (не «не в inventory потому что не в decompose»).
@@ -223,7 +199,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 ---
 
-## 6. ANALYZE — pass **Dilution** + **Optional-SoT**
+## 6. DECOMPOSE pre-IMPLEMENT gate — pass **Dilution** + **Optional-SoT**
 
 После Coverage Gaps:
 

@@ -10,8 +10,8 @@ alwaysApply: false
 **Процесс**:
 1. `OK BACK BUGFIX - [суть]` → **Gates** + @.cursor/rules/shared/epic-scoped-paths.mdc
 2. **Вход из QA:** `bugfix-queue.yaml` из `load_now` — единственный курсор; prose `bugfix-YYYYMMDD-<slug>.md` накапливает root cause/changes/evidence.
-3. Первый `open`/`in_progress` → `in_progress` → reproduce/root cause → regression red → fix → targeted green → `done` + evidence. Межсессионный partial допустим; queue обновляется атомарно.
-3a. Когда items terminal, выполнить только `verification.command`; PASS записать в queue с evidence. FAIL → gate repair append новых eligible open items в ту же queue, без перехода в QA.
+3. **Swarm:** parent spawn ≤3 `bugfix-fix`; **1 child = 1 queue item**. Subagent: `in_progress` → reproduce/root cause → regression red → fix → targeted green → `done` + evidence → стоп. Волны по disjoint files; overlapping — след. волна. Parent держит сессию до пустой open-очереди (не partial exit).
+3a. Все items terminal → `verification.command`; PASS в queue с evidence. FAIL → gate repair append в ту же queue, без перехода в QA.
 4. §0.11 если refs · pre-FINISH skills
 5. **FINISH:** finish-block (`code_changed: yes`); `@verify-bugfix` проверяет queue all-terminal + verification PASS + report → runner next session
    Next-mode: `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH

@@ -289,7 +289,8 @@ def test_project_dotenv_board_settings_are_loaded_without_shell_source(tmp_path:
     assert cfg.providers.bitrix24.stage_map["design"] == "1343"
 
 
-def test_default_context_sync_alias_is_uat():
+def test_default_phase_aliases_have_no_context_sync_column():
     assert DEFAULT_PHASE_ALIASES["PLAN"] == "design"
     assert DEFAULT_PHASE_ALIASES["IMPLEMENT"] == "build"
-    assert DEFAULT_PHASE_ALIASES["CONTEXT_SYNC"] == "uat"
+    # context-sync is a QA worker, not a board phase.
+    assert "CONTEXT_SYNC" not in DEFAULT_PHASE_ALIASES

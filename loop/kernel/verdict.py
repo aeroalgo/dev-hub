@@ -21,6 +21,8 @@ from .inventory import (
 
 SCHEMA_GATE_VERDICT = "loop-gate-verdict/v1"
 SCHEMA_REPAIR_RESULT = "loop-repair-result/v1"
+SCHEMA_BUGFIX_FIX_RESULT = "loop-bugfix-fix-result/v1"
+SCHEMA_CONTEXT_SYNC_RESULT = "loop-context-sync-result/v1"
 SCHEMA_VALIDATE_RESULT = "loop-validate-result/v1"
 GateVerdictValue = Literal["PASS", "FAIL", "BLOCKED"]
 RepairStatus = Literal["done", "partial", "fail"]
@@ -39,11 +41,15 @@ MANAGED_GATE_AGENTS = frozenset(
     }
 )
 MANAGED_REPAIR_AGENTS = frozenset({"gate-repair"})
-MANAGED_SUBAGENTS = MANAGED_GATE_AGENTS | MANAGED_REPAIR_AGENTS | MANAGED_INVENTORY_AGENTS
+MANAGED_FIX_AGENTS = frozenset({"bugfix-fix"})
+MANAGED_SYNC_AGENTS = frozenset({"context-sync"})
+MANAGED_SUBAGENTS = MANAGED_GATE_AGENTS | MANAGED_REPAIR_AGENTS | MANAGED_FIX_AGENTS | MANAGED_SYNC_AGENTS | MANAGED_INVENTORY_AGENTS
 AGENT_ALIASES = {
     "verify": "verify-implement",
     "reviewer": "verify-qa",
     "explore": "explorer",
+    "bugfix": "bugfix-fix",
+    "ctx-sync": "context-sync",
     **INVENTORY_AGENT_ALIASES,
 }
 REPAIR_RESULT_ONLY_FIELDS = frozenset(
@@ -227,6 +233,113 @@ class RepairResult(BaseModel):
         return value
 
 
+
+class BugfixFixResult(BaseModel):
+    schema_id: str = Field(
+        default=SCHEMA_BUGFIX_FIX_RESULT,
+        validation_alias="schema",
+        serialization_alias="schema",
+    )
+    agent_id: str
+    item_id: str
+    status: Literal["done", "fail"]
+    changed_paths: list[str]
+    evidence: str
+    session_id: str
+    epic_id: str
+    recorded_at: str
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    @field_validator("schema_id")
+    @classmethod
+    def validate_schema(cls, value: str) -> str:
+        if value != SCHEMA_BUGFIX_FIX_RESULT:
+            raise ValueError(f"unsupported schema: {value!r}")
+        return value
+
+    @field_validator("agent_id", "item_id", "evidence", "session_id", "epic_id", "recorded_at", mode="before")
+    @classmethod
+    def require_non_empty_string(cls, value: object) -> object:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("must be a non-empty string")
+        return value.strip()
+
+    @field_validator("agent_id")
+    @classmethod
+    def validate_agent(cls, value: str) -> str:
+        normalized = normalize_agent_id(value)
+        if normalized not in MANAGED_FIX_AGENTS:
+            raise ValueError(f"unsupported fix agent: {value!r}")
+        return normalized
+
+    @field_validator("changed_paths", mode="before")
+    @classmethod
+    def require_string_list(cls, value: object) -> object:
+        if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+            raise ValueError("must be a list of non-empty strings")
+        return [item.strip() for item in value]
+
+    @field_validator("recorded_at")
+    @classmethod
+    def validate_timestamp(cls, value: str) -> str:
+        cleaned = value.replace("Z", "+00:00")
+        try:
+            datetime.fromisoformat(cleaned)
+        except ValueError as exc:
+            raise ValueError("recorded_at must be a valid ISO 8601 timestamp") from exc
+        return value
+
+
+
+class ContextSyncResult(BaseModel):
+    schema_id: str = Field(
+        default=SCHEMA_CONTEXT_SYNC_RESULT,
+        validation_alias="schema",
+        serialization_alias="schema",
+    )
+    agent_id: str
+    epic_id: str
+    status: Literal["done", "fail"]
+    sync_path: str
+    session_id: str
+    recorded_at: str
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    @field_validator("schema_id")
+    @classmethod
+    def validate_schema(cls, value: str) -> str:
+        if value != SCHEMA_CONTEXT_SYNC_RESULT:
+            raise ValueError(f"unsupported schema: {value!r}")
+        return value
+
+    @field_validator("agent_id", "epic_id", "sync_path", "session_id", "recorded_at", mode="before")
+    @classmethod
+    def require_non_empty_string(cls, value: object) -> object:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("must be a non-empty string")
+        return value.strip()
+
+    @field_validator("agent_id")
+    @classmethod
+    def validate_agent(cls, value: str) -> str:
+        normalized = normalize_agent_id(value)
+        if normalized not in MANAGED_SYNC_AGENTS:
+            raise ValueError(f"unsupported sync agent: {value!r}")
+        return normalized
+
+    @field_validator("recorded_at")
+    @classmethod
+    def validate_timestamp(cls, value: str) -> str:
+        cleaned = value.replace("Z", "+00:00")
+        try:
+            datetime.fromisoformat(cleaned)
+        except ValueError as exc:
+            raise ValueError("recorded_at must be a valid ISO 8601 timestamp") from exc
+        return value
+
+
 @dataclass(frozen=True)
 class BoundaryIdentity:
     session_id: str
@@ -308,6 +421,8 @@ def validate_boundary(
     schema_models: dict[str, type[BaseModel]] = {
         SCHEMA_GATE_VERDICT: GateVerdict,
         SCHEMA_REPAIR_RESULT: RepairResult,
+        SCHEMA_BUGFIX_FIX_RESULT: BugfixFixResult,
+        SCHEMA_CONTEXT_SYNC_RESULT: ContextSyncResult,
         **INVENTORY_SCHEMA_MODELS,
     }
     model = schema_models.get(schema_id)
@@ -452,6 +567,43 @@ def validate_repair_message(
     return result
 
 
+def validate_context_sync_message(
+    message: str | None,
+    *,
+    session_id: str | None = None,
+    epic_id: str | None = None,
+) -> ValidationResult:
+    payload, diagnostics = extract_json_fence(message)
+    if payload is None:
+        return _result(
+            False,
+            SCHEMA_CONTEXT_SYNC_RESULT,
+            errors=diagnostics,
+            diagnostic_codes=diagnostics,
+        )
+    result = validate_boundary(SCHEMA_CONTEXT_SYNC_RESULT, payload)
+    if not result.valid or result.record is None:
+        return result
+    if not isinstance(result.record, ContextSyncResult):
+        return result
+    mismatches: list[tuple[str, str, str]] = []
+    if session_id and result.record.session_id != session_id:
+        mismatches.append(("session_id", result.record.session_id, session_id))
+    if epic_id and result.record.epic_id != epic_id:
+        mismatches.append(("epic_id", result.record.epic_id, epic_id))
+    if mismatches:
+        return _result(
+            False,
+            SCHEMA_CONTEXT_SYNC_RESULT,
+            errors=tuple(
+                f"{field} does not match boundary identity (received {actual!r})"
+                for field, actual, _expected in mismatches
+            ),
+            diagnostic_codes=tuple(f"context_sync_wrong_{field}" for field, _actual, _expected in mismatches),
+        )
+    return result
+
+
 def validate_inventory_message(
     message: str | None,
     *,
@@ -483,14 +635,20 @@ __all__ = [
     "MANAGED_GATE_AGENTS",
     "MANAGED_INVENTORY_AGENTS",
     "MANAGED_REPAIR_AGENTS",
+    "MANAGED_FIX_AGENTS",
+    "MANAGED_SYNC_AGENTS",
     "MANAGED_SUBAGENTS",
     "REPAIR_IGNORABLE_EXTRA_FIELDS",
     "REPAIR_RESULT_ONLY_FIELDS",
     "SCHEMA_GATE_VERDICT",
     "SCHEMA_REPAIR_RESULT",
+    "SCHEMA_BUGFIX_FIX_RESULT",
+    "SCHEMA_CONTEXT_SYNC_RESULT",
     "SCHEMA_SUNSET_INVENTORY",
     "SCHEMA_VALIDATE_RESULT",
     "RepairResult",
+    "BugfixFixResult",
+    "ContextSyncResult",
     "SunsetReport",
     "ValidationResult",
     "extract_json_fence",
@@ -498,6 +656,7 @@ __all__ = [
     "normalize_agent_id",
     "repair_contract_errors",
     "validate_boundary",
+    "validate_context_sync_message",
     "validate_inventory_message",
     "validate_message",
     "validate_repair_message",

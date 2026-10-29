@@ -22,7 +22,7 @@ alwaysApply: false
 | L | Depth |
 |---|--------|
 | L2 | move + rewrite + tasks |
-| L3–L4 | + creative/<epic> + phased qa/bugfix |
+| L3 | + creative/<epic> + phased qa/bugfix |
 
 ## Abort
 

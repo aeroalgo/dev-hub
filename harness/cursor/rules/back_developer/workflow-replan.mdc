@@ -17,7 +17,7 @@ alwaysApply: false
 2. фактическая кодовая база и тесты как runtime evidence.
 
 Запрещено читать или использовать как источник gaps любые `plan.md`,
-decompose-index, implement shards, analyze/audit/QA/bugfix artifacts, events,
+decompose-index, implement shards, pre-IMPLEMENT/QA/bugfix artifacts, events,
 соседние планы и старые replan-маркеры исходных эпиков. REPLAN не копирует
 план исходного feature-эпика и не изменяет его prompt, plan или done-запись.
 

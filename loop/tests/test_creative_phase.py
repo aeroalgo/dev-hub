@@ -197,18 +197,33 @@ def test_creative_finish_rejects_missing_artifact(tmp_path: Path) -> None:
 
 def test_analyze_verdict_routes_to_creative(tmp_path: Path) -> None:
     paths = _seed_analyze_ready(tmp_path, "E-CR4", needs_creative="yes (CR-T-F01-token-contract)")
-    # remove analyze so start lands on ANALYZE first
+    # remove analyze so start lands on DECOMPOSE (analyze gate folded into DECOMPOSE)
     analyze = tmp_path / "memory-bank/back/analyze/E-CR4/analyze-20260921-pass.yaml"
     analyze.unlink()
     analyze.parent.rmdir()
 
     engine = LoopEngine(paths)
     cursor = engine.start("E-CR4")
-    assert cursor.phase == "ANALYZE"
+    assert cursor.phase == "DECOMPOSE"
 
     write(
         tmp_path / "memory-bank/back/analyze/E-CR4/analyze-20260921-pass.yaml",
         "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
+    )
+    # verify-decompose validates the tree, then analyze-verify atomically promotes to CREATIVE.
+    cursor = engine.store.read()
+    assert cursor is not None
+    engine.accept_verdict(
+        GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-decompose",
+            verdict="PASS",
+            step_id=cursor.step_id,
+            session_id=cursor.session_id,
+            epic_id=cursor.epic_id,
+            recorded_at="2026-09-18T18:59:00+00:00",
+        ),
+        expected_agent_id="verify-decompose",
     )
     _finish_analyze(engine)
     after = engine.store.read()

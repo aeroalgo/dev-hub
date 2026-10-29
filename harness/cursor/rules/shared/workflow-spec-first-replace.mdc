@@ -90,7 +90,7 @@ Plan **обязан** явно записать axiom одной таблице�
 - **DECOMPOSE:** каждый FR на новый structured path → ladder add→wire→enforce→purge; Replacement cleanup A+B+C+**I**; `deletes:` включает obsolete tests **и** instruction rewrites; при наличии brownfield replace — добавить `sunset_scope: {required: true, allow_read: [...]}`.
 - **IMPLEMENT:** перед первым prod Write нового SoT на replace FR при `sunset_scope.required: true` — обязательный spawn `@sunset-inventory` для получения структурированного JSON; shard `deletes:` в том же эпике; на boundary steps — блок `wire_complete` (behavior-first §9); не fallback «чтобы green»; не restore legacy.
 - **Обычный чат (без role command):** если пользователь говорит «pydantic / JSON / enums» — **не** предлагать гибрид с as-built regex; предложить replace + sunset list (код + тесты + instructions).
-- **ANALYZE:** FAIL если plan обещает pydantic/sole path, а steps без purge **или** без wire/enforce (Optional-SoT).
+- **DECOMPOSE closure check:** FAIL если plan обещает pydantic/sole path, а steps без purge **или** без wire/enforce (Optional-SoT).
 
 ---
 

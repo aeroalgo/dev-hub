@@ -24,16 +24,16 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 Без эпика / не-IMPLEMENT:
 
 1. next work shard — `bugfix-*.md` · `qa-*.yaml` · `task-*.md` · `sNN|eNN-*.yaml` (**pending/active**)
-2. при epic → AUDIT/QA: `plan/<epic>/yaml/decompose-index.yaml` (+ qa-артефакт)
+2. при epic → QA: `plan/<epic>/yaml/decompose-index.yaml` (+ qa-артефакт)
 3. опц. qa-артефакт при re-run / BUGFIX из Fix plan
 
 При QA `fail|blocked` обязательно добавляется `memory-bank/{role}/bugfix/<epic>/bugfix-queue.yaml`; при BUGFIX queue идёт первым в `load_now`, затем bugfix report и optional QA source.
 
-Канон **ANALYZE**:
+Канон внутреннего `analyze-verify` gate:
 
 1. `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` — read-only findings, coverage и `metrics.critical_count`;
-2. при `critical_count = 0` → следующий `* IMPLEMENT` (первый pending shard);
-3. при `critical_count > 0` → следующий `* CLARIFY` или `* DECOMPOSE` по `next_actions`; IMPLEMENT не считать автоматически заблокированным, если команда явно выбрала soft follow-up.
+2. при `critical_count = 0` + accepted `analyze-verify` PASS → следующий `* IMPLEMENT` (первый pending shard);
+3. при `critical_count > 0` → repair внутри DECOMPOSE; не вводить отдельную пользовательскую фазу.
 
 **FORBIDDEN в `load_now`:** полный `plan/<epic>/md/plan.md` · «acceptance context = plan» · completed shards · `tasks.md` / `systemPatterns.md` · markdown indexes
 **OK index в `load_now`:** только `plan/<epic>/yaml/decompose-index.yaml`
@@ -51,7 +51,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 ## tasks.md Index
 
 - IMPLEMENT sNN: **не** трогать руками — пишет `finalize-step` (`tasks/log` всегда; Active-строка только при смене фазы эпика)
-- PLAN / DECOMPOSE / QA / CONTEXT SYNC / ARCHIVE: обновить колонки **Step**, **Status** и **Progress** для T-xxx
+- PLAN / DECOMPOSE / QA / ARCHIVE: обновить колонки **Step**, **Status** и **Progress** для T-xxx
 - last-5: только при смене фазы, не на каждый sNN
 
 ## Delivery log
@@ -62,7 +62,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 | YYYY-MM-DD | T-xxx | BACK IMPLEMENT sNN | [sNN-slug.yaml](back/implement/.../sNN-slug.yaml) |
 ```
 
-**Когда руками:** FINISH PLAN / DECOMPOSE / CREATIVE / QA / CONTEXT SYNC / BUGFIX / TASK / ARCHIVE.
+**Когда руками:** FINISH PLAN / DECOMPOSE / CREATIVE / QA / BUGFIX / TASK / ARCHIVE.
 **Пропуск агентом:** checkbox внутри шага; IMPLEMENT sNN (хук).
 
 ## Shard checkbox / implement (ORDER — до decompose completed)
@@ -115,9 +115,9 @@ QA (обязателен всегда — pass и blocked). Роль: `BACK` | `
 Без эпика: путь плоско `memory-bank/back/qa/qa-….yaml`. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc.
 
 **pass** — добавить:
-- **Следующий:** `BACK CONTEXT SYNC <epic_id>` → затем `ARCHIVE NOW`
+- **Следующий:** `@context-sync` (QA subagent) → затем `ARCHIVE NOW`
 - **Кратко:** suite green; scope подтверждён
-- **New chat:** yes → `BACK CONTEXT SYNC <epic_id>`
+- **New chat:** yes → QA spawns `@context-sync`; parent не запускает отдельную фазу
 
 **fail | blocked** — добавить (обязательно):
 - **Следующий:** `BACK BUGFIX` (первая строка Fix plan) → затем повторный `BACK QA`
@@ -127,19 +127,19 @@ QA (обязателен всегда — pass и blocked). Роль: `BACK` | `
 - **Кратко:** N blockers; первая — QA-1 …
 - **New chat:** yes → `BACK BUGFIX <subject #1>`
 
-IMPLEMENT — последний шаг эпика (все строки decompose = `completed`): `finalize-step` сам пишет AUDIT в `activeContext` (агент не дублирует QA/EPIC_DONE).
+IMPLEMENT — последний шаг эпика (все строки decompose = `completed`): `finalize-step` сам пишет `* QA` в `activeContext` (агент не дублирует QA/EPIC_DONE).
 
 ```markdown
-## Handoff BACK AUDIT — T-xxx
+## Handoff BACK QA — T-xxx
 
 - **Эпик:** T-xxx — все sNN/eNN в index completed/done.
-- **Режим/шаг:** `BACK AUDIT`.
+- **Режим/шаг:** `BACK QA`.
 - **Сделано:** implement queue исчерпана.
-- **Дальше:** выполнить `BACK AUDIT` (gap-матрица + audit yaml); только `converged: true` при пустых `not_implemented[]` и leftover-массивах → `BACK QA`, иначе новые `sNN-audit-*` → `BACK IMPLEMENT` → `BACK AUDIT`.
-- **New chat:** yes → `BACK AUDIT`
+- **Дальше:** выполнить `BACK QA` (coverage/review/test-audit + qa yaml); при PASS QA спаунит `@context-sync`, при FAIL создаёт BUGFIX queue.
+- **New chat:** yes → `BACK QA`
 ```
 
-Аналогично для `FRONT IMPLEMENT` → `FRONT AUDIT`; `INTEG IMPLEMENT` (все eNN done) → `INTEG AUDIT`.
+Аналогично для `FRONT IMPLEMENT` и `INTEG IMPLEMENT`: последний шаг ведёт прямо в соответствующий QA.
 
 BUGFIX FINISH — обязательная рекомендация QA:
 
@@ -171,11 +171,11 @@ BUGFIX FINISH — обязательная рекомендация QA:
 2. memory-bank/back/plan/<plan_id>/yaml/steps/sNN-<slug>.yaml
 ```
 
-**IMPLEMENT (эпик завершён → AUDIT):**
+**IMPLEMENT (эпик завершён → QA):**
 ```
-Эпик <plan_id> (T-xxx) реализован. Следующий шаг — AUDIT.
+Эпик <plan_id> (T-xxx) реализован. Следующий шаг — QA.
 
-Команда: BACK AUDIT
+Команда: BACK QA
 
 Старт:
 1. memory-bank/activeContext.md → §Handoff + load_now
@@ -218,16 +218,14 @@ BUGFIX завершён. Повторная валидация эпики.
 
 ---
 
-CONTEXT SYNC (после QA pass). Роль: `BACK` | `FRONT` | `INTEG`.
+Internal QA context-sync result (после QA pass). Роль: `BACK` | `FRONT` | `INTEG`.
 
 ```markdown
-## Handoff BACK CONTEXT SYNC <epic_id>
+## Internal QA context-sync result <epic_id>
 
 - **Предыдущий:** BACK QA — pass
 - **Артефакт:** memory-bank/back/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md
 - **Root updates:** techContext | productContext | systemPatterns | no-op (см. report)
 - **code_changed:** no
-- **Следующий:** next epic из `roadmap/queue.yaml` (loop auto-arm) | `BACK ARCHIVE NOW <epic_id>` если queue пуст
-- **New chat:** yes → next DECOMPOSE / ARCHIVE
+- **Результат:** `loop-context-sync-result/v1` со `status: done`; отдельный Handoff и отдельная фаза запрещены
 ```
-

@@ -1,5 +1,5 @@
 ---
-description: "INTEG VAN role patch — domain/full-map scope, integration level L1-L4 and GAP next semantics"
+description: "INTEG VAN role patch — domain/full-map scope, integration level L1-L3 and GAP next semantics"
 alwaysApply: false
 ---
 # VAN — INTEG role patch
@@ -14,11 +14,11 @@ alwaysApply: false
 2. **Domain & level:**
    - Домен/scope (entity, screens, endpoints) **или** full-repo map если user не сузил
    - As-built checklist: model / endpoint / front / contract?
-   - L1–L4 в van-артефакте:
+   - L1–L3 в van-артефакте:
      - L1: flat CRUD, 1 screen
      - L2: filters + URL sync
      - L3: joins, mapping_filters
-     - L4: dashboard N API
+     - L3: dashboard / multi-API portal (иначе multi-epic)
 3. **Next semantics:**
    - L1 → IMPLEMENT
    - L2+ → GAP (если нет свежего) → PLAN → DECOMPOSE

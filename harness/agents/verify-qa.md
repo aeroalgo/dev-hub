@@ -26,10 +26,35 @@ Parent **обязан** передать:
 | `Suite results` | да (команды + кратко pass/fail) — **обязан** содержать full-suite результат при `suite_scope: full` (роль: BACK/hub pytest · FRONT Vitest+Playwright · Managed: capability_checks своей surface) |
 | `ALLOW READ` | да (≤40; plan / freeze source / touched paths) |
 | `## Frozen QA checklist` + `checklist_sha256` | да (machine SoT матрицы; inject loop / parent) |
+| `## QA evidence packs` | да: `coverage_map`, `review`, `test_audit`, `browser`, `retro` |
 
 **AC+/AC−/§0.11 в prompt как отдельные packed секции не обязательны.** Матрица = **только** Frozen checklist (`### AC+` / `### AC−` / `### §0.11` / `### Prior blockers`). Parent-packed AC вне freeze **игнорировать**.
 
-Нет Suite results / ALLOW READ → `FAIL` `prompt_incomplete:<секция>`. Нет freeze sha → `prompt_incomplete` / freeze violation.
+Нет Suite results / ALLOW READ / QA evidence packs → `FAIL` `prompt_incomplete:<секция>`. Нет freeze sha → `prompt_incomplete` / freeze violation.
+
+## QA evidence packs (HARD)
+
+`review` и `test_audit` — встроенные QA subpasses с gstack-совместимыми
+алиасами `/review` и `/test-audit`. Они выполняются внутри одного QA gate и не
+создают отдельные loop-фазы или пользовательские команды.
+
+1. `coverage_map` — пройди каждую literal строку AC и BN из freeze: один
+   конкретный browser/API scenario и наблюдаемое evidence. `status-only` или
+   «функция вызвана» без outcome = gap.
+2. `review` — сверка diff с AC/contract, negative paths, rollback и ownership;
+   findings должны иметь path/line или быть `none`.
+3. `test_audit` — ищи ослабленные assertions, `assert True`, status/build-only
+   проверки, широкие `route.fulfill`/global API mocks, бездоказательные
+   skip/xfail и тесты, не включённые в CI. Не требуй «больше тестов» вне freeze:
+   фиксируй только то, что делает заявленное evidence бесполезным.
+4. `browser` — для UI/API wire указаны stack profile, P0/P1 journeys и
+   evidence (URL/response/trace/screenshot/report). Synthetic fixture допустим
+   только если production server/HTTP/assets/auth path реально подняты; он не
+   заменяет live P0 journey. `status: skip` требует причины и применимого
+   non-UI/non-wire scope.
+5. `retro` — проверь четыре поля: пропущенный дефект, лишний gate, flaky test,
+   изменение следующего цикла. Пустые «всё хорошо» без evidence = gap; если
+   ничего нет, записать `none`.
 
 ## Suite gate (HARD)
 
@@ -47,11 +72,12 @@ Parent передаёт `suite_scope` + ровно один suite-command. **Н�
 ## Exhaustive pass (HARD) — no fail-fast
 
 1. Сверь Suite results с claims parent + Full suite gate выше.
-2. **Пройди каждый** пункт `AC+`, затем каждый `AC−`, затем каждый `§0.11` — без пропуска.
-3. На каждый пункт зафиксируй: `ok` + evidence `file:line` **или** gap id.
-4. **FORBIDDEN:** остановиться на первом дефекте и сразу emit FAIL/JSON.
-5. **FORBIDDEN:** sample / «достаточно одного blocker» / partial matrix.
-6. Только после полного прохода матрицы:
+2. Проверь `coverage_map`, `review`, `test_audit`, `browser`, `retro` по правилам выше.
+3. **Пройди каждый** пункт `AC+`, затем каждый `AC−`, затем каждый `§0.11` — без пропуска.
+4. На каждый пункт зафиксируй: `ok` + evidence `file:line` **или** gap id.
+5. **FORBIDDEN:** остановиться на первом дефекте и сразу emit FAIL/JSON.
+6. **FORBIDDEN:** sample / «достаточно одного blocker» / partial matrix.
+7. Только после полного прохода матрицы:
    - все **eligible** ok (или только ineligible residuals) → `verdict: PASS`;
    - ≥1 **eligible** gap → `verdict: FAIL` и **полный** список eligible blockers;
    - матрицу нельзя завершить из-за отсутствующего evidence → `verdict: BLOCKED`, перечисли проверенное + непроверенное.

@@ -18,12 +18,11 @@ alwaysApply: false
 | `FRONT PLAN REFACTOR` | @.cursor/rules/front_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (фаза 2 cadence-блока: строго после replan pair_ids; refactor epic или noop) |
 | `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
-| `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc |
+| `analyze-verify` | internal DECOMPOSE gate; не пользовательская команда |
 | `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |
 | `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
-| `FRONT AUDIT` | @.cursor/rules/front_developer/workflow-audit.mdc |
 | `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |
-| `FRONT CONTEXT SYNC` | @.cursor/rules/front_developer/workflow-context-sync.mdc — после QA PASS: обновить корневой канон |
+| `@context-sync` | internal QA worker после PASS → sync-*.md; не отдельная loop-фаза |
 | `FRONT ARCHIVE NOW` | @.cursor/rules/front_developer/workflow-archive.mdc |
 | `FRONT TASK` | @.cursor/rules/front_developer/workflow-task.mdc |
 | `FRONT BUGFIX` | @.cursor/rules/front_developer/workflow-bugfix.mdc |
@@ -57,4 +56,4 @@ alwaysApply: false
 As-built UI: `memory-bank/architecture/frontend.md` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
 FINISH: @.cursor/rules/shared/finish-block.mdc  
 
-API/БД → `BACK *`. Сквозной wire → `INTEG *`.
+API/БД без UI → `BACK *`. UI и связка UI↔API → `FRONT *` (wire — §WIRE в mainrule-core и Hot path PLAN/DECOMPOSE/IMPLEMENT/QA).

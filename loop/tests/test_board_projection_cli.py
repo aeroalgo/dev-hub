@@ -16,9 +16,9 @@ from loop.board_projection.mapping import (
 from loop.board_projection.protocol import BoardProjectionAdapter, EpicRef
 from loop.kernel.cli import main
 from loop.kernel.engine import LoopEngine
-from loop.kernel.model import CursorStatus
+from loop.kernel.model import Cursor, CursorStatus, Transition
 from loop.kernel.session import SessionOutcome, SessionRun
-from loop.kernel.store import CursorStore, LoopPaths
+from loop.kernel.store import CursorStore, LoopPaths, TransactionPlan
 from loop.kernel.verdict import GateVerdict, SCHEMA_GATE_VERDICT
 
 
@@ -185,6 +185,55 @@ def test_cli_finish_halt_wire(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert cur_halted.status == CursorStatus.HALTED
 
 
+def test_finish_projects_completed_epic_before_next_epic(monkeypatch: pytest.MonkeyPatch):
+    """A roadmap boundary closes the old board card and opens the next phase."""
+    from loop.kernel import cli
+
+    before = Cursor(
+        epic_id="E1",
+        role="back",
+        kind="feature",
+        phase="CONTEXT_SYNC",
+        step_id="CONTEXT_SYNC",
+    )
+    after = Cursor(
+        epic_id="E2",
+        role="back",
+        kind="feature",
+        phase="DECOMPOSE",
+        step_id="DECOMPOSE",
+    )
+    transition = Transition(
+        event="finish",
+        reason="roadmap advance",
+        phase="DECOMPOSE",
+        step_id="DECOMPOSE",
+        status=CursorStatus.ACTIVE,
+        attempt=0,
+    )
+    calls: list[dict[str, Any]] = []
+
+    def capture(**kwargs: Any):
+        calls.append(kwargs)
+        return None
+
+    monkeypatch.setattr(cli, "_project_transition", capture)
+
+    active_projection, completed_projection = cli._project_finish_transition(
+        project_root=Path("/tmp/project"),
+        cursor_before=before,
+        cursor_after=after,
+        transition=transition,
+    )
+
+    assert active_projection is None
+    assert completed_projection is None
+    assert [(call["epic_id"], call["phase"], call["source"]) for call in calls] == [
+        ("E1", "DONE", "finish:completed-epic"),
+        ("E2", "DECOMPOSE", "finish:next-epic"),
+    ]
+
+
 def test_cli_start_projects_initial_phase(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Starting an epic after PLAN mirrors DECOMPOSE (the design column)."""
     _write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# plan\n")
@@ -243,6 +292,116 @@ def test_cli_run_projects_auto_committed_transition(tmp_path: Path, monkeypatch:
 
     assert rc == 0
     assert [call["phase"] for call in calls] == ["IMPLEMENT", "IMPLEMENT"]
+
+
+def test_cli_run_projects_context_sync_pending_as_qa(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """An accepted QA pass waiting for its worker stays on the QA column."""
+    _seed_project(tmp_path, epic_id="E1")
+    monkeypatch.setattr("loop.kernel.cli.activate_loop_process", lambda **kwargs: None)
+
+    calls: list[dict[str, Any]] = []
+
+    def capture(**kwargs: Any):
+        calls.append(kwargs)
+
+    monkeypatch.setattr("loop.kernel.cli.project_after_transition", capture)
+    monkeypatch.setattr("loop.kernel.cli.runtime_for", lambda *args, **kwargs: object())
+
+    class FakeSupervisor:
+        def __init__(self, engine, runtime, **kwargs: Any):
+            self.engine = engine
+
+        def run_step(self, prompt: str, *, model: str, project, session_id: str | None = None):
+            transition = Transition(
+                event="verdict_accepted",
+                reason="qa pass; context-sync required",
+                phase="QA",
+                step_id="QA",
+                status=CursorStatus.ACTIVE,
+                attempt=0,
+                metadata={"context_sync_required": True},
+            )
+            return SessionRun(SessionOutcome.COMMITTED, None, transition, "done", 0)
+
+    monkeypatch.setattr("loop.kernel.cli.SessionSupervisor", FakeSupervisor)
+
+    rc = main(
+        [
+            "run",
+            "--project",
+            str(tmp_path),
+            "--epic",
+            "E1",
+            "--model",
+            "test-model",
+            "--max-steps",
+            "1",
+            "--json",
+        ]
+    )
+
+    assert rc == 0
+    assert calls[-1]["phase"] == "QA"
+
+
+def test_cli_run_projects_implicit_roadmap_boundary_without_transition(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A boundary hook that rotates the cursor still projects the completed epic."""
+    _seed_project(tmp_path, epic_id="E1")
+    _seed_project(tmp_path, epic_id="E2")
+    monkeypatch.setattr("loop.kernel.cli.activate_loop_process", lambda **kwargs: None)
+
+    calls: list[dict[str, Any]] = []
+
+    def capture(**kwargs: Any):
+        calls.append(kwargs)
+
+    monkeypatch.setattr("loop.kernel.cli.project_after_transition", capture)
+    monkeypatch.setattr("loop.kernel.cli.runtime_for", lambda *args, **kwargs: object())
+
+    class FakeSupervisor:
+        def __init__(self, engine, runtime, **kwargs: Any):
+            self.engine = engine
+            self.calls = 0
+
+        def run_step(self, prompt: str, *, model: str, project, session_id: str | None = None):
+            self.calls += 1
+            if self.calls == 1:
+                def planner(current, transaction):
+                    candidate = Cursor.from_dict(current.to_dict())
+                    candidate.epic_id = "E2"
+                    candidate.phase = "DECOMPOSE"
+                    candidate.step_id = "DECOMPOSE"
+                    candidate.session_id = "session-e2"
+                    return TransactionPlan(candidate, {"event": "context_sync_completed"})
+
+                self.engine.store.transact(planner)
+                return SessionRun(SessionOutcome.SESSION_ROTATED, None, None, "boundary rotated", 0)
+            return SessionRun(SessionOutcome.COMMITTED, None, None, "done", 0)
+
+    monkeypatch.setattr("loop.kernel.cli.SessionSupervisor", FakeSupervisor)
+
+    rc = main(
+        [
+            "run",
+            "--project",
+            str(tmp_path),
+            "--epic",
+            "E1",
+            "--model",
+            "test-model",
+            "--max-steps",
+            "2",
+            "--json",
+        ]
+    )
+
+    assert rc == 0
+    assert [(call["epic_id"], call["phase"]) for call in calls[-2:]] == [
+        ("E1", "DONE"),
+        ("E2", "DECOMPOSE"),
+    ]
 
 
 def test_cli_board_sync_uses_plan_phase_without_cursor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

@@ -18,12 +18,11 @@ alwaysApply: false
 | `BACK PLAN REFACTOR` | @.cursor/rules/back_developer/workflow-plan-refactor.mdc — purge + consolidation inventory (twins/merge/adapters) + multi-epic plan (строго после QA aggregate REPLAN-эпика; refactor epic или noop) |
 | `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
-| `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc |
+| `analyze-verify` | internal DECOMPOSE gate; не пользовательская команда |
 | `BACK CREATIVE` | @.cursor/rules/back_developer/workflow-creative.mdc |
 | `BACK IMPLEMENT` | @.cursor/rules/back_developer/workflow-implement.mdc |
-| `BACK AUDIT` | @.cursor/rules/back_developer/workflow-audit.mdc |
 | `BACK QA` | @.cursor/rules/back_developer/workflow-qa.mdc |
-| `BACK CONTEXT SYNC` | @.cursor/rules/back_developer/workflow-context-sync.mdc — после QA PASS: обновить techContext/productContext/systemPatterns |
+| `@context-sync` | internal QA worker после PASS → sync-*.md; не отдельная loop-фаза |
 | `BACK ARCHIVE NOW` | @.cursor/rules/back_developer/workflow-archive.mdc |
 | `BACK TASK` | @.cursor/rules/back_developer/workflow-task.mdc |
 | `BACK BUGFIX` | @.cursor/rules/back_developer/workflow-bugfix.mdc |
@@ -60,4 +59,4 @@ feature-эпика и смотрит rolling window из 8 feature-эпиков.
 As-built: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
 FINISH: @.cursor/rules/shared/finish-block.mdc  
 
-UI → `FRONT *`. Сквозной wire → `INTEG *`.
+UI и связка UI↔API → `FRONT *`. Чистый API/БД → `BACK *`.

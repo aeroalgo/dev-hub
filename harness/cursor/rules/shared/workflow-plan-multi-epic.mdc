@@ -38,7 +38,7 @@ alwaysApply: false
 | 4 | Hard-dep: B бессмысленен до A **и A independently ship-ready без B** → разные ID + `deps` в queue. Producer + первый обязательный consumer одного outcome — не cut, а последовательные `sNN|eNN` одного эпика. |
 | 5 | Independent deliverable: можно QA/ship A без B |
 
-**Не** режь только «по файлам», «schema → resolver → executor → gate» или по слоям внутри одной пользовательской фичи — это DECOMPOSE `sNN|eNN`. Число шагов задаёт Effort probe (`sNN_cap`), не «min 5–8»; coverage FR важнее искусственного count.
+**Не** режь только «по файлам», «schema → resolver → executor → gate» или по слоям внутри одной пользовательской фичи — это DECOMPOSE `sNN|eNN`. Число шагов задаёт level → `sNN_cap` (L1→1 · L2→2 · L3→3); coverage FR важнее искусственного count; не влезает → multi-epic.
 
 ## Артефакты
 

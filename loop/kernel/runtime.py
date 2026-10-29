@@ -711,6 +711,28 @@ class CodexRuntime(Runtime):
         raw = str(item.get("tool") or "").strip()
         return raw.rsplit(".", 1)[-1] or "unknown"
 
+    def _live_expected_subagent_type(self) -> str | None:
+        """Resolve the managed child expected by the live cursor.
+
+        QA changes its child contract after ``verify-qa`` PASS: the next child
+        is ``context-sync`` even though the runtime session started with
+        ``verify-qa`` as its gate. Native Codex collaboration events do not
+        always carry the child type, so the current cursor is the authoritative
+        discriminator.
+        """
+        expected = self._expected_subagent_type
+        lifecycle = self._collab_lifecycle
+        if lifecycle is None:
+            return expected
+        cursor = lifecycle.engine.store.read()
+        if cursor is None:
+            return expected
+        if cursor.phase == "QA" and lifecycle.engine.qa_context_sync_pending(cursor):
+            return "context-sync"
+        from .engine import LoopEngine
+
+        return LoopEngine._required_gate_agent(cursor.phase) or expected
+
     def _collaboration_label(self, item: dict[str, object]) -> str:
         from .verdict import MANAGED_SUBAGENTS, normalize_agent_id
 
@@ -729,8 +751,9 @@ class CodexRuntime(Runtime):
             "blockers:" in lowered_prompt and "allow write:" in lowered_prompt
         ):
             return "gate-repair"
-        if self._expected_subagent_type:
-            return self._expected_subagent_type
+        expected = self._live_expected_subagent_type()
+        if expected:
+            return expected
         heading = re.search(r"(?im)^\s*#\s+([a-z][a-z0-9_-]{1,63})(?=\s|:|$)", prompt)
         return heading.group(1) if heading else "unknown"
 
@@ -749,6 +772,10 @@ class CodexRuntime(Runtime):
 
         payload, _ = extract_json_fence(message)
         normalized_agent = normalize_agent_id(agent_id)
+        live_expected = self._live_expected_subagent_type()
+        if live_expected == "context-sync" and normalized_agent == "verify-qa":
+            agent_id = live_expected
+            normalized_agent = live_expected
         if isinstance(payload, dict):
             resolved_agent = normalize_agent_id(str(payload.get("agent_id") or ""))
             if resolved_agent in MANAGED_SUBAGENTS:
@@ -756,9 +783,7 @@ class CodexRuntime(Runtime):
                 normalized_agent = resolved_agent
         if (
             not isinstance(payload, dict)
-            and "loop-gate-verdict/v1" not in message
-            and "loop-repair-result/v1" not in message
-            and "loop-sunset-inventory/v1" not in message
+            and normalized_agent not in MANAGED_SUBAGENTS
         ):
             return None
         key = (thread_id, message)
@@ -785,16 +810,19 @@ class CodexRuntime(Runtime):
             event = str(transition.get("event") or "")
             verdict = str(metadata.get("verdict") or "")
             reason = str(transition.get("reason") or "")
-            # After committed gate PASS / QA→BUGFIX, end parent session so the
-            # next step starts clean (no leftover collab keep-alives).
+            # After a committed terminal gate, end parent session. A structural
+            # DECOMPOSE PASS is deliberately recorded without ending the parent;
+            # the parent must still run analyze-verify in the same session.
             if (
                 transition.get("changed")
                 and not action.continue_session
                 and (
-                    event in {"verdict_accepted", "finish", "qa_failed"}
+                    event in {"verdict_accepted", "finish", "qa_failed", "context_sync_completed"}
                     or verdict == "PASS"
                     or reason.endswith(":PASS")
                 )
+                and not metadata.get("context_sync_required")
+                and not metadata.get("session_keep_alive")
             ):
                 self._end_session_requested = True
             if metadata.get("repair_status"):
@@ -872,6 +900,9 @@ class CodexRuntime(Runtime):
                 continue
             status = str(raw_state.get("status") or "unknown")
             label = self._collab_agents.get(thread_id) or self._collaboration_label(raw_state)
+            live_expected = self._live_expected_subagent_type()
+            if live_expected == "context-sync" and label == "verify-qa":
+                label = live_expected
             message = self._child_message(raw_state)
             if label == "unknown" and message:
                 from .verdict import MANAGED_SUBAGENTS, extract_json_fence, normalize_agent_id

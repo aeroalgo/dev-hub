@@ -2,7 +2,7 @@
 
 **Дата:** YYYY-MM-DD  
 **Роль:** BACK | FRONT | INTEG  
-**Команда:** `* CONTEXT SYNC`  
+**Worker:** `agent_type=context-sync` (запускается parent после QA PASS)  
 **Epic:** <epic_id>  
 **QA evidence:** `memory-bank/{role}/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`  
 **Force:** no | yes (reason)
@@ -16,6 +16,19 @@
 | Context consumed | plan §… |
 | decompose-index | … |
 | Root before | techContext / productContext / systemPatterns / projectbrief |
+
+## QA retro
+
+> Короткая запись из QA pass. Не переписывать историю и не придумывать
+> выводы: взять четыре поля из `qa-*.yaml` и добавить только evidence-based
+> уточнение context/patterns.
+
+| Вопрос | Ответ |
+|--------|-------|
+| Какой дефект пропустили предыдущие gates? | … |
+| Какой gate/check оказался лишним? | … |
+| Какой тест флапает или был хрупким? | … |
+| Что изменить в следующем цикле? | … |
 
 ## Changes
 
@@ -38,6 +51,7 @@
 - [ ] Не трогали `product/vision|phases|roadmap`
 - [ ] Не трогали plan/decompose/implement/code
 
-## Next
+## Return
 
-- `* ARCHIVE NOW <epic_id>` | `* PLAN` next from queue
+- `status: done` → `sync_path` этого файла; loop атомарно закрывает QA и выбирает ARCHIVE / next PLAN
+- `status: fail` → parent остаётся в QA и исправляет bounded blocker

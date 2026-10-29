@@ -1,64 +1,63 @@
 ---
-description: "CONTEXT SYNC — после QA PASS обновить корневой memory-bank канон (tech/product/patterns) по evidence эпика"
+description: "QA context-sync worker — после PASS обновить корневой memory-bank канон по evidence эпика"
 alwaysApply: false
 ---
-# CONTEXT SYNC — shared
+# QA context-sync worker — shared contract
 
-**Команды:** `BACK CONTEXT SYNC` · `FRONT CONTEXT SYNC` · `INTEG CONTEXT SYNC`  
-**Вход:** `<epic_id>` из аргумента или `activeContext` (обязателен).  
-**Когда:** сразу после `* QA` **PASS** (до `ARCHIVE NOW` / next PLAN).  
-**Не путать с:** `* RECONCILE` (plan↔code drift, read-only) · `PRODUCT *` (vision/phases/roadmap SoT).
+`CONTEXT_SYNC` не является фазой и не является пользовательской командой.
+После QA PASS parent запускает ровно одного `agent_type=context-sync`. Worker
+пишет `sync-*.md`, возвращает валидный `loop-context-sync-result/v1`, а loop
+атомарно закрывает QA → DONE. Parent не вызывает `finish` после результата.
 
-**Role wrappers:**  
-- @.cursor/rules/back_developer/workflow-context-sync.mdc  
-- @.cursor/rules/front_developer/workflow-context-sync.mdc  
-- @.cursor/rules/integration_developer/workflow-context-sync.mdc  
+**Вход:** `epic_id`, роль, QA PASS и bounded allowlist передаются parent в
+prompt. Не путать с `RECONCILE` (plan↔code drift, read-only) и `PRODUCT *`
+(vision/phases/roadmap SoT).
 
-**Gates:** @.cursor/rules/shared/_lean/context-sync.mdc + `{role}/isolation_rules/_lean/context-sync.mdc` (role patch)
-
----
+**Gates:** @.cursor/rules/shared/_lean/context-sync.mdc
 
 ## Hot path
 
-1. Confirm `epic_id` + role; QA artifact для эпика со статусом **pass** (или явный `force` в чате после PASS — иначе halt).
-2. **Load evidence (lean):**  
-   - `activeContext.md`  
-   - QA: `memory-bank/{role}/qa/<epic_id>/qa-*.yaml` (последний pass)  
-   - plan jumps: Technology axiom · `## Context consumed` · Delivery closure (не весь plan monolith без нужды)  
-   - `plan/<epic>/yaml/decompose-index.yaml` (status)  
-   - текущие: `techContext.md` · `productContext.md` · `systemPatterns.md` · `projectbrief.md`  
-   - опц. `pyproject.toml` / layout stubs если стек в axiom  
-3. **Diff-only reconcile** — что **реально** изменилось эпиком vs текущий корень. Нет выдумок.
-4. Write allowlist (только при реальном diff):  
-   | Файл | Когда писать |  
-   |------|--------------|  
-   | `techContext.md` | стек / layout / deps / follow-up queue сдвинулись |  
-   | `productContext.md` | только блок wedge / now / delivery status |  
-   | `systemPatterns.md` (+ `domain/SP-*.md` если новый SP) | новый устойчивый паттерн в эпике |  
-   | `projectbrief.md` | сдвиг in/out scope |  
-   | `constitution.md` / `style-guide.md` | только явный MUST/tone из epic; иначе **no-op** |  
-   **FORBIDDEN:** `product/vision|phases|roadmap` · plan/decompose/implement · код.  
-5. Artifact: `memory-bank/{role}/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md` (шаблон `.cursor/templates/context-sync.md`).
-6. **FINISH:** `code_changed: no` (docs-only MB); `load_now` = sync artifact + qa link; next = `* ARCHIVE NOW <epic>` или next epic PLAN из queue.  
-   graphify: **skip**.
-
----
+1. Confirm `epic_id` + role; QA artifact для эпика со статусом **pass**.
+   Worker не принимает самостоятельный ручной запуск или `force` без QA
+   evidence.
+2. **Load evidence (lean):**
+   - `activeContext.md`;
+   - последний `memory-bank/{role}/qa/<epic_id>/qa-*.yaml` с
+     `coverage_map`, `review`, `test_audit`, `browser`, `retro`;
+   - plan jumps: Technology axiom, `## Context consumed`, Delivery closure;
+   - `plan/<epic>/yaml/decompose-index.yaml`;
+   - `techContext.md`, `productContext.md`, `systemPatterns.md`,
+     `projectbrief.md`;
+   - optional layout stubs только если стек в axiom.
+3. **Diff-only reconcile** — фиксировать только реально изменившееся эпиком.
+4. Write allowlist — только `techContext.md`, `productContext.md` (wedge/now),
+   `systemPatterns.md` и `domain/SP-*.md`, редко `projectbrief.md`, плюс
+   sync artifact. `constitution.md`/`style-guide.md` — только при явном MUST.
+   **FORBIDDEN:** `product/vision|phases|roadmap`, plan/decompose/implement и
+   код.
+5. Artifact: `memory-bank/{role}/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md`;
+   перенести QA retro без изменения смысла.
+6. **Return:** `code_changed: no`, `sync_path` указывает на artifact. Не
+   создавать отдельный Handoff и не вызывать `finish`.
 
 ## Done when
 
-- [ ] Sync report записан (даже при полном `no-op`)
-- [ ] Корневые файлы обновлены **только** по evidence или явно `no-op` в отчёте
-- [ ] Handoff: `CONTEXT_SYNC_DONE` + next ARCHIVE / PLAN
+- [ ] Sync report записан, включая полный `no-op`.
+- [ ] Root-файлы обновлены только по evidence или отмечены `no-op`.
+- [ ] `loop-context-sync-result/v1` = `done`; loop сам выбирает ARCHIVE / next PLAN.
+- [ ] В sync artifact есть четыре retro-ответа: missed defect, redundant gate,
+  flaky test, next-cycle change.
 
 ## Abort
 
-- Нет `epic_id` → halt  
-- Нет QA pass (и нет `force`) → halt; next = `* QA`  
-- Попытка править код / plan shards / `product/vision` → FAIL  
-- «Обновить всё наугад» без diff → FAIL  
+- Нет `epic_id` или QA PASS → halt.
+- Write вне allowlist → FAIL.
+- Попытка править код, plan shards или `product/vision` → FAIL.
+- «Обновить всё наугад» без diff → FAIL.
 
 ## Happy-path tip
 
 ```text
-* QA PASS → * CONTEXT SYNC <epic_id> → * ARCHIVE NOW <epic_id>
+QA PASS → agent_type=context-sync → atomic DONE → ARCHIVE / next PLAN
 ```
+

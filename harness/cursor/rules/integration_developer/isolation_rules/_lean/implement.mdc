@@ -26,12 +26,12 @@ alwaysApply: false
 7. Step yaml; `gaps`; INTEG — `epic-step.yaml` (`role: integ`); implement `deletes:` = факт удаления
 7a. **Format gate:** `grep_control` · `verification_results` · `checkpoints[]` (все `done`); pre-FINISH `status: in_progress`; `validate-step` exit 0 **до** `@verify`; `status: completed` только через `finalize-step` после PASS
 8. **FINISH:** finish-block — грузить **перед FINISH**. **Порядок:** Write step → validate-step → Handoff → `@verify`; step+Handoff **до** decompose completed
-8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
+8a. **Epic complete:** `finalize-step` → `* QA` (contract checks folded into QA)
 
 ## Abort
 
 - Шире eNN · gap вместо step · Phase E skipped · mock in prod → no FINISH
-- **Scope violation** (scope lock): path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA/AUDIT → REVERT **только ledger-paths** + halt. Чужой git dirty → ignore, не `git checkout --`/`git restore`/`rm`
+- **Scope violation** (scope lock): path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA → REVERT **только ledger-paths** + halt. Чужой git dirty → ignore, не `git checkout --`/`git restore`/`rm`
 - Полный `plan/<epic_id>/md/plan.md` в `load_now` / Read всего plan «как AC» → FAIL
 - Flat implement для нового эпика · user-visible без scenario · «manual smoke only» → reject
 - Непустой eNN `deletes` не выполнен → no FINISH

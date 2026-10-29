@@ -25,11 +25,12 @@ alwaysApply: false
 3a. **Exhaustive QA (HARD):** parent обязан завершить **все** checks прогона (suite → leftover/sot → behavior smoke → **live_smoke** → verify-qa) **до** записи `qa-*.yaml`. `verify-qa` — no fail-fast: полный matrix pass, затем один `## BLOCKERS (complete)`. **FORBIDDEN:** mid-check FINISH / qa fail на первом finding / partial eligible `blockers`/`fix_plan`.
 3b. **Anti-ratchet (HARD):** `blockers`/`fix_plan` только **eligible** B* с префиксом `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:|live_smoke:`. **FORBIDDEN** arm BUGFIX на style · naming · comments · «сделай тест строже plan». Ineligible residuals при green suite → `verdict: pass`. Re-QA: **Frozen QA checklist** (`checklist_sha256`) + Prior blockers; после BUGFIX `verify_scope: prior_only`. Cap: ≥3 QA↔BUGFIX на одном sha → `NEED_HUMAN`.
 3c. **Enforce:** spawn verify-qa без matching `checklist_sha256` → deny; finish_qa при drift sha/`ac_plus` или blockers без class → FAIL.
+3d. **Coverage / review / test-audit:** до verify-qa заполнить в `qa-*.yaml` `coverage_map` (AC/BN → browser/API scenario → evidence), `review`, `test_audit`, `browser` и `retro`. `test_audit` обязан проверить ослабленные assertions, бесполезные status-only тесты, uncontrolled `route.fulfill`/глобальные API mocks, skip/xfail и попадание сценария в CI. Для frontend surface browser evidence не заменяется build.
 4. Security spot-check: OWASP checklist на auth/API в diff (коротко). `semgrep` / `differential-review` — только если в diff есть auth, crypto, external I/O, secrets/config.
-5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список (suite red + leftover + verify-qa eligible B*).
+5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список (suite red + leftover + verify-qa eligible B*). `retro` обязателен даже при PASS.
 5a. **fail|blocked:** до FINISH создать/merge `memory-bank/back/bugfix/<epic_id>/bugfix-queue.yaml`; queue items 1:1 с blockers текущего QA, старые done сохранить, новые добавить open. Handoff `load_now` обязан включать queue — `finish-doc-router.md`.
 6. FINISH: finish-block (`code_changed: no`); **обязан** `python3 $DEV_HUB/bin/loop.py finish --step QA`.
-   - **pass** → CONTEXT SYNC
+   - **pass** → `@context-sync`; its valid `done` result atomically closes QA (parent does not call finish)
    - **fail|blocked** + open bugfix-queue → finish **всё равно обязателен** (routes BUGFIX). `verify-qa` FAIL ≠ «нельзя finish». Выход только с отчётом → `finish_not_committed`.
 
 ## Situational (не каждый QA)

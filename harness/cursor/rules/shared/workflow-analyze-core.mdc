@@ -1,10 +1,10 @@
 ---
-description: "ANALYZE core — deterministic pre-IMPLEMENT detection passes"
+description: "Internal pre-IMPLEMENT analysis core — deterministic DECOMPOSE detection passes"
 alwaysApply: false
 ---
-# ANALYZE — shared detection core
+# Pre-IMPLEMENT analysis — shared detection core (internal DECOMPOSE contract)
 
-Роли BACK · FRONT · INTEG вызывают этот core из role-specific wrapper. ANALYZE — **STRICTLY READ-ONLY**: исходные plan, decompose и code не изменяются.
+Роли BACK · FRONT · INTEG вызывают этот core из DECOMPOSE. Это **STRICTLY READ-ONLY**: исходные plan, decompose и code не изменяются; отдельной пользовательской команды для него нет.
 
 Артефакт: `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`, шаблон `@.cursor/templates/analyze/epic-analyze.yaml`.
 
@@ -19,8 +19,8 @@ alwaysApply: false
 5. **Dilution (HARD)** — plan FR/US **nouns** (agent file, preset, hook enforce, CLI, operator surface) не входят в `produces`/`files` закрывающего step, или `delta` = только registry/alias/metadata без наблюдаемого поведения; product FR закрыт только surrogate verify (`get_x()=="name"` / «поле есть»). Supersede/merge: FR из superseded plan без coverage и без `out_of_scope`+follow-up в queue. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc. Category в finding: `dilution`. P0/P1 → CRITICAL.
 6. **Optional-SoT / completeness ladder (HARD)** — FR обещает sole/единый machine path, смену контракта границы, или Technology axiom replace, а очередь: (a) только add без wire и/или enforce; (b) wording optional/soft/preferred / enforce-off default без follow-up epic ID в queue; (c) нет Kind I / instruction rewrite при смене формата границы; (d) нет `*-legacy-fallback-purge` при sunset ≠ n/a. Category: `optional_sot`. P0/P1 → CRITICAL; иначе HIGH. Канон: behavior-first §3–§4 · legacy-fallback-cleanup §2.1a.
 7. **Layout dilution (HARD)** — (a) path nodes из plan **Target layout** / tree (NEW/SoT/`git mv` dest) не ∈ step `produces`/`files`/`deletes` и нет `out_of_scope`+`follow_up:`+ID ∈ `roadmap-*.queue.yaml`; (b) Requirements coverage Notes: `deferred`/`partial`/`leave for later` без queue ID; (c) Appetite/Product probe «Cut: X» при X всё ещё в Target layout/FR/AC; (d) index remaps FR «Кратко», отбрасывая plan nouns — category `layout_dilution` **и** `FR remap`. → CRITICAL. Канон: behavior-first §1a.
-8. **FR remap (HARD)** — coverage/index колонка Requirements переписывает plan FR (другой title / урезанные nouns / перенумерация). Category: `FR remap` / `layout_dilution`. → CRITICAL. Inventory ANALYZE = **полный текст plan FR**, не remapped «Кратко».
-9. **Step granularity / Effort cap** — BACK/FRONT: нет `effort_probe`/`effort_class`/`sNN_cap` в index; `sNN_count > sNN_cap` без justification; `effort_class=S` ∧ count≥5; добивание до min 5–8; micro-ladder (schema→core→CLI→wire×N→docs→tests как отдельные sNN без outcome); audit-* хвост >1 sNN без product outcome; **`s01-*-red-tests` отдельный shard** (TDD внутри шага). INTEG: нет Effort probe **или** layer-first micro-split одного element (registry 1:1 не режется cap). Categories: `step_granularity` · `effort_cap_violation`. → **HIGH** (ре-DECOMPOSE preferred; сам по себе не блокирует IMPLEMENT если coverage FR ок). Канон: behavior-first §3a.
+8. **FR remap (HARD)** — coverage/index колонка Requirements переписывает plan FR (другой title / урезанные nouns / перенумерация). Category: `FR remap` / `layout_dilution`. → CRITICAL. Inventory analysis = **полный текст plan FR**, не remapped «Кратко».
+9. **Step granularity / level cap** — BACK/FRONT: нет `level`/`sNN_cap` в index; `sNN_count > sNN_cap` (L1→1 · L2→2 · L3→3); L4 / Effort probe leftover; добивание пустых sNN до cap; micro-ladder (schema→core→CLI→wire×N→docs→tests как отдельные sNN без outcome); audit-* хвост >1 sNN без product outcome; **`s01-*-red-tests` отдельный shard** (TDD внутри шага). INTEG: нет `level` **или** layer-first micro-split одного element (registry 1:1 не режется cap). Categories: `step_granularity` · `effort_cap_violation`. → **HIGH** (ре-DECOMPOSE preferred; сам по себе не блокирует IMPLEMENT если coverage FR ок). Канон: behavior-first §3a.
 10. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
 11. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
 12. **Skills gate (HARD)** — на **каждый** `sNN`/`eNN` из index: секция `skills.code_surface` + `skills.impl`.  
@@ -41,7 +41,7 @@ alwaysApply: false
 
 `metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution, Optional-SoT, Layout dilution, FR remap, Skills gate**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`. **step_granularity** = HIGH → IMPLEMENT допустим, но DECOMPOSE lean preferred на следующем эпике.
 
-**Promote:** `ANALYZE deferred` **FORBIDDEN** как путь в IMPLEMENT. Только artifact `critical_count=0`.
+**Promote:** deferred pre-IMPLEMENT analysis **FORBIDDEN** как путь в IMPLEMENT. Только analysis artifact с `critical_count=0`.
 
 ## 50-cap
 
@@ -76,4 +76,3 @@ alwaysApply: false
 ```bash
 python .claude/hooks/epic_resolve.py analyze-convergence --plan-id T-HUB-032 --format text
 ```
-

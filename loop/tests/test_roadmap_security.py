@@ -11,7 +11,7 @@ def write(path: Path, text: str) -> None:
 
 
 def test_roadmap_security_plan_discovery_and_advance(tmp_path: Path) -> None:
-    # Current epic E1 (feature) finishing CONTEXT_SYNC
+    # Current epic E1 (feature) QA pass + context-sync artifact (roadmap advance)
     write(tmp_path / "memory-bank/back/qa/E1/qa-20261024-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
     write(tmp_path / "memory-bank/back/context-sync/E1/sync-20261024-e1.md", "# Context sync\n")
 

@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # Shared Role-Core Contract
 
-Канон: `@.cursor/rules/shared/role-core-contract.mdc` — единый канонический источник общих правил загрузки контекста (MEMORY BANK), формата ответа и политики runner для ролей BACK, FRONT и INTEG.
+Канон: `@.cursor/rules/shared/role-core-contract.mdc` — единый канонический источник общих правил загрузки контекста (MEMORY BANK), формата ответа и политики runner для ролей BACK и FRONT.
 
 ## MEMORY BANK & Context Loading
 
@@ -19,7 +19,6 @@ alwaysApply: false
 Каждая роль использует стандартный префикс ответа:
 - BACK: `OK BACK <РЕЖИМ> - [действие]`
 - FRONT: `OK FRONT <РЕЖИМ> - [действие]`
-- INTEG: `OK INTEG <РЕЖИМ> - [действие]`
 
 Формат ответа фиксирует текущую роль, выполняемый режим и краткий статус действия.
 
@@ -62,13 +61,9 @@ Evidence: команда install + повторный exit code — в `verifica
 2. **FORBIDDEN:** `bin/pytest` · `backend/.venv/bin/pytest` · любой backend/hub pytest как FRONT IMPLEMENT/TASK/QA suite (`suite_wrong_stack`).
 3. Запуск frontend-тестов — **только parent** (`front-tests-parent-only.mdc`).
 
-### INTEG
-
-По surface шага: backend contract → capability/hub pytest per BACK; UI wire → Vitest/Playwright parent-only per FRONT. **FORBIDDEN:** подменять FRONT surface hub `bin/pytest -q --tb=line`.
 
 ## Role-only boundary markers (Границы ответственности ролей)
 
 Общий контракт владеет исключительно общими правилами loading, format и runner policy. Ролевые ядра сохраняют изолированные role-only обязанности:
-- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT, ANALYZE artifact critical_count=0, L1..L4 scope matrix, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR, переходы VAN → PLAN(I1) → DECOMPOSE.
-- **FRONT:** visible_ui contract, DESIGN STACK, front-tests-parent-only (Vitest/RTL/Playwright — только parent), E2E/Playwright targeted сценарии, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR (parity с BACK).
-- **INTEG:** ELEMENT-FIRST портальная связка, §Contract в eNN-*.yaml, QueryBuilder, scenario test, GAP fanout / GAP CLOSE, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR (parity с BACK).
+- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT (`@analyze-verify` в DECOMPOSE), L1..L3 (1/2/3 sNN), REPLAN/RECONCILE/PLAN REFACTOR/JANITOR.
+- **FRONT:** visible_ui + **WIRE UI↔API**, DESIGN STACK, front-tests-parent-only, E2E/Playwright, contract в FR при API, REPLAN/RECONCILE/PLAN REFACTOR/JANITOR.

@@ -16,9 +16,9 @@ alwaysApply: false
 ## Gates
 
 1. `load_now`: work shard `plan/<epic>/yaml/steps/sNN-*.yaml` (**+ plan_contract**) + `yaml/decompose-index.yaml`; **не** полный `plan.md` как monolith AC; **обязательны** `plan_jumps` / plan §FR — формула: `L=end−start`; `L′=L×2`; jump=`start..(start+L′)` (ex `120–160`→`120–200`)
-1a. **ANALYZE hard gate:** analyze artifact `critical_count=0` иначе REJECT (нет deferred / soft WARN)
+1a. **Analyze gate:** закрыт в DECOMPOSE (`critical_count=0`); иначе REJECT
 1b. **Search scope:** loop `delta_paths_scoped` / `delta_paths_exist` **или полный shard `files:`** → SKIP @explorer **и** graphify query; ALLOW = shard paths + parent dirs. Широкий поиск / неизвестные callers → graphify затем `@explorer`.
-1c. **Last sNN / pre-AUDIT:** `plan_parity_scan` (все plan FR + Target layout) в implement yaml / Handoff
+1c. **Last sNN / pre-QA:** `plan_parity_scan` (все plan FR + Target layout) в implement yaml / Handoff
 2. Level из step — L2 substep → L2
 3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index `yes (CR-…)` без `✅`. Канон форм: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен BACK CREATIVE <CR-ID>`); не код/`completed`. `no (… closed)` — запрещённый дрейф, трактовать как open до нормализации
 4. **Skills:** Read **целиком** каждый путь из `skills.impl` текущего decompose-step; `impl: []` / `code_surface: docs` / Kind I-only → skip. Без `limit≤300`; **без** широкого слоя A. Pre-FINISH skills **не** грузить.
@@ -32,21 +32,21 @@ alwaysApply: false
 7a. **Env bootstrap:** при fail targeted runner из‑за missing deps — установить в проектный `.venv` / frontend deps (@.cursor/rules/shared/role-core-contract.mdc §Environment bootstrap) и повторить; не skip.
 7b. **Live smoke** — **не** gate IMPLEMENT (только targeted pytest). Живой uvicorn+HTTP = **BACK QA** (`live_smoke`). При API-шаге допустим локальный sanity curl, но PASS IMPLEMENT без live_smoke ок.
 8. **FINISH:** @.cursor/rules/shared/finish-block.mdc — грузить **перед FINISH**, не на старте. **Порядок:** Write `implement-*/sNN-*.yaml` → Handoff → `@verify-implement` (legacy alias `@verify`) → PASS; step+Handoff **до** decompose completed (5 точек там)
-8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
+8a. **Epic complete:** `finalize-step` → `* QA` (contract checks folded into QA)
 
 ## Level delta
 
-| L | Фокус |
-|---|--------|
-| L1 | targeted fix |
-| L2 | step; component TDD |
-| L3–L4 | phased; creative если flagged |
+| L | Фокус | sNN |
+|---|--------|-----|
+| L1 | targeted fix | 1 |
+| L2 | step; component TDD | 2 |
+| L3 | phased; creative если flagged | 3 |
 
 ## Abort
 
 - Shard/step missing · creative open · red skipped → no code/FINISH
 - Нет analyze artifact / `critical_count>0` → REJECT IMPLEMENT
-- **Scope violation:** path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT → REVERT **только ledger-paths** + halt. Чужой git dirty (нет в ledger) → ignore, **не** `git checkout --`/`git restore`/`rm`
+- **Scope violation:** path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA → REVERT **только ledger-paths** + halt. Чужой git dirty (нет в ledger) → ignore, **не** `git checkout --`/`git restore`/`rm`
 - Полный `plan/<epic_id>/md/plan.md` в `load_now` как monolith AC **без** plan_jumps → FAIL; отсутствие plan_jumps при непустых fr_ids → FAIL
 - Полный pytest / голый `pytest` / не из корня (для hub) или пропуск capability declaration/evidence (для managed) → BACK QA или FAIL
 - Impl skills из step не Read (если не docs-only skip) · Read скиллов вне step → no FINISH

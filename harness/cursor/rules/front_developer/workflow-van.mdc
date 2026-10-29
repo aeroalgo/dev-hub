@@ -13,7 +13,7 @@ alwaysApply: false
 1a. Прочитай **Gates** + **Brownfield map** (+ paths если create MB)
 2. Detect greenfield | brownfield
 3. `tasks.md`, `projectbrief.md`, `activeContext.md`
-4. **greenfield:** MB + `frontend/` scaffold check → L1–L4 → FINISH  
+4. **greenfield:** MB + `frontend/` scaffold check → L1–L3 → FINISH  
    **brownfield:**
    - announce: `SUSPENSION GUARD active — architecture map output unlimited`
    - graphify + inventory UI surface
@@ -21,7 +21,7 @@ alwaysApply: false
    - нет `frontend/` → `frontend.md` = `status: absent`
    - update `architecture/index.md`
    - session log: `memory-bank/front/van/van-YYYYMMDD.md`
-5. L1–L4 в `tasks.md`
+5. L1–L3 в `tasks.md`
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`)
 7. Next: L1 → IMPLEMENT; L2–4 → PLAN
 

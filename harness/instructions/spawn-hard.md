@@ -12,11 +12,13 @@ Parent **MAY** spawn любых Agent по нужде.
 | `explorer` | codebase search / discovery в code-режимах | **да**, если `MODEL_LOOP=1` (иначе parent: graphify + узкий rg) | — |
 | `verify-implement` | IMPLEMENT / REFACTOR / TASK pre-FINISH (`code_changed: yes`) | **да** (если gate active в loop) | `@verify` |
 | `verify-bugfix` | BUGFIX pre-FINISH (`code_changed: yes`) | **да** (если gate active в loop) | `@verify` |
-| `verify-qa` | BACK QA после suite | **да** (если gate active в loop) | `@reviewer` |
-| `verify-decompose` | DECOMPOSE pre-FINISH | **да** (если gate active в loop) | — |
-| `gate-repair` | после `@verify-*` FAIL/BLOCKED **или actionable AUDIT finding** | **да** (если enabled в loop) | — |
+| `bugfix-fix` | BUGFIX swarm — fix **one** queue item | **да** (parent spawn ≤3 parallel) | `@bugfix-fix`, `bugfix` |
+| `context-sync` | QA pass — root canon sync + `sync-*.md` | **да** after verify-qa PASS | `@context-sync`, `ctx-sync` |
+| `analyze-verify` | Internal DECOMPOSE closure gate | **да** after analyze-*.yaml | — |
+| `verify-qa` | BACK/FRONT QA после suite | **да** (если gate active в loop) | `@reviewer` |
+| `verify-decompose` | DECOMPOSE structural gate | **да** (если gate active в loop) | — |
+| `gate-repair` | после `@verify-*` FAIL/BLOCKED **или actionable QA contract finding** | **да** (если enabled в loop) | — |
 | `sunset-inventory` | discovery / scan sunset targets (legacy fallbacks, dual-paths, shims) | **да** (если shard `sunset_scope.required: true`) | `@sunset-inventory`, `sunset` |
-| `analyze-verify` | ANALYZE pre-FINISH gate | **да** (packed FINDINGS/COVERAGE/ALLOW) | — |
 | `verify` (alias) | pre-FINISH IMPLEMENT / BUGFIX | legacy alias → `verify-implement` / `verify-bugfix` | `@verify` |
 | `reviewer` (alias) | BACK QA | legacy alias → `verify-qa` | `@reviewer` |
 | built-in / др. | когда parent считает нужным | нет | — |
@@ -28,10 +30,9 @@ Parent **MAY** spawn любых Agent по нужде.
 | BACK/FRONT IMPLEMENT | `verify-implement` | `verify` |
 | BACK/FRONT REFACTOR | `verify-implement` | `verify` |
 | BACK/FRONT TASK | `verify-implement` | `verify` |
-| BACK/FRONT BUGFIX | `verify-bugfix` | `verify` |
-| BACK/FRONT QA | `verify-qa` | `reviewer` |
-| BACK/FRONT DECOMPOSE | `verify-decompose` | — |
-| BACK/FRONT ANALYZE | `analyze-verify` | — |
+| BACK/FRONT BUGFIX | `verify-bugfix` (pre-FINISH) + `bugfix-fix`×≤3 (swarm) | `verify` / `bugfix` |
+| BACK/FRONT QA | `verify-qa` + `context-sync` (after PASS) | `reviewer` / `ctx-sync` |
+| BACK/FRONT DECOMPOSE | `verify-decompose` + `analyze-verify` | — |
 
 ## Политика
 
@@ -40,11 +41,13 @@ Parent **MAY** spawn любых Agent по нужде.
 | IMPLEMENT · REFACTOR · BUGFIX · TASK (code) | перед широким поиском → **`@explorer`**, если managed search agent включён; иначе graphify + узкий rg parent |
 | Shard с `sunset_scope.required: true` | перед первым prod Write нового SoT → **`@sunset-inventory`** (`subagent_type=sunset-inventory` или alias `sunset`), scan sunset targets → fenced JSON `loop-sunset-inventory/v1` |
 | Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: implement yaml + decompose yaml + code; checklist SoT = decompose; alias `@verify`); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
+| BUGFIX work | parent **spawn `bugfix-fix`≤3** (1 item / child, disjoint files); затем **`@verify-bugfix`** |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (`ALLOW READ` с bugfix queue + report; queue SoT статусов, report SoT Changes/Verification; alias `@verify`); FAIL/DENY → fix → retry до PASS |
-| Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: plan.md + decompose-index.yaml; coverage SoT = shards) |
-| После `@verify-*` VERDICT: FAIL или AUDIT finding | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed `- id \| path \| fix` · ALLOW WRITE · VERIFY); repair done/partial → retry тот же verify или AUDIT до PASS |
-| Перед FINISH ANALYZE | **`@analyze-verify`** (packed FINDINGS/COVERAGE/ALLOW); FAIL/BLOCKED → `@gate-repair` → retry same `@analyze-verify`; PASS → boundary transition |
-| BACK QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (Suite results + ALLOW + Frozen checklist; alias `@reviewer`); pytest — у parent |
+| Перед DECOMPOSE promotion | **`@verify-decompose` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: plan.md + decompose-index.yaml; coverage SoT = shards); PASS оставляет parent в DECOMPOSE |
+| После `@verify-*` VERDICT: FAIL или QA contract finding | **`@gate-repair` ОБЯЗАТЕЛЬНО**; repair → retry тот же verify/QA до PASS |
+| Перед DECOMPOSE promotion (closure check) | **`@analyze-verify`** после analyze-*.yaml; FAIL → `@gate-repair` → retry; PASS → атомарно продвигает DECOMPOSE и завершает parent |
+| После verify-qa PASS | **`@context-sync` ОБЯЗАТЕЛЬНО** → `sync-*.md`; `done` атомарно закрывает QA (parent не вызывает finish) |
+| BACK/FRONT QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (Suite results + ALLOW + Frozen checklist; alias `@reviewer`); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
 
 ### Generic registry policy
@@ -60,9 +63,9 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
 **FAIL:** spawn `verify-implement`/`verify` без `ALLOW READ` или без implement+decompose yaml paths в ALLOW / path нет на диске; spawn `verify-bugfix` без bugfix queue + report paths; spawn `verify-decompose` без plan.md + decompose-index.yaml; spawn `verify-qa`/`reviewer` без Suite results / ALLOW / freeze; spawn gate-repair без обязательных секций / ALLOW = дерево / >max файлов (10 default; 40 verify-qa) / globs `**` в ALLOW.
 **FAIL:** verify-qa fail-fast (FAIL до полного AC+/AC−/§0.11) или partial `## BLOCKERS (complete)`.
-  ├─ verify FAIL/BLOCKED/runtime error или AUDIT blockers → parent @gate-repair (`- id | path | fix` + ALLOW WRITE + VERIFY) → retry same verify/AUDIT
+  ├─ verify FAIL/BLOCKED/runtime error или QA contract blocker → parent @gate-repair (`- id | path | fix` + ALLOW WRITE + VERIFY) → retry same verify/QA contract
   ├─ gate-repair fail → parent расширяет ALLOW WRITE / уточняет path|fix или чинит сам → retry
-Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или actionable AUDIT; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
+Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или actionable QA contract finding; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
 **FAIL:** `@gate-repair` с голыми blocker id без `| path | fix` или path ∉ ALLOW WRITE.
 
 **FAIL:** «проверь шаг» / QA review / search без секций (для `verify-implement` — без ALLOW READ + обоих yaml).  
@@ -73,12 +76,12 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED или a
 
 - `spawn_agent` для gate: `agent_type`/`subagent_type` = canonical gate id **и** `fork_context=false` (self-contained prompt с GATE_IDENTITY + ALLOW READ).
 - **FORBIDDEN:** full-history fork вместе с `agent_type` (Codex: «Full-history forked agents inherit the parent agent type»).
-- **FORBIDDEN:** invent agent types вне таблицы выше (`parent-driven-audit`, `managed-audit`, ad-hoc names). Для FRONT/BACK **AUDIT** канон = parent пишет `audit.yaml`; при `fail|blocked` → только `@gate-repair` (не выдуманный audit-verify). AUDIT **не** имеет `verify-implement` / `parent-driven-audit`.
+- **FORBIDDEN:** invent agent types вне таблицы выше (`parent-driven-audit`, `managed-audit`, ad-hoc names). Для FRONT/BACK QA contract findings принадлежат `verify-qa`; при `fail|blocked` → только `@gate-repair`, без отдельного review-gate.
 - Перед новым `spawn_agent`: **close** completed children. `agent thread limit reached` → close → spawn; не крутить wait бесконечно.
 - Parent **не** ищет `epic_resolve.py` / hub scripts в product tree; только `python3 $DEV_HUB/bin/loop.py …`.
 - Parent **не** гоняет `validate`/`validate-verdict` без `--payload '<json>'` и **не** требует `evidence_sha256`.
 - После boundary-accepted `FAIL` → `gate-repair`, не повторный verify «из‑за схемы».
-- Для CRM e2e / shared-token FAIL: repair обязан чинить **runtime delivery** (`crm/scripts/e2e-preflight.sh`, `crm/crm/hooks.py` → `frappe-bench/apps/crm`, `bench start`), а не крутить spawn audit-gate.
+- Для CRM e2e / shared-token FAIL: repair обязан чинить **runtime delivery** (`crm/scripts/e2e-preflight.sh`, `crm/crm/hooks.py` → `frappe-bench/apps/crm`, `bench start`), а не крутить дополнительные gate-сессии.
 
 ## Gate Verdict Contract (JSON Fenced Block) — machine SoT
 

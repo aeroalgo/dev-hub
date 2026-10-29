@@ -8,7 +8,7 @@ alwaysApply: false
 
 **Artifact:** the ordinary * PLAN artifacts: `memory-bank/<role>/roadmap/queue.yaml` plus one `memory-bank/<role>/plan/<epic_id>/md/plan.md` and `md/prompt.md` per epic.
 
-**Lifecycle:** `* PLAN REFACTOR` → `* DECOMPOSE` → `* ANALYZE` → `* IMPLEMENT` → `* AUDIT` → `* QA`.
+**Lifecycle:** `* PLAN REFACTOR` → `* DECOMPOSE` → internal pre-IMPLEMENT gate → `* IMPLEMENT` → `* QA`.
 
 ## Gates
 

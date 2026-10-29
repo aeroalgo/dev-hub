@@ -15,11 +15,12 @@ verification-before-completion · query-builder · playwright-best-practices · 
 1. `OK INTEG QA - Выполняю техническую валидацию` → **Gates**
 2. Lean load §7; §0.11 + contract; проверки — gates
 2a. **Full suite (HARD):** Hub full `bin/pytest -q --tb=line` + parent-only Vitest/Playwright; leftover + `sot_enforce_scan`; behavior smoke. Канон: `_lean/qa.mdc`
+2c. Внутри того же QA gate `/review` сверяет back↔front contract, ownership, rollback и negative paths, а `/test-audit` проверяет weakened/status-only assertions, global mocks, uncontrolled `route.fulfill`, skip/xfail и CI inclusion; результаты идут в `review`/`test_audit`, отдельные loop-фазы не создаются.
 2b. Epic QA load: `#qa-consumes` через offset/grep когда есть.
 3. qa-артефакт: `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`. Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
 4. fail|blocked → §Fix plan: полный eligible список; anti-ratchet.
 5. **FINISH:** finish-block (`code_changed: no`) + `## Handoff INTEG QA` — только после полного прохода
    Next: Handoff в `memory-bank/activeContext.md` + decompose index  
-   **pass** → next tip **`INTEG CONTEXT SYNC <epic_id>`** (затем ARCHIVE); fail|blocked → BUGFIX из Fix plan
+   **pass** → (legacy INTEG→FRONT) spawn `@context-sync`; its `done`-результат атомарно закрывает QA → DONE; fail|blocked → BUGFIX
 
 **Верификация**: gates + verify-qa + Handoff (+ leftover/Kind I + `sot_enforce_scan`; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8)

@@ -1,0 +1,73 @@
+---
+description: "PLAN interactive review passes — product, design, DX, engineering, ownership"
+alwaysApply: false
+---
+# PLAN — interactive review passes
+
+Этот контракт добавляется к `BACK|FRONT|INTEG PLAN` после определения level и до
+финальной фиксации HOW. Он не заменяет `CLARIFY`: CLARIFY остаётся отдельным
+маршрутом и запускается только по своим триггерам.
+
+## Порядок
+
+```text
+Product → Design? → DX? → Eng
+```
+
+`Eng` всегда идёт последним: после него нельзя молча менять WHAT, scope,
+контракт или ownership. Если такой change всё же принят, Eng pass повторяется.
+
+| Pass | Когда обязателен | Интерактивное решение владельца | Что записать в PLAN |
+|------|------------------|----------------------------------|---------------------|
+| Product | L2+; для L1 — если меняется user-facing outcome, wedge или приоритет | Что именно сужаем, для кого, какой outcome оставляем, что сознательно не строим | `decision`, `wedge`, `non-goals`, `success signal`, owner/evidence |
+| Design | Только UI, user journey, визуальный/мобильный surface или accessibility outcome | Иерархия, состояния, responsive behavior, accessibility и один визуальный direction | `done` + решения/ссылка; либо `skip` с причиной |
+| DX | Только API, CLI, SDK, tool, prompt/agent/MCP или другой developer-facing contract | Как вызывающий узнаёт контракт, ошибки, examples, versioning и rollback | `done` + contract decisions; либо `skip` с причиной |
+| Eng | L2+; для L1 — при cross-layer, persistence, security или infra change | Реализуемость, data-flow, failure/rollback, ownership, независимая проверка и маршрут | `done`, последний scope lock и recommended route |
+
+## Как проходит интерактивность
+
+Каждый applicable pass — короткий пакет вопросов владельцу, а не скрытое
+авторешение. Агент показывает текущую гипотезу, 2–3 реальные развилки и
+последствие выбора. После ответа фиксирует ровно принятое решение и его
+влияние на FR/AC/границы. Если выбора нет, pass остаётся `pending`, а PLAN не
+закрывается.
+
+Минимальный prompt pass:
+
+```text
+Текущий вариант: <одна фраза>.
+Развилки: A <...> / B <...> / C <...>.
+Моя рекомендация: <...>, потому что <...>.
+Вопрос владельцу: <один вопрос, меняющий scope или контракт>.
+После ответа: <что изменится в WHAT/HOW/QA>.
+```
+
+Не превращать этот проход в отдельный `CLARIFY`-артефакт и не задавать
+вопросы по одному без необходимости. Batch допускается, но ответ владельца
+должен быть явным.
+
+## Ownership matrix
+
+Для L2+ и любого cross-layer эпика PLAN содержит матрицу:
+
+| Surface / outcome | BACK owner | FRONT owner | Infra owner | QA owner | Contract / evidence | Rollback | Independent check |
+|-------------------|------------|-------------|-------------|----------|---------------------|----------|-------------------|
+| `<surface>` | `<name/role or n/a>` | `<name/role or n/a>` | `<name/role or n/a>` | `<name/role>` | `<request/response, event or artifact>` | `<bounded reversal>` | `<test/journey + evidence>` |
+
+`Infra` — это ownership surface, а не обязательный отдельный агент. Его может
+взять BACK, FRONT или parent, но `n/a` допустим только с явной причиной.
+Каждый P0/P1 outcome обязан иметь ровно одного accountable owner, контракт,
+rollback и независимую проверку. Если surface пересекает BACK и FRONT, обе
+стороны указываются отдельно; не прятать backend contract в FRONT-only строке.
+
+## Finish gate
+
+Перед FINISH PLAN проверяются:
+
+1. applicable passes имеют `done`; `skip` содержит конкретную причину;
+2. Product decision / WHAT отражает результат Product pass;
+3. Design/DX решения попали в FR/AC/QA или явно стали non-goal;
+4. Eng pass выполнен последним после всех scope changes;
+5. ownership matrix заполнена для L2+/cross-layer;
+6. recommendation `TASK` / `IMPLEMENT` / `DECOMPOSE → IMPLEMENT` согласована с
+   level и зафиксирована как рекомендация, не как автоматический переход.

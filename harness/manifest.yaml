@@ -10,7 +10,7 @@ agents:
         materialize: true
         target: ".codex/agents/verify-implement.toml"
   gate-repair:
-    description: "Fix verify or AUDIT blockers in-scope (write-only)"
+    description: "Fix verify or QA contract blockers in-scope (write-only)"
     source: "harness/agents/gate-repair.md"
     runtimes:
       claude:
@@ -27,6 +27,24 @@ agents:
       codex:
         materialize: true
         target: ".codex/agents/reconcile-verify.toml"
+  context-sync:
+    description: "QA-pass worker — root memory-bank canon sync + sync-*.md"
+    source: "harness/agents/context-sync.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/context-sync.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/context-sync.toml"
+  bugfix-fix:
+    description: "BUGFIX swarm worker — fix exactly one queue item"
+    source: "harness/agents/bugfix-fix.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/bugfix-fix.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/bugfix-fix.toml"
   verify-bugfix:
     description: "Pre-FINISH verify gate for BUGFIX"
     source: "harness/agents/verify-bugfix.md"
@@ -46,7 +64,7 @@ agents:
         materialize: true
         target: ".codex/agents/verify-qa.toml"
   verify-decompose:
-    description: "Pre-FINISH verify gate for DECOMPOSE"
+    description: "Structural verify gate for DECOMPOSE"
     source: "harness/agents/verify-decompose.md"
     runtimes:
       claude:
@@ -55,7 +73,7 @@ agents:
         materialize: true
         target: ".codex/agents/verify-decompose.toml"
   analyze-verify:
-    description: "Post-ANALYZE fix verify gate"
+    description: "Internal DECOMPOSE closure gate after the pre-IMPLEMENT analysis artifact"
     source: "harness/agents/analyze-verify.md"
     runtimes:
       claude:

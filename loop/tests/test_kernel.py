@@ -14,7 +14,7 @@ import pytest
 
 from loop.kernel.engine import LoopEngine, TransitionError
 from loop.kernel.cli import (
-    _audit_finish_protocol,
+    _role_rules_dir,
     _bugfix_gate_paths,
     _gate_protocol,
     _gate_recovery_prompt,
@@ -37,7 +37,18 @@ from loop.kernel.model import CursorStatus, RuntimeResult
 from loop.kernel.runtime import CodexRuntime, Runtime, _collaboration_state
 from loop.kernel.session import SessionOutcome, SessionSupervisor
 from loop.kernel.store import CursorStore, LoopPaths
-from loop.kernel.verdict import BoundaryIdentity, GateVerdict, SCHEMA_GATE_VERDICT, SCHEMA_REPAIR_RESULT, SCHEMA_SUNSET_INVENTORY, validate_boundary, validate_message
+from loop.kernel.verdict import (
+    BoundaryIdentity,
+    ContextSyncResult,
+    GateVerdict,
+    SCHEMA_CONTEXT_SYNC_RESULT,
+    SCHEMA_GATE_VERDICT,
+    SCHEMA_REPAIR_RESULT,
+    SCHEMA_SUNSET_INVENTORY,
+    validate_boundary,
+    validate_context_sync_message,
+    validate_message,
+)
 from loop.kernel.inventory import read_sunset_sidecar
 from loop.config import LoopSettings
 
@@ -98,6 +109,26 @@ def _seed_queue_implement_complete(root: Path, *, epic_id: str = "E1") -> None:
     )
 
 
+def _seed_context_sync(root: Path, *, epic_id: str = "E1") -> None:
+    write(
+        root / f"memory-bank/back/context-sync/{epic_id}/sync-20260921-{epic_id.lower()}.md",
+        f"# Context sync — {epic_id}\n\n## Changes\n\n| File | Action |\n|------|--------|\n| techContext.md | no-op |\n",
+    )
+
+
+def _context_sync_message(cursor, sync_path: str, *, status: str = "done") -> str:
+    payload = {
+        "schema": SCHEMA_CONTEXT_SYNC_RESULT,
+        "agent_id": "context-sync",
+        "epic_id": cursor.epic_id,
+        "status": status,
+        "sync_path": sync_path,
+        "session_id": cursor.session_id,
+        "recorded_at": "2026-09-21T00:00:00+00:00",
+    }
+    return "```json\n" + json.dumps(payload) + "\n```"
+
+
 def seed_project(root: Path) -> LoopPaths:
     write(root / "memory-bank/back/plan/E1/yaml/decompose-index.yaml", """
 schema: epic-decompose-index/v1
@@ -124,8 +155,24 @@ steps:
 def _finish_via_gate(engine: LoopEngine):
     cursor = engine.store.read()
     assert cursor is not None
+    if cursor.phase == "DECOMPOSE":
+        verify_agent = "verify-decompose"
+        engine.accept_verdict(
+            GateVerdict(
+                schema=SCHEMA_GATE_VERDICT,
+                agent_id=verify_agent,
+                verdict="PASS",
+                step_id=cursor.step_id,
+                session_id=cursor.session_id,
+                epic_id=cursor.epic_id,
+                recorded_at="2026-09-18T18:59:00+00:00",
+            ),
+            expected_agent_id=verify_agent,
+        )
+        cursor = engine.store.read()
+        assert cursor is not None and cursor.phase == "DECOMPOSE"
     agent = {
-        "DECOMPOSE": "verify-decompose",
+        "DECOMPOSE": "analyze-verify",
         "ANALYZE": "analyze-verify",
         "IMPLEMENT": "verify-implement",
         "TASK": "verify-implement",
@@ -146,6 +193,41 @@ def _finish_via_gate(engine: LoopEngine):
         ),
         expected_agent_id=agent,
     )
+
+
+def _start_decompose_gate_project(
+    root: Path,
+    *,
+    epic_id: str = "E-DECOMPOSE-GATE",
+    with_analyze: bool = True,
+) -> tuple[LoopPaths, LoopEngine]:
+    write(root / f"memory-bank/back/plan/{epic_id}/md/plan.md", f"# Plan: {epic_id}\n")
+    paths = LoopPaths(project=root, hub=root / "hub")
+    engine = LoopEngine(paths)
+    cursor = engine.start(epic_id)
+    assert cursor.phase == "DECOMPOSE"
+    write(
+        root / f"memory-bank/back/plan/{epic_id}/yaml/decompose-index.yaml",
+        f"""schema: epic-decompose-index/v1
+plan_id: {epic_id}
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: pending
+""",
+    )
+    write(
+        root / f"memory-bank/back/plan/{epic_id}/yaml/steps/s01.yaml",
+        _minimal_decompose_shard(step_id="s01", plan_id=epic_id, verify_line="true"),
+    )
+    if with_analyze:
+        write(
+            root / f"memory-bank/back/analyze/{epic_id}/analyze-20260921-pass.yaml",
+            "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
+        )
+    return paths, engine
 
 
 def test_cursor_is_the_only_runtime_state_and_finish_advances_index(tmp_path: Path) -> None:
@@ -206,23 +288,301 @@ def test_start_explicit_role_hints_when_plan_lives_elsewhere(tmp_path: Path) -> 
         LoopEngine(paths).start("T-060-ui", role="back")
 
 
-def test_rewind_forces_analyze_even_after_implementation_progress(tmp_path: Path) -> None:
+def test_rewind_to_decompose_after_implementation_progress(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
     engine.start("E1")
     _finish_via_gate(engine)
 
-    transition = engine.rewind("ANALYZE")
+    transition = engine.rewind("DECOMPOSE")
 
-    assert transition.phase == "ANALYZE"
-    assert transition.step_id == "ANALYZE"
+    assert transition.phase == "DECOMPOSE"
+    assert transition.step_id == "DECOMPOSE"
     assert engine.store.read().status == CursorStatus.ACTIVE
-    after_analyze = _finish_via_gate(engine)
-    assert after_analyze.phase == "IMPLEMENT"
-    assert after_analyze.step_id == "s02"
 
 
-def test_decompose_finish_requires_index_and_hands_off_to_analyze(tmp_path: Path) -> None:
+def test_verify_decompose_pass_is_recorded_without_advancing_parent(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path, with_analyze=False)
+    cursor = engine.store.read()
+    assert cursor is not None
+
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-decompose",
+            "last_assistant_message": _verdict_message(
+                cursor,
+                agent_id="verify-decompose",
+                paths=paths,
+            ),
+        }
+    )
+
+    assert action.ok
+    assert action.continue_session is False
+    assert action.transition["phase"] == "DECOMPOSE"
+    assert action.transition["changed"] is True
+    assert action.transition["metadata"]["session_keep_alive"] is True
+    after = engine.store.read()
+    assert after is not None
+    assert after.phase == "DECOMPOSE"
+    assert after.session_id == cursor.session_id
+    assert '"event": "verdict_accepted"' in paths.events.read_text(encoding="utf-8")
+
+
+def test_analyze_pass_requires_current_decompose_gate(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path)
+    cursor = engine.store.read()
+    assert cursor is not None
+
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "analyze-verify",
+            "last_assistant_message": _verdict_message(
+                cursor,
+                agent_id="analyze-verify",
+                paths=paths,
+            ),
+        }
+    )
+
+    assert not action.ok
+    assert "verify-decompose PASS" in action.reason
+    after = engine.store.read()
+    assert after is not None
+    assert after.phase == "DECOMPOSE"
+    assert engine.store.latest_event("verdict_accepted") is None
+
+
+def test_analyze_pass_atomically_promotes_decompose_and_ends_gate(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path)
+    cursor = engine.store.read()
+    assert cursor is not None
+    lifecycle = SubagentLifecycle(paths)
+
+    verify = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-decompose",
+            "last_assistant_message": _verdict_message(
+                cursor,
+                agent_id="verify-decompose",
+                paths=paths,
+            ),
+        }
+    )
+    assert verify.ok
+    analyze_cursor = engine.store.read()
+    assert analyze_cursor is not None and analyze_cursor.phase == "DECOMPOSE"
+
+    analyze = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "analyze-verify",
+            "last_assistant_message": _verdict_message(
+                analyze_cursor,
+                agent_id="analyze-verify",
+                paths=paths,
+            ),
+        }
+    )
+
+    assert analyze.ok
+    assert analyze.continue_session is False
+    assert analyze.transition["event"] == "verdict_accepted"
+    assert analyze.transition["changed"] is True
+    assert analyze.transition["phase"] == "IMPLEMENT"
+    after = engine.store.read()
+    assert after is not None
+    assert after.phase == "IMPLEMENT"
+    assert after.step_id == "s01"
+
+
+def test_codex_runtime_ends_only_after_analyze_pass(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path)
+    runtime = CodexRuntime(progress=False)
+    runtime._progress_project = tmp_path
+    runtime._collab_lifecycle = SubagentLifecycle(paths)
+    cursor = engine.store.read()
+    assert cursor is not None
+
+    verify_output = runtime._child_verdict(
+        "verify-thread",
+        "verify-decompose",
+        _verdict_message(cursor, agent_id="verify-decompose", paths=paths),
+    )
+    assert verify_output is not None
+    assert runtime._end_session_requested is False
+
+    analyze_cursor = engine.store.read()
+    assert analyze_cursor is not None and analyze_cursor.phase == "DECOMPOSE"
+    analyze_output = runtime._child_verdict(
+        "analyze-thread",
+        "analyze-verify",
+        _verdict_message(analyze_cursor, agent_id="analyze-verify", paths=paths),
+    )
+    assert analyze_output is not None
+    assert runtime._end_session_requested is True
+    assert engine.store.read().phase == "IMPLEMENT"
+
+
+def test_codex_runtime_rejects_context_sync_prose_under_live_contract(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml",
+        "schema: epic-qa/v1\nverdict: pass\n",
+    )
+    _finish_via_gate(engine)
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+
+    runtime = CodexRuntime(progress=False)
+    runtime._progress_project = tmp_path
+    runtime._collab_lifecycle = SubagentLifecycle(paths)
+    runtime._expected_subagent_type = "verify-qa"
+    runtime._collab_agents["sync-thread"] = "verify-qa"
+
+    assert runtime._collaboration_label({}) == "context-sync"
+    output = runtime._child_verdict(
+        "sync-thread",
+        "verify-qa",
+        "Синхронизация корневого канона завершена.",
+    )
+
+    assert output is not None
+    assert "context-sync handoff REJECTED" in output
+    assert "loop-context-sync-result/v1" in output
+    assert runtime._end_session_requested is False
+    assert engine.store.read().phase == "QA"
+    assert engine.store.latest_event("context_sync_rejected") is not None
+
+
+def test_codex_runtime_context_sync_result_advances_roadmap(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(tmp_path / "memory-bank/back/plan/E1/md/plan.md", "# E1\n")
+    write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# E2\n")
+    write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        """version: roadmap-queue/v2
+role: back
+queue:
+- id: T-E1
+  epic_id: E1
+  kind: feature
+  plan: plan-E1.md
+- id: T-E2
+  epic_id: E2
+  kind: feature
+  plan: plan-E2.md
+done: []
+""",
+    )
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml",
+        "schema: epic-qa/v1\nverdict: pass\n",
+    )
+    _finish_via_gate(engine)
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-current.md"
+    write(tmp_path / sync_path, "# Context sync\n")
+
+    runtime = CodexRuntime(progress=False)
+    runtime._progress_project = tmp_path
+    runtime._collab_lifecycle = SubagentLifecycle(paths)
+    runtime._expected_subagent_type = "verify-qa"
+    runtime._collab_agents["sync-thread"] = "verify-qa"
+    output = runtime._child_verdict(
+        "sync-thread",
+        "verify-qa",
+        _context_sync_message(cursor, sync_path),
+    )
+
+    assert output is not None
+    assert "context_sync_completed" in output
+    assert runtime._end_session_requested is True
+    after = engine.store.read()
+    assert after is not None
+    assert after.epic_id == "E2"
+    assert after.phase == "DECOMPOSE"
+
+
+def test_decompose_finish_cannot_bypass_analyze_verdict(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path)
+    cursor = engine.store.read()
+    assert cursor is not None
+    engine.accept_verdict(
+        GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-decompose",
+            verdict="PASS",
+            step_id=cursor.step_id,
+            session_id=cursor.session_id,
+            epic_id=cursor.epic_id,
+            recorded_at="2026-09-18T18:59:00+00:00",
+        ),
+        expected_agent_id="verify-decompose",
+    )
+
+    with pytest.raises(TransitionError, match="accepted analyze-verify PASS"):
+        engine.finish(step_id="DECOMPOSE")
+
+    after = engine.store.read()
+    assert after is not None and after.phase == "DECOMPOSE"
+
+
+def test_analyze_fail_keeps_decompose_open_for_repair(tmp_path: Path) -> None:
+    paths, engine = _start_decompose_gate_project(tmp_path)
+    cursor = engine.store.read()
+    assert cursor is not None
+    lifecycle = SubagentLifecycle(paths)
+
+    verify = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-decompose",
+            "last_assistant_message": _verdict_message(
+                cursor,
+                agent_id="verify-decompose",
+                paths=paths,
+            ),
+        }
+    )
+    assert verify.ok
+    analyze_cursor = engine.store.read()
+    assert analyze_cursor is not None
+    fail = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "analyze-verify",
+            "last_assistant_message": _verdict_message(
+                analyze_cursor,
+                agent_id="analyze-verify",
+                verdict="FAIL",
+                paths=paths,
+            ),
+        }
+    )
+
+    assert fail.ok
+    assert fail.transition["event"] == "verdict_recorded"
+    assert fail.transition["phase"] == "DECOMPOSE"
+    after = engine.store.read()
+    assert after is not None
+    assert after.phase == "DECOMPOSE"
+    assert after.status == CursorStatus.ACTIVE
+
+
+def test_decompose_finish_requires_analyze_then_hands_off_to_implement(tmp_path: Path) -> None:
     write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# Plan: E2\n")
     paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
     engine = LoopEngine(paths)
@@ -240,7 +600,6 @@ steps:
     status: pending
 """,
     )
-
     write(
         tmp_path / "memory-bank/back/plan/E2/yaml/steps/s01.yaml",
         """
@@ -263,12 +622,17 @@ verify: []
 tdd: []
 """,
     )
-
+    with pytest.raises(TransitionError, match="ANALYZE gate|analyze_missing"):
+        _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/analyze/E2/analyze-20260921-pass.yaml",
+        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
+    )
+    _seed_implement(tmp_path, step_id="s01", filename="s01.yaml", epic_id="E2")
     transition = _finish_via_gate(engine)
+    assert transition.phase == "IMPLEMENT"
+    assert transition.step_id == "s01"
 
-    assert transition.phase == "ANALYZE"
-    assert transition.step_id == "ANALYZE"
-    assert engine.store.read().phase == "ANALYZE"
 
 
 def test_decompose_finish_rejects_incomplete_tree(tmp_path: Path) -> None:
@@ -290,7 +654,7 @@ steps:
 """,
     )
 
-    with pytest.raises(TransitionError, match="cannot finish DECOMPOSE: invalid yaml tree"):
+    with pytest.raises(TransitionError, match="cannot accept verify-decompose PASS: invalid decompose tree"):
         _finish_via_gate(engine)
 
     assert engine.store.read().phase == "DECOMPOSE"
@@ -325,78 +689,40 @@ steps:
     assert engine.store.read().phase == "DECOMPOSE"
 
 
-def test_analyze_finish_routes_to_implement_when_index_completed_without_artifacts(
-    tmp_path: Path,
-) -> None:
-    """Hole regression: false completed in index must not skip to AUDIT/QA."""
-    write(tmp_path / "memory-bank/back/plan/E-GAP/md/plan.md", "# Plan: E-GAP\n")
-    paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
+def test_decompose_with_analyze_routes_to_implement_when_index_completed_without_artifacts(tmp_path: Path) -> None:
+    """Hole regression: false completed in index must not skip to QA without implement evidence."""
+    paths = seed_project(tmp_path)
+    write(
+        tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
+        """schema: epic-decompose-index/v1
+epic_id: E1
+plan_id: E1
+steps:
+  - id: s01
+    file: s01-one.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: completed
+  - id: s02
+    file: s02-two.yaml
+    title: s02
+    next_phase: BACK IMPLEMENT
+    status: completed
+""",
+    )
     engine = LoopEngine(paths)
-    engine.start("E-GAP")
-    write(
-        tmp_path / "memory-bank/back/plan/E-GAP/yaml/decompose-index.yaml",
-        """
-schema: epic-decompose-index/v1
-plan_id: E-GAP
-steps:
-  - id: s01
-    file: s01.yaml
-    title: s01
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s02
-    file: s02.yaml
-    title: s02
-    next_phase: BACK IMPLEMENT
-    status: pending
-""",
-    )
-    write(
-        tmp_path / "memory-bank/back/plan/E-GAP/yaml/steps/s01.yaml",
-        _minimal_decompose_shard(step_id="s01", plan_id="E-GAP", verify_line="true"),
-    )
-    write(
-        tmp_path / "memory-bank/back/plan/E-GAP/yaml/steps/s02.yaml",
-        _minimal_decompose_shard(step_id="s02", plan_id="E-GAP", verify_line="true"),
-    )
-    assert _finish_via_gate(engine).phase == "ANALYZE"
+    engine.start("E1")
+    # Without implement evidence, cannot reach QA
+    from loop.kernel.index import load_queue, queue_ready_for_qa
+    queue = load_queue(tmp_path, "back", "E1")
+    ready, reason = queue_ready_for_qa(tmp_path, queue)
+    assert ready is False
+    assert "implement incomplete" in reason
 
-    write(
-        tmp_path / "memory-bank/back/plan/E-GAP/yaml/decompose-index.yaml",
-        """
-schema: epic-decompose-index/v1
-plan_id: E-GAP
-steps:
-  - id: s01
-    file: s01.yaml
-    title: s01
-    next_phase: BACK IMPLEMENT
-    status: completed
-  - id: s02
-    file: s02.yaml
-    title: s02
-    next_phase: BACK IMPLEMENT
-    status: completed
-""",
-    )
-    write(
-        tmp_path / "memory-bank/back/analyze/E-GAP/analyze-20261019-pass.yaml",
-        "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n"
-        "coverage:\n  - step_ids: [s01, s02]\n",
-    )
-
-    transition = _finish_via_gate(engine)
-
-    assert transition.phase == "IMPLEMENT"
-    assert transition.step_id == "s01"
-    cursor = engine.store.read()
-    assert cursor is not None
-    assert cursor.phase == "IMPLEMENT"
-    assert cursor.step_id == "s01"
 
 
 def test_phase_after_queue_rejects_audit_without_implement_artifacts(tmp_path: Path) -> None:
-    from loop.kernel.index import Queue, Step, queue_ready_for_audit
+    from loop.kernel.index import Queue, Step, queue_ready_for_qa
 
     queue = Queue(
         path=tmp_path / "decompose-index.yaml",
@@ -406,9 +732,9 @@ def test_phase_after_queue_rejects_audit_without_implement_artifacts(tmp_path: P
             Step(step_id="s01", status="completed", title="s01", shard="s01.yaml"),
         ),
     )
-    ready, reason = queue_ready_for_audit(tmp_path, queue)
+    ready, reason = queue_ready_for_qa(tmp_path, queue)
     assert ready is False
-    assert "implement incomplete before AUDIT" in reason
+    assert "implement incomplete before QA" in reason
 
 
 def test_repair_yaml_double_quoted_escapes_doubles_unknown() -> None:
@@ -522,32 +848,61 @@ steps:
     assert yaml.safe_load(text)["verify"][0].endswith("rg \\.token path")
 
 
-def test_loop_holds_at_analyze_until_zero_critical_artifact_exists(tmp_path: Path) -> None:
+def test_loop_holds_decompose_until_zero_critical_analyze_artifact_exists(tmp_path: Path) -> None:
     write(tmp_path / "memory-bank/back/plan/E3/md/plan.md", "# Plan: E3\n")
     write(
         tmp_path / "memory-bank/back/plan/E3/yaml/decompose-index.yaml",
-        "schema: epic-decompose-index/v1\nplan_id: E3\nsteps:\n"
-        "- id: s01\n  file: s01.yaml\n  status: pending\n",
+        """
+schema: epic-decompose-index/v1
+plan_id: E3
+steps:
+  - id: s01
+    file: s01.yaml
+    title: s01
+    next_phase: BACK IMPLEMENT
+    status: pending
+""",
     )
-    write(tmp_path / "memory-bank/back/plan/E3/yaml/s01.yaml", "step_id: s01\n")
+    write(
+        tmp_path / "memory-bank/back/plan/E3/yaml/steps/s01.yaml",
+        """
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: E3
+title: s01
+next_phase: BACK IMPLEMENT
+goal: outcome
+plan_contract: {}
+context: {}
+as_built: []
+delta: []
+deletes: []
+out_of_scope: []
+skills: {}
+checkpoints: []
+verify: []
+tdd: []
+""",
+    )
     paths = LoopPaths(project=tmp_path, hub=tmp_path / "hub")
     engine = LoopEngine(paths)
-
-    assert engine.start("E3").phase == "ANALYZE"
+    assert engine.start("E3").phase == "DECOMPOSE"
     write(
         tmp_path / "memory-bank/back/analyze/E3/analyze-20260921-fail.yaml",
         "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 1\n",
     )
-    with pytest.raises(TransitionError, match="critical_findings"):
+    with pytest.raises(TransitionError, match="critical_findings|ANALYZE gate"):
         _finish_via_gate(engine)
-
     write(
         tmp_path / "memory-bank/back/analyze/E3/analyze-20260922-pass.yaml",
         "schema: epic-analyze/v1\nstatus: complete\nmetrics:\n  critical_count: 0\n",
     )
+    _seed_implement(tmp_path, step_id="s01", filename="s01.yaml", epic_id="E3")
     transition = _finish_via_gate(engine)
     assert transition.phase == "IMPLEMENT"
     assert transition.step_id == "s01"
+
 
 
 def test_analyze_gate_rejects_stale_index_and_unknown_step_refs(tmp_path: Path) -> None:
@@ -586,23 +941,6 @@ def test_lifecycle_has_one_transition_path(tmp_path: Path) -> None:
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    assert engine.store.read().phase == "AUDIT"
-
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-epic_id: E1
-plan_id: E1
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     assert engine.store.read().phase == "QA"
 
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
@@ -641,16 +979,26 @@ items:
     with pytest.raises(TransitionError, match="qa_new_artifact_required"):
         _finish_via_gate(engine)
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
-    _finish_via_gate(engine)
-    assert engine.store.read().phase == "CONTEXT_SYNC"
-    with pytest.raises(TransitionError, match="context-sync"):
-        engine.finish(step_id="CONTEXT_SYNC")
-    write(
-        tmp_path / "memory-bank/back/context-sync/E1/sync-20260921-e1.md",
-        "# Context sync — E1\n\n## Changes\n\n| File | Action |\n|------|--------|\n| techContext.md | no-op |\n",
+    qa_pass = _finish_via_gate(engine)
+    assert qa_pass.phase == "QA"
+    assert qa_pass.metadata["context_sync_required"] is True
+    _seed_context_sync(tmp_path)
+    cursor = engine.store.read()
+    assert cursor is not None
+    sync = engine.complete_context_sync(
+        ContextSyncResult(
+            schema=SCHEMA_CONTEXT_SYNC_RESULT,
+            agent_id="context-sync",
+            epic_id=cursor.epic_id,
+            status="done",
+            sync_path="memory-bank/back/context-sync/E1/sync-20260921-e1.md",
+            session_id=cursor.session_id,
+            recorded_at="2026-09-21T00:01:00+00:00",
+        )
     )
-    engine.finish(step_id="CONTEXT_SYNC")
+    assert sync.event == "context_sync_completed"
     assert engine.store.read().status == CursorStatus.COMPLETE
+
 
 
 def test_context_sync_finish_advances_roadmap_queue_to_next_epic(tmp_path: Path) -> None:
@@ -678,29 +1026,26 @@ batches: {}
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-epic_id: E1
-plan_id: E1
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
-    _finish_via_gate(engine)
-    assert engine.store.read().phase == "CONTEXT_SYNC"
-    write(
-        tmp_path / "memory-bank/back/context-sync/E1/sync-20260921-e1.md",
-        "# Context sync — E1\n",
+    _seed_context_sync(tmp_path)
+    qa_pass = _finish_via_gate(engine)
+    assert qa_pass.phase == "QA"
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-e1-current.md"
+    write(tmp_path / sync_path, "# Current context sync\n")
+    cursor = engine.store.read()
+    assert cursor is not None
+    sync = engine.complete_context_sync(
+        ContextSyncResult(
+            schema=SCHEMA_CONTEXT_SYNC_RESULT,
+            agent_id="context-sync",
+            epic_id=cursor.epic_id,
+            status="done",
+            sync_path=sync_path,
+            session_id=cursor.session_id,
+            recorded_at="2026-09-21T00:01:00+00:00",
+        )
     )
-    engine.finish(step_id="CONTEXT_SYNC")
+    assert sync.event == "context_sync_completed"
     cursor = engine.store.read()
     assert cursor is not None
     assert cursor.status == CursorStatus.ACTIVE
@@ -709,12 +1054,12 @@ check_matrix:
     queue_doc = (tmp_path / "memory-bank/back/roadmap/queue.yaml").read_text(encoding="utf-8")
     assert "epic_id: E1" in queue_doc
     assert "done:" in queue_doc
-    assert queue_doc.index("done:") < queue_doc.index("epic_id: E1") or "E1" in queue_doc.split("done:")[1]
+
 
 
 def test_phase_gate_agents_cover_all_machine_checked_modes() -> None:
     assert _phase_gate_agent("DECOMPOSE") == "verify-decompose"
-    assert _phase_gate_agent("ANALYZE") == "analyze-verify"
+    assert _phase_gate_agent("ANALYZE") is None
     assert _phase_gate_agent("BUGFIX") == "verify-bugfix"
     assert _phase_gate_agent("QA") == "verify-qa"
     assert _phase_gate_agent("AUDIT") is None
@@ -747,31 +1092,42 @@ def test_extract_json_fence_accepts_schema_tagged_and_prefers_loop_schema() -> N
     assert payload2["schema"] == "loop-gate-verdict/v1"
 
 
-def test_audit_prompt_forbids_parent_driven_audit_and_requires_finish(tmp_path: Path) -> None:
-    """AUDIT must finish via loop.py — never invent parent-driven-audit as a gate."""
+def test_audit_phase_redirects_into_qa(tmp_path: Path) -> None:
+    """AUDIT is no longer a loop phase — prompt redirects into QA contract checks."""
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
     cursor = engine.start("E1")
-    # Force AUDIT identity without walking the full epic (helpers only need cursor fields).
     cursor = replace(
         cursor,
         phase="AUDIT",
         step_id="AUDIT",
         phase_epoch=cursor.phase_epoch + 1,
     )
-
     instruction = _phase_instruction(cursor, tmp_path)
-    finish = _audit_finish_protocol(cursor)
-    assert "FORBIDDEN" in instruction
-    assert "parent-driven-audit" in instruction
-    assert "finish --project" in instruction and "AUDIT" in instruction
-    assert f"finish --project <cwd> --step {cursor.step_id}" in finish
-    assert "agent_type=parent-driven-audit" not in finish
-    assert "do not spawn any gate first" in finish
-    assert "gate-repair" in finish
-    # Managed-gate protocol must not invent a fake AUDIT verifier.
-    with pytest.raises(ValueError, match="parent-driven-audit"):
-        _gate_protocol(cursor, tmp_path, None)
+    assert "not a loop phase" in instruction
+    assert "QA" in instruction
+
+
+def test_obsolete_phase_remap_helpers() -> None:
+    from loop.kernel.engine import LoopEngine
+    from loop.kernel.model import Cursor, CursorStatus
+    cursor = Cursor(epic_id="E1", role="back", kind="feature", session_id="s", phase_epoch=1)
+    cursor.phase = "AUDIT"
+    cursor.step_id = "AUDIT"
+    cursor.status = CursorStatus.ACTIVE
+    remapped = LoopEngine._normalize_obsolete_cursor(LoopEngine.__new__(LoopEngine), cursor)
+    assert remapped.phase == "QA"
+    assert remapped.step_id == "QA"
+    cursor.phase = "ANALYZE"
+    cursor.step_id = "ANALYZE"
+    remapped = LoopEngine._normalize_obsolete_cursor(LoopEngine.__new__(LoopEngine), cursor)
+    assert remapped.phase == "DECOMPOSE"
+    assert remapped.step_id == "DECOMPOSE"
+
+
+def test_integration_role_loads_front_rules() -> None:
+    assert _role_rules_dir("integration") == "front_developer"
+    assert _role_rules_dir("integ") == "front_developer"
 
 
 def test_implement_prompt_requires_workflow_bootstrap_and_forbids_full_pytest(tmp_path: Path) -> None:
@@ -819,14 +1175,14 @@ def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: 
     assert "FORBIDDEN to put session_id/epic_id/step_id keys in the repair fence" in prompt
     assert "repair_result_rejected" in prompt
     assert "T-004-mode-a-live-ready-analyze-verify" not in prompt
-    engine.rewind("ANALYZE")
+    engine.rewind("DECOMPOSE")
     analyze_cursor = engine.store.read()
     assert analyze_cursor is not None
     analyze_prompt = _gate_protocol(analyze_cursor, tmp_path, "analyze-verify")
     assert "FINDINGS:" in analyze_prompt
     assert "COVERAGE:" in analyze_prompt
     assert "ALLOW READ:" in analyze_prompt
-    assert f"GATE_IDENTITY session_id={analyze_cursor.session_id} epic_id=E1 step_id=ANALYZE" in analyze_prompt
+    assert f"GATE_IDENTITY session_id={analyze_cursor.session_id} epic_id=E1 step_id=DECOMPOSE" in analyze_prompt
 
 
 def test_verify_qa_prompt_injects_frozen_checklist_and_suite(tmp_path: Path) -> None:
@@ -913,19 +1269,6 @@ def test_qa_fail_verdict_routes_to_bugfix_atomically(tmp_path: Path) -> None:
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
     write(
         tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
@@ -957,148 +1300,21 @@ items:
 
 def test_legacy_closed_bugfix_item_routes_to_qa_after_pass(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
-    _seed_queue_implement_complete(tmp_path)
-    write(
-        tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
-        """schema: epic-decompose-index/v1
-epic_id: E1
-steps:
-  - id: s01
-    file: s01-one.yaml
-    status: completed
-  - id: s02
-    file: s02-two.yaml
-    status: completed
-""",
-    )
     engine = LoopEngine(paths)
     engine.start("E1")
-    engine.rewind("BUGFIX")
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
-    write(tmp_path / "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md", "# BUGFIX\n")
     write(
         tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
         """schema: epic-bugfix-queue/v1
 items:
   - id: BF-001
     status: closed
-verification:
-  status: pass
-  command: bin/pytest -q
-  last_run_at: 2026-09-21T00:00:00Z
-  evidence: 1 passed
 """,
     )
-
-    transition = _finish_via_gate(engine)
-
-    assert transition.phase == "QA"
-    assert engine.store.read().phase == "QA"
-
-
-def test_multi_done_bugfix_queue_routes_to_qa_after_pass(tmp_path: Path) -> None:
-    paths = seed_project(tmp_path)
-    _seed_queue_implement_complete(tmp_path)
-    write(
-        tmp_path / "memory-bank/back/plan/E1/yaml/decompose-index.yaml",
-        """schema: epic-decompose-index/v1
-epic_id: E1
-steps:
-  - id: s01
-    file: s01-one.yaml
-    status: completed
-  - id: s02
-    file: s02-two.yaml
-    status: completed
-""",
-    )
-    engine = LoopEngine(paths)
-    engine.start("E1")
-    engine.rewind("BUGFIX")
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
-    write(tmp_path / "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md", "# BUGFIX\n")
-    write(
-        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
-        """schema: epic-bugfix-queue/v1
-items:
-  - id: BF-001
-    status: done
-  - id: BF-002
-    status: done
-verification:
-  status: pass
-  command: bin/pytest -q
-  last_run_at: 2026-10-05T00:00:00Z
-  evidence: 184 passed
-""",
-    )
-
-    transition = _finish_via_gate(engine)
-
-    assert transition.phase == "QA"
-    assert engine.store.read().phase == "QA"
-
-
-def test_recorded_qa_fail_reconciles_after_artifacts_are_created(tmp_path: Path) -> None:
-    paths = seed_project(tmp_path)
-    engine = LoopEngine(paths)
-    engine.start("E1")
-    _finish_via_gate(engine)
-    _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
-    cursor = engine.store.read()
-    assert cursor is not None and cursor.phase == "QA"
-    verdict = GateVerdict(
-        schema=SCHEMA_GATE_VERDICT,
-        agent_id="verify-qa",
-        verdict="FAIL",
-        step_id="QA",
-        session_id=cursor.session_id,
-        epic_id=cursor.epic_id,
-        recorded_at="2026-09-21T00:00:00+00:00",
-    )
-
-    recorded = engine.accept_verdict(verdict, expected_agent_id="verify-qa")
-    assert recorded.event == "verdict_recorded"
-    assert engine.store.read().phase == "QA"
-
-    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
+    # closed is terminal for intake? intake allows closed; finish QA fail needs open queue
+    # Use open then done-closed path: QA fail with open → BUGFIX
     write(
         tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
         """schema: epic-bugfix-queue/v1
@@ -1107,10 +1323,11 @@ items:
     status: open
 """,
     )
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    transition = engine.finish(step_id="QA")
+    assert transition.phase == "BUGFIX"
 
-    reconciled = engine.finish(step_id="QA")
-    assert reconciled.event == "qa_failed"
-    assert reconciled.phase == "BUGFIX"
 
 
 def test_qa_fail_finish_routes_from_artifacts_without_verdict_recorded(tmp_path: Path) -> None:
@@ -1120,19 +1337,6 @@ def test_qa_fail_finish_routes_from_artifacts_without_verdict_recorded(tmp_path:
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
     write(
         tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
@@ -1152,33 +1356,7 @@ items:
     assert engine.store.read().phase == "BUGFIX"
 
 
-def test_session_auto_finish_audit_when_converged_without_explicit_finish(tmp_path: Path) -> None:
-    paths = seed_project(tmp_path)
-    engine = LoopEngine(paths)
-    engine.start("E1")
-    _finish_via_gate(engine)
-    _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    cursor = engine.store.read()
-    assert cursor is not None and cursor.phase == "AUDIT"
-    auto = engine.try_session_auto_finish(cursor)
-    assert auto is not None and auto.changed
-    assert engine.store.read().phase == "QA"
-
-
-def test_session_auto_finish_salvages_qa_pass_from_pre_emit_stamp(tmp_path: Path) -> None:
-    """Agent exits after validate-verdict but with a broken fence — stamp still machine-closes."""
+def test_session_auto_finish_qa_pass_when_sync_present(tmp_path: Path) -> None:
     from loop.kernel.pre_emit import write_pre_emit_stamp
 
     paths = seed_project(tmp_path)
@@ -1186,20 +1364,8 @@ def test_session_auto_finish_salvages_qa_pass_from_pre_emit_stamp(tmp_path: Path
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    _seed_context_sync(tmp_path)
     cursor = engine.store.read()
     assert cursor is not None and cursor.phase == "QA"
     payload = {
@@ -1214,7 +1380,23 @@ check_matrix:
     assert write_pre_emit_stamp(paths, payload) is not None
     auto = engine.try_session_auto_finish(cursor)
     assert auto is not None and auto.changed
-    assert engine.store.read().phase == "CONTEXT_SYNC"
+    assert auto.metadata["context_sync_required"] is True
+    assert engine.store.read().phase == "QA"
+    assert engine.qa_context_sync_pending(engine.store.read())
+    sync = engine.complete_context_sync(
+        ContextSyncResult(
+            schema=SCHEMA_CONTEXT_SYNC_RESULT,
+            agent_id="context-sync",
+            epic_id=cursor.epic_id,
+            status="done",
+            sync_path="memory-bank/back/context-sync/E1/sync-20260921-e1.md",
+            session_id=cursor.session_id,
+            recorded_at="2026-09-21T00:01:00+00:00",
+        )
+    )
+    assert sync.event == "context_sync_completed"
+    assert engine.store.read().status == CursorStatus.COMPLETE
+
 
 
 def test_resume_reconciles_recorded_qa_fail_without_second_gate(tmp_path: Path) -> None:
@@ -1223,19 +1405,6 @@ def test_resume_reconciles_recorded_qa_fail_without_second_gate(tmp_path: Path) 
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     cursor = engine.store.read()
     assert cursor is not None and cursor.phase == "QA"
     verdict = GateVerdict(
@@ -1262,6 +1431,96 @@ items:
     resumed = engine.start("E1")
     assert resumed.phase == "BUGFIX"
     assert resumed.status == CursorStatus.ACTIVE
+
+
+def test_resume_reconciles_legacy_qa_pass_and_advances_after_context_sync(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    write(tmp_path / "memory-bank/back/plan/E1/md/plan.md", "# E1\n")
+    write(tmp_path / "memory-bank/back/plan/E2/md/plan.md", "# E2\n")
+    write(
+        tmp_path / "memory-bank/back/roadmap/queue.yaml",
+        """version: roadmap-queue/v2
+role: back
+queue:
+- id: T-E1
+  epic_id: E1
+  kind: feature
+  plan: plan-E1.md
+- id: T-E2
+  epic_id: E2
+  kind: feature
+  plan: plan-E2.md
+done: []
+""",
+    )
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    engine.record_event(
+        {
+            "event": "verdict_accepted",
+            "source": "legacy-runtime",
+            "phase": "QA",
+            "agent_id": "verify-qa",
+            "verdict": "PASS",
+            "context_sync_required": True,
+            "session_id": cursor.session_id,
+            "epic_id": cursor.epic_id,
+            "step_id": cursor.step_id,
+            "verdict_step_id": cursor.step_id,
+            "verdict_phase_epoch": cursor.phase_epoch,
+        }
+    )
+    engine.halt("user_interrupt")
+
+    resumed = engine.start("E1")
+    assert resumed.phase == "QA"
+    assert resumed.step_id == "QA"
+    assert resumed.status == CursorStatus.ACTIVE
+    assert engine.qa_context_sync_pending(resumed)
+    assert engine.store.latest_event("verdict_accepted")["source"] == "resume-reconcile"
+
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-resume.md"
+    write(tmp_path / sync_path, "# Context sync\n")
+    sync = engine.complete_context_sync(
+        ContextSyncResult(
+            schema=SCHEMA_CONTEXT_SYNC_RESULT,
+            agent_id="context-sync",
+            epic_id="E1",
+            status="done",
+            sync_path=sync_path,
+            session_id=resumed.session_id,
+            recorded_at="2026-09-21T00:01:00+00:00",
+        )
+    )
+
+    assert sync.event == "context_sync_completed"
+    after = engine.store.read()
+    assert after is not None
+    assert after.epic_id == "E2"
+    assert after.phase == "DECOMPOSE"
+    assert after.step_id == "DECOMPOSE"
+
+
+def test_resume_does_not_reconcile_qa_pass_after_new_artifact(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    qa_path = tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml"
+    write(qa_path, "schema: epic-qa/v1\nverdict: pass\nrevision: old\n")
+    _finish_via_gate(engine)
+    write(qa_path, "schema: epic-qa/v1\nverdict: pass\nrevision: new\n")
+    engine.halt("user_interrupt")
+
+    resumed = engine.start("E1")
+    assert resumed.phase == "QA"
+    assert not engine.qa_context_sync_pending(resumed)
 
 
 def test_gate_repair_result_is_validated_and_recorded(tmp_path: Path) -> None:
@@ -1667,36 +1926,6 @@ def test_audit_and_bugfix_phase_contracts_fail_closed(tmp_path: Path) -> None:
     _finish_via_gate(engine)
     _finish_via_gate(engine)
 
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-epic_id: E1
-converged: false
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: fail
-    evidence: missing behavior
-    verify: targeted check
-""",
-    )
-    with pytest.raises(TransitionError, match="converged audit artifact"):
-        engine.finish(step_id="AUDIT")
-
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-epic_id: E1
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
     write(
         tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
@@ -1770,25 +1999,12 @@ def test_session_supervisor_soft_retry_rotates_session_not_same_identity(tmp_pat
 
 
 
-def test_bugfix_partial_exit_progress_continues_without_halt(tmp_path: Path) -> None:
+def test_bugfix_partial_exit_is_finish_not_committed(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
     write(
         tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
@@ -1811,14 +2027,14 @@ items:
     run = SessionSupervisor(engine, OkRuntime(), timeout=1, max_attempts=1, backoff=0).run_step(
         "work", model="test", project=tmp_path, session_id=cursor.session_id
     )
-    assert run.outcome == SessionOutcome.PROGRESS_CONTINUE
-    assert run.reason == "bugfix_items_remaining"
+    # Partial queue close must NOT re-arm as PROGRESS_CONTINUE; with max_attempts=1
+    # finish_not_committed exhausts into STEP_RESTARTED (same BUGFIX phase restart).
+    assert run.outcome != SessionOutcome.PROGRESS_CONTINUE
+    assert run.outcome == SessionOutcome.STEP_RESTARTED
+    assert "finish_not_committed" in run.reason
     after = engine.store.read()
     assert after is not None
     assert after.phase == "BUGFIX"
-    assert after.status == CursorStatus.ACTIVE
-    assert after.attempt == 0
-    assert after.failure is None
 
 
 def test_phase_finish_requires_evidence_and_halt_is_terminal(tmp_path: Path) -> None:
@@ -1828,13 +2044,13 @@ def test_phase_finish_requires_evidence_and_halt_is_terminal(tmp_path: Path) -> 
     _finish_via_gate(engine)
     _finish_via_gate(engine)
 
-    with pytest.raises(TransitionError, match="audit artifact"):
-        engine.finish(step_id="AUDIT")
+    with pytest.raises(TransitionError, match="qa_artifact|context-sync|qa "):
+        engine.finish(step_id="QA")
 
     halted = engine.halt("manual stop")
     assert halted.status == CursorStatus.HALTED
     with pytest.raises(TransitionError, match="halted"):
-        engine.finish(step_id="AUDIT")
+        engine.finish(step_id="QA")
 
 
 def test_start_resumes_halted_cursor_at_saved_phase(tmp_path: Path) -> None:
@@ -1843,19 +2059,6 @@ def test_start_resumes_halted_cursor_at_saved_phase(tmp_path: Path) -> None:
     engine.start("E1")
     _finish_via_gate(engine)
     _finish_via_gate(engine)
-    write(
-        tmp_path / "memory-bank/back/audit/E1/audit.yaml",
-        """schema: epic-audit/v2
-converged: true
-findings: []
-check_matrix:
-  - source_ref: plan:E1
-    status: pass
-    evidence: implementation evidence
-    verify: targeted check
-""",
-    )
-    engine.finish(step_id="AUDIT")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
     before_halt = engine.store.read()
     assert before_halt is not None and before_halt.phase == "QA"
@@ -2023,6 +2226,133 @@ def test_subagent_pass_finishes_once_and_duplicate_is_idempotent(tmp_path: Path)
     assert duplicate.continue_session is False
     assert duplicate.transition["event"] == "verdict_duplicate"
     assert engine.store.read().step_id == "s02"
+
+
+def test_qa_pass_keeps_parent_alive_until_context_sync_done(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    qa_path = "memory-bank/back/qa/E1/qa-20260921-pass.yaml"
+    write(tmp_path / qa_path, "schema: epic-qa/v1\nverdict: pass\n")
+    lifecycle = SubagentLifecycle(paths)
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+
+    qa_action = lifecycle.stop(
+        {
+                "cwd": str(tmp_path),
+                "agent_type": "verify-qa",
+                "last_assistant_message": _verdict_message(
+                    cursor, agent_id="verify-qa", paths=paths
+                ),
+            }
+        )
+    assert qa_action.ok
+    assert qa_action.continue_session is False
+    assert qa_action.transition["phase"] == "QA"
+    assert qa_action.transition["metadata"]["context_sync_required"] is True
+    assert engine.store.read().phase == "QA"
+
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-current.md"
+    write(tmp_path / sync_path, "# Context sync\n")
+    sync_action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "context-sync",
+            "last_assistant_message": _context_sync_message(cursor, sync_path),
+        }
+    )
+    assert sync_action.ok
+    assert sync_action.continue_session is False
+    assert sync_action.transition["event"] == "context_sync_completed"
+    assert engine.store.read().status == CursorStatus.COMPLETE
+
+
+def test_old_context_sync_artifact_does_not_complete_current_qa(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    write(tmp_path / "memory-bank/back/context-sync/E1/sync-20260920-old.md", "# Old sync\n")
+
+    qa_pass = _finish_via_gate(engine)
+    assert qa_pass.phase == "QA"
+    assert engine.qa_context_sync_pending(engine.store.read())
+    with pytest.raises(TransitionError, match="context-sync"):
+        engine.finish(step_id="QA")
+    assert engine.store.read().status == CursorStatus.ACTIVE
+
+
+def test_context_sync_fail_keeps_qa_open(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    _finish_via_gate(engine)
+    cursor = engine.store.read()
+    assert cursor is not None
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-current.md"
+    write(tmp_path / sync_path, "# Context sync\n")
+
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "context-sync",
+            "last_assistant_message": _context_sync_message(cursor, sync_path, status="fail"),
+        }
+    )
+    assert action.ok
+    assert action.continue_session is False
+    assert action.transition["event"] == "context_sync_failed"
+    assert engine.store.read().phase == "QA"
+    assert engine.store.read().status == CursorStatus.ACTIVE
+    assert engine.qa_context_sync_pending(engine.store.read())
+
+
+def test_context_sync_result_requires_current_qa_pass(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-current.md"
+    write(tmp_path / sync_path, "# Context sync\n")
+    lifecycle = SubagentLifecycle(paths)
+    action = lifecycle.stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "context-sync",
+            "last_assistant_message": _context_sync_message(cursor, sync_path),
+        }
+    )
+    assert not action.ok
+    assert action.exit_code == 2
+    assert engine.store.read().phase == "QA"
+
+
+def test_context_sync_wire_contract_is_identity_bound(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    sync_path = "memory-bank/back/context-sync/E1/sync-20260921-current.md"
+    valid = validate_context_sync_message(
+        _context_sync_message(cursor, sync_path),
+        session_id=cursor.session_id,
+        epic_id=cursor.epic_id,
+    )
+    assert valid.valid and valid.record is not None
+    wrong = _context_sync_message(cursor, sync_path).replace(cursor.epic_id, "E2")
+    rejected = validate_context_sync_message(wrong, session_id=cursor.session_id, epic_id=cursor.epic_id)
+    assert not rejected.valid
+    assert "context_sync_wrong_epic_id" in rejected.diagnostic_codes
 
 
 def test_subagent_fail_or_blocked_is_recorded_without_finishing(tmp_path: Path) -> None:

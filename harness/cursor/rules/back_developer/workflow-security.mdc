@@ -92,7 +92,7 @@ alwaysApply: false
 6. **Gate & FINISH:**
    - Для эпика: перед finish вызывается гейт `@verify-security` (read-only проверка артефакта `aNN-*.yaml`).
    - Команда финиша: `python3 bin/loop.py finish --project <root> --step aNN`
-   - После завершения всех `aNN` loop автоматически переходит в `DONE` (без `AUDIT`/`QA`/`CONTEXT_SYNC`).
+   - После завершения всех `aNN` loop автоматически переходит в `DONE` напрямую; feature-QA и context-sync worker этому security pipeline не применяются.
    - Для S: finish-block (`code_changed: no`)
    Next: Handoff · workflow-loop-state
 

@@ -29,7 +29,7 @@ When creating or editing files matching these paths:
 
 - **Maximal detail:** все этапы плана/канона + все AC+/AC−/FR/NFR → покрытия в index (`## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup`)
 - **Coverage rubric:** covered row ⇒ measurable `verify` у sNN/eNN (runnable pytest/`rg`/CLI; stage = delta+files; NFR/AC− не map-only). Канон: `workflow-*-decompose.mdc` §Coverage rubric
-- **Promote gate:** `validate-decompose-tree` + `validate-traceability` CRITICAL=0 + ANALYZE artifact/`ANALYZE deferred` до FINISH DECOMPOSE
+- **Promote gate:** `validate-decompose-tree` + `validate-traceability` CRITICAL=0 + pre-IMPLEMENT analysis artifact до FINISH DECOMPOSE; deferred analysis is forbidden
 - Предпочитать больше атомарных `sNN|eNN`, чем склейка; черновик count в plan — advisory
 - Каждый shard: полный delta layer (`as_built` · `delta` · `deletes` · `out_of_scope`) + 2–4 checkpoints + tdd list; **без** полных тел кода
 - **Replacement cleanup:** brownfield replace → непустой `deletes` у cutover-шага + `rg`/import-audit cp; greenfield → строка `n/a`; вечный shim без follow-up = FAIL

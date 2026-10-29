@@ -45,8 +45,9 @@ Managed gate-субагент завершает ответ ровно одни�
 `verify-qa: FAIL`: если последний `qa-*.yaml` имеет `verdict: fail|failed|blocked`
 и `bugfix-queue.yaml` проходит intake-проверку, boundary атомарно переводит
 курсор `QA → BUGFIX`. После завершения BUGFIX следующий валидный gate возвращает
-его в QA и требует новый QA artifact. При QA PASS курсор идёт в `CONTEXT_SYNC`
-(нужен `context-sync/<epic>/sync-*.md`), затем loop **marks the epic done** in
+его в QA и требует новый QA artifact. После QA PASS parent остаётся в QA до
+валидного `loop-context-sync-result/v1` от текущего `@context-sync` и его
+`sync-*.md`; этот результат атомарно завершает сессию. Затем loop **marks the epic done** in
 `memory-bank/<role>/roadmap/queue.yaml` and, if the queue still has a head with
 `plan.md`, **arms the next epic** (обычно `DECOMPOSE` по плану в `plan/` или `security/plan/<id>/md/plan.md`). Empty queue / no queue
 file → `DONE`. ARCHIVE остаётся операторской командой после финального DONE.
@@ -64,9 +65,9 @@ python3 bin/loop.py validate-verdict --project /path/to/project \
 
 Loop поддерживает типы эпиков `feature`, `refactor` и `security` (`--kind`):
 
-- **Feature (`kind=feature`):** `memory-bank/<role>/plan/<id>/` и `implement/<id>/`. Жизненный цикл: `DECOMPOSE → ANALYZE → IMPLEMENT (sNN) → AUDIT → QA → CONTEXT_SYNC → DONE`.
-- **Refactor (`kind=refactor`):** `memory-bank/<role>/refactor/plan/<id>/` и `refactor/implement/<id>/`. Жизненный цикл: `DECOMPOSE → ANALYZE → REFACTOR (rNN) → AUDIT → QA → CONTEXT_SYNC → DONE`.
-- **Security (`kind=security`):** `memory-bank/<role>/security/plan/<id>/` и `security/implement/<id>/`. Жизненный цикл: `DECOMPOSE → SECURITY (aNN) → DONE`. Фаза `ANALYZE` пропускается; аудит выполняется по шагам `aNN` с гейтом `verify-security` и артефактами `schema: epic-security/v1` в `security/implement/<id>/aNN-*.yaml`. После завершения всех `aNN` цикл сразу переходит в `DONE` (без прогона feature-фаз `AUDIT`/`QA`/`CONTEXT_SYNC`).
+- **Feature (`kind=feature`):** `memory-bank/<role>/plan/<id>/` и `implement/<id>/`. Жизненный цикл: `DECOMPOSE → IMPLEMENT (sNN) → QA(+contract; context-sync worker) → DONE`.
+- **Refactor (`kind=refactor`):** `memory-bank/<role>/refactor/plan/<id>/` и `refactor/implement/<id>/`. Жизненный цикл: `DECOMPOSE → REFACTOR (rNN) → QA(+contract; context-sync worker) → DONE`.
+- **Security (`kind=security`):** `memory-bank/<role>/security/plan/<id>/` и `security/implement/<id>/`. Жизненный цикл: `DECOMPOSE → SECURITY (aNN) → DONE`. Аудит выполняется по шагам `aNN` с гейтом `verify-security` и артефактами `schema: epic-security/v1` в `security/implement/<id>/aNN-*.yaml`. После всех `aNN` → `DONE` (без feature QA).
 
 ## Конфигурация
 

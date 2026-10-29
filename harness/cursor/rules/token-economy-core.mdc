@@ -127,7 +127,7 @@ Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT*
 
 **`load_now` OK index:** `plan/<epic>/yaml/decompose-index.yaml` (status и coverage), не IMPLEMENT hot path.
 
-**`load_now` OK для полного plan:** когда режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
+**`load_now` OK для полного plan:** когда режим **PLAN** / **DECOMPOSE** и plan — объект работы.
 
 **PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory (may require many implement files + code grep). Doc-router lean defaults yield to workflow PLAN steps + §0.0. **L2+ Context Pack (mandatory):** `techContext` · `systemPatterns` · `projectbrief` · `architecture/index`; **весь `memory-bank/product/` если каталог есть** (нет → `n/a`, не halt) до Technology axiom; `## Context consumed` в plan. FINISH `load_now` без monolith product.
 
@@ -181,7 +181,7 @@ Before requesting approval: list files, changes, commands, consequences.
 
 Full canon: @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 
-**Why:** `* IMPLEMENT` bypassed §0.9 → agents edited whole epics, `.cursor/rules/**`, deleted tests, auto-closed QA/AUDIT (T-HUB-040 class incident).
+**Why:** `* IMPLEMENT` bypassed §0.9 → agents edited whole epics, `.cursor/rules/**`, deleted tests, auto-closed QA (T-HUB-040 class incident).
 
 | Rule | Detail |
 |------|--------|
@@ -191,7 +191,7 @@ Full canon: @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 | FINISH rules purge | replace FINISH prose with `mb-finish` call only — **FORBIDDEN** remove gates, Phase 0, coverage rubric, behavior-first, non-FINISH steps |
 | Tests/docs | **FORBIDDEN** delete/shrink tests, validators, README without shard `deletes:` |
 | Index | **FORBIDDEN** mark other steps `completed`; only `finalize-step` for current step |
-| Modes | **FORBIDDEN** run QA/AUDIT/EPIC_DONE without separate user role command |
+| Modes | **FORBIDDEN** run QA/EPIC_DONE without separate user role command |
 | Pre-FINISH | enumerate changed paths; out-of-scope → REVERT before Handoff |
 
 Loop sessions: same lock; no «finish whole epic» without per-step user continuation.
@@ -202,7 +202,7 @@ Triggers: `continue project <name>` · role command (`BACK IMPLEMENT`, …) · `
 
 On start: (1) read `memory-bank/activeContext.md`; (2) load ONLY current role docs (§0.3) unless PLAN workflow expands inventory; (3) continue from current stage — do NOT re-execute completed stages.
 
-**On FINISH** (end of IMPLEMENT, QA pass, CONTEXT SYNC, PLAN, VAN, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed), если stub §0.7 разрешает Write.
+**On FINISH** (end of IMPLEMENT, QA pass, PLAN, VAN, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed), если stub §0.7 разрешает Write. Context sync is an internal QA worker result, not a finish command.
 
 ## 0.11 Integration verification (connection rule)
 

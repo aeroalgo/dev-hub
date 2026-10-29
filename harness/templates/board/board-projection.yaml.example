@@ -22,16 +22,13 @@ phase_alias:
   PLAN: design
   CLARIFY: design
   DECOMPOSE: design
-  ANALYZE: design
   CREATIVE: design
   IMPLEMENT: build
   TASK: build
   REFACTOR: build
   SECURITY: build
-  AUDIT: build
   QA: verify
   BUGFIX: verify
-  CONTEXT_SYNC: uat
   DONE: done
   HALT: blocked
 

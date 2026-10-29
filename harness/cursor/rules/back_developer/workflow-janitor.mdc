@@ -5,7 +5,6 @@ alwaysApply: false
 # BACK JANITOR WORKFLOW
 
 **Роутер:** @.cursor/rules/back_developer/mainrule.mdc  
-**Gate:** @.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc  
 **Shared process:** @.cursor/rules/shared/workflow-janitor.mdc
 
 1. `OK BACK JANITOR`

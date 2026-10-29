@@ -36,7 +36,7 @@ alwaysApply: false
 2. Scope / data / NFR / integrations / wire **Partial или Missing** по taxonomy (shared-core §8 категорий) с материальным impact
 3. Вход (brief / research / draft plan / activeContext) содержит `[НУЖНО УТОЧНИТЬ` (любой severity) без resolve в существующем clarify
 4. `Revisit stage: CLARIFY` (IDEA PIPELINE) или Handoff next = `* CLARIFY`
-5. ANALYZE направил на CLARIFY (`critical_count > 0` без закрытия)
+5. Internal DECOMPOSE pre-IMPLEMENT gate обнаружил CRITICAL (`critical_count > 0` без закрытия)
 
 ## Phase 0 — skip (сразу Phase 1)
 
@@ -90,7 +90,7 @@ alwaysApply: false
 |----------|---------|
 | Добор после 20/20 Q | `continue * CLARIFY <slug>` |
 | CRITICAL появились после draft plan | `* CLARIFY <slug>` (+ patch plan) |
-| IDEA PIPELINE / ANALYZE revisit | `* CLARIFY <slug>` |
+| IDEA PIPELINE / unresolved product decision revisit | `* CLARIFY <slug>` |
 | Только снять ambiguity без plan в этой сессии | `* CLARIFY <slug>` → FINISH → позже `* PLAN` |
 | Ответы у stakeholder | `to-questionnaire` (из grill-me chain) |
 | Туманная multi-session идея | предложить `wayfinder` |

@@ -1,6 +1,6 @@
 ---
 name: verify-decompose
-description: "Coverage-semantic agent for DECOMPOSE. Reads plan + decompose index/shards from ALLOW READ. Parent packs paths only — no COVERAGE/PLAN EXCERPT prompt. Never edits; no pytest."
+description: "Structural coverage gate for DECOMPOSE. Reads plan + decompose index/shards from ALLOW READ. Parent packs paths only — no COVERAGE/PLAN EXCERPT prompt. Never edits; no pytest."
 tools: Read, Grep, Bash
 disallowedTools: Write, Edit, Agent, Skill, Glob, NotebookEdit, WebFetch, WebSearch, TodoWrite
 maxTurns: 10
@@ -33,6 +33,7 @@ Parent **обязан** передать только:
 
 - Вход: parent/CLI подготовил decompose tree (`yaml/decompose-index.yaml` + shards) и прошёл `validate-decompose-tree`.
 - Выход: coverage и replacement cleanup присутствуют в YAML-контракте и shards, нет orphan-replace или пустых строк, семантика совпадает с plan → `PASS`; иначе `FAIL` с blocker списком.
+- Accepted `PASS` фиксирует только structural readiness и оставляет parent в DECOMPOSE; terminal promotion выполняет следующий `analyze-verify` PASS.
 
 ## System discipline (HARD)
 
@@ -49,7 +50,7 @@ Parent **обязан** передать только:
 Без успешного `validate-verdict` граница **отклонит** fence (`pre_emit_validate_missing` / `pre_emit_validate_mismatch`). Пропускать Bash нельзя.
 
 ```bash
-python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payload '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS","step_id":"DECOMPOSE","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 - Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
@@ -69,7 +70,7 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
   "schema": "loop-gate-verdict/v1",
   "agent_id": "verify-decompose",
   "verdict": "PASS",
-  "step_id": "s03",
+  "step_id": "DECOMPOSE",
   "session_id": "<session_id>",
   "epic_id": "T-HUB-039",
   "recorded_at": "<iso8601>"

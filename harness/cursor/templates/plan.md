@@ -2,7 +2,7 @@
 
 **Дата:** YYYY-MM-DD  
 **Режим:** BACK PLAN | FRONT PLAN | PM PLAN  
-**Уровень:** L1–L4  
+**Уровень:** L1–L3  
 **Статус:** draft | active | done  
 **Clarify:** `memory-bank/{role}/clarify/clarify-…md` | Phase 0 skipped — taxonomy clear | n/a
 **Prompt:** [md/prompt.md](prompt.md) — outcome SoT (абстрактный; не HOW)
@@ -53,21 +53,25 @@
 
 > WHAT описывает пользовательскую проблему, ожидаемые outcomes и границы продукта. Не включать стек, имена модулей, API или детали реализации — они относятся к HOW.
 
-## Product probe (office-hours lite)
+## Product decision / WHAT
 
-> L3+ обязателен batch до WHAT (минимум ≥4 отвеченных вопросов для L3 без отдельного CLARIFY). L2 — optional/lite.  
-> Скрытые допущения должны стать явными до DECOMPOSE. Не сокращать строки/комментарии ради telegraph-cap.
+> До завершения PLAN должны быть определены продуктовая проблема, границы
+> решения и критерий успеха. Источник — сам PLAN, решение владельца или
+> необязательный CLARIFY/Product probe; отдельный CLARIFY-артефакт не является
+> обязательным. Не переходить к HOW с незаполненными полями.
 
-| # | Question | Answer / Probe | Decision / Impact on PLAN |
-|---|----------|----------------|---------------------------|
-| 1 | **Reframe:** Какую реальную проблему решаем (не фичу)? | … | … |
-| 2 | **Narrowest wedge:** Какой минимальный вариант проверит гипотезу? | … | … |
-| 3 | **Pre-mortem:** Почему этот план может провалиться через месяц? | … | … |
-| 4 | **Distribution/Adoption:** Как пользователи узнают/начнут использовать? | … | … |
-| 5 | **Technical leverage:** Какую тяжелую часть можно выкинуть или заменить? | … | … |
-| 6 | **Appetite check:** Стоит ли задача заявленных ресурсов/timebox? | … | … |
+| Field | Decision / evidence | Impact on PLAN |
+|-------|---------------------|----------------|
+| **Reframe** | … | … |
+| **Demand / status quo** | … | … |
+| **Narrowest wedge** | … | … |
+| **Explicit non-goals** | … | … |
+| **Success signal** | … | … |
+| **Decision** (`proceed` / `narrow` / `kill` / `defer`) | … | … |
 
-Min: для L3+ — минимум 4 заполненных вопроса.
+Evidence: ссылка на вход, решение владельца или `memory-bank/{role}/clarify/clarify-*.md` / `§Product probe`.
+Если `Decision = kill` или `defer`, зафиксировать причину и следующий шаг; HOW
+не продолжать.
 
 ### User Stories
 
@@ -109,6 +113,30 @@ Min: для L3+ — минимум 4 заполненных вопроса.
 ### [НУЖНО УТОЧНИТЬ]
 
 - [НУЖНО УТОЧНИТЬ] <вопрос, блокирующий точное решение; после PLAN удалить или перенести в defer>.
+
+## PLAN review passes
+
+> Интерактивные passes после определения level. Это не CLARIFY и не отдельные
+> команды. Product → Design? → DX? → Eng; Eng всегда последним.
+
+| Pass | Applicable? | Status | Owner decision / answer | Scope or contract impact | Evidence |
+|------|-------------|--------|-------------------------|--------------------------|----------|
+| Product | yes | no — reason | done | skip — reason | pending | … | wedge / non-goals / success signal | … |
+| Design | yes | no — reason | done | skip — reason | pending | … | states / layout / accessibility / visual direction | … |
+| DX | yes | no — reason | done | skip — reason | pending | … | API / CLI / agent contract / errors / examples | … |
+| Eng | yes | done | pending | … | data-flow / failures / route / final scope lock | … |
+
+Каждый `yes` закрыт явным ответом владельца. `skip` всегда содержит причину.
+Если после Eng меняется WHAT, FR, UI, DX или контракт — Eng pass повторяется.
+
+## Ownership matrix
+
+> L2+ и любой cross-layer эпик. Infra — ownership surface, не обязательная
+> отдельная роль агента.
+
+| Surface / outcome | BACK owner | FRONT owner | Infra owner | QA owner | Contract / evidence | Rollback | Independent check |
+|-------------------|------------|-------------|-------------|----------|---------------------|----------|-------------------|
+| `<surface>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name or n/a + reason>` | `<role/name>` | `<request/response, event or artifact>` | `<bounded reversal>` | `<test/journey + evidence>` |
 
 ## AC
 
@@ -253,6 +281,7 @@ Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 
 
 | Gate | Required | Status | Evidence |
 |------|----------|--------|----------|
+| Product decision / WHAT | L1+ | done \| pending | §Product decision / WHAT |
 | CLARIFY / Product probe | L3: one of done | done \| skip+reason \| pending | link clarify or §Product probe |
 | Eng review spine | L2+ | done \| pending | §Eng review spine filled |
 | §0.11 counterparts (draft) | if external refs in HOW | done \| n/a \| pending | table or defer list |
@@ -262,6 +291,9 @@ Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 
 | qa_consumes draft | L2+ | done \| pending | §QA consumes ≥3 TM; BN→TM linked |
 | Plan review batch | L2+ | done \| pending | §Plan review batch log |
 
+| Interactive review passes | L2+ / applicable surface | done or pending | §PLAN review passes; Eng last |
+| Ownership matrix | L2+ / cross-layer | done, n/a+reason, or pending | §Ownership matrix |
+
 **FINISH PLAN allowed:** no `pending` in Required rows for epic level.
 
 ## Plan review batch log
@@ -270,7 +302,9 @@ Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 
 
 | Phase | Auto-resolved | Deferred (owner/next) | Taste / CRITICAL surfaced |
 |-------|---------------|-------------------------|---------------------------|
-| Product (brainstorming) | … | … | … |
+| Product decision / owner | … | … | … |
+| Design (if UI) | … | … | … |
+| DX (if API/CLI/agent) | … | … | … |
 | Eng (architecture-patterns) | … | … | … |
 
 ## До DECOMPOSE (черновик нарезки)
@@ -282,13 +316,27 @@ Brownfield: в конце очереди заложить `sNN-legacy-fallback-p
 ## Appetite
 
 > Бюджет эпика (Shape Up): **время** и **что вырезать первым**, не потолок числа `sNN`.  
-> **FORBIDDEN:** (a) лимит как оправдание дыры в coverage («стоп если >N sNN» при непокрытом FR); (b) добивание outline до min 5–8. Count в §нарезка = **hint**; финальный cap = DECOMPOSE Effort probe (`sNN_cap`, behavior-first §3a).  
+> **FORBIDDEN:** (a) лимит как оправдание дыры в coverage при непокрытом FR (тогда multi-epic); (b) добивание outline до cap. Count в §нарезка = **hint**; финальный cap = level → `sNN_cap` (L1→1 · L2→2 · L3→3, behavior-first §3a).  
 > Loop не форсирует эти поля.
 
 | Поле | Значение / пример | Описание |
 | :--- | :--- | :--- |
 | `timebox_days` | `3` | Желаемый timebox (календарь), не cap нарезки |
 | `cut_list` | `['optional UI polish', 'extra metrics']` | Что вырезать первым при превышении бюджета (scope), не «меньше sNN» |
+
+## Рекомендация следующей команды (PLAN)
+
+Заполнить после определения level и Product decision. Это рекомендация, а не
+автоматический переход.
+
+| Признак | Рекомендация |
+|---------|--------------|
+| Bounded L1: один домен, небольшой scope, полноценный эпик не нужен | `BACK TASK` / `FRONT TASK` по роли |
+| L1 feature: WHAT/AC готовы, один production slice, scope разрешён планом | `BACK IMPLEMENT` / `FRONT IMPLEMENT` по роли |
+| L2/L3 или несколько связанных production slices | `BACK DECOMPOSE` → `BACK IMPLEMENT sNN` / `FRONT DECOMPOSE` → `FRONT IMPLEMENT sNN` |
+
+**Рекомендованный маршрут:** `BACK TASK` | `BACK IMPLEMENT` | `BACK DECOMPOSE → BACK IMPLEMENT sNN` | `FRONT TASK` | `FRONT IMPLEMENT` | `FRONT DECOMPOSE → FRONT IMPLEMENT sNN`
+**Основание:** …
 
 ## Следующий режим
 

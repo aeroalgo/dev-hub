@@ -22,7 +22,7 @@ alwaysApply: false
 3b. **Anti-ratchet (HARD):** blockers only `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`; after BUGFIX `prior_only`; ≥3 cycles same sha → NEED_HUMAN.
 4. P0/P1 user-visible без scenario → **write** before PASS
 5. qa-артефакт после полного прохода; **fail|blocked:** merge `bugfix-queue.yaml` + queue в `load_now`
-6. FINISH: finish-block (`code_changed: no`); next — `activeContext.md` + decompose index; **pass** → `* CONTEXT SYNC <epic_id>`
+6. FINISH: finish-block (`code_changed: no`); next — `activeContext.md` + decompose index; **pass** → `@context-sync`; its valid `done` result atomically closes QA (parent does not call finish)
 
 ## Abort
 

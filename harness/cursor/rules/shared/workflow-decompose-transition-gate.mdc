@@ -14,14 +14,15 @@ adapter переводит нативные события провайдера 
   и каждый `sNN/eNN` из него физически существуют и
   проходят `validate-decompose-tree`.
 - Перед следующим шагом обязательны `validate-traceability` с
-  `CRITICAL=0` и свежий `verify-decompose` PASS.
-- `ANALYZE` не может компенсировать отсутствующий shard. Артефакт с
+  `CRITICAL=0`, свежий `verify-decompose` PASS и свежий `analyze-verify` PASS.
+- Внутренний `analyze-verify` не может компенсировать отсутствующий shard. Артефакт с
   `critical_count: 0` при неполном дереве недействителен.
 - Resolver и `arm` обязаны fail-closed: при отсутствии shard следующий
-  маршрут — повторный `BACK/FRONT/INTEG DECOMPOSE <epic_id>`, а не ANALYZE или
+  маршрут — повторный `BACK/FRONT/INTEG DECOMPOSE <epic_id>`, а не внутренний gate или
   IMPLEMENT. `plan-next` не является обходом этого правила.
-- `ANALYZE → IMPLEMENT` разрешён только после повторной structural-проверки
-  decompose-графа и analyze gate.
+- `DECOMPOSE → IMPLEMENT/CREATIVE` разрешён только после повторной
+  structural-проверки decompose-графа и accepted `analyze-verify` PASS;
+  `verify-decompose` PASS сам по себе фазу не завершает.
 - Ненулевой exit, timeout, abort или отсутствие обязательного terminal result
   означает незавершённую сессию, даже если в хвосте лога встретилось слово
   `FINISH`. Повторяется текущая фаза; completion marker не создаётся.

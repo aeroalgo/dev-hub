@@ -17,9 +17,9 @@ alwaysApply: false
 | Plan dir | `plan/<epic_id>/` (`md/plan.md`) |
 | Decompose dir | `plan/<epic_id>/yaml/` (`decompose-index.yaml` + `steps/sNN-*.yaml`) |
 | Implement dir | `implement/<epic_id>/` (`sNN-*.yaml` **прямо здесь**; **FORBIDDEN** `yaml/`/`md/` split) |
-| Analyze / audit / qa | `<phase>/<epic_id>/<phase>-*.yaml` или `<phase>.yaml` **прямо в папке** (**FORBIDDEN** `yaml/`/`md/` split) |
+| QA | `qa/<epic_id>/qa-*.yaml` **прямо в папке** (**FORBIDDEN** `yaml/`/`md/` split) |
 
-**HARD:** разделение `md/` + `yaml/` — **только** для `plan/` / decompose. QA, AUDIT, ANALYZE, IMPLEMENT, CREATIVE — без вложенного `yaml/` или `md/`.
+**HARD:** разделение `md/` + `yaml/` — **только** для `plan/` / decompose. QA, IMPLEMENT, CREATIVE — без вложенного `yaml/` или `md/`.
 
 **Scaffold contract (HARD):**
 - Plan: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>` → `md/plan.md` only

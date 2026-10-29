@@ -13,7 +13,7 @@ alwaysApply: false
 ## Когда запускать
 
 - **`FRONT PLAN`** — Phase 0 auto (orchestration); standalone не обязателен
-- **Standalone:** `continue` после 20/20 · CRITICAL после draft · pipeline/ANALYZE revisit · только clarify без plan в сессии
+- **Standalone:** `continue` после 20/20 · CRITICAL после draft · pipeline/unresolved product decision revisit · только clarify без plan в сессии
 
 ## Фокус FRONT
 

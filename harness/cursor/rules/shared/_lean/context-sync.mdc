@@ -1,23 +1,24 @@
 ---
-description: "CONTEXT SYNC gates — QA pass → root canon refresh (shared)"
+description: "QA context-sync worker gates — QA pass → root canon refresh (shared)"
 alwaysApply: false
 ---
-# CONTEXT SYNC — gates (shared)
+# QA context-sync worker — gates (shared)
 
-**Артефакт:** `memory-bank/<role>/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md`  
-**Канон:** @.cursor/rules/shared/workflow-context-sync.mdc  
-**Role patch:** `{role}/isolation_rules/_lean/context-sync.mdc`
+**Артефакт:** `memory-bank/<role>/context-sync/<epic_id>/sync-YYYYMMDD-<slug>.md`
+**Канон:** @.cursor/rules/shared/workflow-context-sync.mdc
 
 ## Gates
 
-1. `epic_id` известен (аргумент или activeContext).
-2. QA pass для эпика существует **или** явный `force` после PASS в чате.
-3. Write только allowlist: `techContext.md` · `productContext.md` · `systemPatterns.md` (+ `domain/SP-*`) · `projectbrief.md` (редко) · sync artifact · опц. role extras (см. patch).  
-   **FORBIDDEN:** код · plan/decompose/implement · `product/vision|phases|roadmap`.
-4. Sync report обязателен (включая полный `no-op`).
-5. FINISH → next `* ARCHIVE NOW` или next PLAN; graphify skip.
+1. `epic_id` и роль переданы parent.
+2. QA pass для эпика существует.
+3. Write только allowlist: `techContext.md`, `productContext.md`,
+   `systemPatterns.md` (+ `domain/SP-*`), редко `projectbrief.md`, sync artifact.
+   **FORBIDDEN:** код, plan/decompose/implement, `product/vision|phases|roadmap`.
+4. Sync report обязателен, включая полный `no-op`.
+5. Return только `loop-context-sync-result/v1`; parent не вызывает `finish`.
 
 ## Abort
 
-- Нет epic / нет QA pass без force → halt  
-- Write вне allowlist → FAIL  
+- Нет epic или QA PASS → halt.
+- Write вне allowlist → FAIL.
+

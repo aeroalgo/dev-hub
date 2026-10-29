@@ -41,7 +41,7 @@ Write `activeContext.md` — только если stub §0.7 разрешает
    - post-PASS: `python3 $DEV_HUB/bin/loop.py finish --project "$PROJECT_ROOT" --step <sNN>` → step=`completed` + index  
    **FORBIDDEN:** агент Edit любого `status:` / `checkpoints[].status:` · `passed`/`pass`/`complete`/`ok` · legacy `.md` shards · Handoff внутри yaml
 3. **## Handoff** в `$PROJECT_ROOT/memory-bank/activeContext.md` only — **ONE Handoff (HARD):** Write весь файл (`## load_now` → один `## Handoff` → ≤ один `## done`)
-3a. **Epic complete:** `finalize-step` переписывает Handoff на `* AUDIT` (не QA, не EPIC_DONE). Пока pending в index — QA в Handoff запрещён.  
+3a. **Epic complete:** `finalize-step` переписывает Handoff на `* QA` после завершения последнего implement step. Пока pending в index — QA в Handoff запрещён.  
     В Handoff зафиксируй сделанное и что дальше (модель сама выбирает next mode/step).  
     Стоп: `BLOCKED:` / `GAPS:` / `NEED_HUMAN:` / `EPIC_DONE`
 4. **Delivery log:** пишет `finalize-step` (`tasks/log` всегда; `tasks.md` только смена фазы эпика). Агент не append на sNN.
@@ -67,13 +67,13 @@ seed → flush cp → suite → evidence (in_progress) → validate-step → Han
 1. Step-файл существует, `validate-step` exit 0 (ещё `in_progress` до finalize)
 2. Ровно один `## Handoff` этого шага
 3. Index текущий = `completed` (**после** `finalize-step`)
-4. Следующий = `pending` (или `* AUDIT` / `EPIC_DONE`)
+4. Следующий = `pending` (или `* QA` / `EPIC_DONE`)
 5. `load_now` → следующий work shard + `plan/<epic>/yaml/decompose-index.yaml`; **FORBIDDEN** полный `plan/<epic>/md/plan.md` в IMPLEMENT `load_now`
 
 ## FAIL
 
 - Нет step / Handoff / ≥2 Handoff / ≥2 done / completed в load_now / plan в load_now
-- Epic complete без `* AUDIT` в Handoff (после `finalize-step`)
+- Epic complete без `* QA` в Handoff (после `finalize-step`)
 - QA при pending в index
 - `@verify` до step на диске
 - Ручной `status: completed` до PASS / в обход `finalize-step`
@@ -82,4 +82,4 @@ seed → flush cp → suite → evidence (in_progress) → validate-step → Han
 ## code_changed
 
 | yes | IMPLEMENT, TASK, BUGFIX, REFACTOR |
-| no | VAN, PLAN, DECOMPOSE, CREATIVE, QA, CONTEXT SYNC, ARCHIVE NOW, SECURITY |
+| no | VAN, PLAN, DECOMPOSE, CREATIVE, QA, ARCHIVE NOW, SECURITY |

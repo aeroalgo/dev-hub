@@ -12,18 +12,15 @@ alwaysApply: false
 
 | Command | load_now update |
 |---------|-----------------|
-| `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `plan/<epic>/yaml/decompose-index.yaml`; epic complete → validated YAML index + §Handoff Epic AUDIT (**не** полный plan, **не** QA напрямую) |
-| `* AUDIT` | audit-артефакт в `load_now`; `check_matrix` + `verdict`; actionable `FAIL` → `gate-repair` (BLOCKERS + ALLOW WRITE + VERIFY) → повторный AUDIT; только PASS/`converged: true` → `* QA`; AUDIT **не** выдаёт `EPIC DONE` и не маршрутизирует в DECOMPOSE/IMPLEMENT; out-of-scope → `replan_candidates` (не findings) |
-| `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **pass** → next `* CONTEXT SYNC <epic_id>` (до ARCHIVE); **не** full plan |
-| `* CONTEXT SYNC` | sync-артефакт `memory-bank/{role}/context-sync/<epic_id>/sync-*.md` в `load_now` (+ qa link); обновлён корневой канон (diff-only) или явный no-op; loop mark-done в `roadmap/queue.yaml` + auto-arm next epic если есть; иначе next → `* ARCHIVE NOW <epic>` / ROADMAP_DONE; graphify skip |
+| `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `plan/<epic>/yaml/decompose-index.yaml`; epic complete → validated YAML index + §Handoff `* QA` (**не** полный plan) |
+| `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **pass** → `@context-sync` → sync-*.md → atomic done/DONE (до ARCHIVE); **не** full plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
-| `* QA` | align after suite |
 | `* ARCHIVE NOW` | clear epic load_now |
 | `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; архивные reflection-артефакты сохраняются (не gate); clear `load_now`; «await VAN» / next T-xxx |
 | `* CREATIVE` | rewire `sNN`/`eNN` канон `yes (CR-…) — **closed**` / index `yes (CR-…) ✅`; next tip по open/closed (`templates/decompose/epic-step.yaml`) |
 | `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
-| `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
-| `* ANALYZE` | `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` в `load_now`; `metrics.critical_count = 0` → next IMPLEMENT, `> 0` → next CLARIFY/DECOMPOSE. **FORBIDDEN** soft-defer в IMPLEMENT |
+| `* DECOMPOSE` | после structural `@verify-decompose` parent остаётся в DECOMPOSE; `@analyze-verify` PASS атомарно продвигает в IMPLEMENT/CREATIVE; после promotion first step file `s01|e01-*.md` (не index) |
+| `analyze-verify` | internal DECOMPOSE gate: `analyze-*.yaml` + accepted PASS атомарно промотируют в IMPLEMENT/CREATIVE; не пользовательская команда |
 | `* PLAN` | Phase 0 clarify (orchestration) в сессии при триггерах; plan artifact OK; **inline** `roadmap-merge` до FINISH для каждого PLAN; `load_now` = clarify по slug (если был) + canon md+queue + first plan + `md/prompt.md` (без prompt → FAIL) → next `* DECOMPOSE <queue[0]>`. **FORBIDDEN:** next = `* ROADMAP MERGE` |
 | `* RECONCILE` | Reconcile drift артефакт в `load_now`; в cadence resync tail (`phase=resync`) фиксирует `ResyncEvidence` на SoT `cadence.yaml`, инвалидирует HOW-планы при HIGH drift без изменения prompt §Epic; после завершения resync фаза сбрасывается в `idle` (`reset_cadence_idle`) для возобновления feature advance |
 | `* REPLAN` | Parent marker `plan/<parent>/md/replan-i2\|i3.yaml` в `load_now` (`skip`\|`complete` + `spawned_epic_ids`; parent plan/prompt/done не трогать). При `complete` — first spawned `plan.md` + spawned `prompt.md` only. **FORBIDDEN** в `load_now`: parent `prompt.md` / parent `plan.md` / parent QA / `Parent-prompt` path. Upsert spawn в голову queue. Cadence `phase=replan`: после терминала всех `pair_ids` → next `* PLAN REFACTOR`. Вне cadence → next `* DECOMPOSE <first spawned>` |
@@ -37,12 +34,12 @@ alwaysApply: false
 
 ## graphify update
 
-После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/CONTEXT SYNC/ARCHIVE.
+После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/ARCHIVE.
 
 ## Forbidden at FINISH
 
 - Completed work в `load_now`
-- **Полный `plan/<epic_id>/md/plan.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK (и после DECOMPOSE FINISH — tip = `s01|e01` + decompose index, не plan)
+- **Полный `plan/<epic_id>/md/plan.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK (и после DECOMPOSE promotion — tip = `s01|e01` + decompose index, не plan)
 - `tasks.md` / `systemPatterns.md` / markdown indexes в IMPLEMENT `load_now` (разрешён только `plan/<epic>/yaml/decompose-index.yaml`)
 - `decompose=completed` / next `load_now` **до** step-файл + `## Handoff`
 - IMPLEMENT done без step-файл

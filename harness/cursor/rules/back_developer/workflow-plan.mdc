@@ -9,6 +9,7 @@ alwaysApply: false
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/back_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md` (`## Epic` + `## Covering`)
+**Interactive review passes**: @.cursor/rules/shared/workflow-plan-review-passes.mdc — Product → Design? → DX? → Eng
 **Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc · @.cursor/rules/shared/workflow-behavior-first.mdc
 
 ---
@@ -16,9 +17,15 @@ alwaysApply: false
 ## Hot path
 
 1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`
-2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
+2. `SUSPENSION GUARD` · level в `tasks.md` · interactive review passes: Product → Design? → DX? → Eng (L2+; conditional passes по surface)
+2a. **Route recommendation (после определения level):** bounded L1 без
+полноценного эпика → рекомендовать `BACK TASK`; L1 feature с готовыми WHAT/AC
+и одним production slice → рекомендовать `BACK IMPLEMENT`; L2/L3 → рекомендовать
+`BACK DECOMPOSE`, затем `BACK IMPLEMENT sNN`. Это рекомендация следующей команды,
+не автоматический запуск; при конфликтующих признаках выбрать более безопасный
+маршрут и записать причину в плане.
 2c. **PLAN Context Pack (L2+, mandatory Read до Technology axiom):** `techContext.md` · `systemPatterns.md` (+ `domain/SP-*` если есть) · `projectbrief.md` · `architecture/index.md` (+ релевантный shard если не stub) · **`memory-bank/product/` если каталог существует** — Read все файлы (roadmap/vision/phases/validation/eval-*/oss-landscape и прочие; SUSPENSION: inventory не lean); **если `product/` нет — skip, не halt**. В `plan.md` секция `## Context consumed` (path → что вошло в axiom/Deps/FR; `product/: n/a` если каталога нет). **FORBIDDEN** пропуск `product/` **только когда каталог есть**. FINISH `load_now` не раздувать — monoliths остаются в PLAN-сессии.
-3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `## Boundary / negative cases` (L2+: ≥3 BN или полный checklist n/a+reason) → `#qa-consumes` ≥3 TM (BN→TM) → Review readiness (no pending Required)
+3. Write `plan/<id>/md/plan.md`: Product decision / WHAT → review passes + ownership matrix → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `## Boundary / negative cases` (L2+: ≥3 BN или полный checklist n/a+reason) → `#qa-consumes` ≥3 TM (BN→TM) → Review readiness (no pending Required)
 3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
 4. Каждый PLAN → апсерт `roadmap/queue.yaml` + plan + `prompt.md`; multi-epic → N rows/plans/prompts (`## Covering` один текст, оси без ID; без roadmap md / без `roadmap/prompt-*`)
@@ -26,7 +33,7 @@ alwaysApply: false
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → Appetite = timebox + cut_list only (не hard cap sNN)
-→ outline sNN = **hint** (не min 5–8); финальный count задаёт DECOMPOSE Effort probe (`sNN_cap`) — не раздувать draft до 10–12 «на всякий» — shared/workflow-behavior-first.mdc §3a
+→ outline sNN = **hint**; финальный count = DECOMPOSE level → `sNN_cap` (L1→1 · L2→2 · L3→3) — shared/workflow-behavior-first.mdc §3a
 
 ---
 
@@ -54,13 +61,10 @@ alwaysApply: false
 1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные `T-xxx` при multi-epic)
 2c. **Context Pack (L2+):** Read Hot path 2c (techContext · systemPatterns · projectbrief · architecture · **`product/` если есть**) до Technology axiom; иначе halt. Нет `product/` → OK (`n/a`).
-2p. **Plan review batch (после level fix):**
-    - **Product pass:** alignment по Context Pack / premises (Phase 0 или `§Product probe`).
-    - **Eng pass:** Eng review spine — situational `architecture-patterns` при L2+.
-    - **Auto-resolve defer:** в `## Plan review batch log` (не AskUserQuestion one-by-one). L1 — review опционален.
-3. writing-plans; skills list в каждом `plan/<task_id>/md/plan.md`; L3–4 → situational brainstorming / architecture-patterns
+2p. **Interactive review passes (после level fix):** Product pass с владельцем обязателен для L2+; Design — если есть UI; DX — если есть API/CLI/agent-facing surface; Eng — последним после всех изменений scope. Результат и явные `skip` записать в `## PLAN review passes`; ownership matrix обязательна для L2+/cross-layer. Не подменять этот этап CLARIFY.
+3. writing-plans; skills list в каждом `plan/<task_id>/md/plan.md`; L3 → situational brainstorming / architecture-patterns
 3a. **Roadmap path (always):** каждый PLAN сначала апсертит канонический `roadmap/queue.yaml` (`batches.<slug>` и одну строку `queue[]` на эпик), затем сохраняет полный `plan/<epic_id>/` + `md/prompt.md`. Для multi-epic сначала выполняется epic cut и добавляется строка на **каждый** эпик (`## Epic` разный, `## Covering` один, Axes **без** ID эпиков). Для single-epic split не нужен, но queue row и batch обязательны. Шаблон: @.cursor/templates/roadmap-queue.yaml
-4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `yaml/decompose-index.yaml` и shards. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
+4. Содержание по level delta в gates (L2 / L3). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `yaml/decompose-index.yaml` и shards. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): обязательны апсерт `memory-bank/back/roadmap/queue.yaml` + `memory-bank/back/plan/<epic_id>/md/plan.md` и `md/prompt.md` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`). Для multi-epic — N queue rows, N plan dirs и N `prompt.md` (Covering одинаковый).
 7. `tasks.md` append-only (ссылка на план / roadmap queue + эпики; без sNN-чеклиста)
@@ -68,7 +72,7 @@ alwaysApply: false
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + `roadmap/queue.yaml` + first/sole plan + `md/prompt.md` (нет prompt → FAIL)
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом CRITICAL без resolve/defer-list.
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
-8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из `roadmap/queue.yaml`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
+8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из `roadmap/queue.yaml`; CREATIVE если дизайн; L1 → рекомендация из Hot path 2a: `BACK TASK` для bounded-задачи или `BACK IMPLEMENT` для готового production slice. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / BACK IMPLEMENT — этот PLAN **не** меняет status и **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
 

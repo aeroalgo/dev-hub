@@ -21,7 +21,7 @@ alwaysApply: false
    - refresh **все** shards `memory-bank/architecture/` (front нет → `frontend.md` absent)
    - update `architecture/index.md`
    - session: `memory-bank/integration/van/van-YYYYMMDD-<slug>.md` + L + next
-4. L1–L4 (integration gates)
+4. L1–L3 (integration gates)
 5. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`)
 6. Next: L1 → IMPLEMENT; L2+ → GAP (если нет свежего) → PLAN → DECOMPOSE
 

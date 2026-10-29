@@ -15,7 +15,7 @@ description: "Role command parity chain — BACK/FRONT/INTEG workflow router (gr
 
 Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
-`ANALYZE` — однословный режим; роутинг выполняется через `workflow-analyze.mdc`, отдельная multi-word запись не нужна.
+`analyze-verify` — внутренний gate DECOMPOSE; отдельной пользовательской команды для него нет.
 
 | Prefix | Role dir | Core (полный путь) | Isolation |
 |--------|----------|-------------------|-----------|

@@ -9,6 +9,7 @@ alwaysApply: false
 **Multi-epic:** research multi-axis → epic cut + N rows в `memory-bank/integration/roadmap/queue.yaml` + N× `plan/<epic_id>/` (`workflow-plan-multi-epic.mdc`); single-epic также обязан иметь одну row; **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE
 **SUSPENSION GUARD:** `token-economy-core.mdc §0.0` — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
 **Anti-minimal:** @.cursor/rules/shared/_lean/anti-minimal-done.mdc — L3+ `Done when` + `Forbidden after`; contract FR → enforce entrypoint
+**Review passes:** @.cursor/rules/shared/workflow-plan-review-passes.mdc
 
 ## Gates
 
@@ -24,6 +25,7 @@ alwaysApply: false
 6a. Multi-epic FAIL: ≥2 независимых wire-осей и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть ID / шапка Role·Deps / пути чужих plan → halt
 7. После записи roadmap/plan: CLI `roadmap-merge --role integration` обязателен и должен вернуть `ok: true`; next ≠ ROADMAP MERGE
 8. Eng review spine (gate 8): для L2+ / portal-scope — Eng review spine (wire ownership, contract surface, QB) до FINISH PLAN
+8a. Interactive review passes (gate 8a): Product → Design? → DX? → Eng; applicable pass = `done`, explicit `skip` = reason; Eng last. L2+/cross-layer → ownership matrix BACK/FRONT/Infra/QA, contract, rollback, independent check.
 9. QA consumes draft (gate 9): для L2+ секция §QA consumes / Test matrix должна содержать ≥3 TM/Journey строк; applicable wire negatives → ≥1 row
 9a. Boundary / negative cases (gate 9a): для L2+/portal — секция `## Boundary / negative cases` (≥3 BN или checklist с `n/a`+reason); **FORBIDDEN** silent skip. Шаблон: `.cursor/templates/integration-plan.md`
 10. Review readiness (gate 10): таблица Review readiness без неразрешённых `pending` Required до FINISH PLAN

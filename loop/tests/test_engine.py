@@ -24,10 +24,10 @@ def test_feature_epic_lifecycle_regression(tmp_path: Path) -> None:
     assert t1.phase == "IMPLEMENT"
     assert t1.step_id == "s02"
 
-    # 3. Mark implement artifacts complete so engine can advance past IMPLEMENT to AUDIT
+    # 3. Mark implement artifacts complete so engine can advance past IMPLEMENT to QA
     _seed_queue_implement_complete(tmp_path, epic_id="E1")
 
-    # 4. Finish s02 (last step in queue) -> moves to AUDIT
+    # 4. Finish s02 (last step in queue) -> moves to QA (AUDIT folded into QA)
     t2 = _finish_via_gate(engine)
-    assert t2.phase == "AUDIT"
-    assert t2.step_id == "AUDIT"
+    assert t2.phase == "QA"
+    assert t2.step_id == "QA"

@@ -1,48 +1,7 @@
 ---
-description: "INTEG — element-first portal wire, vertical slices, contract (только при INTEG-командах)"
+description: "INTEG — удалена; см. FRONT §WIRE"
 alwaysApply: false
 ---
-# INTEG — ролевой контекст
+# INTEG — удалена
 
-**Shared core:** @.cursor/rules/shared/role-core-contract.mdc
-
-## ELEMENT-FIRST
-
-Один UI-элемент за сессию IMPLEMENT. `INTEG PLAN` → registry · `DECOMPOSE` → eNN+§Contract · `IMPLEMENT` → BACK+FRONT wire+§0.11 · `QA` → journey E2E.
-
-**Запрещено:** mock forever без §Contract; layer-first нарезка; raw SQL — только QueryBuilder.
-
-## SCENARIO TESTS
-
-User-visible flow → scenario test до FINISH; QA прогон + дыры. Parent-only Playwright (UI) · Hub (dev-hub self-test) pytest HTTP outcome (контракт; managed: declare capability_checks with typed evidence) · vitest alone **недостаточно** для «пользователь нажал X». **FORBIDDEN Handoff:** «manual smoke only» без scenario path.
-
-## QUERY BUILDER
-
-`@.agents/skills/query-builder/SKILL.md` — `HTTP ?filters=` → PaginateQueryParams → QueryBuilder → crud.get_multi; `relation__column` → join; числа → `gt`/`lt`.
-
-## КОНТРАКТ
-
-§Contract в `plan/<epic>/yaml/steps/eNN-*.yaml`: method+path · request · response · DB. Skill TDD: только из workflow.
-
-## BACK / FRONT в одном eNN
-
-BACK если §API=✗: schema, endpoint, mapping_filters, Hub (dev-hub self-test) targeted `bin/pytest` (managed: `capability_checks: [test.targeted]` with typed evidence). FRONT: api client, filter-utils, wire, parent-only Vitest, убрать mock. Wire: §0.11 endpoint→fetch.
-
-## MEMORY BANK (ролевой scope)
-
-- PLAN: portal implement + routes grep; IMPLEMENT: ONE `eNN-*.yaml`
-- Не читать as-built BACK/FRONT plan/decompose; gap — только через GAP CLOSE
-
-## ПЕРЕХОДЫ
-
-```text
-VAN → GAP? → PLAN(I1) → DECOMPOSE → ANALYZE → CREATIVE? → IMPLEMENT* → AUDIT → QA → CONTEXT SYNC → REPLAN(I2/I3) ↺ → FINAL REVIEW → DONE → ARCHIVE
-                 ↘ RECONCILE (hotfix drift)                         ↘ BUGFIX from QA
-```
-
-Next: Handoff в `memory-bank/activeContext.md`; следующий шаг — activeContext + decompose index.
-Promote DECOMPOSE→IMPLEMENT: traceability CRITICAL=0 + **ANALYZE artifact critical_count=0**. **FORBIDDEN** ANALYZE deferred skip.
-Post-QA: I1/I2 → explicit `INTEG REPLAN` (spawn new epic_id или skip marker; parent plan/prompt/done не overwrite). I3 → FINAL OUTCOME REVIEW. Runner/loop пока не ведёт счётчик iterations. Reflection artifacts не участвуют в lifecycle.
-GAP fanout: `.claude/instructions/program-loop.md`.
-
-Не дублировать таблицы «после QA → …» здесь — только FINISH sync ledger.
+См. @.cursor/rules/front_developer/mainrule-core.mdc §WIRE.

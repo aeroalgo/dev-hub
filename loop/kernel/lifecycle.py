@@ -24,9 +24,12 @@ from .pre_emit import schema_reject_reason, verify_pre_emit_stamp
 from .verdict import (
     MANAGED_GATE_AGENTS,
     MANAGED_REPAIR_AGENTS,
+    MANAGED_SYNC_AGENTS,
+    SCHEMA_CONTEXT_SYNC_RESULT,
     SCHEMA_GATE_VERDICT,
     extract_json_fence,
     normalize_agent_id,
+    validate_context_sync_message,
     validate_inventory_message,
     validate_repair_message,
     validate_message,
@@ -87,6 +90,7 @@ def _is_managed_agent(agent_id: str) -> bool:
     return (
         agent_id in MANAGED_GATE_AGENTS
         or agent_id in MANAGED_REPAIR_AGENTS
+        or agent_id in MANAGED_SYNC_AGENTS
         or agent_id in MANAGED_INVENTORY_AGENTS
     )
 
@@ -193,6 +197,19 @@ class SubagentLifecycle:
                 "Validate it with python3 $DEV_HUB/bin/loop.py validate-verdict --project "
                 f"{self.paths.project} --payload '<json>'.\n"
                 "Never spawn another agent and never call finish."
+            )
+        if agent_type in MANAGED_SYNC_AGENTS:
+            return (
+                f"agent_type={agent_type}\n{identity}\n"
+                "Run only after the parent has received verify-qa PASS for this QA epoch. "
+                "Read the QA artifact and bounded context-sync scope, update the allowed root canon, "
+                "and write the required sync-*.md artifact. Never spawn another agent and never call finish.\n"
+                "The final response must contain exactly one fenced `json` object with only these keys: "
+                f'`schema: "{SCHEMA_CONTEXT_SYNC_RESULT}"`, agent_id, epic_id, status, sync_path, '
+                "session_id, recorded_at. status is done or fail. "
+                "Validate it with `python3 $DEV_HUB/bin/loop.py validate --schema "
+                f"{SCHEMA_CONTEXT_SYNC_RESULT}` before emitting. "
+                "A valid done result atomically completes QA; do not call finish afterward."
             )
         if (
             agent_type == "verify-implement"
@@ -457,6 +474,69 @@ class SubagentLifecycle:
             },
         )
 
+    def _stop_context_sync(self, payload: dict[str, Any], cursor) -> HookAction:
+        message = _message(payload)
+        validation = validate_context_sync_message(message)
+        if not validation.valid or validation.record is None:
+            self.engine.record_event(
+                {
+                    "event": "context_sync_rejected",
+                    "agent_id": "context-sync",
+                    "phase": cursor.phase,
+                    "step_id": cursor.step_id,
+                    "session_id": cursor.session_id,
+                    "epic_id": cursor.epic_id,
+                    "diagnostic_codes": list(validation.diagnostic_codes),
+                    "errors": list(validation.errors),
+                }
+            )
+            return HookAction(
+                False,
+                False,
+                2,
+                (
+                    f"re-emit valid {SCHEMA_CONTEXT_SYNC_RESULT} JSON fence with only schema,agent_id,"
+                    "epic_id,status,sync_path,session_id,recorded_at"
+                ),
+                validation.diagnostic_codes,
+            )
+        record = validation.record
+        if record.session_id != cursor.session_id or record.epic_id != cursor.epic_id:
+            return HookAction(
+                True,
+                True,
+                reason="stale_context_sync_ignored:session_or_epic_mismatch",
+                diagnostic_codes=("stale_context_sync_ignored",),
+            )
+        try:
+            transition = self.engine.complete_context_sync(record)
+        except TransitionError as exc:
+            self.engine.record_event(
+                {
+                    "event": "context_sync_rejected",
+                    "agent_id": "context-sync",
+                    "phase": cursor.phase,
+                    "step_id": cursor.step_id,
+                    "session_id": cursor.session_id,
+                    "epic_id": cursor.epic_id,
+                    "diagnostic_codes": ["context_sync_transition_rejected"],
+                    "errors": [str(exc)],
+                }
+            )
+            return HookAction(
+                False,
+                False,
+                2,
+                str(exc),
+                ("context_sync_transition_rejected",),
+            )
+        return HookAction(
+            True,
+            False,
+            reason=transition.reason,
+            transition=_transition_dict(transition),
+        )
+
     def stop(self, payload: dict[str, Any]) -> HookAction:
         message = _message(payload)
         agent_type = _agent_type(payload, message, _prompt(payload))
@@ -468,6 +548,8 @@ class SubagentLifecycle:
             return HookAction(False, False, 2, "cursor_missing", ("cursor_missing",))
         if agent_type == "gate-repair":
             return self._stop_repair(payload, cursor)
+        if agent_type in MANAGED_SYNC_AGENTS:
+            return self._stop_context_sync(payload, cursor)
         if agent_type in MANAGED_INVENTORY_AGENTS:
             return self._stop_inventory(payload, cursor, agent_type)
         # Parse the wire contract first.  Boundary identity is checked by the

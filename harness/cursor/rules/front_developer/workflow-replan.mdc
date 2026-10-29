@@ -13,7 +13,7 @@ REPLAN выполняется только после PASS в `FRONT QA`. Он �
 `## Epic` из parent `md/prompt.md` с фактическим кодом и либо фиксирует
 `skip`, либо **создаёт новые follow-up эпики** (spawn) под critical gaps.
 
-Parent plan / decompose / implement / analyze / audit / QA — **не** вход
+Parent plan / decompose / implement / pre-IMPLEMENT checks / QA — **не** вход
 REPLAN и не шаблон spawn. Они не доказывают outcome и не overwrite.
 
 ## Context allowlist (HARD)
@@ -26,13 +26,13 @@ REPLAN и не шаблон spawn. Они не доказывают outcome и �
 **FORBIDDEN как контекст REPLAN (не читать для gaps / HOW / FR):**
 
 - parent `plan.md`, decompose, implement shards, events;
-- parent analyze / audit / QA / bugfix артефакты (кроме факта «QA PASS есть»);
+- parent pre-IMPLEMENT checks / QA / bugfix артефакты (кроме факта «QA PASS есть»);
 - соседние / sibling `plan/**`;
 - Covering секция parent prompt как SoT работы.
 
 **FORBIDDEN в spawned `plan.md` / `prompt.md` / FINISH `load_now`:**
 
-- ссылки-пути на parent `plan.md`, decompose, implement, analyze, audit, QA;
+- ссылки-пути на parent `plan.md`, decompose, implement, pre-IMPLEMENT checks, QA;
 - поля `Parent-prompt` / `Parent-replan` / `Parent I1 QA` в шапке spawn;
 - Provenance / «читай I1 plan/QA/FR/TM» как load-инструкция;
 - cross-ref нумерации FR/TM/AC parent plan как SoT нового эпика.

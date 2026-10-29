@@ -18,7 +18,8 @@
 **IMPLEMENT load_now:** work shard + `yaml/decompose-index.yaml`.
 
 **Delta layer (все роли):** `as_built` · `delta` · `deletes` · `out_of_scope` — что уже есть / что меняем / что **удаляем** / что не трогать.
-**Replacement cleanup:** brownfield replace → index `## Replacement cleanup` (Kind A|B|C|I + Fallback?) + ladder add→wire→enforce→purge + `deletes:` + финальный `*-legacy-fallback-purge` с **полным inventory scan** (`legacy-purge-step.yaml`: `sunset_inventory`, `grep_control`, cp-inventory-a/b/c/**i**). AUDIT: `sunset_inventory_scan` + `sot_enforce_scan`. Канон: `shared/workflow-legacy-fallback-cleanup.mdc` §2 · `shared/workflow-behavior-first.mdc` §3.  
+
+**Replacement cleanup:** brownfield replace → index `## Replacement cleanup` (Kind A|B|C|I + Fallback?) + ladder add→wire→enforce→purge + `deletes:` + финальный `*-legacy-fallback-purge` с **полным inventory scan** (`legacy-purge-step.yaml`: `sunset_inventory`, `grep_control`, cp-inventory-a/b/c/**i**). QA: `sunset_inventory_scan` + `sot_enforce_scan`. Канон: `shared/workflow-legacy-fallback-cleanup.mdc` §2 · `shared/workflow-behavior-first.mdc` §3.
 **Checkpoints:** 2–4 атомарных cp; у каждого `criterion` + `verify` (не один mega-cp = весь goal).  
 **Test scope (HARD):** каждый `verify` — targeted по `files`/`delta` текущего шага; full suite не помещать в decompose-shard и запускать только в QA после IMPLEMENT.
 **Granularity:** один IMPLEMENT = один prod-модуль или один test-file; атомарность внутри — checkpoints, не лишние sNN.  

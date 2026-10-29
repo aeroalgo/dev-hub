@@ -22,14 +22,16 @@ alwaysApply: false
 2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B/C/**I**; нет fallback patterns из plan C; нет старых machine-format instructions (Kind I); **`sot_enforce_scan`** — старый SoT DENY/HALT. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8
 2b. **Behavior smoke (HARD) при agent/hook/gate FR в plan:** suite green **недостаточен**. Parent обязан: path exists · registry discover · один enforce-path. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §6
 3. Scenario P0/P1; дыры → дописать Playwright до PASS. После frontend suite → **1× verify-qa** обязателен. Parent pack: полный `AC+`/`AC−`/`BN-*` (если §Boundary / negative cases в plan) /`§0.11` = **literal** plan AC/BN (**FORBIDDEN** invent BN сверх plan). Claude Code: `Agent`→`verify-qa`.
+3w. **WIRE:** FR с API → journey бьёт живой/contract path (не вечный mock); §0.11 gap = FAIL.
 3a. **Exhaustive QA (HARD):** parent обязан завершить **все** checks прогона (frontend suite → leftover/sot → behavior smoke → verify-qa / Playwright) **до** записи `qa-*.yaml`. `verify-qa` — no fail-fast. **FORBIDDEN:** mid-check FINISH / qa fail на первом finding.
 3b. **Anti-ratchet (HARD):** `blockers`/`fix_plan` только **eligible** B* с префиксом `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`. Style/naming/comments ≠ BUGFIX. Cap: ≥3 QA↔BUGFIX на одном sha → `NEED_HUMAN`.
 3c. **Enforce:** spawn verify-qa без matching `checklist_sha256` → deny; finish_qa при drift sha/`ac_plus` или blockers без class → FAIL.
+3d. **Coverage / review / test-audit:** до verify-qa заполнить `coverage_map` (AC/BN → browser/API scenario → evidence), `review`, `test_audit`, `browser` и `retro`. Проверить weakened/status-only assertions, global API mocks и uncontrolled `route.fulfill`, skip/xfail, CI inclusion, real wire/auth/iframe/assets. Build green без browser evidence не считается.
 4. Exploratory browser если live app; иначе `skip: no live app`
-5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список.
+5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список. `retro` обязателен даже при PASS.
 5a. **fail|blocked:** до FINISH создать/merge `memory-bank/front/bugfix/<epic_id>/bugfix-queue.yaml`; Handoff `load_now` обязан включать queue — `finish-doc-router.md`.
 6. FINISH: finish-block (`code_changed: no`); **обязан** `python3 $DEV_HUB/bin/loop.py finish --step QA`.
-   - **pass** → CONTEXT SYNC
+   - **pass** → `@context-sync`; its valid `done` result atomically closes QA (parent does not call finish)
    - **fail|blocked** + open bugfix-queue → finish **всё равно обязателен** (routes BUGFIX). `verify-qa` FAIL ≠ «нельзя finish» (это не IMPLEMENT). Выход только с отчётом → `finish_not_committed` / retry QA.
 
 ## Abort

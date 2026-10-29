@@ -19,6 +19,61 @@ ac_plus: []
 ac_minus: []
 section_011: []
 
+# QA evidence is explicit so review does not collapse into "suite green".
+# Keep IDs literal from plan AC/BN; do not invent new requirements here.
+coverage_map:
+  - id: AC-001
+    kind: AC
+    scenario: "<browser/API scenario or explicit n/a reason>"
+    evidence: "<path:line, URL/response, screenshot/trace or command output>"
+    status: pass
+  - id: BN-001
+    kind: BN
+    scenario: "<negative browser/API scenario or explicit n/a reason>"
+    evidence: "<path:line, URL/response, screenshot/trace or command output>"
+    status: pass
+
+review:
+  status: pass
+  scope: "<diff/runtime surface reviewed>"
+  findings: []
+
+test_audit:
+  status: pass
+  checks:
+    - "assertions exercise the outcome, not only status/build"
+    - "no global API mocking hides the production wire"
+    - "skips/xfails and route.fulfill are bounded and justified"
+    - "browser/API test is included in the declared CI job"
+  findings: []
+
+browser:
+  status: pass
+  stack_profile: "<project profile: Vite build + Python Playwright | n/a>"
+  journeys: []
+  artifacts: []
+
+retro:
+  status: done
+  defect_missed: "<what escaped earlier gates, or none>"
+  redundant_gate: "<gate/check that added no signal, or none>"
+  flaky_test: "<test and mitigation, or none>"
+  next_cycle_change: "<one concrete workflow/test change>"
+
+# Brownfield replace only. Keep `status: n/a` for greenfield work; when the
+# plan has sunset A/B/C/I, QA must fill every inventory row and re-run the
+# independent deny-old scan.
+sunset_inventory_scan:
+  status: n/a
+  scanned_at: ""
+  rows: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+sot_enforce_scan:
+  status: n/a
+  rows: []
+
 checks:
   - "full suite green — role-scoped: BACK/hub `bin/pytest -q --tb=line`; FRONT Vitest+Playwright (`npm --prefix frontend …`); managed: capability_checks: [test.full] своей surface"
   - "live_smoke — `timeout -k 10s 300s bash scripts/live_smoke.sh` (живой uvicorn+HTTP; не ASGI e2e)"

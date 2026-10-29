@@ -21,13 +21,13 @@ alwaysApply: false
 | `product/roadmap.md` | lean карта «где мы» — SoT для `PRODUCT ROADMAP REBUILD`; также в PLAN Context Pack |
 | `product/*` (прочие) | validation / eval / oss-landscape / pack — **PLAN Context Pack** (L2+ Read весь каталог) |
 
-**PLAN (BACK/FRONT/INTEG, L2+):** Context Pack **обязателен** — Read `techContext` · `systemPatterns` · `projectbrief` · `architecture/index`; если есть `memory-bank/product/` — **все его файлы**; если каталога нет — `product/: n/a` (не halt). До Technology axiom; в `plan.md` — `## Context consumed`. SUSPENSION: inventory не lean. **FORBIDDEN** пропуск `product/` **только когда каталог существует**. FINISH `load_now` — без monolith product (plan/prompt/queue + clarify).
+**PLAN (BACK/FRONT, L2+):** Context Pack **обязателен** — Read `techContext` · `systemPatterns` · `projectbrief` · `architecture/index`; если есть `memory-bank/product/` — **все его файлы**; если каталога нет — `product/: n/a` (не halt). До Technology axiom; в `plan.md` — `## Context consumed`. SUSPENSION: inventory не lean. **FORBIDDEN** пропуск `product/` **только когда каталог существует**. FINISH `load_now` — без monolith product (plan/prompt/queue + clarify).
 
-**CONTEXT SYNC (после QA PASS):** обновить корневой канон diff-only по evidence эпика — @.cursor/rules/shared/workflow-context-sync.mdc. Артефакт `memory-bank/{role}/context-sync/<epic_id>/sync-*.md`. Next → ARCHIVE.
+**QA context-sync worker (после QA PASS):** обновить корневой канон diff-only по evidence эпика — @.cursor/rules/shared/workflow-context-sync.mdc. Артефакт `memory-bank/{role}/context-sync/<epic_id>/sync-*.md`. Next → ARCHIVE.
 
 **IMPLEMENT:** `roadmap.md` → `load_if_needed` (ориентация). **FORBIDDEN** full `vision`/`phases` в IMPLEMENT `load_now`. Code-эпики — по-прежнему `{role}/roadmap/queue.yaml`.
 
-**As-built карта (все роли, brownfield VAN):** `memory-bank/architecture/` — `index.md` + shards: `overview` · `services` · `data-flow` · `erd` · `workers` · `containers` · `frontend`. Канон процесса: @.cursor/rules/shared/workflow-van-brownfield.mdc. **Не резать** (§0.0 architecture). Session VAN-лог остаётся в `back|front|integration/van/`.
+**As-built карта (все роли, brownfield VAN):** `memory-bank/architecture/` — `index.md` + shards: `overview` · `services` · `data-flow` · `erd` · `workers` · `containers` · `frontend`. Канон процесса: @.cursor/rules/shared/workflow-van-brownfield.mdc. **Не резать** (§0.0 architecture). Session VAN-лог остаётся в `back|front/van/`.
 
 **Шаблоны (вне memory-bank):** `.cursor/templates/` — `plan.md` · `integration-plan.md` · `decompose/{README,index,epic-step.yaml}` · `implement/{README,epic-step.yaml}` · `qa/{README,epic-step.yaml}` · `refactor/{README,epic-step.yaml}` · `security/{README,epic-step.yaml,plan,index,step,execute}.md` · `integration-{gap,gap-close,contract}.md` · `architecture/*` · `review.md` (redirect) · `task-shard.md` · `finish-doc-router.md`
 
@@ -46,7 +46,6 @@ alwaysApply: false
 |-------|--------|------------|
 | VAN | `back/van/` | `van-YYYYMMDD.md` (session; карта → `architecture/`) |
 | CLARIFY | `back/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
-| ANALYZE | `back/analyze/<epic_id>/` (с эпиком) · `back/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | RECONCILE | `back/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
 | PLAN | `back/plan/<epic_id>/` | `md/plan.md`; каждый PLAN → апсерт **`back/roadmap/queue.yaml`**, multi-epic → N× queue rows/plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; template `roadmap-queue.yaml`). **FORBIDDEN** `plan/roadmap-*` |
 | ROADMAP | `back/roadmap/` | **`queue.yaml`** SoT; `archive/` — старые slug (read-only). Merge: @.cursor/rules/shared/workflow-roadmap-merge.mdc |
@@ -59,8 +58,7 @@ alwaysApply: false
 | reflection archive | `back/reflection/` | `reflection-*.md` — **не** gate lifecycle; **не** переносится ARCHIVE |
 | ARCHIVE NOW | `memory-bank/archive/back/` | **move** epic tree (plan/implement/creative/qa/bugfix); манифест `archive-*.md` **убран**. Канон: .cursor/rules/shared/epic-scoped-paths.mdc |
 | QA | `back/qa/<epic_id>/` или `back/qa/` | **один** отчёт: `qa-YYYYMMDD-<slug>.yaml` (agent SoT). `qa.yaml` — только scaffold-stub; **FORBIDDEN** писать оба с одним содержимым |
-| CONTEXT SYNC | `back/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` — после QA PASS; обновляет корневой канон (techContext/…). Канон: @.cursor/rules/shared/workflow-context-sync.mdc. **Не** переносится ARCHIVE |
-| AUDIT | `back/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` или `audit.yaml` — **прямо в папке** (без `yaml/` subdir); шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`) |
+| QA context-sync worker | `back/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` — worker после QA PASS; **не** отдельная команда/фаза и **не** переносится ARCHIVE |
 | SECURITY | `back/security/` | **Эпик:** `plan/<id>/` + `implement/<id>/aNN-*.yaml`. **Без эпика:** `security-audit-YYYYMMDD-<slug>.md`. Канон: @.cursor/rules/shared/workflow-security-epic.mdc |
 
 **Front `memory-bank/front/`** — та же схема, префикс `front/` + ARCHIVE → `memory-bank/archive/front/`.
@@ -68,38 +66,12 @@ alwaysApply: false
 | Режим | Папка | Именование |
 |-------|--------|------------|
 | CLARIFY | `front/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
-| ANALYZE | `front/analyze/<epic_id>/` (с эпиком) · `front/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | RECONCILE | `front/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
-| AUDIT | `front/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
-| CONTEXT SYNC | `front/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` — после QA PASS; shared/workflow-context-sync.mdc |
+| QA context-sync worker | `front/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` — worker после QA PASS; shared/workflow-context-sync.mdc |
 | SECURITY | `front/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. .cursor/rules/shared/workflow-security-epic.mdc |
 
-**Integration `memory-bank/integration/`:**
+**`memory-bank/integration/`:** роль снята. Новые артефакты — только `front/` (wire UI↔API в FRONT). Каталог оставлен read-only для незакрытых legacy-эпиков; **FORBIDDEN** создавать новые деревья под `integration/`.
 
-| Режим | Папка | Именование |
-|-------|--------|------------|
-| VAN | `integration/van/` | `van-YYYYMMDD-<slug>.md` (session; полная карта → `architecture/`) |
-| CLARIFY | `integration/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
-| ANALYZE | `integration/analyze/<epic_id>/` (с эпиком) · `integration/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
-| RECONCILE | `integration/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
-| AUDIT | `integration/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
-| CONTEXT SYNC | `integration/context-sync/<epic_id>/` | `sync-YYYYMMDD-<slug>.md` — после QA PASS; shared/workflow-context-sync.mdc |
-| GAP | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `gap-YYYYMMDD-<slug>.md` |
-| GAP CLOSE | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `close-YYYYMMDD-<slug>.md` |
-| PLAN | `integration/plan/<epic_id>/` | `md/plan.md` |
-| DECOMPOSE | `integration/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/eNN-<slug>.yaml` (+ `md/`); `<epic_id>` = stem plan со slug |
-| CREATIVE | `integration/creative/<epic_id>/` или плоско | `creative-<feature>.md` |
-| IMPLEMENT | `integration/implement/<epic_id>/` | `eNN-<slug>.yaml` (прямо в `<epic_id>/`; без `yaml/` subdir); `<epic_id>` тот же stem+slug |
-| TASK | `integration/task/` | `task-YYYYMMDD-<slug>.md` |
-| BUGFIX | `integration/bugfix/<epic_id>/` или плоско | `bugfix-YYYYMMDD-<slug>.md` |
-| REFACTOR | `integration/refactor/` | Как BACK: эпик → `implement/<id>/rNN-*.yaml`; без эпика → `session-YYYYMMDD-<slug>.md`. .cursor/rules/shared/workflow-refactor-epic.mdc |
-| reflection archive | `integration/reflection/` | `reflection-*.md` — не gate; не переносится ARCHIVE |
-| ARCHIVE NOW | `memory-bank/archive/integration/` | move epic tree; без `archive-*.md` манифеста |
-| QA | `integration/qa/<epic_id>/` или плоско | **один** отчёт: `qa-YYYYMMDD-<slug>.yaml` (**FORBIDDEN** дубль `qa.yaml` с тем же содержимым) |
-| SECURITY | `integration/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. .cursor/rules/shared/workflow-security-epic.mdc |
-| Contracts | `integration/contracts/` | `<domain-slug>.md` |
-| Reference | `integration/reference/` | stubs → query-builder skill |
+**Корневой архив эпиков:** `memory-bank/archive/{back\|front}/` (legacy `archive/integration/` — только дочитать). Legacy `memory-bank/{role}/archive/` не использовать для новых файлов.
 
-**Корневой архив эпиков:** `memory-bank/archive/{back\|front\|integration}/` — рядом с `back/` / `front/` / `integration/`. Legacy `memory-bank/{role}/archive/` не использовать для новых файлов.
-
-`slug` — латиница. `tasks.md` — append-only. Артефакты режимов — под `back/` | `front/` | `integration/` пока активны; после ARCHIVE NOW — под `archive/…`. Исключение общих index + **`architecture/`**.
+`slug` — латиница. `tasks.md` — append-only. Артефакты режимов — под `back/` | `front/` пока активны; после ARCHIVE NOW — под `archive/…`. Исключение общих index + **`architecture/`**.

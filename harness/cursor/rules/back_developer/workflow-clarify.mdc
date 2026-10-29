@@ -18,7 +18,7 @@ alwaysApply: false
 ## Когда запускать
 
 - **`BACK PLAN`** сам запускает Phase 0 Clarify при триггерах (orchestration) — отдельный `BACK CLARIFY` **не обязателен**
-- **Standalone `BACK CLARIFY`:** `continue` после 20/20 Q · CRITICAL после draft plan · IDEA PIPELINE / ANALYZE revisit · только ambiguity без plan в этой сессии
+- **Standalone `BACK CLARIFY`:** `continue` после 20/20 Q · CRITICAL после draft plan · IDEA PIPELINE / unresolved product decision revisit · только ambiguity без plan в этой сессии
 
 ---
 

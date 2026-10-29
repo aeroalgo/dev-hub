@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,6 @@ from .security_schema import complete_security_artifact
 from .index import (
     Queue,
     Step,
-    audit_is_converged,
     bugfix_queue_path,
     bugfix_queue_intake,
     bugfix_report_paths,
@@ -30,14 +30,14 @@ from .index import (
     prepare_step_status,
     qa_verdict,
     queue_implement_gaps,
-    queue_ready_for_audit,
+    queue_ready_for_qa,
     resolve_epic_kind,
     resolve_epic_role,
     validate_decompose_tree,
 )
 from .model import Cursor, CursorStatus, FailureRecord, Transition
 from .store import CommitResult, LoopPaths, StoreTransaction, TransactionPlan, CursorStore, file_digest
-from .verdict import GateVerdict, MANAGED_GATE_AGENTS
+from .verdict import ContextSyncResult, GateVerdict, MANAGED_GATE_AGENTS
 from .roadmap import prepare_advance_after_context_sync
 
 
@@ -47,13 +47,19 @@ class TransitionError(RuntimeError):
 
 _PHASE_GATE_AGENTS = {
     "DECOMPOSE": "verify-decompose",
-    "ANALYZE": "analyze-verify",
     "IMPLEMENT": "verify-implement",
     "TASK": "verify-implement",
     "REFACTOR": "verify-implement",
     "SECURITY": "verify-security",
     "BUGFIX": "verify-bugfix",
     "QA": "verify-qa",
+}
+
+# Legacy cursors / env names may still carry these; loop never schedules them as live phases.
+_OBSOLETE_PHASE_REMAP = {
+    "ANALYZE": "DECOMPOSE",
+    "AUDIT": "QA",
+    "CONTEXT_SYNC": "QA",
 }
 
 _ENGINE_GATE_AGENTS = MANAGED_GATE_AGENTS | {"verify-security"}
@@ -88,20 +94,19 @@ class LoopEngine:
     def _plan_path(self, cursor: Cursor) -> Path:
         return plan_path(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind or "feature")
 
-    def _phase_after_queue(self, queue: Queue) -> tuple[str, str]:
+    def _phase_after_queue(
+        self,
+        queue: Queue,
+        *,
+        context_sync_completed: bool = False,
+    ) -> tuple[str, str]:
         if getattr(queue, "kind", None) == "security":
             return "DONE", "security audit queue complete"
-        ready, implement_reason = queue_ready_for_audit(self.paths.project, queue)
+        ready, implement_reason = queue_ready_for_qa(self.paths.project, queue)
         if not ready:
             raise TransitionError(f"cannot advance past IMPLEMENT: {implement_reason}")
-        audit = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "audit")
         qa = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "qa")
         bugfix_queue = bugfix_queue_path(self.paths.project, queue.role, queue.epic_id)
-        if not audit:
-            return "AUDIT", "audit artifact required"
-        audit_ready, audit_reason = audit_is_converged(self.paths.project, queue.role, queue.epic_id)
-        if not audit_ready:
-            return "AUDIT", audit_reason
         if not qa:
             return "QA", "qa artifact required"
         verdict = qa_verdict(qa[-1])
@@ -111,10 +116,9 @@ class LoopEngine:
                 return "QA", "bugfix exists; re-qa required"
             return "BUGFIX", "qa failed"
         if verdict in {"pass", "passed", "complete", "completed"}:
-            sync = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "context-sync")
-            if sync:
-                return "DONE", "context sync complete"
-            return "CONTEXT_SYNC", "qa passed; context sync required"
+            if context_sync_completed:
+                return "DONE", "qa passed; context-sync completed"
+            return "QA", "qa passed; context-sync result required before finish"
         return "QA", "qa verdict missing"
 
     def _work_steps(self, queue: Queue) -> tuple[Step, ...]:
@@ -125,7 +129,13 @@ class LoopEngine:
             return ()
         return tuple(step for step, _reason in queue_implement_gaps(self.paths.project, queue))
 
-    def _target(self, cursor: Cursor, queue: Queue | None = None) -> tuple[str, str, str]:
+    def _target(
+        self,
+        cursor: Cursor,
+        queue: Queue | None = None,
+        *,
+        context_sync_completed: bool = False,
+    ) -> tuple[str, str, str]:
         if queue is None:
             canonical_index = index_path(self.paths.project, cursor.role, cursor.epic_id, kind=cursor.kind or "feature")
             if not canonical_index.is_file():
@@ -141,7 +151,8 @@ class LoopEngine:
             if getattr(active_queue, "kind", None) != "security" and cursor.kind != "security":
                 gate = self._analyze_gate(active_queue)
                 if gate["required"]:
-                    return "ANALYZE", "ANALYZE", f"ANALYZE gate: {gate['reason']}"
+                    # The analysis gate is an internal DECOMPOSE subagent, not a user phase.
+                    return "DECOMPOSE", "DECOMPOSE", f"analyze gate in DECOMPOSE: {gate['reason']}"
             step = work[0]
             phase, reason = phase_for_pending_step(self.paths.project, active_queue, step)
             if step.status in {"completed", "done"} and step not in active_queue.pending:
@@ -150,7 +161,10 @@ class LoopEngine:
                     "without completed implement artifact"
                 )
             return phase, step.step_id, reason
-        phase, reason = self._phase_after_queue(active_queue)
+        phase, reason = self._phase_after_queue(
+            active_queue,
+            context_sync_completed=context_sync_completed,
+        )
         return phase, phase, reason
 
     @staticmethod
@@ -201,12 +215,9 @@ class LoopEngine:
             )
             next_load_number += 1
         phase_directories = {
-            "ANALYZE": "analyze",
             "CREATIVE": "creative",
-            "AUDIT": "audit",
             "QA": "qa",
             "BUGFIX": "bugfix",
-            "CONTEXT_SYNC": "context-sync",
         }
         artifact_kind = phase_directories.get(cursor.phase)
         if artifact_kind:
@@ -275,6 +286,23 @@ class LoopEngine:
     def _required_gate_agent(phase: str) -> str | None:
         return _PHASE_GATE_AGENTS.get(str(phase or "").upper())
 
+    @staticmethod
+    def _remap_obsolete_phase(phase: str) -> str:
+        key = str(phase or "").strip().upper()
+        return _OBSOLETE_PHASE_REMAP.get(key, key)
+
+    def _normalize_obsolete_cursor(self, cursor: Cursor) -> Cursor:
+        """Normalize cursors written by versions that had removed phases."""
+        remapped = self._remap_obsolete_phase(cursor.phase)
+        if remapped == cursor.phase:
+            return cursor
+        candidate = self._copy_cursor(cursor)
+        candidate.phase = remapped
+        if remapped in {"DECOMPOSE", "QA", "BUGFIX"}:
+            candidate.step_id = remapped
+        candidate.phase_epoch += 1
+        return candidate
+
     def _qa_failure_ready(self, cursor: Cursor) -> bool:
         artifacts = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "qa")
         qa_status = qa_verdict(artifacts[-1]) if artifacts else None
@@ -288,6 +316,205 @@ class LoopEngine:
             and queue_reason == "bugfix_queue_open"
         )
 
+    @staticmethod
+    def _event_matches_cursor(
+        event: dict[str, Any] | None,
+        cursor: Cursor,
+        *,
+        event_name: str,
+        agent_id: str | None = None,
+    ) -> bool:
+        if event is None or str(event.get("event") or "") != event_name:
+            return False
+        expected = {
+            "session_id": cursor.session_id,
+            "epic_id": cursor.epic_id,
+            "step_id": cursor.step_id,
+        }
+        if not all(str(event.get(field) or "") == str(value) for field, value in expected.items()):
+            return False
+        event_epoch = event.get("phase_epoch", event.get("verdict_phase_epoch"))
+        if str(event_epoch or "") != str(cursor.phase_epoch):
+            return False
+        return agent_id is None or str(event.get("agent_id") or "") == agent_id
+
+    def _qa_pass_event(
+        self,
+        transaction: StoreTransaction,
+        cursor: Cursor,
+    ) -> dict[str, Any] | None:
+        event = transaction.latest_event("verdict_accepted")
+        if not self._event_matches_cursor(
+            event,
+            cursor,
+            event_name="verdict_accepted",
+            agent_id="verify-qa",
+        ):
+            return None
+        if str(event.get("verdict") or "") != "PASS" or str(event.get("phase") or "") != "QA":
+            return None
+        return event
+
+    @staticmethod
+    def _event_timestamp(event: dict[str, Any]) -> float | None:
+        for field in ("recorded_at", "at"):
+            raw = str(event.get(field) or "").strip()
+            if not raw:
+                continue
+            try:
+                value = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            return value.timestamp()
+        return None
+
+    def _historical_qa_pass_event(
+        self,
+        transaction: StoreTransaction,
+        cursor: Cursor,
+    ) -> dict[str, Any] | None:
+        if cursor.phase != "QA" or cursor.step_id != "QA":
+            return None
+        event = transaction.event_with_fields(
+            "verdict_accepted",
+            {
+                "phase": "QA",
+                "agent_id": "verify-qa",
+                "verdict": "PASS",
+                "context_sync_required": True,
+                "epic_id": cursor.epic_id,
+                "step_id": "QA",
+            },
+        )
+        return event
+
+    def _qa_pass_resume_allowed(
+        self,
+        transaction: StoreTransaction,
+        cursor: Cursor,
+        pass_event: dict[str, Any],
+    ) -> tuple[bool, str | None, str | None]:
+        if not self._qa_pass_ready(cursor):
+            return False, None, None
+        artifacts = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "qa")
+        if not artifacts:
+            return False, None, None
+        latest_artifact = artifacts[-1]
+        current_digest = file_digest(latest_artifact)
+        try:
+            current_path = latest_artifact.resolve().relative_to(self.paths.project.resolve()).as_posix()
+            artifact_timestamp = latest_artifact.stat().st_mtime
+        except (OSError, ValueError):
+            return False, None, None
+        event_timestamp = self._event_timestamp(pass_event)
+        if event_timestamp is None or artifact_timestamp > event_timestamp + 1.0:
+            return False, None, None
+        recorded_digest = str(pass_event.get("qa_artifact_digest") or "")
+        if recorded_digest:
+            if not current_digest or current_digest != recorded_digest:
+                return False, None, None
+        recorded_path = str(pass_event.get("qa_artifact_path") or "")
+        if recorded_path and recorded_path != current_path:
+            return False, None, None
+
+        failure_fields = {
+            "phase": "QA",
+            "agent_id": "verify-qa",
+            "verdict": "FAIL",
+            "epic_id": cursor.epic_id,
+            "step_id": "QA",
+        }
+        for event_name in ("verdict_recorded", "qa_failed"):
+            failure = transaction.event_with_fields(event_name, failure_fields)
+            if failure is None:
+                continue
+            failure_timestamp = self._event_timestamp(failure)
+            pass_timestamp = self._event_timestamp(pass_event)
+            if (
+                failure_timestamp is None
+                or pass_timestamp is None
+                or failure_timestamp > pass_timestamp
+            ):
+                return False, None, None
+
+        bugfix_finish = transaction.event_with_fields(
+            "finish",
+            {"source_phase": "BUGFIX", "epic_id": cursor.epic_id},
+        )
+        if bugfix_finish is not None:
+            finish_timestamp = self._event_timestamp(bugfix_finish)
+            pass_timestamp = self._event_timestamp(pass_event)
+            if (
+                finish_timestamp is None
+                or pass_timestamp is None
+                or finish_timestamp > pass_timestamp
+            ):
+                return False, None, None
+        return True, current_digest, current_path
+
+    def _context_sync_event(
+        self,
+        transaction: StoreTransaction,
+        cursor: Cursor,
+    ) -> dict[str, Any] | None:
+        event = transaction.latest_event("context_sync_completed")
+        if not self._event_matches_cursor(
+            event,
+            cursor,
+            event_name="context_sync_completed",
+            agent_id="context-sync",
+        ):
+            return None
+        if str(event.get("status") or "") != "done":
+            return None
+        return event
+
+    @staticmethod
+    def _decompose_gate_pass_event(
+        transaction: StoreTransaction,
+        cursor: Cursor,
+        agent_id: str,
+    ) -> dict[str, Any] | None:
+        if cursor.phase != "DECOMPOSE":
+            return None
+        event = transaction.event_with_fields(
+            "verdict_accepted",
+            {
+                "phase": "DECOMPOSE",
+                "agent_id": agent_id,
+                "verdict": "PASS",
+                "session_id": cursor.session_id,
+                "epic_id": cursor.epic_id,
+                "step_id": cursor.step_id,
+                "verdict_step_id": cursor.step_id,
+                "verdict_phase_epoch": cursor.phase_epoch,
+            },
+        )
+        return event
+
+    def _context_sync_path(self, cursor: Cursor, raw_path: str) -> Path:
+        candidate = Path(raw_path)
+        if not candidate.is_absolute():
+            candidate = self.paths.project / candidate
+        candidate = candidate.resolve()
+        root = (
+            self.paths.project
+            / "memory-bank"
+            / cursor.role
+            / "context-sync"
+            / cursor.epic_id
+        ).resolve()
+        if candidate.parent != root or not candidate.name.startswith("sync-") or candidate.suffix != ".md":
+            raise TransitionError(
+                "context-sync sync_path must be a sync-*.md file under "
+                f"memory-bank/{cursor.role}/context-sync/{cursor.epic_id}/"
+            )
+        if not candidate.is_file():
+            raise TransitionError(f"context-sync artifact missing: {candidate}")
+        return candidate
+
     def _qa_pass_ready(self, cursor: Cursor) -> bool:
         if cursor.phase != "QA":
             return False
@@ -296,10 +523,32 @@ class LoopEngine:
         return verdict in {"pass", "passed", "complete", "completed"}
 
     def _context_sync_ready(self, cursor: Cursor) -> bool:
-        if cursor.phase != "CONTEXT_SYNC":
+        if cursor.phase != "QA":
             return False
-        sync = phase_artifacts(self.paths.project, cursor.role, cursor.epic_id, "context-sync")
-        return bool(sync)
+        event = self.store.latest_event("context_sync_completed")
+        return self._event_matches_cursor(
+            event,
+            cursor,
+            event_name="context_sync_completed",
+            agent_id="context-sync",
+        ) and str(event.get("status") or "") == "done"
+
+    def qa_context_sync_pending(self, cursor: Cursor) -> bool:
+        if cursor.phase != "QA":
+            return False
+        event = self.store.latest_event("verdict_accepted")
+        if not self._event_matches_cursor(
+            event,
+            cursor,
+            event_name="verdict_accepted",
+            agent_id="verify-qa",
+        ):
+            return False
+        return (
+            str(event.get("verdict") or "") == "PASS"
+            and bool(event.get("context_sync_required"))
+            and not self._context_sync_ready(cursor)
+        )
 
     def _salvage_gate_pass_from_pre_emit(self, cursor: Cursor) -> GateVerdict | None:
         """Reuse a validate-verdict stamp when the child fence was rejected for format noise."""
@@ -337,7 +586,7 @@ class LoopEngine:
 
         Order:
         1) Salvage validate-verdict PASS stamp → accept_verdict (atomic gate close).
-        2) Phase-specific artifact auto-finish (AUDIT / QA-fail / BUGFIX / CONTEXT_SYNC / CREATIVE).
+        2) Phase-specific artifact auto-finish (QA-fail / BUGFIX / CREATIVE).
         """
         if cursor.status in {CursorStatus.COMPLETE, CursorStatus.HALTED}:
             return None
@@ -373,20 +622,6 @@ class LoopEngine:
             except TransitionError:
                 return None
 
-        if cursor.phase == "AUDIT":
-            ready, _ = audit_is_converged(self.paths.project, cursor.role, cursor.epic_id)
-            if ready:
-                try:
-                    return self.finish(step_id=cursor.step_id, reason="session-auto-finish:audit")
-                except TransitionError:
-                    return None
-
-        if cursor.phase == "CONTEXT_SYNC" and self._context_sync_ready(cursor):
-            try:
-                return self.finish(step_id=cursor.step_id, reason="session-auto-finish:context-sync")
-            except TransitionError:
-                return None
-
         if cursor.phase == "CREATIVE":
             try:
                 queue = self._queue(cursor)
@@ -407,12 +642,6 @@ class LoopEngine:
             return False
         ready, reason = bugfix_queue_state(self.paths.project, cursor.role, cursor.epic_id)
         return ready and reason == "bugfix_queue_ready"
-
-    def _bugfix_has_open_items(self, cursor: Cursor) -> bool:
-        if cursor.phase != "BUGFIX":
-            return False
-        _, reason = bugfix_queue_state(self.paths.project, cursor.role, cursor.epic_id)
-        return reason == "bugfix_queue_open"
 
     def rearm_active(self, *, reason: str, expected_revision: int | None = None) -> Transition:
         """Keep the same phase after expected partial progress; clear retry streak."""
@@ -566,6 +795,20 @@ class LoopEngine:
         *,
         gate_pass: GateVerdict | None,
     ) -> None:
+        if cursor.phase == "DECOMPOSE":
+            if gate_pass is not None and gate_pass.agent_id == "analyze-verify":
+                if gate_pass.verdict != "PASS":
+                    raise TransitionError("cannot finish DECOMPOSE: analyze-verify PASS is required")
+                if self._decompose_gate_pass_event(transaction, cursor, "verify-decompose") is None:
+                    raise TransitionError(
+                        "cannot accept analyze-verify PASS before accepted verify-decompose PASS"
+                    )
+                return
+            if self._decompose_gate_pass_event(transaction, cursor, "analyze-verify") is not None:
+                return
+            raise TransitionError(
+                "cannot finish DECOMPOSE: accepted analyze-verify PASS is required"
+            )
         agent_id = self._required_gate_agent(cursor.phase)
         if agent_id is None:
             return
@@ -574,6 +817,8 @@ class LoopEngine:
                 raise TransitionError(
                     f"wrong gate for {cursor.phase}: expected={agent_id}, received={gate_pass.agent_id}"
                 )
+            return
+        if cursor.phase == "QA" and self._qa_pass_event(transaction, cursor) is not None:
             return
         if cursor.phase == "QA" and self._qa_failure_ready(cursor):
             return
@@ -610,6 +855,7 @@ class LoopEngine:
         reason: str,
         event: dict[str, Any],
         gate_pass: GateVerdict | None = None,
+        context_sync_path: str | None = None,
     ) -> TransactionPlan:
         if cursor.status == CursorStatus.COMPLETE:
             return TransactionPlan(cursor, {"event": "finish_duplicate", "reason": "already complete"}, changed=False)
@@ -635,11 +881,11 @@ class LoopEngine:
         self._require_gate_pass(cursor, transaction, gate_pass=gate_pass)
         next_queue = queue
         mutations = []
-        if cursor.phase in {"ANALYZE", "IMPLEMENT", "TASK", "REFACTOR"}:
-            gate = self._analyze_gate(queue, force=cursor.phase == "ANALYZE")
+        if cursor.phase in {"DECOMPOSE", "IMPLEMENT", "TASK", "REFACTOR"}:
+            gate = self._analyze_gate(queue, force=cursor.phase == "DECOMPOSE")
             if gate["required"]:
                 raise TransitionError(
-                    f"cannot finish {cursor.phase}: ANALYZE gate {gate['reason']}"
+                    f"cannot finish {cursor.phase}: DECOMPOSE readiness gate {gate['reason']}"
                 )
         if cursor.phase == "CREATIVE":
             step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
@@ -650,6 +896,7 @@ class LoopEngine:
             ready, creative_reason = creative_finish_ready(self.paths.project, queue, step)
             if not ready:
                 raise TransitionError(f"cannot finish CREATIVE: {creative_reason}")
+        resolved_context_sync_path = context_sync_path
         if cursor.phase in {"IMPLEMENT", "TASK", "REFACTOR"}:
             step = next((item for item in queue.steps if item.step_id == cursor.step_id), None)
             if step is None:
@@ -696,10 +943,6 @@ class LoopEngine:
             index_mutation = prepare_step_status(queue, cursor.step_id, "completed")
             mutations.append(index_mutation)
             next_queue = self._queue_after_step(queue, cursor.step_id)
-        elif cursor.phase == "AUDIT":
-            ready, audit_reason = audit_is_converged(self.paths.project, queue.role, queue.epic_id)
-            if not ready:
-                raise TransitionError(f"cannot finish AUDIT without a converged audit artifact: {audit_reason}")
         elif cursor.phase == "QA":
             artifacts = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "qa")
             verdict = qa_verdict(artifacts[-1]) if artifacts else None
@@ -720,25 +963,25 @@ class LoopEngine:
                 queue_valid, queue_reason = bugfix_queue_intake(self.paths.project, queue.role, queue.epic_id)
                 if not queue_valid:
                     raise TransitionError(f"cannot finish QA: {queue_reason}")
+            elif verdict in {"pass", "passed", "complete", "completed"}:
+                if resolved_context_sync_path is None:
+                    sync_event = self._context_sync_event(transaction, cursor)
+                    if sync_event is not None:
+                        resolved_context_sync_path = str(sync_event.get("sync_path") or "")
+                if not resolved_context_sync_path:
+                    raise TransitionError(
+                        "cannot finish QA pass before context-sync completion: spawn agent_type=context-sync "
+                        f"then write memory-bank/{queue.role}/context-sync/{queue.epic_id}/sync-*.md"
+                    )
+                self._context_sync_path(cursor, resolved_context_sync_path)
         elif cursor.phase == "BUGFIX":
             if not bugfix_report_paths(self.paths.project, queue.role, queue.epic_id):
                 raise TransitionError("cannot finish BUGFIX without a bugfix artifact")
             queue_ready, queue_reason = bugfix_queue_state(self.paths.project, queue.role, queue.epic_id)
             if not queue_ready:
                 raise TransitionError(f"cannot finish BUGFIX: {queue_reason}")
-        elif cursor.phase == "CONTEXT_SYNC":
-            sync = phase_artifacts(self.paths.project, queue.role, queue.epic_id, "context-sync")
-            if not sync:
-                raise TransitionError(
-                    "cannot finish CONTEXT_SYNC without sync-*.md under "
-                    f"memory-bank/{queue.role}/context-sync/{queue.epic_id}/"
-                )
-
         if cursor.phase == "DECOMPOSE":
-            if cursor.kind == "security":
-                phase, next_step, target_reason = self._target(cursor, next_queue)
-            else:
-                phase, next_step, target_reason = "ANALYZE", "ANALYZE", "decompose index created"
+            phase, next_step, target_reason = self._target(cursor, next_queue)
         elif cursor.phase == "CREATIVE":
             phase, next_step, target_reason = self._target(cursor, next_queue)
             if phase == "CREATIVE":
@@ -747,7 +990,13 @@ class LoopEngine:
                     "(close needs_creative on the work shard before finish)"
                 )
         else:
-            phase, next_step, target_reason = self._target(cursor, next_queue)
+            phase, next_step, target_reason = self._target(
+                cursor,
+                next_queue,
+                context_sync_completed=(
+                    cursor.phase == "QA" and resolved_context_sync_path is not None
+                ),
+            )
         candidate = self._copy_cursor(cursor)
         candidate.phase, candidate.step_id = phase, next_step
         candidate.status = CursorStatus.COMPLETE if phase == "DONE" else CursorStatus.ACTIVE
@@ -765,7 +1014,7 @@ class LoopEngine:
         }
         render_queue = next_queue
 
-        if cursor.phase == "CONTEXT_SYNC" and phase == "DONE":
+        if cursor.phase == "QA" and phase == "DONE":
             try:
                 advance = prepare_advance_after_context_sync(
                     self.paths.project,
@@ -773,7 +1022,7 @@ class LoopEngine:
                     epic_id=cursor.epic_id,
                 )
             except ValueError as exc:
-                raise TransitionError(f"cannot finish CONTEXT_SYNC: {exc}") from exc
+                raise TransitionError(f"cannot finish QA (roadmap advance): {exc}") from exc
             if advance.queue_body and advance.queue_path is not None:
                 mutations.append(transaction.mutation(advance.queue_path, advance.queue_body))
             transition_event["roadmap_marked"] = advance.marked
@@ -824,6 +1073,8 @@ class LoopEngine:
                 candidate.attempt = 0
                 candidate.failure = None
                 candidate.phase_epoch += 1
+                if self._remap_obsolete_phase(candidate.phase) != candidate.phase:
+                    candidate = self._normalize_obsolete_cursor(candidate)
                 queue = None if candidate.phase == "DECOMPOSE" else self._queue(candidate)
                 pending_qa_failure = self._pending_qa_failure(transaction, current)
                 if pending_qa_failure and self._qa_failure_ready(candidate):
@@ -863,6 +1114,43 @@ class LoopEngine:
                         event=route_event,
                         gate_pass=gate_pass,
                     )
+                historical_qa_pass = self._historical_qa_pass_event(transaction, current)
+                if historical_qa_pass is not None:
+                    pass_allowed, qa_artifact_digest, qa_artifact_path = self._qa_pass_resume_allowed(
+                        transaction,
+                        current,
+                        historical_qa_pass,
+                    )
+                    if pass_allowed:
+                        reconcile_key = (
+                            f"{candidate.phase_epoch}:{candidate.session_id}:{candidate.epic_id}:"
+                            f"{candidate.step_id}:verify-qa:PASS:resume:{historical_qa_pass.get('key') or 'legacy'}"
+                        )
+                        reconcile_event = {
+                            "event": "verdict_accepted",
+                            "key": reconcile_key,
+                            "source": "resume-reconcile",
+                            "phase": candidate.phase,
+                            "agent_id": "verify-qa",
+                            "verdict": "PASS",
+                            "context_sync_required": True,
+                            "session_id": candidate.session_id,
+                            "epic_id": candidate.epic_id,
+                            "step_id": candidate.step_id,
+                            "verdict_step_id": candidate.step_id,
+                            "verdict_phase_epoch": candidate.phase_epoch,
+                            "recorded_at": historical_qa_pass.get("recorded_at") or "",
+                            "evidence_sha256": historical_qa_pass.get("evidence_sha256"),
+                            "qa_artifact_digest": qa_artifact_digest,
+                            "qa_artifact_path": qa_artifact_path,
+                            "target_reason": "qa pass reconciled; context-sync required",
+                            "reconciled_from": historical_qa_pass.get("key") or "legacy",
+                        }
+                        return TransactionPlan(
+                            candidate,
+                            reconcile_event,
+                            (transaction.mutation(self.paths.active_context, self._render_body(candidate, queue)),),
+                        )
                 return TransactionPlan(
                     candidate,
                     {
@@ -904,12 +1192,9 @@ class LoopEngine:
         target_phase = str(phase or "").strip().upper()
         if target_phase not in {
             "DECOMPOSE",
-            "ANALYZE",
             "CREATIVE",
-            "AUDIT",
             "QA",
             "BUGFIX",
-            "CONTEXT_SYNC",
             "SECURITY",
         }:
             raise TransitionError(f"unsupported rewind phase: {phase!r}")
@@ -993,6 +1278,11 @@ class LoopEngine:
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cursor does not exist; run start first")
+            finish_step = step_id
+            if self._remap_obsolete_phase(current.phase) != current.phase:
+                current = self._normalize_obsolete_cursor(current)
+                if finish_step and finish_step in _OBSOLETE_PHASE_REMAP:
+                    finish_step = current.step_id
             # Product QA FAIL + open bugfix queue must route even when Codex/runtime
             # never persisted verdict_recorded (no subagent-stop hook). Artifact SoT wins.
             if self._qa_failure_ready(current):
@@ -1028,7 +1318,7 @@ class LoopEngine:
                 return self._finish_plan(
                     current,
                     transaction,
-                    step_id=step_id,
+                    step_id=finish_step,
                     reason="finish-reconcile:verify-qa:FAIL",
                     event=route_event,
                     gate_pass=qa_gate_pass,
@@ -1036,7 +1326,7 @@ class LoopEngine:
             return self._finish_plan(
                 current,
                 transaction,
-                step_id=step_id,
+                step_id=finish_step,
                 reason=reason,
                 event={"event": "finish"},
                 gate_pass=gate_pass,
@@ -1049,6 +1339,8 @@ class LoopEngine:
         def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
             if current is None:
                 raise TransitionError("cursor does not exist; run start first")
+            if self._remap_obsolete_phase(current.phase) != current.phase:
+                current = self._normalize_obsolete_cursor(current)
             duplicate_fields = {
                 "session_id": record.session_id,
                 "epic_id": record.epic_id,
@@ -1125,9 +1417,14 @@ class LoopEngine:
             if current.step_id != record.step_id:
                 raise TransitionError(f"verdict step mismatch: cursor={current.step_id}, received={record.step_id}")
             required_agent = self._required_gate_agent(current.phase)
+            decompose_analyze = (
+                current.phase == "DECOMPOSE"
+                and record.agent_id == "analyze-verify"
+                and required_agent == "verify-decompose"
+            )
             if required_agent is None:
                 raise TransitionError(f"no subagent gate is valid for phase {current.phase}")
-            if record.agent_id != required_agent:
+            if record.agent_id != required_agent and not decompose_analyze:
                 raise TransitionError(
                     f"verdict agent mismatch for {current.phase}: expected={required_agent}, received={record.agent_id}"
                 )
@@ -1146,6 +1443,36 @@ class LoopEngine:
                 "recorded_at": record.recorded_at,
                 "evidence_sha256": record.evidence_sha256,
             }
+            if record.agent_id == "verify-decompose" and record.verdict == "PASS":
+                try:
+                    validate_decompose_tree(
+                        self.paths.project,
+                        current.role,
+                        current.epic_id,
+                        require_fresh_pending=True,
+                    )
+                except (ValueError, FileNotFoundError, OSError) as exc:
+                    raise TransitionError(
+                        f"cannot accept verify-decompose PASS: invalid decompose tree — {exc}"
+                    ) from exc
+                event["gate_role"] = "decompose_structure"
+                event["session_keep_alive"] = True
+                return TransactionPlan(None, event)
+            if decompose_analyze:
+                event["gate_role"] = "decompose_analyze"
+                if record.verdict == "PASS":
+                    if self._decompose_gate_pass_event(transaction, current, "verify-decompose") is None:
+                        raise TransitionError(
+                            "cannot accept analyze-verify PASS before accepted verify-decompose PASS"
+                        )
+                    return self._finish_plan(
+                        current,
+                        transaction,
+                        step_id=record.step_id,
+                        reason=f"{source}:{record.agent_id}:PASS",
+                        event=event,
+                        gate_pass=record,
+                    )
             if record.verdict != "PASS":
                 if current.phase == "QA" and record.verdict == "FAIL":
                     if self._qa_failure_ready(current):
@@ -1250,6 +1577,35 @@ class LoopEngine:
                         (event,),
                     )
                 return TransactionPlan(None, event)
+            if (
+                current.phase == "QA"
+                and record.agent_id == "verify-qa"
+                and self._qa_pass_ready(current)
+            ):
+                artifacts = phase_artifacts(self.paths.project, current.role, current.epic_id, "qa")
+                previous = transaction.latest_event("verdict_accepted") or transaction.latest_event("finish")
+                if artifacts and previous and previous.get("source_phase") == "BUGFIX":
+                    baseline = str(previous.get("qa_artifact_digest") or "")
+                    current_digest = file_digest(artifacts[-1]) or ""
+                    if baseline and current_digest == baseline:
+                        raise TransitionError("cannot accept QA PASS: qa_new_artifact_required")
+                candidate = self._copy_cursor(current)
+                candidate.status = CursorStatus.ACTIVE
+                candidate.attempt = 0
+                candidate.failure = None
+                event["context_sync_required"] = True
+                event["qa_artifact_digest"] = file_digest(artifacts[-1]) if artifacts else None
+                event["qa_artifact_path"] = (
+                    artifacts[-1].resolve().relative_to(self.paths.project.resolve()).as_posix()
+                    if artifacts
+                    else None
+                )
+                event["target_reason"] = "qa passed; context-sync required"
+                return TransactionPlan(
+                    candidate,
+                    event,
+                    (transaction.mutation(self.paths.active_context, self._render_body(candidate)),),
+                )
             return self._finish_plan(
                 current,
                 transaction,
@@ -1264,7 +1620,78 @@ class LoopEngine:
             result,
             event=str(result.event.get("event") or "verdict_recorded"),
             reason=str(result.event.get("reason") or result.event.get("verdict") or "verdict"),
-            metadata={"key": result.event.get("key"), "agent_id": result.event.get("agent_id"), "verdict": result.event.get("verdict")},
+            metadata={
+                "key": result.event.get("key"),
+                "agent_id": result.event.get("agent_id"),
+                "verdict": result.event.get("verdict"),
+                "context_sync_required": result.event.get("context_sync_required", False),
+                "session_keep_alive": result.event.get("session_keep_alive", False),
+            },
+        )
+
+    def complete_context_sync(
+        self,
+        record: ContextSyncResult,
+        *,
+        source: str = "subagent-stop",
+    ) -> Transition:
+        def planner(current: Cursor | None, transaction: StoreTransaction) -> TransactionPlan:
+            if current is None:
+                raise TransitionError("cursor does not exist; run context sync from an active loop")
+            key = f"{record.session_id}:{record.epic_id}:{record.sync_path}:{record.recorded_at}"
+            for event_name in ("context_sync_completed", "context_sync_failed"):
+                if transaction.event_seen(event_name, key):
+                    return TransactionPlan(
+                        current,
+                        {"event": "context_sync_duplicate", "key": key},
+                        changed=False,
+                    )
+            if current.phase != "QA" or current.step_id != "QA":
+                raise TransitionError(
+                    f"context-sync requires active QA phase: cursor={current.phase}/{current.step_id}"
+                )
+            if current.session_id != record.session_id:
+                raise TransitionError("context-sync session mismatch")
+            if current.epic_id != record.epic_id:
+                raise TransitionError("context-sync epic mismatch")
+            if self._qa_pass_event(transaction, current) is None:
+                raise TransitionError("context-sync requires accepted verify-qa PASS")
+            event = {
+                "event": "context_sync_failed" if record.status == "fail" else "context_sync_completed",
+                "key": key,
+                "source": source,
+                "agent_id": record.agent_id,
+                "status": record.status,
+                "session_id": record.session_id,
+                "epic_id": record.epic_id,
+                "step_id": current.step_id,
+                "phase": current.phase,
+                "phase_epoch": current.phase_epoch,
+                "sync_path": record.sync_path,
+                "recorded_at": record.recorded_at,
+            }
+            if record.status == "fail":
+                return TransactionPlan(None, event)
+            artifact = self._context_sync_path(current, record.sync_path)
+            return self._finish_plan(
+                current,
+                transaction,
+                step_id=current.step_id,
+                reason=f"{source}:context-sync:done",
+                event=event,
+                context_sync_path=str(artifact),
+            )
+
+        result = self.store.transact(planner)
+        return self._transition_from_result(
+            result,
+            event=str(result.event.get("event") or "context_sync_completed"),
+            reason=str(result.event.get("reason") or result.event.get("status") or "context-sync"),
+            metadata={
+                "agent_id": result.event.get("agent_id"),
+                "status": result.event.get("status"),
+                "sync_path": result.event.get("sync_path"),
+            },
         )
 
     def reject_verdict(

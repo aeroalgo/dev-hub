@@ -12,7 +12,7 @@ alwaysApply: false
 - @.agents/skills/brainstorming/SKILL.md — intake, неясная идея
 - @.agents/skills/product-discovery/SKILL.md — positioning, market
 - @.agents/skills/writing-plans/SKILL.md — декомпозиция фаз / stories (не GitHub-issues `breakdown-plan`)
-- @.agents/skills/bmad-orchestrator/SKILL.md — PM-L3/L4, /status mindset
+- @.agents/skills/bmad-orchestrator/SKILL.md — PM-L3, /status mindset
 
 **Цель:** Пользователь даёт **идею** (без знания ролей) → агент классифицирует, строит цепочку из **существующих** workflow, выполняет **текущую фазу**, фиксирует артефакт, рекомендует следующую команду до реализации.
 
@@ -65,8 +65,8 @@ alwaysApply: false
 | `refactor` | качество кода | `dev-hub-software` | BACK/FRONT REFACTOR |
 
 **1c. Complexity (два измерения):**
-- **PM-L:** L1 task · L2 feature · L3 initiative · L4 portfolio
-- **DEV-L:** L1 fix · L2 simple · L3 feature · L4 system
+- **PM-L:** L1 task · L2 feature · L3 initiative
+- **DEV-L:** L1 лёгкая (1 sNN) · L2 средняя (2 sNN) · L3 сложная (3 sNN)
 
 **1d. Построить pipeline** — упорядоченный список фаз. Каждая фаза = **одна команда** из существующих workflow:
 
@@ -121,7 +121,6 @@ alwaysApply: false
 3. **Прочитать и выполнить** workflow целевой роли:
    - FRONT → @.cursor/rules/front_developer/mainrule.mdc + `workflow-*.mdc`
    - BACK → @.cursor/rules/back_developer/mainrule.mdc + `workflow-*.mdc`
-   - INTEG → @.cursor/rules/integration_developer/mainrule.mdc + `workflow-*.mdc`
    - PM / TL / CONTENT / MARKETING / SEO → archived (`_archive/cursor-rules/`)
 4. Результат фазы — артефакт дочернего workflow (не дублировать в idea-*; только ссылка)
 5. **Одна фаза = один чат** (context-session-economy §2). После фазы → FINISH + new chat

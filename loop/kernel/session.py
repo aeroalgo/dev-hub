@@ -155,6 +155,14 @@ class SessionSupervisor:
             # done even when the agent exits with prose "готово" and skips finish.
             auto = self.engine.try_session_auto_finish(updated)
             if auto is not None and auto.changed:
+                if auto.metadata.get("context_sync_required"):
+                    return SessionRun(
+                        SessionOutcome.STATE_CHANGED,
+                        result,
+                        auto,
+                        "qa_pass_accepted_context_sync_required",
+                        0,
+                    )
                 return SessionRun(
                     SessionOutcome.COMMITTED,
                     result,
@@ -162,25 +170,9 @@ class SessionSupervisor:
                     auto.reason or "session-auto-finish",
                     0,
                 )
-            # BUGFIX canon: one open item per session is allowed. Exiting after a
-            # partial queue close must continue the phase — not finish_not_committed
-            # → retry_exhausted halt.
-            if updated.phase == "BUGFIX" and self.engine._bugfix_has_open_items(updated):
-                try:
-                    rearm = self.engine.rearm_active(
-                        reason="bugfix_items_remaining",
-                        expected_revision=cursor.revision,
-                    )
-                except TransitionError:
-                    rearm = None
-                if rearm is not None and rearm.changed:
-                    return SessionRun(
-                        SessionOutcome.PROGRESS_CONTINUE,
-                        result,
-                        rearm,
-                        "bugfix_items_remaining",
-                        0,
-                    )
+            # BUGFIX canon: one session must close the whole queue. Partial exit
+            # with open items is finish_not_committed (retry same session), not
+            # PROGRESS_CONTINUE / next-item re-arm.
             outcome = SessionOutcome.FINISH_NOT_COMMITTED
             reason = "finish_not_committed"
             code = "finish_not_committed"
@@ -195,9 +187,9 @@ class SessionSupervisor:
                     code = "decompose_tree_invalid"
                 else:
                     reason = (
-                        "finish_not_committed: decompose tree parses but verify-decompose "
-                        "PASS was not accepted / finish did not advance to ANALYZE — "
-                        "FORBIDDEN claim DECOMPOSE done; fix gate rejection and re-finish"
+                        "finish_not_committed: decompose tree parses but the DECOMPOSE gate "
+                        "did not reach IMPLEMENT/CREATIVE; verify-decompose PASS is only structural, "
+                        "then analyze-verify PASS must be accepted — FORBIDDEN claim DECOMPOSE done"
                     )
         elif result.timed_out or result.hung:
             outcome = SessionOutcome.TIMEOUT

@@ -5,8 +5,8 @@
 **Created:** YYYY-MM-DD  
 **Status:** intake | active | done  
 **Intent:** positioning | feature_ui | feature_api | feature_full | content | growth | initiative  
-**PM-L:** L1 | L2 | L3 | L4  
-**DEV-L:** L1 | L2 | L3 | L4  
+**PM-L:** L1 | L2 | L3  
+**DEV-L:** L1 (1 sNN) | L2 (2 sNN) | L3 (3 sNN)  
 
 ## Идея
 

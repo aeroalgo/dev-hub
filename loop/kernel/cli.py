@@ -61,7 +61,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--project", "--cwd", dest="project")
     parser.add_argument("--epic")
-    parser.add_argument("--role", default="auto", help="back|front|integration|auto (discover under memory-bank/<role>/{,refactor/,security/}plan/<epic>)")
+    parser.add_argument("--role", default="auto", help="back|front|integration(legacy)|auto (discover under memory-bank/<role>/{,refactor/,security/}plan/<epic>; new wire epics → front)")
     parser.add_argument(
         "--kind",
         choices=("feature", "refactor", "security"),
@@ -81,7 +81,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--step")
     parser.add_argument(
         "--phase",
-        choices=("DECOMPOSE", "ANALYZE", "CREATIVE", "AUDIT", "QA", "BUGFIX", "CONTEXT_SYNC", "SECURITY"),
+        choices=("DECOMPOSE", "CREATIVE", "QA", "BUGFIX", "SECURITY"),
     )
     parser.add_argument("--reason", default="manual halt")
     parser.add_argument("--payload")
@@ -132,13 +132,18 @@ def _project_transition(
     role: str,
     kind: str | None = None,
     status: object | None = None,
+    metadata: dict[str, object] | None = None,
     source: str = "transition",
 ):
     """Mirror every committed cursor transition to the external board."""
     if not epic_id:
         return None
     status_value = getattr(status, "value", status)
-    phase_to_project = "DONE" if phase == "DONE" or status_value == "complete" else phase
+    phase_to_project = (
+        "DONE"
+        if phase == "DONE" or status_value == "complete"
+        else phase
+    )
     try:
         return project_after_transition(
             project_root=project_root,
@@ -161,6 +166,70 @@ def _projection_fields(result) -> dict[str, object]:
         "projection_status": result.status,
         "projection_disabled_reason": result.disabled_reason,
     }
+
+
+def _project_cursor_transition(*, project_root: Path, cursor_before, cursor_after, transition=None, source: str):
+    """Project a committed cursor change, including implicit boundary changes.
+
+    At a roadmap boundary the old epic becomes DONE while the new cursor phase
+    belongs to the next epic. Boundary hooks can commit that change before the
+    session supervisor returns, so ``transition`` may be unavailable; the
+    before/after cursors remain the source of truth in that case.
+    """
+    if (
+        cursor_before is not None
+        and cursor_after is not None
+        and cursor_before.epic_id
+        and cursor_after.epic_id
+        and cursor_before.epic_id != cursor_after.epic_id
+    ):
+        completed_projection = _project_transition(
+            project_root=project_root,
+            epic_id=cursor_before.epic_id,
+            phase="DONE",
+            role=cursor_before.role,
+            kind=cursor_before.kind,
+            source=f"{source}:completed-epic",
+        )
+        active_projection = _project_transition(
+            project_root=project_root,
+            epic_id=cursor_after.epic_id,
+            phase=cursor_after.phase,
+            role=cursor_after.role,
+            kind=cursor_after.kind,
+            status=cursor_after.status,
+            source=f"{source}:next-epic",
+        )
+        return active_projection, completed_projection
+
+    if cursor_before is None or not cursor_before.epic_id:
+        return None, None
+
+    phase = transition.phase if transition is not None else cursor_after.phase
+    status = transition.status if transition is not None else cursor_after.status
+    metadata = transition.metadata if transition is not None else None
+    projection = _project_transition(
+        project_root=project_root,
+        epic_id=cursor_before.epic_id,
+        phase=phase,
+        role=cursor_before.role,
+        kind=cursor_before.kind,
+        status=status,
+        metadata=metadata,
+        source=source,
+    )
+    return projection, None
+
+
+def _project_finish_transition(*, project_root: Path, cursor_before, cursor_after, transition):
+    """Project both sides when an explicit finish advances the roadmap."""
+    return _project_cursor_transition(
+        project_root=project_root,
+        cursor_before=cursor_before,
+        cursor_after=cursor_after,
+        transition=transition,
+        source="finish",
+    )
 
 
 def _print_step_banner(
@@ -218,8 +287,9 @@ def _normalize_legacy_args(argv: list[str]) -> list[str]:
 _ROLE_RULES_DIR = {
     "back": "back_developer",
     "front": "front_developer",
-    "integration": "integration_developer",
-    "integ": "integration_developer",
+    # legacy memory-bank/integration/* epics still resolve role=integration; rules = FRONT (wire)
+    "integration": "front_developer",
+    "integ": "front_developer",
 }
 
 
@@ -298,27 +368,27 @@ def _security_phase_bootstrap(cursor, project: Path) -> str:
     )
 
 
-def _phase_instruction(cursor, project: Path) -> str:
+def _phase_instruction(cursor, project: Path, engine: LoopEngine | None = None) -> str:
     role = cursor.role.upper()
     epic = cursor.epic_id
     if cursor.phase == "DECOMPOSE":
         return (
             f"Run {role} DECOMPOSE for plan {epic}. "
             f"Read the plan at {project / 'memory-bank' / cursor.role / 'plan' / epic / 'md' / 'plan.md'}. "
-            "Create the canonical yaml/decompose-index.yaml and yaml/steps/sNN-*.yaml artifacts, "
-            "run the structural and traceability gates, and do not write production code. "
-            "YAML: loop auto-repairs invalid double-quoted escapes (`\\.token` → `\\\\.token`) and "
-            "purges orphan steps/*.yaml not listed in the index on validate/load. Prefer single-quoted "
-            "strings or block scalars (`|`) for rg patterns. One index step ↔ one steps/sNN-*.yaml. "
-            "FORBIDDEN claim DECOMPOSE done after `verdict REJECTED` / hook error or without "
-            "accepted verify-decompose PASS that advances the cursor to ANALYZE. "
+            "Create yaml/decompose-index.yaml + yaml/steps/sNN-*.yaml (L1→1 / L2→2 / L3→3 sNN_cap). "
+            "Prefer single-quoted or block scalars for rg patterns. One index step ↔ one steps file. "
+            "HARD before promotion: (1) spawn verify-decompose → PASS; "
+            f"(2) write memory-bank/{cursor.role}/analyze/{epic}/analyze-*.yaml with metrics.critical_count=0; "
+            "(3) spawn analyze-verify (FINDINGS/COVERAGE/ALLOW READ) → PASS; "
+            "analyze-verify PASS atomically promotes DECOMPOSE → IMPLEMENT/CREATIVE and ends this parent session; "
+            "do not call loop.py finish after either gate. "
+            "No separate user review phase. Do not write production code. "
         )
-    if cursor.phase == "ANALYZE":
+    if cursor.phase in {"ANALYZE", "AUDIT", "CONTEXT_SYNC"}:
         return (
-            f"Run {role} ANALYZE for plan {epic}. "
-            "Read the canonical plan and decompose tree, create exactly one completed "
-            f"analyze artifact under memory-bank/{cursor.role}/analyze/{epic}/ "
-            "with metrics.critical_count=0 when the plan is implementable, and do not write production code. "
+            f"{cursor.phase} is not a loop phase for {epic}. "
+            "Use the current DECOMPOSE/analyze-verify and QA/context-sync contracts; "
+            "the next valid product gate is QA. "
         )
     if cursor.phase == "CREATIVE":
         return (
@@ -335,56 +405,86 @@ def _phase_instruction(cursor, project: Path) -> str:
         return _security_phase_bootstrap(cursor, project)
     if cursor.phase == "BUGFIX":
         return (
-            f"Run {role} BUGFIX for {epic}. Read bugfix-queue.yaml first, take only the first open or "
-            "in_progress item, fix the root cause with regression evidence, update the queue, and create or "
-            "update one bugfix-*.md report with concrete changed paths, AC+/AC− evidence, and verification. "
-            "Mark a completed queue item as done; do not introduce a new status value such as closed. "
-            "If other items remain open: stop after this item — the loop continues BUGFIX (do not invent "
-            "finish_not_committed; do not spawn verify-bugfix yet). "
-            "When ALL items are done: set verification.status=pass with command/last_run_at/evidence, "
-            "spawn verify-bugfix, then MUST `loop.py finish --step BUGFIX` → re-QA. "
+            f"Run {role} BUGFIX for {epic}. "
+            + _bugfix_swarm_protocol(cursor, project)
         )
     if cursor.phase == "QA":
+        if engine is not None and engine.qa_context_sync_pending(cursor):
+            return (
+                f"QA PASS is already accepted for {epic}. Do not spawn verify-qa again. "
+                "Spawn exactly one agent_type=context-sync with fork_context=false, let it write "
+                f"memory-bank/{cursor.role}/context-sync/{epic}/sync-*.md, and do not call finish; "
+                "a valid done result atomically completes QA and ends this parent session. "
+            )
         return (
-            f"Run {role} QA for {epic}. HARD order (machine close): "
-            "1) Run the required full verification suite. "
-            "2) Write ONE canonical memory-bank/<role>/qa/<epic>/qa-*.yaml with verdict "
-            "pass|fail|blocked BEFORE spawning verify-qa (PASS cannot finish without this artifact). "
-            "3) On fail|blocked: also write/merge open bugfix-queue.yaml, then spawn verify-qa; "
-            "after accepted FAIL/BLOCKED call `loop.py finish --step QA` → BUGFIX. "
-            "4) On pass: spawn verify-qa with fork_context=false; child MUST Bash "
-            "`loop.py validate-verdict --project <cwd> --payload '<json>'` until valid:true, "
-            "then emit EXACTLY one fenced ```json object (NOT ```loop-gate-verdict/v1). "
-            "Accepted PASS finishes the phase atomically — do NOT claim Готово after a REJECTED handoff; "
-            "do NOT exit with prose PASS. Forbidden: finish without qa artifact; invent parent-driven-audit. "
-            "Next after PASS: CONTEXT_SYNC (not ARCHIVE). "
-        )
-    if cursor.phase == "CONTEXT_SYNC":
-        return (
-            f"Run {role} CONTEXT SYNC for {epic}. Read QA pass evidence and plan Technology axiom / "
-            "Context consumed, then diff-only update root canon (techContext, productContext, systemPatterns; "
-            "projectbrief only if in/out changed). Write memory-bank/"
-            f"{cursor.role}/context-sync/{epic}/sync-YYYYMMDD-<slug>.md even on full no-op. "
-            "Do not edit product/vision|phases|roadmap, plan shards, or production code. "
-            "When sync-*.md exists: immediately "
-            f"`python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step {cursor.step_id}`. "
-            "FORBIDDEN: exit with only prose 'готово' / skip finish. "
-            "Next after finish: mark epic done in roadmap/queue.yaml; if queue has a next epic with plan, "
-            "loop arms it automatically; otherwise DONE → operator ARCHIVE NOW. "
-        )
-    if cursor.phase == "AUDIT":
-        return (
-            f"Run {role} AUDIT for {epic}. Audit only the current iteration against the bounded plan, "
-            "decompose index, and completed implementation artifacts. Write audit.yaml with a complete "
-            "check_matrix; do not change plan or run the QA suite. "
-            "PASS path: verdict PASS + converged true + empty actionable findings → immediately "
-            f"`python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step AUDIT` (next: {role} QA). "
-            "FAIL path: actionable fail|blocked → spawn only gate-repair (BLOCKERS|ALLOW WRITE|VERIFY), "
-            "then re-audit in this same parent session until converged true, then finish. "
-            "FORBIDDEN: invent/spawn parent-driven-audit, managed-audit, verify-implement, verify-audit, "
-            "or any other gate agent — AUDIT has no pre-finish verifier. "
+            f"Run {role} QA for {epic}. HARD order: "
+            "1) Iteration contract: every FR/AC/delete of current iteration has evidence. "
+            "2) Full verification suite (+ live_smoke when BACK). "
+            "3) Write ONE qa-*.yaml with verdict pass|fail|blocked before verify-qa. "
+            "4) fail|blocked → bugfix-queue + verify-qa + finish QA → BUGFIX (bugfix-fix×≤3). "
+            "5) pass → verify-qa PASS, then spawn agent_type=context-sync "
+            f"(write memory-bank/{cursor.role}/context-sync/{epic}/sync-*.md); context-sync done "
+            "atomically finishes QA → DONE/next epic, so the parent must not call finish afterward. "
+            "No separate review or sync phase. FORBIDDEN: finish QA before context-sync result. "
         )
     return "Read the canonical YAML queue and current phase artifact. Complete the phase contract. "
+
+
+
+def _bugfix_open_item_ids(project: Path, role: str, epic_id: str) -> list[str]:
+    path = bugfix_queue_path(project, role, epic_id)
+    payload = phase_payload(path)
+    if not isinstance(payload, dict):
+        return []
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return []
+    open_ids: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status") or "").strip().lower()
+        if status not in {"open", "in_progress"}:
+            continue
+        item_id = str(item.get("id") or "").strip()
+        if item_id:
+            open_ids.append(item_id)
+    return open_ids
+
+
+def _bugfix_swarm_protocol(cursor, project: Path) -> str:
+    """Parent BUGFIX contract: spawn named bugfix-fix workers (≤3), then verify-bugfix."""
+    queue = bugfix_queue_path(project, cursor.role, cursor.epic_id)
+    try:
+        queue_rel = str(queue.relative_to(project))
+    except ValueError:
+        queue_rel = str(queue)
+    open_ids = _bugfix_open_item_ids(project, cursor.role, cursor.epic_id)
+    open_line = ", ".join(open_ids) if open_ids else "(read queue — no open ids parsed yet)"
+    return (
+        f"Close ALL open/in_progress items in this single parent session. "
+        f"Queue SoT: {queue_rel}. Open/in_progress now: {open_line}. "
+        "SWARM (HARD): spawn managed agent_type=bugfix-fix (alias bugfix) with fork_context=false; "
+        "max 3 concurrent; each child gets exactly ONE QUEUE_ITEM. "
+        "Wave only disjoint ALLOW WRITE paths; overlapping paths → next wave (still ≤3). "
+        "After each child loop-bugfix-fix-result/v1 status=done: merge queue (item done+done_at+evidence) "
+        "and append to one bugfix-*.md. "
+        "Spawn template per item:\n"
+        "  agent_type=bugfix-fix\n"
+        f"  GATE_IDENTITY session_id={cursor.session_id} epic_id={cursor.epic_id} step_id=BUGFIX\n"
+        "  QUEUE_ITEM: <id>\n"
+        f"  QUEUE: {queue_rel}\n"
+        "  ALLOW WRITE:\n"
+        "  - <paths for this bug only>≤10>\n"
+        "  VERIFY:\n"
+        "  - <targeted command>\n"
+        "  SYMPTOM: <optional>\n"
+        "Child validates via `loop.py validate --schema loop-bugfix-fix-result/v1`. "
+        "FORBIDDEN: invent other fix agent types; one child fixing 2+ items; parent exit while open remain; "
+        "PROGRESS_CONTINUE. When ALL items terminal: set verification.status=pass "
+        "(command/last_run_at/evidence), spawn verify-bugfix, then MUST "
+        "`loop.py finish --step BUGFIX` → re-QA. "
+    )
 
 
 def _phase_gate_agent(phase: str) -> str | None:
@@ -409,6 +509,17 @@ def _qa_prompt_items(payload: dict[str, object], key: str) -> list[str]:
     return [str(item).strip() for item in value if isinstance(item, (str, int, float)) and str(item).strip()]
 
 
+def _qa_prompt_value(payload: dict[str, object], key: str) -> str:
+    value = payload.get(key)
+    if value is None:
+        return "missing: parent must provide this QA section"
+    if isinstance(value, (dict, list)):
+        rendered = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    else:
+        rendered = str(value).strip()
+    return rendered[:12000] or "missing: parent must provide this QA section"
+
+
 def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
     qa_artifacts = phase_artifacts(project, cursor.role, cursor.epic_id, "qa")
     qa_path = qa_artifacts[-1] if qa_artifacts else None
@@ -428,6 +539,17 @@ def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
             "- none",
             "### Prior blockers",
             "- none",
+            "## QA evidence packs",
+            "### coverage_map",
+            "missing: parent must provide AC/BN → browser/API scenario → evidence",
+            "### review",
+            "missing: parent must provide review status/findings",
+            "### test_audit",
+            "missing: parent must provide weakened-test/mock/skip/CI audit",
+            "### browser",
+            "missing: parent must provide browser stack/journey/artifacts or explicit skip reason",
+            "### retro",
+            "missing: parent must provide missed defect, redundant gate, flaky test, next-cycle change",
         ], [qa_path] if qa_path is not None else []
 
     verify_scope = str(payload.get("verify_scope") or "full").strip().lower()
@@ -445,6 +567,21 @@ def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
         lines.append(f"### {heading}")
         items = _qa_prompt_items(payload, key)
         lines.extend(f"- {item}" for item in items or ["none"])
+    lines.extend(
+        [
+            "## QA evidence packs",
+            "### coverage_map",
+            _qa_prompt_value(payload, "coverage_map"),
+            "### review",
+            _qa_prompt_value(payload, "review"),
+            "### test_audit",
+            _qa_prompt_value(payload, "test_audit"),
+            "### browser",
+            _qa_prompt_value(payload, "browser"),
+            "### retro",
+            _qa_prompt_value(payload, "retro"),
+        ]
+    )
     return lines, [qa_path]
 
 
@@ -518,33 +655,11 @@ def _bugfix_gate_paths(project: Path, role: str, epic_id: str) -> tuple[list[Pat
     return paths, bool(reports)
 
 
-def _audit_finish_protocol(cursor) -> str:
-    """AUDIT is parent-owned: write artifact, optional gate-repair, then finish. No verifier."""
-    return (
-        " AUDIT finish protocol (HARD): "
-        "1) Write/update memory-bank/<role>/audit/<epic_id>/audit.yaml (epic-audit/v2) with "
-        "check_matrix + verdict + converged. "
-        "2) If any check_matrix row is fail|blocked: spawn ONLY agent_type=gate-repair with "
-        "BLOCKERS / ALLOW WRITE / VERIFY, wait for accepted loop-repair-result/v1, re-check and "
-        "rewrite audit.yaml until verdict PASS and converged true. "
-        "3) On PASS/converged true: call "
-        f"`python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step {cursor.step_id}` "
-        "immediately — do not spawn any gate first. "
-        "FORBIDDEN agent_type values for AUDIT: parent-driven-audit, managed-audit, verify-audit, "
-        "verify-implement, analyze-verify, verify-decompose, verify-qa, verify-bugfix. "
-        "unknown agent_type / inventing a managed gate → stop that path and finish (if PASS) or "
-        "spawn gate-repair (if actionable finding). "
-        f"GATE_IDENTITY session_id={cursor.session_id} epic_id={cursor.epic_id} "
-        f"step_id={cursor.step_id} (for gate-repair parent_evidence_id only). "
-        "Exiting with only a prose audit report → finish_not_committed."
-    )
-
-
 def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
     if not gate_agent:
         raise ValueError(
             "gate_agent is required for managed gate protocol; "
-            "AUDIT/CREATIVE must not invent parent-driven-audit"
+            "legacy/CREATIVE paths must not invent a parent-driven gate"
         )
     kind = getattr(cursor, "kind", "feature") or "feature"
     plan = plan_path(project, cursor.role, cursor.epic_id, kind=kind)
@@ -587,6 +702,7 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 "ALLOW READ:",
                 _relative_paths(project, paths),
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
+                "PASS only records structural readiness and keeps the parent in DECOMPOSE; parent must then run analyze-verify.",
                 "Before PASS: every indexed shard must parse with yaml.safe_load. Loop auto-repairs "
                 "invalid double-quoted escapes and purges orphan steps/*.yaml not listed in the index; "
                 "re-load after repair if a shard was rewritten.",
@@ -606,6 +722,11 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 "ALLOW READ:",
                 _relative_paths(project, paths),
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
+                "A PASS atomically promotes DECOMPOSE to IMPLEMENT/CREATIVE and ends the parent session; do not call finish afterward.",
+                "After verify-qa PASS, keep this QA session alive and spawn exactly one "
+                "agent_type=context-sync with fork_context=false. The context-sync child must "
+                "write sync-*.md and return loop-context-sync-result/v1; that done result "
+                "atomically completes QA and ends the parent session. Do not call finish after it.",
             ]
         )
     elif gate_agent in {"verify-implement", "verify-security"}:
@@ -660,7 +781,8 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
         [
             "",
             "Recovery protocol:",
-            "1. A valid PASS crosses the gate atomically; do not call finish separately after a PASS.",
+            "1. A valid PASS crosses the gate atomically; do not call finish separately after a PASS. "
+            "QA PASS is the exception: it records PASS and keeps QA active until context-sync returns done.",
             "1a. verify-qa FAIL is a product QA result, not a gate-repair request and not an IMPLEMENT-style 'cannot finish'. "
             "Write/update qa-*.yaml (verdict: fail|blocked) + eligible blockers/fix_plan, create/merge open bugfix-queue.yaml, "
             "then MUST run `python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step QA` once. "
@@ -698,7 +820,7 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
             "do not restart the whole IMPLEMENT step and do not claim progress until repair_recorded.",
             "3. Protocol failures such as prompt_incomplete, verdict_transition_rejected, pre_emit_validate_missing, pre_emit_validate_mismatch, or schema_extra_forbidden on a *verifier* fence are parent handoff / child emit failures. Fix GATE_IDENTITY / ALLOW READ / exact JSON via validate-verdict and respawn the same verifier; do not invent a product blocker and do not send verifier protocol failures to gate-repair. "
             "stale_verdict_ignored / stale_repair_ignored mean a delayed child from a previous session_id — discard, do not respawn repair and do not gate-repair.",
-            "4. AUDIT has no separate verify agent: an actionable audit finding follows the same gate-repair BLOCKERS/ALLOW WRITE/VERIFY contract, then the parent reruns AUDIT until audit.yaml is converged with no findings.",
+            "4. QA owns contract/review findings; actionable product gaps use the normal BUGFIX queue, while protocol errors remain BLOCKED.",
             "5. FORBIDDEN parent busywork after gate spawn: reading finish-block.mdc / finish-doc-router.mdc, hunting epic_resolve.py, running loop.py validate without JSON payload, or treating optional evidence_sha256 as required.",
         ]
     )
@@ -847,7 +969,8 @@ def _decompose_retry_context(cursor, project: Path) -> str:
         )
     else:
         lines.append(
-            "Tree parses. Run verify-decompose then `loop.py finish --step DECOMPOSE`. "
+            "Tree parses. Run verify-decompose, write the analyze artifact, then run analyze-verify; "
+            "analyze-verify PASS promotes DECOMPOSE atomically. "
             "FORBIDDEN exit with only a prose 'завершён' after a previous finish_not_committed."
         )
     return "\n".join(lines) + "\n"
@@ -988,8 +1111,9 @@ def run(args: argparse.Namespace) -> int:
             "Execution policy: approvals are disabled. Never request escalation, require_escalated permissions, "
             "or a second sandbox; run commands with the permissions already available and report a real denial.\n"
         )
-        prompt += _phase_instruction(cursor, paths.project)
-        gate_agent = _phase_gate_agent(cursor.phase)
+        prompt += _phase_instruction(cursor, paths.project, engine)
+        context_sync_pending = cursor.phase == "QA" and engine.qa_context_sync_pending(cursor)
+        gate_agent = None if context_sync_pending else _phase_gate_agent(cursor.phase)
         if cursor.phase == "CREATIVE":
             prompt += (
                 "When CREATIVE is complete (artifact written and needs_creative closed on the same step), "
@@ -998,25 +1122,27 @@ def run(args: argparse.Namespace) -> int:
                 "CREATIVE has no verifier gate — do not spawn verify-* agents. "
                 "Do not mark the step completed; IMPLEMENT owns that after code lands."
             )
-        elif cursor.phase == "AUDIT":
+        elif context_sync_pending:
             prompt += (
-                "Do not edit cursor.json or generated activeContext.md. "
-                "Do not search the product repo for hub scripts; use python3 $DEV_HUB/bin/loop.py only."
+                "QA PASS is accepted and context-sync is the only remaining worker. "
+                "Spawn agent_type=context-sync with fork_context=false; do not spawn verify-qa "
+                "and do not call finish. The context-sync done result closes QA atomically. "
+                "Do not edit cursor.json or generated activeContext.md."
             )
-            prompt += _audit_finish_protocol(cursor)
-        elif cursor.phase == "CONTEXT_SYNC":
+        elif cursor.phase not in {"DECOMPOSE", "PLAN", "CLARIFY", "CREATIVE", "IMPLEMENT", "TASK", "REFACTOR", "SECURITY", "QA", "BUGFIX"}:
             prompt += (
                 "Do not edit cursor.json or generated activeContext.md. "
-                "CONTEXT_SYNC has no verifier gate — do not spawn verify-* / parent-driven-audit. "
-                "After writing sync-*.md, finish with "
-                f"`python3 $DEV_HUB/bin/loop.py finish --project <cwd> --step {cursor.step_id}`. "
+                "This legacy cursor value is not a live user phase — let the parent normalize it. "
+                "The context-sync done result closes QA atomically, so do not add a parent finish after it. "
                 "Do not search the product repo for hub scripts; use python3 $DEV_HUB/bin/loop.py only."
             )
         else:
             prompt += (
                 "When the phase work is genuinely complete, spawn the required gate before any finish attempt. "
                 "Do not edit cursor.json or generated activeContext.md. "
-                "A managed gate subagent PASS is validated by the boundary hook and finishes this phase atomically; "
+                "A managed gate subagent PASS is validated by the boundary hook. In DECOMPOSE, "
+                "verify-decompose PASS only records structural readiness; spawn analyze-verify in the same parent, "
+                "whose PASS promotes DECOMPOSE atomically. For other non-QA gates, PASS finishes the phase atomically; "
                 "for non-QA gates a direct finish without the required PASS is rejected and prose verdicts are not machine state. "
                 "HARD: handoff REJECTED / verdict_json_fence_missing / qa_artifact_required_before_pass means "
                 "NOT accepted — fix artifact + ```json fence "
@@ -1040,9 +1166,9 @@ def run(args: argparse.Namespace) -> int:
             if cursor.phase == "BUGFIX":
                 prompt += (
                     " BUGFIX gate timing: spawn verify-bugfix only when every queue item is terminal "
-                    "and verification.status=pass. One-item partial sessions exit without finish; "
-                    "the supervisor re-arms BUGFIX. Exiting with an empty open queue without finish "
-                    "after full close is finish_not_committed."
+                    "and verification.status=pass. This phase is one session for the whole queue — "
+                    "do not leave open items. Exiting with open items or without finish after full close "
+                    "is finish_not_committed."
                 )
             prompt += _gate_protocol(cursor, paths.project, gate_agent)
         if cursor.phase != "CREATIVE":
@@ -1060,20 +1186,27 @@ def run(args: argparse.Namespace) -> int:
                 effort=cli_effort,
             )
         session_run = supervisor.run_step(prompt, model=model, project=paths.project, session_id=cursor.session_id)
+        cursor_after = engine.store.read()
         if session_run.transition is not None and session_run.transition.changed:
-            _project_transition(
+            _project_cursor_transition(
                 project_root=paths.project,
-                epic_id=cursor.epic_id,
-                phase=session_run.transition.phase,
-                role=cursor.role,
-                kind=cursor.kind,
-                status=session_run.transition.status,
+                cursor_before=cursor,
+                cursor_after=cursor_after,
+                transition=session_run.transition,
                 source="run",
+            )
+        elif cursor_after is not None and cursor_after.revision != cursor.revision:
+            _project_cursor_transition(
+                project_root=paths.project,
+                cursor_before=cursor,
+                cursor_after=cursor_after,
+                source="run:implicit-transition",
             )
         if session_run.outcome == SessionOutcome.COMMITTED:
             return 0
         if session_run.outcome == SessionOutcome.PROGRESS_CONTINUE:
-            # Partial BUGFIX progress: stay on BUGFIX and run the next item session.
+            # Reserved outcome (legacy partial BUGFIX). Current canon: one BUGFIX session
+            # closes the whole queue — supervisors should not emit this for open items.
             continue
         if session_run.outcome == SessionOutcome.SESSION_ROTATED:
             # Soft retry minted a new session_id — rebuild GATE_IDENTITY prompt and
@@ -1331,14 +1464,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "finish":
             cursor_before = engine.store.read()
             transition = engine.finish(step_id=args.step)
-            projection_result = _project_transition(
+            cursor_after = engine.store.read()
+            projection_result, completed_projection = _project_finish_transition(
                 project_root=paths.project,
-                epic_id=cursor_before.epic_id if cursor_before else "",
-                phase=transition.phase,
-                role=cursor_before.role if cursor_before else "back",
-                kind=cursor_before.kind if cursor_before else None,
-                status=transition.status,
-                source="finish",
+                cursor_before=cursor_before,
+                cursor_after=cursor_after,
+                transition=transition,
             )
             payload = {
                 "event": transition.event,
@@ -1347,6 +1478,15 @@ def main(argv: list[str] | None = None) -> int:
                 "step_id": transition.step_id,
             }
             payload.update(_projection_fields(projection_result))
+            if completed_projection is not None and cursor_before is not None:
+                payload.update(
+                    {
+                        "completed_epic_id": cursor_before.epic_id,
+                        "completed_external_id": completed_projection.external_id,
+                        "completed_projection_status": completed_projection.status,
+                        "completed_projection_error": completed_projection.error,
+                    }
+                )
             _print(payload, args.json)
             return 0
         if args.command == "halt":

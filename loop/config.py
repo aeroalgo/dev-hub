@@ -10,19 +10,21 @@ from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# Live loop cadence: DECOMPOSE → CREATIVE? → IMPLEMENT|SECURITY → QA → BUGFIX? → DONE.
+# Legacy cursor values are accepted only long enough to normalize old state; they
+# are not live phases, commands, or model slots.
 PHASES = (
     "DECOMPOSE",
     "PLAN",
     "CLARIFY",
-    "ANALYZE",
     "CREATIVE",
     "IMPLEMENT",
     "SECURITY",
-    "AUDIT",
     "QA",
     "BUGFIX",
-    "CONTEXT_SYNC",
 )
+
+LEGACY_PHASES = ("ANALYZE", "AUDIT", "CONTEXT_SYNC")
 
 PHASE_ENV_NAMES = {
     phase: f"PROJECT_LOOP_{phase}_MODEL" for phase in PHASES
@@ -41,7 +43,7 @@ def _phase_key(phase: str | None, step_id: str | None) -> str | None:
     value = str(phase or "").strip().upper().replace(" ", "_")
     if value == "DONE" or re.search(r"\bDONE\b", value):
         return None
-    for candidate in PHASES:
+    for candidate in (*PHASES, *LEGACY_PHASES):
         if re.search(rf"\b{re.escape(candidate)}\b", value):
             return candidate
     return None
@@ -108,12 +110,6 @@ class LoopSettings(BaseSettings):
             "LOOP_MODEL_CLARIFY", "PROJECT_LOOP_CLARIFY_MODEL"
         ),
     )
-    analyze_model: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "LOOP_MODEL_ANALYZE", "PROJECT_LOOP_ANALYZE_MODEL"
-        ),
-    )
     creative_model: str | None = Field(
         default=None,
         validation_alias=AliasChoices(
@@ -132,10 +128,6 @@ class LoopSettings(BaseSettings):
             "LOOP_MODEL_SECURITY", "PROJECT_LOOP_SECURITY_MODEL"
         ),
     )
-    audit_model: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("LOOP_MODEL_AUDIT", "PROJECT_LOOP_AUDIT_MODEL"),
-    )
     qa_model: str | None = Field(
         default=None,
         validation_alias=AliasChoices("LOOP_MODEL_QA", "PROJECT_LOOP_QA_MODEL"),
@@ -144,12 +136,6 @@ class LoopSettings(BaseSettings):
         default=None,
         validation_alias=AliasChoices(
             "LOOP_MODEL_BUGFIX", "PROJECT_LOOP_BUGFIX_MODEL"
-        ),
-    )
-    context_sync_model: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "LOOP_MODEL_CONTEXT_SYNC", "PROJECT_LOOP_CONTEXT_SYNC_MODEL"
         ),
     )
 
@@ -253,13 +239,10 @@ class LoopSettings(BaseSettings):
         "decompose_model",
         "plan_model",
         "clarify_model",
-        "analyze_model",
         "creative_model",
         "implement_model",
-        "audit_model",
         "qa_model",
         "bugfix_model",
-        "context_sync_model",
         "codex_bin",
         "claude_path",
         "codex_omniroute_wrapper",

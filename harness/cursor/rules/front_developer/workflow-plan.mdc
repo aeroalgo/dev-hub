@@ -9,6 +9,7 @@ alwaysApply: false
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/front_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md` (`## Epic` + `## Covering`)
+**Interactive review passes**: @.cursor/rules/shared/workflow-plan-review-passes.mdc — Product → Design? → DX? → Eng
 **Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc · @.cursor/rules/shared/workflow-behavior-first.mdc
 
 ---
@@ -16,9 +17,10 @@ alwaysApply: false
 ## Hot path
 
 1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`
-2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
+2. `SUSPENSION GUARD` · level в `tasks.md` · interactive review passes: Product → Design? → DX? → Eng (L2+; Design/DX conditional)
 2c. **PLAN Context Pack (L2+, mandatory Read до Technology axiom):** `techContext.md` · `systemPatterns.md` (+ `domain/SP-*` если есть) · `projectbrief.md` · `architecture/index.md` (+ релевантный shard если не stub) · **`memory-bank/product/` если каталог существует** — Read все файлы (SUSPENSION: inventory не lean); **если `product/` нет — skip, не halt**. В `plan.md` секция `## Context consumed` (path → что вошло в axiom/Deps/FR/design; `product/: n/a` если каталога нет). **FORBIDDEN** пропуск `product/` **только когда каталог есть**. FINISH `load_now` не раздувать — monoliths остаются в PLAN-сессии.
-3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `## Boundary / negative cases` (L2+: ≥3 BN или полный checklist n/a+reason) → `#qa-consumes` ≥3 TM (BN→TM) → Review readiness (no pending Required) · E2E + design direction
+3. Write `plan/<id>/md/plan.md`: Product decision / WHAT → review passes + ownership matrix → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `## Boundary / negative cases` (L2+: ≥3 BN или полный checklist n/a+reason) → `#qa-consumes` ≥3 TM (BN→TM) → Review readiness (no pending Required) · E2E + design direction
+3w. **WIRE:** если UI ходит в API — в FR/AC явный contract (method+path · request · response); Independent Test = real fetch/journey, не mock forever. API нет → BLOCKER / отдельный BACK epic в Deps, не silent mock (mainrule-core §WIRE)
 3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
 4. Каждый PLAN → апсерт `roadmap/queue.yaml` + plan + `prompt.md`; multi-epic → N rows/plans/prompts
@@ -26,7 +28,7 @@ alwaysApply: false
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → Appetite = timebox + cut_list only (не hard cap sNN)
-→ outline sNN = **hint** (не min 5–8); финальный count задаёт DECOMPOSE Effort probe (`sNN_cap`) — не раздувать draft до 10–12 «на всякий» — shared/workflow-behavior-first.mdc §3a
+→ outline sNN = **hint**; финальный count = DECOMPOSE level → `sNN_cap` (L1→1 · L2→2 · L3→3) — shared/workflow-behavior-first.mdc §3a
 
 ---
 
@@ -67,6 +69,6 @@ alwaysApply: false
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
-8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
+8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]`; CREATIVE если дизайн; L1 → recommendation `FRONT TASK` для bounded-задачи или `FRONT IMPLEMENT` для готового одного production slice. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
 
 **Верификация**: gates + AC + E2E в плане + CREATIVE need + queue row/reconcile + multi-epic FAIL-checks + brownfield sunset (если replace) + L2+ Context Pack (`## Context consumed`; `product/` если каталог есть) + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без ID / без шапки Role·Deps; без чтения соседних plan; без файла → FAIL)

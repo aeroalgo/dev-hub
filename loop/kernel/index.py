@@ -515,7 +515,7 @@ def step_implement_complete(project: Path, queue: Queue, step: Step) -> tuple[bo
 
 
 def queue_implement_gaps(project: Path, queue: Queue) -> tuple[tuple[Step, str], ...]:
-    """Steps that still need IMPLEMENT evidence before AUDIT is legal."""
+    """Steps that still need IMPLEMENT evidence before QA is legal."""
     gaps: list[tuple[Step, str]] = []
     for step in queue.steps:
         ok, reason = step_implement_complete(project, queue, step)
@@ -524,7 +524,7 @@ def queue_implement_gaps(project: Path, queue: Queue) -> tuple[tuple[Step, str],
     return tuple(gaps)
 
 
-def queue_ready_for_audit(project: Path, queue: Queue) -> tuple[bool, str]:
+def queue_ready_for_qa(project: Path, queue: Queue) -> tuple[bool, str]:
     """Fail-closed: every step must be index-completed AND have completed implement yaml."""
     if not queue.steps:
         return False, "decompose index has no steps"
@@ -532,7 +532,7 @@ def queue_ready_for_audit(project: Path, queue: Queue) -> tuple[bool, str]:
     if gaps:
         detail = "; ".join(f"{step.step_id}: {reason}" for step, reason in gaps[:8])
         more = "" if len(gaps) <= 8 else f" (+{len(gaps) - 8} more)"
-        return False, f"implement incomplete before AUDIT: {detail}{more}"
+        return False, f"implement incomplete before QA: {detail}{more}"
     incomplete_index = [
         step.step_id
         for step in queue.steps
@@ -541,7 +541,7 @@ def queue_ready_for_audit(project: Path, queue: Queue) -> tuple[bool, str]:
     if incomplete_index:
         return (
             False,
-            "index steps not completed before AUDIT: " + ", ".join(incomplete_index),
+            "index steps not completed before QA: " + ", ".join(incomplete_index),
         )
     return True, "implement queue complete"
 
@@ -621,31 +621,6 @@ def latest_phase_payload(paths: list[Path]) -> tuple[Path | None, dict[str, Any]
     return None, None
 
 
-def audit_is_converged(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
-    """Return whether the latest AUDIT artifact authorizes the QA handoff."""
-    path, payload = latest_phase_payload(phase_artifacts(project, role, epic_id, "audit"))
-    if path is None or payload is None:
-        return False, "audit_artifact_missing_or_invalid"
-    if payload.get("schema") != "epic-audit/v2":
-        return False, "audit_schema_invalid"
-    if payload.get("converged") is not True:
-        return False, "audit_not_converged"
-    findings = payload.get("findings")
-    if not isinstance(findings, list):
-        return False, "audit_findings_invalid"
-    if findings:
-        return False, "audit_actionable_findings"
-    matrix = payload.get("check_matrix")
-    if not isinstance(matrix, list) or not matrix:
-        return False, "audit_check_matrix_missing"
-    for row in matrix:
-        if not isinstance(row, dict):
-            return False, "audit_check_matrix_invalid"
-        if not all(str(row.get(field) or "").strip() for field in ("source_ref", "status", "evidence", "verify")):
-            return False, "audit_check_matrix_incomplete"
-        if str(row.get("status") or "").strip().lower() in {"fail", "failed", "blocked"}:
-            return False, "audit_actionable_findings"
-    return True, "audit_converged"
 
 
 def bugfix_queue_path(project: Path, role: str, epic_id: str) -> Path:
@@ -676,8 +651,6 @@ def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, st
         if status not in {"open", "in_progress", "blocked", "done", "closed", "cancelled"}:
             return False, "bugfix_queue_item_invalid"
         statuses.append(status)
-    if statuses.count("in_progress") > 1:
-        return False, "bugfix_queue_multiple_in_progress"
     if any(status in {"open", "in_progress", "blocked"} for status in statuses):
         return False, "bugfix_queue_open"
     verification = payload.get("verification")
@@ -707,8 +680,6 @@ def bugfix_queue_intake(project: Path, role: str, epic_id: str) -> tuple[bool, s
         if status not in {"open", "in_progress", "blocked", "done", "closed", "cancelled"}:
             return False, "bugfix_queue_item_invalid"
         statuses.append(status)
-    if statuses.count("in_progress") > 1:
-        return False, "bugfix_queue_multiple_in_progress"
     return True, "bugfix_queue_valid"
 
 

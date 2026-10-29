@@ -17,10 +17,9 @@ alwaysApply: false
 2. Root cause — не симптом; no mask/fallback
 3. Regression red → fix → green: Hub (dev-hub self-test) — targeted `bin/pytest` из корня; Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence (no raw runner).
 4. `bugfix-queue.yaml` загружен и валиден; QA seed/merge сохраняет done и добавляет новые blockers как open по `blocker_ref`.
-4a. **Progress fix (HARD):** взять только первый `open`/`in_progress`; один in_progress максимум. `open → in_progress → done` требует targeted green + evidence + done_at. Partial close между сессиями = OK; прыжок через open = FAIL.
-4b. После одного item при ещё open: выход без `loop.py finish` OK — loop `PROGRESS_CONTINUE` (не `finish_not_committed`/halt). `verify-bugfix` только когда все items terminal.
-4c. `blocked` требует `NEED_HUMAN`; `cancelled` допустим только при явном ineligible решении QA. Статусы prose bugfix-*.md не учитываются.
-4d. Полная `verification.command` + `verification.status=pass` только когда queue items terminal; затем `verify-bugfix` → **обязан** `loop.py finish --step BUGFIX` → re-QA. FAIL → gate repair append в ту же очередь, фаза остаётся BUGFIX.
+4a. **Swarm batch (HARD):** одна parent BUGFIX-сессия закрывает **все** `open`/`in_progress`. Parent **spawn ≤3 `bugfix-fix`** (`agent_type=bugfix-fix`) параллельно; **1 child = 1 queue item** — забрал item → `in_progress` → root cause + targeted green → `done` + evidence + done_at → **стоп** (второй баг тому же subagent FORBIDDEN). В одну волну — только disjoint `files:`; пересечения → следующая волна (снова ≤3). Несколько `in_progress` OK (рой).
+4b. `blocked` → `NEED_HUMAN`; `cancelled` — только явное ineligible QA. Prose bugfix-*.md не SoT статусов.
+4c. Все items terminal → `verification.command` + `verification.status=pass` → `verify-bugfix` → **обязан** `loop.py finish --step BUGFIX` → re-QA. FAIL → gate repair append, фаза BUGFIX. Parent exit с open = `finish_not_committed` (**FORBIDDEN** `PROGRESS_CONTINUE`).
 5. §0.11 если refs
 6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
 
