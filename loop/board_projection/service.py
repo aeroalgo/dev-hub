@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from loop.diagnostics import capture_exception
 from loop.board_projection.card_copy import resolve_card_fields
 from loop.board_projection.config import BoardProjectionConfig, load_projection_config
 from loop.board_projection.errors import (
@@ -143,24 +144,67 @@ def project_epic_phase(
             return ProjectionResult(status="success", external_id=external_id)
         except Exception as exc:
             # Soft-fail: log to stderr, write sync_error to sidecar, do not abort
-            sys.stderr.write(f"Board projection soft-fail (ensure_card) for {epic_id}: {exc}\n")
+            report = capture_exception(
+                exc,
+                operation="board_projection.ensure_card",
+                project_root=root_path,
+                context={
+                    "epic_id": epic_id,
+                    "phase": phase,
+                    "provider": active_adapter.provider_name,
+                },
+            )
+            sys.stderr.write(
+                f"Board projection soft-fail (ensure_card) for {epic_id}: {exc} "
+                f"[diagnostic {report['error_id']}]\n"
+            )
             board_map.epics[epic_id] = EpicMapEntry(
                 external_id=None,
                 last_phase=phase,
-                sync_error=str(exc),
+                sync_error=f"{exc} [diagnostic {report['error_id']}]",
                 updated_at=now_iso,
             )
             save_board_epic_map(board_map, resolved_map_path)
-            return ProjectionResult(status="soft_fail", error=str(exc))
+            return ProjectionResult(
+                status="soft_fail",
+                error=str(exc),
+                diagnostic_id=str(report["error_id"]),
+                diagnostic_path=report.get("diagnostic_path"),
+            )
 
-    # Existing card -> move card
+    card_ref: EpicRef | None = None
+    if title.strip() or description.strip():
+        card_title, card_description = resolve_card_fields(
+            project_root=root_path,
+            epic_id=epic_id,
+            role=role,
+            kind=kind,
+            title=title,
+            description=description,
+        )
+        card_ref = EpicRef(
+            epic_id=epic_id,
+            title=card_title,
+            description=card_description,
+            phase=phase,
+        )
+
+    # Existing card -> update content when explicitly supplied, then move it.
     external_id = entry.external_id
     # Idempotence check (BN-005)
-    if entry.last_phase == phase and not entry.sync_error:
+    if entry.last_phase == phase and not entry.sync_error and card_ref is None:
         return ProjectionResult(status="success", external_id=external_id)
 
     try:
-        active_adapter.move_card(external_id, phase)
+        if card_ref is not None:
+            update_card = getattr(active_adapter, "update_card", None)
+            if not callable(update_card):
+                raise AdapterExecutionError(
+                    f"Adapter {active_adapter.provider_name} cannot update existing card content"
+                )
+            update_card(external_id, card_ref)
+        if entry.last_phase != phase:
+            active_adapter.move_card(external_id, phase)
         entry.last_phase = phase
         entry.sync_error = None
         entry.updated_at = now_iso
@@ -168,11 +212,31 @@ def project_epic_phase(
         return ProjectionResult(status="success", external_id=external_id)
     except Exception as exc:
         # Soft-fail
-        sys.stderr.write(f"Board projection soft-fail (move_card) for {epic_id}: {exc}\n")
-        entry.sync_error = str(exc)
+        report = capture_exception(
+            exc,
+            operation="board_projection.update_or_move_card",
+            project_root=root_path,
+            context={
+                "epic_id": epic_id,
+                "phase": phase,
+                "external_id": external_id,
+                "provider": active_adapter.provider_name,
+            },
+        )
+        sys.stderr.write(
+            f"Board projection soft-fail (update/move card) for {epic_id}: {exc} "
+            f"[diagnostic {report['error_id']}]\n"
+        )
+        entry.sync_error = f"{exc} [diagnostic {report['error_id']}]"
         entry.updated_at = now_iso
         save_board_epic_map(board_map, resolved_map_path)
-        return ProjectionResult(status="soft_fail", external_id=external_id, error=str(exc))
+        return ProjectionResult(
+            status="soft_fail",
+            external_id=external_id,
+            error=str(exc),
+            diagnostic_id=str(report["error_id"]),
+            diagnostic_path=report.get("diagnostic_path"),
+        )
 
 
 def project_after_transition(
@@ -209,8 +273,22 @@ def project_after_transition(
         # Provider mismatch is a fatal misconfig that must raise or be surfaced explicitly
         raise
     except Exception as exc:
-        sys.stderr.write(f"Board projection unexpected error: {exc}\n")
-        return ProjectionResult(status="soft_fail", error=str(exc))
+        report = capture_exception(
+            exc,
+            operation="board_projection.after_transition",
+            project_root=Path(project_root),
+            context={
+                "epic_id": epic_id,
+                "phase": phase,
+                "provider": "unknown",
+            },
+        )
+        return ProjectionResult(
+            status="soft_fail",
+            error=str(exc),
+            diagnostic_id=str(report["error_id"]),
+            diagnostic_path=report.get("diagnostic_path"),
+        )
 
 
 class BoardProjectionService:

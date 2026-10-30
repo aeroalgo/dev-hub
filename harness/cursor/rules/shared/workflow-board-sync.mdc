@@ -28,22 +28,54 @@ alwaysApply: false
 4. Текст карточки (в порядке приоритета):
    1. **In-memory / CLI** `--title` + `--summary` — **предпочтительно для
       ad-hoc BUGFIX** («закинь на доску»). Файлы под Board **не** создавать.
-   2. `## Board` в feature `plan/<epic>/md/prompt.md` — после PLAN.
-   3. Fallback: Epic Outcome / epic id.
+   2. `## Board` в feature `plan/<epic_id>/md/prompt.md` — после PLAN.
+      `scripts/board-sync.sh` **сам** читает Board и передаёт `--title`/`--summary`
+      (иначе loop не обновит текст уже существующей карточки).
+   3. Fallback: Epic Outcome / epic id — **запрещён для PLAN-карточек**
+      (скрипт падает, если нет человечного Board).
 5. Mapping sidecar: `.loop/board-epic-map.yaml` (создаётся/обновляется CLI)
 6. Актёр в `.loop/board-actors.yaml` (или `BITRIX_RESPONSIBLE_ID` из `.env`)
 
 Шаблоны хаба: `harness/templates/board/`.  
 После PLAN — см. `workflow-board-after-plan.mdc`.
 
+## Epic id (HARD — частая ошибка Codex/агентов)
+
+| Правильно | Неправильно |
+|-----------|-------------|
+| Полный id папки плана: `T-NF-005-prod-container-stack` | Короткий roadmap id: `T-NF-005` |
+| `memory-bank/<role>/plan/<epic_id>/md/prompt.md` существует | Sync «вслепую» по `queue.yaml` `id:` без `epic_id` |
+
+Короткий `id:` из `roadmap/queue.yaml` ≠ `epic_id`. Без полного id loop **не находит**
+`## Board` → на доске появляется сырой код эпика без нормального названия/описания.
+
+`scripts/board-sync.sh` пытается разрешить short → full через `queue.yaml`, но
+канон для агента — **всегда передавать полный `epic_id`**.
+
+## Текст Board для людей (HARD)
+
+Карточку читают менеджеры и коллеги вне разработки. **FORBIDDEN** в title/summary:
+внутренние FR/AC, slug эпика как заголовок, один только tech-жаргон.
+
+Обязательная структура `summary`:
+
+1. Сразу простой русский текст (без заголовка «Для людей» — просто абзац)
+2. **Зачем это бизнесу** — риск простоя, данные, доверие, деньги
+3. **Технически** — ниже отдельным блоком: стек, границы, проверки
+
+`scripts/board-sync.sh` падает без «Зачем…бизнес» / «Технически», и если есть ярлык «Для людей».
+`title:` — короткая человеческая формулировка (не `T-NF-00N-…`).
+
 ## Command
 
-Предпочтительно (учитывает `.loop/board-actors.yaml`):
+Предпочтительно (учитывает `.loop/board-actors.yaml` + Board из prompt):
 
 ```bash
 cd /path/to/product
-./scripts/board-sync.sh <EPIC_ID>
-# или
+./scripts/board-sync.sh T-NF-005-prod-container-stack
+# или несколько полных epic_id:
+./scripts/board-sync.sh T-NF-006-local-vault-secrets T-NF-007-backup-operations
+# --all только по ключам epics: в board-actors.yaml (не по roadmap short ids)
 ./scripts/board-sync.sh --all
 ```
 
@@ -51,8 +83,16 @@ cd /path/to/product
 
 ```bash
 set -a && source .env && set +a
-python3 "$(cat .dev-hub)/bin/loop.py" board-sync --project "$PWD" --epic <EPIC_ID> --json
+python3 "$(cat .dev-hub)/bin/loop.py" board-sync \
+  --project "$PWD" --epic <FULL_EPIC_ID> --role back \
+  --title "Человеческий заголовок" \
+  --summary "Что / зачем бизнесу / стадии / результат" \
+  --json
 ```
+
+Без `--title`/`--summary` loop для **уже существующей** карточки может только
+сменить колонку и **не** обновить текст — поэтому для feature всегда используй
+`scripts/board-sync.sh` или явные CLI-поля.
 
 **Закрытый BUGFIX сразу в Done — без файлов Board** (только slug в map + текст в CLI):
 
@@ -69,7 +109,7 @@ BITRIX_RESPONSIBLE_ID=<uid> \
 в `bugfix/<slug>/bugfix.md`; доска от него не зависит.
 
 Без `--epic` — активный cursor loop. Первый sync без mapping → `ensure_card`
-(`tasks.task.add`). Повтор с той же фазой / смена фазы → move stage.
+(`tasks.task.add`). Повтор с `--title`/`--summary` → `update_card` + move stage.
 Автоматически вызывается post-finish в loop (только `.env` actor); CLI /
 `scripts/board-sync.sh` — ручной create/catch-up и per-epic актёры.
 
@@ -83,13 +123,16 @@ BITRIX_RESPONSIBLE_ID=<uid> \
 ## Done
 
 CLI JSON: `ok: true`, `status` ∈ {`success`,`disabled`}, непустой `external_id`
-при success; в map есть `epics.<id>.external_id` и `last_phase`.
+при success; в map есть `epics.<FULL_EPIC_ID>.external_id` и `last_phase`;
+на доске **человеческий** TITLE и DESCRIPTION (не сырой short id).
 
 ## Forbidden
 
 - Browser / MCP / Playwright для создания задачи на доске
+- Sync по roadmap **short** `id:` без разрешения в полный `epic_id` / без Board
 - Silent skip при `provider: none` без явной причины в ответе владельцу
 - Печать секретов `.env` / webhook
 - Путать с production Bitrix write продукта (группы, list38, почта)
 - Создавать любые файлы (`plan/…`, `bugfix/…/prompt.md`) **только** ради board-sync —
   для ad-hoc бага хватает `--title` / `--summary`
+- Оставлять на доске карточку с title = код эпика после PLAN

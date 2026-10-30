@@ -13,7 +13,7 @@ alwaysApply: false
 3. **Swarm:** parent spawn ≤3 `bugfix-fix`; **1 child = 1 queue item**. Subagent: `in_progress` → reproduce/root cause → regression red → fix → targeted green → `done` + evidence → стоп. Волны по disjoint files; overlapping — след. волна. Parent держит сессию до пустой open-очереди (не partial exit).
 3a. Все items terminal → `verification.command`; PASS в queue с evidence. FAIL → gate repair append в ту же queue, без перехода в QA.
 4. §0.11 если refs · pre-FINISH skills
-5. **FINISH:** finish-block (`code_changed: yes`); `@verify-bugfix` проверяет queue all-terminal + verification PASS + report → runner next session
+5. **FINISH:** finish-block (`code_changed: yes`); `@verify-bugfix` проверяет queue all-terminal + verification PASS + report, а принятый PASS атомарно переводит BUGFIX в re-QA → runner next session (дополнительный `finish --step BUGFIX` не вызывается)
    Next-mode: `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
 
 **Верификация**: gates + root cause + FINISH + graphify

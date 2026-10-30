@@ -90,15 +90,15 @@ supervisor. Если ни один источник не задан, запус�
 | `LOOP_SESSION_TIMEOUT` | `3600` сек | общий предел одной сессии |
 | `LOOP_STATUS_HEARTBEAT` | `30` сек | период `SESSION_HEARTBEAT` с `elapsed` и `idle_for` |
 | `LOOP_STREAM_IDLE_TIMEOUT` | `300` сек | таймаут отсутствия реального tool/command прогресса |
-| `LOOP_COLLABORATION_WAIT_TIMEOUT` | выключен | необязательный предел ожидания native Codex subagent |
+| `LOOP_COLLABORATION_WAIT_TIMEOUT` | `900` сек | предел ожидания native Codex subagent |
 | `LOOP_SESSION_KILL_GRACE` | `30` сек | время на graceful stop перед `SIGKILL` |
 
-Heartbeat виден в обычном выводе и сохраняется в `session-*.log`. При idle или
-общем timeout процесс завершается, результат получает отдельный диагностический
-код, а `SessionSupervisor` выполняет обычный bounded retry; это не маскируется
-под пользовательский interrupt. Пустое значение отключает соответствующий
-необязательный watchdog. По умолчанию ожидание native Codex subagent ограничено
-только общим `LOOP_SESSION_TIMEOUT`.
+Heartbeat виден в обычном выводе и сохраняется в `session-*.log`. При idle,
+ожидании subagent или общем timeout процесс завершается, результат получает
+отдельный диагностический код, а `SessionSupervisor` выполняет обычный bounded
+retry; это не маскируется под пользовательский interrupt. Пустое значение
+`LOOP_COLLABORATION_WAIT_TIMEOUT` явно отключает только этот watchdog, но по
+умолчанию ожидание native Codex subagent ограничено 900 секундами.
 
 Hooks активны только когда процесс запущен через `bin/loop.py`: он выставляет
 `LOOP_ACTIVE=1` и `EPIC_LOOP=1`. Hook entrypoints без этих маркеров ничего не

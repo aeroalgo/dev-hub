@@ -3,9 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from loop.kernel.cli import _bugfix_gate_paths
+from loop.kernel.cli import _bugfix_gate_paths, main
 from loop.kernel.evidence import validate_runtime_evidence
-from loop.kernel.index import bugfix_queue_intake, bugfix_queue_state, qa_pass_state
+from loop.kernel.index import (
+    bugfix_queue_intake,
+    bugfix_queue_state,
+    phase_payload,
+    qa_pass_state,
+    sync_bugfix_queue_evidence,
+)
 
 
 def _write(path: Path, content: str) -> None:
@@ -13,12 +19,17 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _runtime_trace(*, command: str, timestamp: str = "2026-10-29T12:00:00Z") -> dict[str, object]:
+def _runtime_trace(
+    *,
+    command: str,
+    timestamp: str = "2026-10-29T12:00:00Z",
+    evidence_type: str = "runtime_http",
+) -> dict[str, object]:
     return {
         "schema": "runtime-http-evidence/v1",
         "status": "pass",
         "live_evidence": True,
-        "evidence_type": "runtime_http",
+        "evidence_type": evidence_type,
         "timestamp": timestamp,
         "command": command,
         "exit_code": 0,
@@ -114,7 +125,7 @@ def test_bugfix_state_accepts_matching_real_runtime_evidence(tmp_path: Path) -> 
     assert tmp_path / "docs/reports/live.json" in gate_paths
 
 
-def test_bugfix_state_rejects_stale_runtime_evidence(tmp_path: Path) -> None:
+def test_bugfix_state_rejects_anchor_mismatch_runtime_evidence(tmp_path: Path) -> None:
     command = "timeout -k 10s 300s bash scripts/live_smoke.sh"
     _write(
         tmp_path / "docs/reports/live.json",
@@ -137,7 +148,35 @@ def test_bugfix_state_rejects_stale_runtime_evidence(tmp_path: Path) -> None:
     valid, reason = bugfix_queue_state(tmp_path, "back", "E1")
 
     assert not valid
-    assert reason == "runtime_evidence_stale"
+    assert reason == "runtime_evidence_anchor_mismatch"
+    synced, sync_reason = sync_bugfix_queue_evidence(tmp_path, "back", "E1")
+    assert not synced
+    assert sync_reason == "runtime_evidence_stale"
+
+
+def test_runtime_evidence_requires_anchor_within_fifteen_seconds(tmp_path: Path) -> None:
+    command = "timeout -k 10s 300s bash scripts/live_smoke.sh"
+    path = tmp_path / "docs/reports/live.json"
+    _write(path, json.dumps(_runtime_trace(command=command, timestamp="2026-10-29T12:00:10Z")))
+
+    ok_near, reason_near = validate_runtime_evidence(
+        tmp_path,
+        "docs/reports/live.json",
+        expected_command=command,
+        anchor="2026-10-29T12:00:00Z",
+    )
+    assert ok_near
+    assert reason_near == "runtime_evidence_valid"
+
+    _write(path, json.dumps(_runtime_trace(command=command, timestamp="2026-10-29T12:02:00Z")))
+    ok_far, reason_far = validate_runtime_evidence(
+        tmp_path,
+        "docs/reports/live.json",
+        expected_command=command,
+        anchor="2026-10-29T12:00:00Z",
+    )
+    assert not ok_far
+    assert reason_far == "runtime_evidence_anchor_mismatch"
 
 
 def test_qa_pass_rejects_browser_claim_without_typed_runtime_artifact(tmp_path: Path) -> None:
@@ -184,3 +223,260 @@ browser:
 
     assert valid
     assert reason == "runtime_evidence_valid"
+
+
+def test_qa_pass_auto_syncs_rewritten_runtime_evidence_anchor(tmp_path: Path) -> None:
+    command = "bash scripts/infra/compose_smoke.sh"
+    evidence_path = "deploy/compose-smoke-evidence.json"
+    _write(
+        tmp_path / evidence_path,
+        json.dumps(_runtime_trace(command=command, timestamp="2026-10-29T12:05:00Z")),
+    )
+    qa_path = tmp_path / "memory-bank/back/qa/E1/qa-20261029-live.yaml"
+    _write(
+        qa_path,
+        f"""schema: epic-qa/v1
+verdict: pass
+live_smoke:
+  status: pass
+  command: {command}
+  evidence_file: {evidence_path}
+  last_run_at: '2026-10-29T12:00:00Z'
+""",
+    )
+
+    valid, reason = qa_pass_state(tmp_path, "back", "E1")
+
+    assert valid
+    assert reason == "runtime_evidence_valid"
+    payload = phase_payload(qa_path)
+    assert payload is not None
+    assert payload["live_smoke"]["last_run_at"] == "2026-10-29T12:05:00Z"
+
+
+def test_app_qa_rejects_explicit_full_suite_scope(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "memory-bank/app/qa/E1/qa-20261029-app.yaml",
+        """schema: app-qa/v1
+role: app
+verdict: pass
+suite_scope: full
+""",
+    )
+
+    valid, reason = qa_pass_state(tmp_path, "app", "E1")
+
+    assert not valid
+    assert reason == "qa_suite_scope_app_lanes_required"
+
+
+def test_app_qa_requires_suite_scope(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "memory-bank/app/qa/E1/qa-20261029-app.yaml",
+        """schema: app-qa/v1
+role: app
+verdict: pass
+""",
+    )
+
+    valid, reason = qa_pass_state(tmp_path, "app", "E1")
+
+    assert not valid
+    assert reason == "qa_suite_scope_app_lanes_required"
+
+
+def test_check_bugfix_queue_auto_syncs_closed_bugfix_anchors(tmp_path: Path, capsys) -> None:
+    command = "python3 scripts/run_browser_qa.py"
+    old_path = "docs/reports/bugfix-browser.json"
+    _write(
+        tmp_path / old_path,
+        json.dumps(
+            _runtime_trace(
+                command=command,
+                timestamp="2026-10-29T12:05:00Z",
+                evidence_type="runtime_browser",
+            )
+        ),
+    )
+    _write(
+        tmp_path / "memory-bank/app/bugfix/E1/bugfix-queue.yaml",
+        f"""schema: epic-bugfix-queue/v1
+epic_id: E1
+role: app
+verification:
+  status: pass
+  command: {command}
+  last_run_at: '2026-10-29T12:00:00Z'
+  evidence: targeted unit regression
+  evidence_file: {old_path}
+items:
+  - id: BF-001
+    status: done
+    done_at: '2026-10-29T12:00:00Z'
+    class: browser
+    verify: {command!r}
+    evidence_file: {old_path}
+    evidence: browser regression captured
+""",
+    )
+    _write(
+        tmp_path / "memory-bank/app/qa/E1/qa-20261029-app.yaml",
+        f"""schema: app-qa/v1
+role: app
+verdict: pass
+suite_scope: app_lanes
+browser:
+  status: pass
+  command: {command}
+  evidence_file: {old_path}
+  last_run_at: '2026-10-29T12:05:00Z'
+  journeys:
+    - name: login
+      status: pass
+""",
+    )
+
+    queue_before, queue_before_reason = bugfix_queue_state(tmp_path, "app", "E1")
+    rc = main(
+        [
+            "check-bugfix-queue",
+            "--project",
+            str(tmp_path),
+            "--role",
+            "app",
+            "--epic",
+            "E1",
+            "--json",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+    queue_after, queue_after_reason = bugfix_queue_state(tmp_path, "app", "E1")
+    valid, reason = qa_pass_state(tmp_path, "app", "E1")
+
+    assert not queue_before
+    assert queue_before_reason == "runtime_evidence_anchor_mismatch"
+    assert rc == 0
+    assert output["reason"] == "bugfix_queue_ready"
+    assert output["sync_reason"] == "bugfix_queue_anchors_synced"
+    assert queue_after
+    assert queue_after_reason == "bugfix_queue_ready"
+    assert valid
+    assert reason == "runtime_evidence_valid"
+
+
+def test_compose_smoke_verification_uses_typed_timestamp_anchor(tmp_path: Path) -> None:
+    command = "bash scripts/infra/compose_smoke.sh"
+    evidence_path = "deploy/compose-smoke-evidence.json"
+    _write(
+        tmp_path / evidence_path,
+        json.dumps(
+            _runtime_trace(
+                command=command,
+                timestamp="2026-10-29T12:05:00Z",
+            )
+        ),
+    )
+    _write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        f"""schema: epic-bugfix-queue/v1
+epic_id: E1
+verification:
+  status: pass
+  command: {command}
+  last_run_at: '2026-10-29T12:00:00Z'
+  evidence: compose smoke passed
+  evidence_file: {evidence_path}
+items:
+  - id: BF-001
+    status: done
+    done_at: '2026-10-29T12:00:00Z'
+    class: ac_gap
+    verify: bin/pytest -q
+    evidence: targeted regression passed
+""",
+    )
+
+    valid, reason = bugfix_queue_state(tmp_path, "back", "E1")
+    assert not valid
+    assert reason == "runtime_evidence_anchor_mismatch"
+
+    synced, sync_reason = sync_bugfix_queue_evidence(tmp_path, "back", "E1")
+
+    assert synced
+    assert sync_reason == "bugfix_queue_anchors_synced"
+    payload = phase_payload(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml"
+    )
+    assert payload is not None
+    assert payload["verification"]["last_run_at"] == "2026-10-29T12:05:00Z"
+    assert bugfix_queue_state(tmp_path, "back", "E1") == (True, "bugfix_queue_ready")
+
+
+def test_qa_new_runtime_artifact_keeps_closed_bugfix_evidence_valid(tmp_path: Path) -> None:
+    command = "python3 scripts/run_browser_qa.py"
+    old_path = "docs/reports/bugfix-browser.json"
+    new_path = "docs/reports/qa-browser-20261029T120500Z.json"
+    _write(
+        tmp_path / old_path,
+        json.dumps(
+            _runtime_trace(
+                command=command,
+                timestamp="2026-10-29T12:00:00Z",
+                evidence_type="runtime_browser",
+            )
+        ),
+    )
+    _write(
+        tmp_path / new_path,
+        json.dumps(
+            _runtime_trace(
+                command=command,
+                timestamp="2026-10-29T12:05:00Z",
+                evidence_type="runtime_browser",
+            )
+        ),
+    )
+    _write(
+        tmp_path / "memory-bank/app/bugfix/E1/bugfix-queue.yaml",
+        f"""schema: epic-bugfix-queue/v1
+epic_id: E1
+role: app
+verification:
+  status: pass
+  command: bin/pytest -q
+  last_run_at: '2026-10-29T12:00:00Z'
+  evidence: targeted unit regression
+items:
+  - id: BF-001
+    status: done
+    done_at: '2026-10-29T12:00:00Z'
+    class: browser
+    verify: {command!r}
+    evidence_file: {old_path}
+    evidence: browser regression captured
+""",
+    )
+    _write(
+        tmp_path / "memory-bank/app/qa/E1/qa-20261029-app.yaml",
+        f"""schema: app-qa/v1
+role: app
+verdict: pass
+suite_scope: app_lanes
+browser:
+  status: pass
+  command: {command}
+  evidence_file: {new_path}
+  last_run_at: '2026-10-29T12:05:00Z'
+  journeys:
+    - name: login
+      status: pass
+""",
+    )
+
+    queue_valid, queue_reason = bugfix_queue_state(tmp_path, "app", "E1")
+    qa_valid, qa_reason = qa_pass_state(tmp_path, "app", "E1")
+
+    assert queue_valid
+    assert queue_reason == "bugfix_queue_ready"
+    assert qa_valid
+    assert qa_reason == "runtime_evidence_valid"

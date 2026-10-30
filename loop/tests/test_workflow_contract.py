@@ -44,6 +44,8 @@ def test_app_is_a_full_vertical_slice_role() -> None:
     assert "role: back|front|app" in verify_implement
     assert "`deny_old_proven: true`" in verify_implement
     assert "`back` / `front` / `app` / `integration`" in context_sync
+    assert "exactly one fenced JSON object" in context_sync
+    assert "do not emit a bare JSON object" in context_sync
     for mode in ("van", "plan", "decompose", "creative", "implement", "task", "refactor", "archive", "replan", "reconcile"):
         assert (app_rules / f"workflow-{mode}.mdc").is_file()
         assert (app_rules / "isolation_rules/_lean" / f"{mode}.mdc").is_file()
@@ -129,6 +131,7 @@ def test_plan_and_qa_contracts_keep_the_interactive_and_evidence_gates() -> None
     assert "evidence_file" in qa["live_smoke"]
 
     app_qa = yaml.safe_load((ROOT / "harness/cursor/templates/qa/app-epic-step.yaml").read_text(encoding="utf-8"))
+    assert app_qa["suite_scope"] == "app_lanes"
     assert "evidence_file" in app_qa["browser"]
     assert "evidence_file" in app_qa["live_smoke"]
 
@@ -136,6 +139,8 @@ def test_plan_and_qa_contracts_keep_the_interactive_and_evidence_gates() -> None
     assert "typed runtime artifact" in verify_qa
     assert "scope-driven" in verify_qa and "test_plan" in verify_qa and "test-catalog.yaml" in verify_qa
     assert "mock_*" in verify_qa
+    assert "sync-bugfix-queue" in verify_qa
     verify_bugfix = (ROOT / "harness/agents/verify-bugfix.md").read_text(encoding="utf-8")
     assert "evidence_file" in verify_bugfix
     assert "live_evidence: true" in verify_bugfix
+    assert "sync-bugfix-queue" in verify_bugfix

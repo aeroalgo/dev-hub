@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import base64
 from typing import Any
+
 import httpx
 
-from loop.board_projection.config import Bitrix24Config, BoardProjectionConfig, DEFAULT_PHASE_ALIASES
+from loop.board_projection.clients.bitrix24_rest import Bitrix24RestClient
+from loop.board_projection.config import (
+    DEFAULT_PHASE_ALIASES,
+    Bitrix24Config,
+    BoardProjectionConfig,
+)
 from loop.board_projection.errors import AdapterExecutionError
 from loop.board_projection.protocol import BoardProjectionAdapter, EpicRef
 from loop.board_projection.registry import register_adapter
@@ -19,11 +25,21 @@ class Bitrix24Adapter(BoardProjectionAdapter):
         phase_alias: dict[str, str] | None = None,
         client: httpx.Client | None = None,
         timeout: float = 10.0,
+        rest: Bitrix24RestClient | None = None,
     ) -> None:
         self.config = config
-        self.phase_alias = phase_alias if phase_alias is not None else dict(DEFAULT_PHASE_ALIASES)
-        self.timeout = timeout
-        self._client = client
+        self.phase_alias = (
+            phase_alias if phase_alias is not None else dict(DEFAULT_PHASE_ALIASES)
+        )
+        self._rest = (
+            rest
+            if rest is not None
+            else Bitrix24RestClient(
+                webhook_url=config.webhook_url,
+                client=client,
+                timeout=timeout,
+            )
+        )
 
     @property
     def provider_name(self) -> str:
@@ -35,41 +51,6 @@ class Bitrix24Adapter(BoardProjectionAdapter):
             config=config.providers.bitrix24,
             phase_alias=config.phase_alias,
         )
-
-    def _get_client(self) -> httpx.Client:
-        if self._client is not None:
-            return self._client
-        return httpx.Client(timeout=self.timeout)
-
-    def _post(self, method: str, json_data: dict[str, Any]) -> dict[str, Any]:
-        webhook_url = self.config.webhook_url.rstrip("/")
-        url = f"{webhook_url}/{method}"
-        client = self._get_client()
-        try:
-            resp = client.post(url, json=json_data)
-            resp.raise_for_status()
-            data = resp.json()
-        except httpx.HTTPStatusError as exc:
-            raise AdapterExecutionError(
-                f"Bitrix24 REST API returned HTTP {exc.response.status_code} for {method}: {exc.response.text}"
-            ) from exc
-        except httpx.RequestError as exc:
-            raise AdapterExecutionError(
-                f"Bitrix24 REST API request failed for {method}: {exc}"
-            ) from exc
-        except Exception as exc:
-            raise AdapterExecutionError(
-                f"Unexpected error calling Bitrix24 REST API {method}: {exc}"
-            ) from exc
-
-        if not isinstance(data, dict):
-            raise AdapterExecutionError(f"Bitrix24 REST API returned non-dict response for {method}: {data}")
-
-        if "error" in data:
-            err_desc = data.get("error_description", data.get("error"))
-            raise AdapterExecutionError(f"Bitrix24 REST API error for {method}: {err_desc}")
-
-        return data
 
     def resolve_stage_id(self, phase: str) -> str | None:
         """Resolve stage ID from phase using phase_alias and stage_map."""
@@ -131,7 +112,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
             fields["GROUP_ID"] = self.config.group_id
 
         payload = {"fields": fields}
-        data = self._post("tasks.task.add", payload)
+        data = self._rest.call("tasks.task.add", payload)
 
         result = data.get("result")
         task_info: dict[str, Any] = {}
@@ -163,6 +144,25 @@ class Bitrix24Adapter(BoardProjectionAdapter):
 
         return task_id_str
 
+    def update_card(self, external_id: str, epic: EpicRef) -> None:
+        title = epic.title or epic.epic_id
+        description = epic.description or f"Epic: {epic.epic_id}"
+        fields: dict[str, Any] = {
+            "TITLE": f"[{epic.epic_id}] {title}" if not title.startswith(f"[{epic.epic_id}]") else title,
+            "DESCRIPTION": description,
+        }
+        data = self._rest.call(
+            "tasks.task.update",
+            {
+                "taskId": int(external_id) if external_id.isdigit() else external_id,
+                "fields": fields,
+            },
+        )
+        if not data.get("result"):
+            raise AdapterExecutionError(
+                f"Bitrix24 tasks.task.update returned an unsuccessful result for task {external_id}: {data}"
+            )
+
     def move_card(self, external_id: str, phase: str) -> None:
         """Move card to stage corresponding to phase using task.stages.movetask."""
         stage_id = self.resolve_stage_id(phase)
@@ -175,7 +175,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
             "id": int(external_id) if external_id.isdigit() else external_id,
             "stageId": int(stage_id) if stage_id.isdigit() else stage_id,
         }
-        self._post("task.stages.movetask", payload)
+        self._rest.call("task.stages.movetask", payload)
 
     def attach_document(self, external_id: str, filename: str, content: bytes) -> dict[str, Any]:
         """Attach a file to a Bitrix24 task card (epic). Prefer publish_project_document for project docs."""
@@ -188,7 +188,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
                 "CONTENT": base64.b64encode(content).decode("ascii"),
             },
         }
-        data = self._post("task.item.addfile", payload)
+        data = self._rest.call("task.item.addfile", payload)
         result = data.get("result")
         if not isinstance(result, dict):
             raise AdapterExecutionError(f"Bitrix24 task.item.addfile returned unexpected result: {data}")
@@ -207,7 +207,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
     def _group_root_folder_id(self) -> str:
         if self.config.group_id is None:
             raise AdapterExecutionError("Bitrix24 project docs require group_id (Sonet project)")
-        data = self._post(
+        data = self._rest.call(
             "disk.storage.getlist",
             {
                 "filter": {
@@ -227,11 +227,11 @@ class Bitrix24Adapter(BoardProjectionAdapter):
         return str(root_id)
 
     def _ensure_subfolder(self, parent_id: str, folder_name: str) -> str:
-        children = self._post("disk.folder.getchildren", {"id": int(parent_id) if parent_id.isdigit() else parent_id})
+        children = self._rest.call("disk.folder.getchildren", {"id": int(parent_id) if parent_id.isdigit() else parent_id})
         for item in children.get("result") or []:
             if item.get("TYPE") == "folder" and item.get("NAME") == folder_name:
                 return str(item.get("ID"))
-        created = self._post(
+        created = self._rest.call(
             "disk.folder.addsubfolder",
             {
                 "id": int(parent_id) if parent_id.isdigit() else parent_id,
@@ -262,7 +262,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
         folder_id = self._ensure_subfolder(root_id, folder_name.strip() or "docs")
         b64 = base64.b64encode(content).decode("ascii")
 
-        children = self._post(
+        children = self._rest.call(
             "disk.folder.getchildren",
             {"id": int(folder_id) if folder_id.isdigit() else folder_id},
         )
@@ -273,7 +273,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
                 break
 
         if existing_id is not None:
-            data = self._post(
+            data = self._rest.call(
                 "disk.file.uploadversion",
                 {
                     "id": int(existing_id) if str(existing_id).isdigit() else existing_id,
@@ -282,7 +282,7 @@ class Bitrix24Adapter(BoardProjectionAdapter):
             )
             action = "updated"
         else:
-            data = self._post(
+            data = self._rest.call(
                 "disk.folder.uploadfile",
                 {
                     "id": int(folder_id) if folder_id.isdigit() else folder_id,

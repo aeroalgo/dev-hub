@@ -8,6 +8,7 @@ reviewer: APP QA
 verdict: pass
 checklist_sha256: <from Frozen QA checklist>
 verify_scope: full
+suite_scope: app_lanes
 mode: diff_aware
 
 charter:

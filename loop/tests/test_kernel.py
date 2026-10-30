@@ -21,6 +21,7 @@ from loop.kernel.cli import (
     _normalize_legacy_args,
     _phase_gate_agent,
     _phase_instruction,
+    _qa_gate_context,
 )
 from loop.kernel.verdict import extract_json_fence
 from loop.kernel.index import (
@@ -28,6 +29,7 @@ from loop.kernel.index import (
     _load_yaml_mapping,
     implement_path,
     normalize_decompose_list_fields,
+    phase_payload,
     repair_yaml_double_quoted_escapes,
     validate_decompose_tree,
 )
@@ -317,6 +319,50 @@ def test_codex_runtime_ends_after_verify_decompose_pass(tmp_path: Path) -> None:
     assert verify_output is not None
     assert runtime._end_session_requested is True
     assert engine.store.read().phase == "IMPLEMENT"
+
+
+def test_codex_runtime_ends_after_step_restart(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    runtime = CodexRuntime(progress=False)
+    runtime._progress_project = tmp_path
+    runtime._collab_lifecycle = SubagentLifecycle(paths)
+
+    for index in range(3):
+        output = runtime._child_verdict(
+            f"verify-thread-{index}",
+            "verify-implement",
+            f"invalid verdict {index}",
+        )
+        assert output is not None
+        if index < 2:
+            assert runtime._end_session_requested is False
+        else:
+            assert "STEP RESTARTED" in output
+
+    assert runtime._end_session_requested is True
+
+
+def test_codex_runtime_ends_after_verdict_transition_rejection(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    runtime = CodexRuntime(progress=False)
+    runtime._progress_project = tmp_path
+    runtime._collab_lifecycle = SubagentLifecycle(paths)
+
+    output = runtime._child_verdict(
+        "verify-thread",
+        "verify-qa",
+        _verdict_message(cursor, agent_id="verify-qa", paths=paths),
+    )
+
+    assert output is not None
+    assert "handoff REJECTED" in output
+    assert runtime._end_session_requested is True
+    assert engine.store.read().step_id == cursor.step_id
+    assert '"event": "verdict_transition_rejected"' in paths.events.read_text(encoding="utf-8")
 
 
 def test_codex_runtime_rejects_context_sync_prose_under_live_contract(tmp_path: Path) -> None:
@@ -824,6 +870,100 @@ items:
     assert engine.store.read().status == CursorStatus.COMPLETE
 
 
+def test_bugfix_gate_reconciles_rewritten_runtime_evidence_before_transition(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml",
+        "schema: epic-qa/v1\nverdict: fail\n",
+    )
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-20260921-fix.md",
+        "# Root cause\n\nThe runtime evidence path is refreshed safely.\n",
+    )
+    evidence_path = "docs/reports/compose-smoke.json"
+    command = "bash scripts/infra/compose_smoke.sh"
+    write(
+        tmp_path / evidence_path,
+        json.dumps(
+            {
+                "schema": "runtime-http-evidence/v1",
+                "status": "pass",
+                "live_evidence": True,
+                "evidence_type": "runtime_http",
+                "timestamp": "2026-09-21T00:05:00Z",
+                "command": command,
+                "exit_code": 0,
+                "raw_http": "HTTP/1.1 200 OK",
+                "observations": ["compose services healthy"],
+            }
+        ),
+    )
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        f"""schema: epic-bugfix-queue/v1
+epic_id: E1
+verification:
+  status: pending
+  command: {command}
+  last_run_at: '2026-09-21T00:00:00Z'
+  evidence: compose smoke passed
+  evidence_file: {evidence_path}
+items:
+  - id: BF-000
+    status: done
+    done_at: '2026-09-21T00:00:00Z'
+    class: live_smoke
+    verify: {command}
+    evidence: prior compose smoke passed
+    evidence_file: {evidence_path}
+  - id: BF-001
+    status: open
+    class: live_smoke
+    verify: {command}
+    evidence: compose smoke pending
+    evidence_file: {evidence_path}
+""",
+    )
+    engine.finish(step_id="QA")
+    assert engine.store.read().phase == "BUGFIX"
+
+    write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        f"""schema: epic-bugfix-queue/v1
+epic_id: E1
+verification:
+  status: pass
+  command: {command}
+  last_run_at: '2026-09-21T00:00:00Z'
+  evidence: compose smoke passed
+  evidence_file: {evidence_path}
+items:
+  - id: BF-001
+    status: done
+    done_at: '2026-09-21T00:00:00Z'
+    class: live_smoke
+    verify: {command}
+    evidence: compose smoke passed
+    evidence_file: {evidence_path}
+""",
+    )
+
+    transition = _finish_via_gate(engine)
+
+    assert transition.phase == "QA"
+    payload = phase_payload(tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml")
+    assert payload is not None
+    assert payload["verification"]["last_run_at"] == "2026-09-21T00:05:00Z"
+    assert payload["items"][0]["done_at"] == "2026-09-21T00:05:00Z"
+    with pytest.raises(TransitionError, match="BUGFIX already completed"):
+        engine.finish(step_id="BUGFIX")
+
+
 def test_qa_pass_cannot_cross_with_unverified_browser_claim(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -999,6 +1139,25 @@ def test_implement_prompt_requires_workflow_bootstrap_and_forbids_full_pytest(tm
     assert "without an implement- prefix" in instruction
 
 
+def test_context_sync_prompt_requires_one_fenced_json_result(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-pass.yaml", "schema: epic-qa/v1\nverdict: pass\n")
+    _finish_via_gate(engine)
+
+    cursor = engine.store.read()
+    assert cursor is not None
+    instruction = _phase_instruction(cursor, tmp_path, engine)
+
+    assert "exactly one fenced JSON object" in instruction
+    assert "schema loop-context-sync-result/v1" in instruction
+    assert "no bare JSON" in instruction
+    assert "do not call finish" in instruction
+
+
 def test_gate_prompt_contains_exact_identity_contract_and_repair_loop(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -1083,6 +1242,45 @@ section_011:
     assert "qa-evidence.json" in prompt
 
 
+def test_app_qa_prompt_defaults_to_app_lanes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "memory-bank/app/qa/E1/qa-20260921-app.yaml",
+        """schema: app-qa/v1
+role: app
+verdict: pass
+verify_scope: full
+""",
+    )
+
+    class AppCursor:
+        role = "app"
+        epic_id = "E1"
+
+    lines, _paths = _qa_gate_context(tmp_path, AppCursor())
+
+    assert lines[0] == "suite_scope: app_lanes"
+
+
+def test_app_qa_prompt_marks_explicit_full_scope_invalid(tmp_path: Path) -> None:
+    write(
+        tmp_path / "memory-bank/app/qa/E1/qa-20260921-app.yaml",
+        """schema: app-qa/v1
+role: app
+verdict: pass
+suite_scope: full
+""",
+    )
+
+    class AppCursor:
+        role = "app"
+        epic_id = "E1"
+
+    lines, _paths = _qa_gate_context(tmp_path, AppCursor())
+
+    assert lines[0] == "suite_scope: full"
+    assert "APP QA contract: suite_scope must be app_lanes; explicit full is invalid." in lines
+
+
 def test_verify_bugfix_prompt_packs_contract_paths_under_limit(tmp_path: Path) -> None:
     paths = seed_project(tmp_path)
     engine = LoopEngine(paths)
@@ -1123,6 +1321,10 @@ items:
     assert "memory-bank/back/qa/E1/qa-20260921-fail.yaml" in prompt
     assert "backend/core/settings.py" in prompt
     assert "memory-bank/back/plan/E1" not in prompt
+    phase_prompt = _phase_instruction(cursor, tmp_path, engine)
+    assert "atomically advances BUGFIX to re-QA" in phase_prompt
+    assert "do not call finish again for BUGFIX" in phase_prompt
+    assert "Child PASS is not finish" not in phase_prompt
 
 
 def test_qa_fail_verdict_routes_to_bugfix_atomically(tmp_path: Path) -> None:
@@ -1913,8 +2115,9 @@ def test_phase_finish_requires_evidence_and_halt_is_terminal(tmp_path: Path) -> 
 
     halted = engine.halt("manual stop")
     assert halted.status == CursorStatus.HALTED
-    with pytest.raises(TransitionError, match="halted"):
+    with pytest.raises(TransitionError, match="halted") as error:
         engine.finish(step_id="QA")
+    assert "resume it first" in str(error.value)
 
 
 def test_start_resumes_halted_cursor_at_saved_phase(tmp_path: Path) -> None:
@@ -3216,7 +3419,7 @@ def test_collaboration_state_clears_pending_when_wait_completes() -> None:
     assert done is True
 
 
-def test_collaboration_state_clears_on_wait_completed_without_states() -> None:
+def test_collaboration_state_preserves_pending_on_wait_completed_without_states() -> None:
     pending = {"thr-2"}
     wait_done = {
         "type": "item.completed",
@@ -3227,9 +3430,33 @@ def test_collaboration_state_clears_on_wait_completed_without_states() -> None:
         },
     }
     pending, started, done = _collaboration_state(json.dumps(wait_done), pending, 50.0, now=60.0)
-    assert pending == set()
-    assert started is None
-    assert done is True
+    assert pending == {"thr-2"}
+    assert started == 50.0
+    assert done is False
+
+
+def test_collaboration_state_does_not_reset_wait_clock_on_repeated_empty_waits() -> None:
+    pending = {"thr-2"}
+    wait_done = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "wait",
+                "receiver_thread_ids": ["thr-2"],
+            },
+        }
+    )
+
+    pending, started, done = _collaboration_state(wait_done, pending, 50.0, now=60.0)
+    assert pending == {"thr-2"}
+    assert started == 50.0
+    assert done is False
+
+    pending, started, done = _collaboration_state(wait_done, pending, started, now=70.0)
+    assert pending == {"thr-2"}
+    assert started == 50.0
+    assert done is False
 
 
 def test_collaboration_state_spawn_completed_keeps_pending_while_child_runs() -> None:

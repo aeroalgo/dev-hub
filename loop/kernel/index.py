@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
+import tempfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -12,6 +15,8 @@ from .evidence import (
     evidence_file_ref,
     is_runtime_claim,
     requires_runtime_verification,
+    RUNTIME_EVIDENCE_MAX_SKEW_SECONDS,
+    runtime_evidence_timestamp,
     validate_runtime_artifact_path,
     validate_runtime_evidence,
 )
@@ -664,7 +669,10 @@ def _queue_verification_state(project: Path, verification: dict[str, Any]) -> tu
         for field in ("command", "last_run_at", "evidence")
     ):
         return False, "bugfix_verification_required"
-    if not requires_runtime_verification(verification.get("command")):
+    if not (
+        requires_runtime_verification(verification.get("command"))
+        or evidence_file_ref(verification)
+    ):
         return True, "bugfix_verification_valid"
 
     reference = evidence_file_ref(verification)
@@ -684,21 +692,32 @@ def qa_runtime_evidence_state(project: Path, payload: dict[str, Any]) -> tuple[b
     a real, typed runtime artifact; prose and static/mock traces are rejected.
     """
 
+    return _qa_runtime_evidence_state(project, payload)
+
+
+def _qa_runtime_evidence_state(project: Path, payload: dict[str, Any]) -> tuple[bool, str]:
+    """Validate every declared live QA lane."""
+    declared = False
+    success_reason = "runtime_evidence_valid"
     live_smoke = payload.get("live_smoke")
     if isinstance(live_smoke, dict):
+        declared = True
         live_status = str(live_smoke.get("status") or "").strip().lower()
         if live_status != "pass":
             return False, "qa_live_smoke_not_pass"
         reference = evidence_file_ref(live_smoke)
-        return validate_runtime_evidence(
+        valid, reason = validate_runtime_evidence(
             project,
             reference,
             expected_command=live_smoke.get("command"),
             anchor=live_smoke.get("last_run_at") or live_smoke.get("recorded_at"),
         )
+        if not valid:
+            return valid, reason
 
     browser = payload.get("browser")
     if isinstance(browser, dict) and str(browser.get("status") or "").strip().lower() == "pass":
+        declared = True
         journeys = browser.get("journeys")
         if not isinstance(journeys, list) or not journeys:
             return False, "qa_browser_journeys_required"
@@ -706,15 +725,20 @@ def qa_runtime_evidence_state(project: Path, payload: dict[str, Any]) -> tuple[b
         if not reference:
             return False, "qa_browser_evidence_required"
         if Path(reference).suffix.lower() in {".json", ".yaml", ".yml"}:
-            return validate_runtime_evidence(
+            valid, reason = validate_runtime_evidence(
                 project,
                 reference,
                 expected_command=browser.get("command"),
                 anchor=browser.get("last_run_at") or browser.get("recorded_at"),
             )
-        return validate_runtime_artifact_path(project, reference)
+        else:
+            valid, reason = validate_runtime_artifact_path(project, reference)
+            if valid:
+                success_reason = reason
+        if not valid:
+            return valid, reason
 
-    return True, "qa_runtime_evidence_not_declared"
+    return True, success_reason if declared else "qa_runtime_evidence_not_declared"
 
 
 def qa_pass_state(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
@@ -729,7 +753,19 @@ def qa_pass_state(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
     verdict = str(payload.get("verdict") or payload.get("status") or "").strip().lower()
     if verdict not in {"pass", "passed", "complete", "completed"}:
         return False, "qa_verdict_not_pass"
-    return qa_runtime_evidence_state(project, payload)
+    suite_scope = str(payload.get("suite_scope") or "").strip().lower()
+    if role == "app" and suite_scope != "app_lanes":
+        return False, "qa_suite_scope_app_lanes_required"
+    synced, sync_reason = sync_qa_runtime_evidence(project, role, epic_id)
+    if not synced:
+        return False, sync_reason
+    # Re-read the artifact after an atomic anchor refresh.  The runtime file is
+    # the timestamp SoT; validating the pre-refresh mapping would reject the
+    # same evidence that was just reconciled.
+    payload = phase_payload(artifacts[-1])
+    if payload is None:
+        return False, "qa_artifact_invalid"
+    return _qa_runtime_evidence_state(project, payload)
 
 
 def bugfix_queue_path(project: Path, role: str, epic_id: str) -> Path:
@@ -739,6 +775,92 @@ def bugfix_queue_path(project: Path, role: str, epic_id: str) -> Path:
 def bugfix_report_paths(project: Path, role: str, epic_id: str) -> list[Path]:
     root = bugfix_queue_path(project, role, epic_id).parent
     return sorted(root.glob("bugfix-*.md")) if root.is_dir() else []
+
+
+def sync_qa_runtime_evidence(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
+    """Refresh QA runtime anchors after a shared evidence file is rewritten.
+
+    Live QA lanes and bugfix queue items can intentionally point at the same
+    runtime capture.  A later VERIFY run replaces that capture's timestamp;
+    keeping the old ``last_run_at`` in QA makes an otherwise valid PASS fail
+    with ``runtime_evidence_anchor_mismatch`` and leaves the loop retrying the
+    same gate.  The capture timestamp is authoritative, so only an older QA
+    anchor is advanced.  A newer anchor is never moved backwards and remains a
+    hard failure when it is outside the allowed skew.
+    """
+
+    artifacts = phase_artifacts(project, role, epic_id, "qa")
+    if not artifacts:
+        return True, "qa_runtime_evidence_not_declared"
+    path = artifacts[-1]
+    payload = phase_payload(path)
+    if payload is None:
+        return False, "qa_artifact_invalid"
+
+    changed = False
+
+    def sync_entry(entry: dict[str, Any], *, browser: bool = False) -> tuple[bool, str]:
+        nonlocal changed
+        if str(entry.get("status") or "").strip().lower() != "pass":
+            return True, "runtime_evidence_not_declared"
+        reference = evidence_file_ref(entry)
+        if not reference:
+            return True, "runtime_evidence_not_declared"
+        if browser and Path(reference).suffix.lower() not in {".json", ".yaml", ".yml"}:
+            return True, "runtime_artifact_path"
+
+        timestamp, reason = runtime_evidence_timestamp(
+            project,
+            reference,
+            expected_command=entry.get("command"),
+        )
+        if timestamp is None:
+            return False, reason
+        anchor_key = "last_run_at" if str(entry.get("last_run_at") or "").strip() else (
+            "recorded_at" if str(entry.get("recorded_at") or "").strip() else None
+        )
+        if anchor_key is None:
+            return True, "runtime_evidence_valid"
+        current_seconds = _timestamp_seconds(entry.get(anchor_key))
+        evidence_seconds = _timestamp_seconds(timestamp)
+        if current_seconds is None or evidence_seconds is None:
+            return False, "runtime_evidence_anchor_invalid"
+        if current_seconds > evidence_seconds:
+            if current_seconds - evidence_seconds > RUNTIME_EVIDENCE_MAX_SKEW_SECONDS:
+                return False, "runtime_evidence_stale"
+            return True, "runtime_evidence_valid"
+        if str(entry.get(anchor_key) or "").strip() != timestamp:
+            entry[anchor_key] = timestamp
+            changed = True
+        return True, "runtime_evidence_valid"
+
+    live_smoke = payload.get("live_smoke")
+    if isinstance(live_smoke, dict):
+        ok, reason = sync_entry(live_smoke)
+        if not ok:
+            return False, reason
+
+    browser = payload.get("browser")
+    if isinstance(browser, dict):
+        ok, reason = sync_entry(browser, browser=True)
+        if not ok:
+            return False, reason
+
+    if not changed:
+        return True, "qa_runtime_anchors_current"
+
+    content = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return True, "qa_runtime_anchors_synced"
 
 
 def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
@@ -772,6 +894,112 @@ def bugfix_queue_state(project: Path, role: str, epic_id: str) -> tuple[bool, st
     if not verification_ok:
         return False, verification_reason
     return True, "bugfix_queue_ready"
+
+
+def sync_bugfix_queue_evidence(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
+    """Move runtime queue anchors to a newer valid VERIFY artifact.
+
+    A QA rerun may legitimately rewrite a project's configured evidence path.
+    The queue remains the status SoT, so its anchors are updated to the timestamp
+    of that new run before ``check-bugfix-queue`` or a gate. The operation is
+    idempotent and never moves an anchor backwards.
+    Older evidence is never allowed to move an anchor backwards.
+    """
+
+    path = bugfix_queue_path(project, role, epic_id)
+    payload = phase_payload(path)
+    if payload is None:
+        return False, "bugfix_queue_missing"
+    if payload.get("schema") != "epic-bugfix-queue/v1":
+        return False, "bugfix_queue_schema_invalid"
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        return False, "bugfix_queue_items_missing"
+
+    changed = False
+    latest_timestamp: tuple[float, str] | None = None
+
+    def sync_anchor(entry: dict[str, Any], anchor_key: str, expected_command: object) -> tuple[bool, str]:
+        nonlocal changed, latest_timestamp
+        reference = evidence_file_ref(entry)
+        timestamp, reason = runtime_evidence_timestamp(
+            project,
+            reference,
+            expected_command=expected_command,
+        )
+        if timestamp is None:
+            return False, reason
+        current_seconds = _timestamp_seconds(timestamp)
+        anchor_seconds = _timestamp_seconds(entry.get(anchor_key))
+        if current_seconds is None or anchor_seconds is None:
+            return False, "runtime_evidence_anchor_invalid"
+        candidate_timestamp = (current_seconds, timestamp)
+        if latest_timestamp is None or candidate_timestamp[0] > latest_timestamp[0]:
+            latest_timestamp = candidate_timestamp
+        if current_seconds < anchor_seconds:
+            if anchor_seconds - current_seconds > RUNTIME_EVIDENCE_MAX_SKEW_SECONDS:
+                return False, "runtime_evidence_stale"
+            return True, "runtime_evidence_valid"
+        if str(entry.get(anchor_key) or "").strip() != timestamp:
+            entry[anchor_key] = timestamp
+            changed = True
+        return True, "runtime_evidence_valid"
+
+    for item in items:
+        if not isinstance(item, dict):
+            return False, "bugfix_queue_item_invalid"
+        status = str(item.get("status") or "").strip().lower()
+        if status not in {"done", "closed"} or not is_runtime_claim(item):
+            continue
+        if status == "done" and not str(item.get("done_at") or "").strip():
+            return False, "bugfix_item_done_at_required"
+        ok, reason = sync_anchor(item, "done_at", item.get("verify"))
+        if not ok:
+            return False, reason
+
+    verification = payload.get("verification")
+    if isinstance(verification, dict) and str(verification.get("status") or "").strip().lower() == "pass":
+        if (
+            requires_runtime_verification(verification.get("command"))
+            or evidence_file_ref(verification)
+        ):
+            ok, reason = sync_anchor(verification, "last_run_at", verification.get("command"))
+            if not ok:
+                return False, reason
+
+    if not changed:
+        return True, "bugfix_queue_anchors_current"
+
+    if latest_timestamp is not None:
+        previous_updated = _timestamp_seconds(payload.get("updated_at"))
+        if previous_updated is None or latest_timestamp[0] > previous_updated:
+            payload["updated_at"] = latest_timestamp[1]
+
+    content = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return True, "bugfix_queue_anchors_synced"
+
+
+def _timestamp_seconds(value: object) -> float | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
 
 
 def bugfix_queue_intake(project: Path, role: str, epic_id: str) -> tuple[bool, str]:

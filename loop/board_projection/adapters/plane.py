@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import mimetypes
 from typing import Any
+
 import httpx
 
-from loop.board_projection.config import BoardProjectionConfig, DEFAULT_PHASE_ALIASES, PlaneConfig
+from loop.board_projection.config import (
+    DEFAULT_PHASE_ALIASES,
+    BoardProjectionConfig,
+    PlaneConfig,
+)
 from loop.board_projection.errors import AdapterExecutionError
 from loop.board_projection.protocol import BoardProjectionAdapter, EpicRef
 from loop.board_projection.registry import register_adapter
@@ -47,9 +52,9 @@ class PlaneAdapter(BoardProjectionAdapter):
             "Content-Type": "application/json",
         }
 
-    def _get_issues_url(self) -> str:
+    def _get_work_items_url(self) -> str:
         base = self.config.base_url.rstrip("/")
-        return f"{base}/api/v1/workspaces/{self.config.workspace_slug}/projects/{self.config.project_id}/issues/"
+        return f"{base}/api/v1/workspaces/{self.config.workspace_slug}/projects/{self.config.project_id}/work-items/"
 
     def _request(self, method: str, url: str, json_data: dict[str, Any] | None = None) -> dict[str, Any]:
         client = self._get_client()
@@ -108,8 +113,8 @@ class PlaneAdapter(BoardProjectionAdapter):
 
     def ensure_card(self, epic: EpicRef) -> str:
         """
-        Create work item / issue in Plane via POST /api/v1/workspaces/{slug}/projects/{project_id}/issues/.
-        Returns external issue ID as string.
+        Create a work item in Plane via the canonical work-items endpoint.
+        Returns the external work-item ID as a string.
         """
         title = epic.title or epic.epic_id
         description = epic.description or f"Epic: {epic.epic_id}"
@@ -124,11 +129,10 @@ class PlaneAdapter(BoardProjectionAdapter):
             "name": f"[{epic.epic_id}] {title}" if not title.startswith(f"[{epic.epic_id}]") else title,
             "description_html": description,
             "description": description,
-            "state_id": state_id,
             "state": state_id,
         }
 
-        url = self._get_issues_url()
+        url = self._get_work_items_url()
         data = self._request("POST", url, payload)
 
         issue_id = data.get("id") or data.get("issue_id")
@@ -137,9 +141,23 @@ class PlaneAdapter(BoardProjectionAdapter):
 
         return str(issue_id)
 
+    def update_card(self, external_id: str, epic: EpicRef) -> None:
+        title = epic.title or epic.epic_id
+        description = epic.description or f"Epic: {epic.epic_id}"
+        payload = {
+            "name": f"[{epic.epic_id}] {title}" if not title.startswith(f"[{epic.epic_id}]") else title,
+            "description_html": description,
+            "description": description,
+        }
+        self._request(
+            "PATCH",
+            f"{self._get_work_items_url()}{external_id}/",
+            payload,
+        )
+
     def move_card(self, external_id: str, phase: str) -> None:
         """
-        Update work item state in Plane via PATCH /api/v1/workspaces/{slug}/projects/{project_id}/issues/{issue_id}/.
+        Update a work-item state via the canonical Plane work-items endpoint.
         Validates returned state fail-closed to protect against silent no-op.
         """
         target_state_id = self.resolve_state_id(phase)
@@ -149,10 +167,9 @@ class PlaneAdapter(BoardProjectionAdapter):
             )
 
         payload = {
-            "state_id": target_state_id,
             "state": target_state_id,
         }
-        url = f"{self._get_issues_url()}{external_id}/"
+        url = f"{self._get_work_items_url()}{external_id}/"
         data = self._request("PATCH", url, payload)
 
         # Fail-closed check: verify state in response matches target_state_id

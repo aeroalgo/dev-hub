@@ -40,6 +40,8 @@ Parent **обязан** передать:
 4. Write/Edit **только** пути из `ALLOW WRITE` (+ queue если разрешён).
 5. **FORBIDDEN:** второй `QUEUE_ITEM`; правки вне ALLOW; spawn Agent/verify; FINISH; frontend vitest/playwright/npm test/e2e (HARD RULE parent-only).
 6. После green: item → `done` + `done_at` + evidence (если queue writable); иначе parent закроет item по твоему JSON.
+7. **Timestamp contract (HARD):** если VERIFY пишет `evidence_file` (browser/live/HTTP/runtime), `done_at` = точная копия `evidence_file.timestamp`. FORBIDDEN: wall-clock `done_at`; сохранять старый `timestamp` при новом прогоне VERIFY. Parent затем запускает `loop.py check-bugfix-queue`; preflight автоматически синхронизирует новый валидный timestamp в `verification.last_run_at`.
+8. **Anchor refresh (HARD):** если последующий browser/live/HTTP VERIFY перезаписал уже объявленный `evidence_file`, `check-bugfix-queue` и BUGFIX gate автоматически копируют новый typed timestamp в затронутые `done_at`/`last_run_at` и никогда не двигают якорь назад. `sync-bugfix-queue` оставлен для явной диагностики.
 
 ## Pre-emit validate (HARD)
 

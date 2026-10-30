@@ -32,7 +32,11 @@ Parent **обязан** передать только:
 ## Validation rules
 
 0. **Первый Read** = `bugfix-queue.yaml` из ALLOW (обязателен). Нет файла → `FAIL` (`bugfix_queue_missing`). Затем прочитай report. Queue должен быть `epic-bugfix-queue/v1`.
-0a. **Queue progress:** нет `open|in_progress|blocked`; один current item закрыт по порядку; каждый `done` имеет targeted evidence + done_at. Для item/verification с `live_smoke`, browser, HTTP, runtime или wire claim обязателен `evidence_file` с typed runtime capture: `status: pass`, `live_evidence: true`, timestamp, выполненная command, `exit_code: 0`, наблюдаемые responses/journeys/checks и без `mock_*`/ASGI/in-process. `verification.status=pass` только после full `verification.command` и evidence; если команда runtime-sensitive, queue должна ссылаться на тот же runtime artifact. fail → gate repair в ту же queue.
+0a. **Queue progress:** нет `open|in_progress|blocked`; один current item закрыт по порядку; каждый `done` имеет targeted evidence + done_at. Для item/verification с `live_smoke`, browser, HTTP, runtime или wire claim обязателен `evidence_file` с typed runtime capture: `status: pass`, `live_evidence: true`, timestamp, выполненная command, `exit_code: 0`, наблюдаемые responses/journeys/checks и без `mock_*`/ASGI/in-process. `verification.status=pass` только после full `verification.command` и evidence; если команда runtime-sensitive, queue должна ссылаться на тот же runtime artifact. **Timestamp contract (HARD):** `item.done_at` и `verification.last_run_at` = точная копия `evidence_file.timestamp` (±15s). Wall-clock якоря или старый timestamp после нового VERIFY → `FAIL`. Если новый VERIFY перезаписал объявленный `evidence_file`, parent сначала синхронизирует queue через `sync-bugfix-queue`; старый timestamp нельзя оставлять. До любого PASS выполни machine check:
+   ```bash
+   python3 $DEV_HUB/bin/loop.py check-bugfix-queue --project "$PROJECT_ROOT" --json
+   ```
+   `ok: false` → `FAIL` с `reason` из JSON (не emit PASS). Проверка сама синхронизирует новый валидный typed timestamp; stale/invalid evidence остаётся FAIL. fail → gate repair в ту же queue.
 0b. Построй checklist из report:
    - `AC+` ← секция Changes Implemented / список изменённых файлов+поведения (≥1; иначе `FAIL checklist_empty:AC+`)
    - `AC−` ← не ломать unrelated / dispositions ineligible / явный out-of-scope (≥1; иначе `FAIL checklist_empty:AC−`)

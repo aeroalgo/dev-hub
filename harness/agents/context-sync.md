@@ -43,6 +43,8 @@ python3 $DEV_HUB/bin/loop.py validate --project "$PROJECT_ROOT" --schema loop-co
 
 ## Output
 
+The final response MUST contain exactly one fenced JSON object. The opening fence must be ` ```json ` and the closing fence must be ` ``` `; do not emit a bare JSON object or prose after the fence.
+
 ```json
 {
   "schema": "loop-context-sync-result/v1",

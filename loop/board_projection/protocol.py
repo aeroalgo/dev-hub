@@ -20,6 +20,8 @@ class ProjectionResult:
     stage_id: str | None = None
     error: str | None = None
     disabled_reason: str | None = None
+    diagnostic_id: str | None = None
+    diagnostic_path: str | None = None
 
 
 @runtime_checkable

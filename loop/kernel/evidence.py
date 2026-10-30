@@ -10,7 +10,9 @@ from typing import Any
 import yaml
 
 
-RUNTIME_EVIDENCE_MAX_SKEW_SECONDS = 15 * 60
+# Anchors (done_at / last_run_at) must equal evidence.timestamp.
+# Tolerance is clock/ISO second rounding only — not a window to reuse stale runs.
+RUNTIME_EVIDENCE_MAX_SKEW_SECONDS = 15
 
 _RUNTIME_CLASSES = frozenset(
     {
@@ -25,6 +27,7 @@ _RUNTIME_CLASSES = frozenset(
 _RUNTIME_COMMAND_MARKERS = (
     "browser",
     "curl",
+    "compose_smoke",
     "docker compose",
     "live_smoke",
     "playwright",
@@ -68,6 +71,14 @@ def is_runtime_claim(value: object) -> bool:
         return False
     claim_class = _normalized_text(value.get("class") or value.get("lane") or value.get("kind"))
     if claim_class in _RUNTIME_CLASSES:
+        return True
+    declared_evidence_file = any(
+        isinstance(value.get(key), str) and value.get(key).strip()
+        for key in _PATH_KEYS
+    )
+    if declared_evidence_file and requires_runtime_verification(
+        value.get("verify") or value.get("command")
+    ):
         return True
     text = _normalized_text(_flatten_text(value))
     if "mock_" in text and ("live" in text or "browser" in text or "http" in text):
@@ -144,6 +155,14 @@ def _first_timestamp(payload: dict[str, Any]) -> float | None:
     return None
 
 
+def _first_timestamp_value(payload: dict[str, Any]) -> str:
+    for key in _TIMESTAMP_KEYS:
+        raw = str(payload.get(key) or "").strip()
+        if _timestamp(raw) is not None:
+            return raw
+    return ""
+
+
 def _observable(value: object) -> bool:
     if isinstance(value, dict):
         return any(_observable(item) for item in value.values())
@@ -172,6 +191,11 @@ def validate_runtime_evidence(
     The validator intentionally does not infer live success from a prose field.
     A live claim needs a repository-local artifact with a successful command,
     timestamp, observable output, and no synthetic/mock markers.
+
+    When ``anchor`` is set (queue ``done_at`` / ``last_run_at``), it must equal
+    ``evidence.timestamp`` within ``RUNTIME_EVIDENCE_MAX_SKEW_SECONDS``. Agents
+    copy the timestamp from the evidence file — they must not invent wall-clock
+    anchors or reuse an old evidence timestamp after a new VERIFY run.
     """
 
     raw_path = str(reference or "").strip()
@@ -224,11 +248,44 @@ def validate_runtime_evidence(
     if anchor and anchor_timestamp is None:
         return False, "runtime_evidence_anchor_invalid"
     if anchor_timestamp is not None:
-        skew = timestamp - anchor_timestamp
-        if skew > 15 or skew < -RUNTIME_EVIDENCE_MAX_SKEW_SECONDS:
-            return False, "runtime_evidence_stale"
+        skew = abs(timestamp - anchor_timestamp)
+        if skew > RUNTIME_EVIDENCE_MAX_SKEW_SECONDS:
+            return False, "runtime_evidence_anchor_mismatch"
 
     return True, "runtime_evidence_valid"
+
+
+def runtime_evidence_timestamp(
+    project: Path,
+    reference: object,
+    *,
+    expected_command: object = "",
+) -> tuple[str | None, str]:
+    """Return the typed timestamp from a valid runtime artifact.
+
+    This is used when a later VERIFY run rewrites the same declared artifact:
+    the caller can move queue anchors to the new evidence timestamp while
+    still rejecting invalid or older captures.
+    """
+
+    raw_path = str(reference or "").strip()
+    path = _resolve_evidence_file(project, raw_path)
+    if path is None:
+        return None, "runtime_evidence_path_invalid"
+    valid, reason = validate_runtime_evidence(
+        project,
+        raw_path,
+        expected_command=expected_command,
+    )
+    if not valid:
+        return None, reason
+    payload = _load_mapping(path)
+    if payload is None:
+        return None, "runtime_evidence_file_invalid"
+    timestamp = _first_timestamp_value(payload)
+    if not timestamp:
+        return None, "runtime_evidence_timestamp_missing"
+    return timestamp, "runtime_evidence_valid"
 
 
 def validate_runtime_artifact_path(project: Path, reference: object) -> tuple[bool, str]:
@@ -248,6 +305,7 @@ __all__ = [
     "evidence_file_ref",
     "is_runtime_claim",
     "requires_runtime_verification",
+    "runtime_evidence_timestamp",
     "validate_runtime_artifact_path",
     "validate_runtime_evidence",
 ]

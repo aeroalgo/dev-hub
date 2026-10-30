@@ -110,6 +110,8 @@ def _collaboration_state(
         elif tool == "wait" and event_type == "item.started" and receiver_ids:
             pending.update(receiver_ids)
         elif completed and tool in {"wait", "close_agent"}:
+            if tool == "wait" and not states:
+                continue
             # Wait/close finished: drop receivers that are not still active.
             # spawn_agent completed alone must NOT clear — child may still be running.
             for thread in receiver_ids:
@@ -810,9 +812,10 @@ class CodexRuntime(Runtime):
             event = str(transition.get("event") or "")
             verdict = str(metadata.get("verdict") or "")
             reason = str(transition.get("reason") or "")
+            terminal_restart = event in {"step_restarted", "halt"}
             # After a committed terminal gate, end the parent session. The
             # verify-decompose PASS is the complete DECOMPOSE gate.
-            if (
+            if (terminal_restart and not action.continue_session) or (
                 transition.get("changed")
                 and not action.continue_session
                 and (
@@ -845,17 +848,29 @@ class CodexRuntime(Runtime):
                 f"    verdict {agent_id}={verdict_label} -> "
                 f"{transition.get('phase')}/{transition.get('step_id')}{suffix}"
             )
+        reason = str(action.reason or "")
+        diagnostic_codes = {str(code) for code in action.diagnostic_codes}
+        if "verdict_transition_rejected" in diagnostic_codes:
+            self._end_session_requested = True
+        terminal_restart = (
+            reason.startswith(("step_restarted:", "step_restart_exhausted:"))
+            or bool(diagnostic_codes & {"step_restarted", "step_restart_exhausted"})
+        )
+        if terminal_restart:
+            self._end_session_requested = True
         if not action.ok:
-            halted = "schema_retry_exhausted" in str(action.reason or "")
+            halted = (
+                reason.startswith("step_restart_exhausted:")
+                or "step_restart_exhausted" in diagnostic_codes
+                or "schema_retry_exhausted" in reason
+            )
             if halted:
                 return (
-                    f"    gate {agent_id} handoff REJECTED → cursor HALTED ({action.reason}). "
+                    f"    gate {agent_id} handoff REJECTED → cursor HALTED ({reason}). "
                     "NOT ACCEPTED. FORBIDDEN: claim PASS/Готово/фаза завершена. NEED_HUMAN / resume required."
                 )
-            tree_invalid = "decompose_tree" in str(action.reason or "") or "invalid decompose tree" in str(
-                action.reason or ""
-            )
-            step_restarted = "step_restarted" in str(action.reason or "")
+            tree_invalid = "decompose_tree" in reason or "invalid decompose tree" in reason
+            step_restarted = terminal_restart
             if step_restarted:
                 fix_hint = (
                     " STEP RESTARTED — end this session; loop will re-arm the same step from scratch "
@@ -868,7 +883,7 @@ class CodexRuntime(Runtime):
             else:
                 fix_hint = " Respawn the same agent with exact GATE_IDENTITY."
             return (
-                f"    gate {agent_id} handoff REJECTED ({action.reason}). "
+                f"    gate {agent_id} handoff REJECTED ({reason}). "
                 "NOT ACCEPTED — child JSON is not machine state; phase did NOT advance. "
                 f"FORBIDDEN: claim OK/PASS/Готово/фаза завершена after this line.{fix_hint}"
             )

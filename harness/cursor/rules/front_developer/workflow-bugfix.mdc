@@ -12,7 +12,7 @@ alwaysApply: false
 2. **Вход из QA:** `bugfix-queue.yaml` из `load_now` — единственный курсор; visible UI → design stack Read до UI edit
 3. **Swarm:** parent spawn ≤3 `bugfix-fix`; **1 child = 1 bug** (reproduce → root cause → regression → fix → targeted scenario green → done/evidence → стоп). Disjoint files в волне; parent до закрытия всей queue. Все terminal → full verification; FAIL → gate repair в ту же queue.
 4. §0.11 · pre-FINISH skills
-5. **FINISH:** finish-block (`code_changed: yes`); `@verify-bugfix` проверяет queue + report → runner next session
+5. **FINISH:** finish-block (`code_changed: yes`); `@verify-bugfix` проверяет queue + report, а принятый PASS атомарно переводит BUGFIX в re-QA → runner next session (дополнительный `finish --step BUGFIX` не вызывается)
    Next-mode: `memory-bank/activeContext.md` + decompose index · §BUGFIX FINISH
 
 **Верификация**: gates + scenario + FINISH + graphify

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import json
+
 import httpx
 import pytest
 
 from loop.board_projection.adapters.bitrix24 import Bitrix24Adapter
-from loop.board_projection.config import Bitrix24Config, BoardProjectionConfig, ProvidersConfig
+from loop.board_projection.clients.bitrix24_rest import (
+    Bitrix24RestClient,
+    Bitrix24RestError,
+)
+from loop.board_projection.config import (
+    Bitrix24Config,
+    BoardProjectionConfig,
+    ProvidersConfig,
+)
 from loop.board_projection.errors import AdapterExecutionError
 from loop.board_projection.protocol import BoardProjectionAdapter, EpicRef
 from loop.board_projection.registry import get_adapter
@@ -102,6 +111,41 @@ def test_bitrix24_move_card() -> None:
     adapter = Bitrix24Adapter(config=cfg, client=client)
 
     adapter.move_card("999", "IMPLEMENT")
+    assert len(recorded_requests) == 1
+
+
+def test_bitrix24_update_card() -> None:
+    recorded_requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        recorded_requests.append(request)
+        assert request.url.path == "/rest/1/abc/tasks.task.update"
+        body = json.loads(request.content.decode("utf-8"))
+        assert body == {
+            "taskId": 999,
+            "fields": {
+                "TITLE": "[T-100] Updated login",
+                "DESCRIPTION": "Updated login description",
+            },
+        }
+        return httpx.Response(200, json={"result": True})
+
+    cfg = Bitrix24Config(
+        webhook_url="https://b24.example.com/rest/1/abc/",
+        group_id=42,
+        responsible_id=1,
+        stage_map={"backlog": "10"},
+    )
+    adapter = Bitrix24Adapter(config=cfg, client=make_fake_client(handler))
+
+    adapter.update_card(
+        "999",
+        EpicRef(
+            epic_id="T-100",
+            title="Updated login",
+            description="Updated login description",
+        ),
+    )
     assert len(recorded_requests) == 1
 
 
@@ -227,3 +271,61 @@ def test_bitrix24_validate_phase_mapping_does_not_block_build_on_unrelated_alias
     adapter.validate_phase_mapping("IMPLEMENT")
     with pytest.raises(AdapterExecutionError, match="blocked"):
         adapter.validate_phase_mapping("HALT")
+
+
+def test_bitrix24_rest_http_status_error_is_typed() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, text="Internal Server Error")
+
+    rest = Bitrix24RestClient(
+        "https://b24.example.com/rest/1/abc/",
+        client=make_fake_client(handler),
+    )
+
+    with pytest.raises(Bitrix24RestError, match="HTTP 500"):
+        rest.call("tasks.task.add", {})
+
+
+def test_bitrix24_rest_bitrix_error_body_is_typed() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "error": "ERROR_TASKS_STAGE_NOT_FOUND",
+                "error_description": "Stage not found in group",
+            },
+        )
+
+    rest = Bitrix24RestClient(
+        "https://b24.example.com/rest/1/abc/",
+        client=make_fake_client(handler),
+    )
+
+    with pytest.raises(Bitrix24RestError, match="Stage not found in group"):
+        rest.call("task.stages.movetask", {"id": 999, "stageId": 20})
+
+
+def test_bitrix24_rest_network_error_is_typed() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("network down", request=request)
+
+    rest = Bitrix24RestClient(
+        "https://b24.example.com/rest/1/abc/",
+        client=make_fake_client(handler),
+    )
+
+    with pytest.raises(Bitrix24RestError, match="request failed"):
+        rest.call("tasks.task.add", {})
+
+
+def test_bitrix24_rest_non_dict_response_is_typed() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=["unexpected"])
+
+    rest = Bitrix24RestClient(
+        "https://b24.example.com/rest/1/abc/",
+        client=make_fake_client(handler),
+    )
+
+    with pytest.raises(Bitrix24RestError, match="non-dict response"):
+        rest.call("tasks.task.add", {})

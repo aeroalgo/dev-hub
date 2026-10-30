@@ -9,11 +9,14 @@ from pathlib import Path
 
 from ..config import LoopSettings
 from ..config import activate_loop_process
+from ..diagnostics import capture_exception
 from .engine import LoopEngine, TransitionError
 from .boundary import BoundaryService
 from .evidence import evidence_file_ref
 from .index import (
     bugfix_queue_path,
+    bugfix_queue_state,
+    sync_bugfix_queue_evidence,
     bugfix_report_paths,
     decompose_yaml_problems,
     execute_path,
@@ -51,6 +54,8 @@ def _parser() -> argparse.ArgumentParser:
             "status",
             "doctor",
             "scope",
+            "check-bugfix-queue",
+            "sync-bugfix-queue",
             "validate",
             "validate-verdict",
             "implement-flush",
@@ -166,17 +171,38 @@ def _project_transition(
     except Exception as exc:
         # The local cursor is the source of truth; board projection is a
         # recoverable mirror and must not undo a committed transition.
-        sys.stderr.write(f"Board projection error after {source}: {exc}\n")
+        report = capture_exception(
+            exc,
+            operation="board_projection.transition",
+            project_root=project_root,
+            context={
+                "epic_id": epic_id,
+                "phase": phase_to_project,
+                "role": role,
+                "source": source,
+            },
+        )
+        sys.stderr.write(
+            f"Board projection error after {source}: {exc} "
+            f"[diagnostic {report['error_id']}]\n"
+        )
         return None
 
 
 def _projection_fields(result) -> dict[str, object]:
     if result is None:
         return {}
-    return {
+    fields = {
         "projection_status": result.status,
         "projection_disabled_reason": result.disabled_reason,
     }
+    if result.diagnostic_id:
+        fields["projection_diagnostic_id"] = result.diagnostic_id
+    if result.diagnostic_path:
+        fields["projection_diagnostic_path"] = result.diagnostic_path
+    if result.error:
+        fields["projection_error"] = result.error
+    return fields
 
 
 def _project_cursor_transition(*, project_root: Path, cursor_before, cursor_after, transition=None, source: str):
@@ -283,6 +309,8 @@ def _normalize_legacy_args(argv: list[str]) -> list[str]:
         "status",
         "doctor",
         "scope",
+        "check-bugfix-queue",
+        "sync-bugfix-queue",
         "validate",
         "validate-verdict",
         "implement-flush",
@@ -426,12 +454,19 @@ def _phase_instruction(cursor, project: Path, engine: LoopEngine | None = None) 
                 "Spawn exactly one agent_type=context-sync with fork_context=false, let it write "
                 f"memory-bank/{cursor.role}/context-sync/{epic}/sync-*.md, and do not call finish; "
                 "a valid done result atomically completes QA and ends this parent session. "
+                "The final response MUST contain exactly one fenced JSON object: opening fence "
+                "```json, schema loop-context-sync-result/v1, and closing fence ```; emit no bare JSON "
+                "and no prose outside the fence. Run loop.py validate with that exact payload before emitting it. "
             )
         if cursor.role == "app":
             return (
                 f"Run APP QA for {epic}. HARD order: "
                 "1) Freeze the mixed charter: backend, frontend_build, browser, live_smoke, and "
                 "wire_journey when required. "
+                "1b) Set suite_scope: app_lanes in the app-qa/v1 artifact; APP QA never uses "
+                "suite_scope: full. "
+                "1c) If a runtime lane rewrites an evidence_file already referenced by BUGFIX, "
+                "the BUGFIX preflight/gate automatically refreshes its typed anchors before finish QA. "
                 "1a) Build test_plan from .cursor/templates/qa/test-catalog.yaml and the current "
                 "implement shard/contract/diff; account for every catalog item as selected, "
                 "not_applicable with a reason, or not_run with a next action. Keep concrete "
@@ -503,22 +538,32 @@ def _bugfix_swarm_protocol(cursor, project: Path) -> str:
         "Wave only disjoint ALLOW WRITE paths; overlapping paths → next wave (still ≤3). "
         "After each child loop-bugfix-fix-result/v1 status=done: merge queue (item done+done_at+evidence) "
         "and append to one bugfix-*.md. "
+        "RUNTIME TIMESTAMP CONTRACT (HARD): evidence_file.timestamp is the only SoT clock. "
+        "Copy that exact ISO timestamp into item.done_at and verification.last_run_at. "
+        "RUNTIME ANCHOR REFRESH (HARD): if a later browser/live/HTTP VERIFY rewrites a declared "
+        "evidence_file, `check-bugfix-queue` automatically copies the new valid evidence timestamp "
+        "into affected done_at/last_run_at anchors and never moves an anchor backwards. Use "
+        "`sync-bugfix-queue` only for an explicit diagnostic/reconciliation pass. "
+        "FORBIDDEN: wall-clock done_at/last_run_at; preserving an old evidence.timestamp across a new VERIFY run; "
+        "spawn verify-bugfix while anchors disagree with evidence.timestamp. "
+        "After queue close: run "
+        "`python3 $DEV_HUB/bin/loop.py check-bugfix-queue --project \"$PROJECT_ROOT\" --json` "
+        "and require ok:true before spawning verify-bugfix. "
         "Spawn template per item:\n"
         "  agent_type=bugfix-fix\n"
         f"  GATE_IDENTITY session_id={cursor.session_id} epic_id={cursor.epic_id} step_id=BUGFIX\n"
         "  QUEUE_ITEM: <id>\n"
         f"  QUEUE: {queue_rel}\n"
         "  ALLOW WRITE:\n"
-        "  - <paths for this bug only>≤10>\n"
+        "  - <paths for this bug only ≤10>\n"
         "  VERIFY:\n"
         "  - <targeted command>\n"
         "  SYMPTOM: <optional>\n"
         "Child validates via `loop.py validate --schema loop-bugfix-fix-result/v1`. "
         "FORBIDDEN: invent other fix agent types; one child fixing 2+ items; parent exit while open remain; "
-        "PROGRESS_CONTINUE. When ALL items terminal: set verification.status=pass "
-        "(command/last_run_at/evidence); runtime-sensitive verification additionally "
-        "requires evidence_file pointing to a typed runtime capture, spawn verify-bugfix, then MUST "
-        "`loop.py finish --step BUGFIX` → re-QA. "
+        "PROGRESS_CONTINUE. When ALL items terminal and check-bugfix-queue ok:true: spawn verify-bugfix, "
+        "accepted PASS atomically advances BUGFIX to re-QA; do not call finish again for BUGFIX "
+        "after the gate has been accepted. "
     )
 
 
@@ -564,12 +609,15 @@ def _qa_prompt_value(payload: dict[str, object], key: str) -> str:
 
 
 def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
+    role = str(getattr(cursor, "role", "") or "").strip().lower()
+    default_suite_scope = "app_lanes" if role == "app" else "full"
     qa_artifacts = phase_artifacts(project, cursor.role, cursor.epic_id, "qa")
     qa_path = qa_artifacts[-1] if qa_artifacts else None
     payload = phase_payload(qa_path) if qa_path is not None else None
     if qa_path is None or payload is None:
         return [
-            "suite_scope: full",
+            f"suite_scope: {default_suite_scope}",
+            *(["QA role: app", "APP QA contract: suite_scope must be app_lanes; explicit full is invalid."] if role == "app" else []),
             "Suite results:",
             "- missing: parent must provide the exact suite command and observed result",
             "## Frozen QA checklist",
@@ -598,8 +646,19 @@ def _qa_gate_context(project: Path, cursor) -> tuple[list[str], list[Path]]:
         ], [qa_path] if qa_path is not None else []
 
     verify_scope = str(payload.get("verify_scope") or "full").strip().lower()
-    suite_scope = str(payload.get("suite_scope") or ("targeted" if verify_scope == "prior_only" else "full"))
-    lines = [f"suite_scope: {suite_scope}", "Suite results:"]
+    suite_scope = str(
+        payload.get("suite_scope")
+        or ("app_lanes" if role == "app" else ("targeted" if verify_scope == "prior_only" else "full"))
+    ).strip().lower()
+    lines = [f"suite_scope: {suite_scope}"]
+    if role == "app":
+        lines.extend(
+            [
+                "QA role: app",
+                "APP QA contract: suite_scope must be app_lanes; explicit full is invalid.",
+            ]
+        )
+    lines.append("Suite results:")
     suite = _qa_prompt_items(payload, "suite")
     lines.extend(f"- {item}" for item in suite or ["missing: parent must provide the exact suite command and observed result"])
     lines.extend(
@@ -849,7 +908,9 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 "ALLOW READ:",
                 _relative_paths(project, paths),
                 "Any passing live_smoke/browser/wire claim must include an evidence_file "
-                "with typed runtime capture; unit tests and static/mock traces do not close a live claim.",
+                "with typed runtime capture; unit tests and static/mock traces do not close a live claim. "
+                "If this QA run rewrites an evidence_file already referenced by BUGFIX, the "
+                "queue preflight/gate refreshes anchors to the new typed timestamp before finish.",
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
             ]
         )
@@ -1203,7 +1264,10 @@ def run(args: argparse.Namespace) -> int:
                 "QA PASS is accepted and context-sync is the only remaining worker. "
                 "Spawn agent_type=context-sync with fork_context=false; do not spawn verify-qa "
                 "and do not call finish. The context-sync done result closes QA atomically. "
-                "Do not edit cursor.json or generated activeContext.md."
+                "Do not edit cursor.json or generated activeContext.md. "
+                "The final response MUST contain exactly one fenced JSON object: opening fence "
+                "```json, schema loop-context-sync-result/v1, and closing fence ```; emit no bare JSON "
+                "and no prose outside the fence. Run loop.py validate with that exact payload before emitting it."
             )
         elif cursor.phase not in {"DECOMPOSE", "PLAN", "CLARIFY", "CREATIVE", "IMPLEMENT", "TASK", "REFACTOR", "SECURITY", "QA", "BUGFIX"}:
             prompt += (
@@ -1241,10 +1305,14 @@ def run(args: argparse.Namespace) -> int:
                 )
             if cursor.phase == "BUGFIX":
                 prompt += (
-                    " BUGFIX gate timing: spawn verify-bugfix only when every queue item is terminal "
-                    "and verification.status=pass. This phase is one session for the whole queue — "
-                    "do not leave open items. Exiting with open items or without finish after full close "
-                    "is finish_not_committed."
+                    " BUGFIX gate timing: spawn verify-bugfix only when every queue item is terminal, "
+                    "verification.status=pass, and "
+                    "`python3 $DEV_HUB/bin/loop.py check-bugfix-queue --project \"$PROJECT_ROOT\" --json` "
+                    "returns ok:true (done_at/last_run_at copied from evidence_file.timestamp). "
+                    "Accepted verify-bugfix PASS atomically advances BUGFIX to re-QA; do not call "
+                    "`finish --step BUGFIX` again after the gate is accepted. "
+                    "This phase is one session for the whole queue — do not leave open items. "
+                    "Exiting with open items or without finish after full close is finish_not_committed."
                 )
             prompt += _gate_protocol(cursor, paths.project, gate_agent)
         if cursor.phase != "CREATIVE":
@@ -1316,6 +1384,7 @@ def run(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     args = _parser().parse_args(_normalize_legacy_args(raw_argv))
+    paths: LoopPaths | None = None
     try:
         paths = LoopPaths.for_project(args.project)
         settings = LoopSettings.load(hub_root=paths.hub, project_root=paths.project)
@@ -1383,6 +1452,58 @@ def main(argv: list[str] | None = None) -> int:
             result = BoundaryService(paths).scope(cursor)
             _print(result, args.json)
             return 0 if result["ok"] else 1
+        if args.command in {"check-bugfix-queue", "sync-bugfix-queue"}:
+            cursor = engine.store.read()
+            epic_id = args.epic or (cursor.epic_id if cursor else None)
+            if not epic_id:
+                _print(
+                    {
+                        "ok": False,
+                        "error": "epic_required",
+                        "hint": "Pass --epic or run while a BUGFIX cursor is active.",
+                    },
+                    True,
+                )
+                return 2
+            role = args.role
+            if role in {"", "auto"}:
+                if cursor and cursor.epic_id == epic_id:
+                    role = cursor.role
+                else:
+                    role = resolve_epic_role(paths.project, epic_id, "auto", kind=args.kind)
+            if args.command == "sync-bugfix-queue":
+                ready, reason = sync_bugfix_queue_evidence(paths.project, role, epic_id)
+                payload = {
+                    "ok": ready,
+                    "epic_id": epic_id,
+                    "role": role,
+                    "reason": reason,
+                    "contract": (
+                        "new runtime evidence timestamps are copied into item.done_at and "
+                        "verification.last_run_at; older evidence never moves an anchor backwards."
+                    ),
+                }
+                _print(payload, True)
+                return 0 if ready else 1
+            sync_ready, sync_reason = sync_bugfix_queue_evidence(paths.project, role, epic_id)
+            if sync_ready:
+                ready, reason = bugfix_queue_state(paths.project, role, epic_id)
+            else:
+                ready, reason = False, sync_reason
+            payload = {
+                "ok": ready,
+                "epic_id": epic_id,
+                "role": role,
+                "reason": reason,
+                "sync_reason": sync_reason,
+                "contract": (
+                    "item.done_at and verification.last_run_at must equal evidence_file.timestamp "
+                    "(±15s). A valid newer evidence file is reconciled automatically before this "
+                    "check; stale or invalid evidence still fails closed."
+                ),
+            }
+            _print(payload, True)
+            return 0 if ready else 1
         if args.command == "start":
             epic_id = _epic(args, engine)
             role = resolve_epic_role(paths.project, epic_id, args.role, kind=args.kind)
@@ -1495,6 +1616,7 @@ def main(argv: list[str] | None = None) -> int:
                 "disabled_reason": result.disabled_reason,
                 "error": result.error,
             }
+            payload.update(_projection_fields(result))
             _print(payload, args.json)
             return 0 if success else 1
         if args.command == "board-docs":
@@ -1617,5 +1739,45 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         return run(args)
     except (ValueError, FileNotFoundError, TransitionError) as exc:
-        _print({"ok": False, "error": str(exc)}, True)
+        report = capture_exception(
+            exc,
+            operation=f"cli.{args.command}",
+            project_root=paths.project if paths is not None else None,
+            context={
+                "command": args.command,
+                "epic_id": args.epic,
+                "phase": args.phase,
+            },
+        )
+        _print(
+            {
+                "ok": False,
+                "error": str(exc),
+                "diagnostic_id": report["error_id"],
+                "diagnostic_path": report.get("diagnostic_path"),
+            },
+            True,
+        )
+        return 2
+    except Exception as exc:
+        report = capture_exception(
+            exc,
+            operation=f"cli.{args.command}",
+            project_root=paths.project if paths is not None else None,
+            context={
+                "command": args.command,
+                "epic_id": args.epic,
+                "phase": args.phase,
+            },
+        )
+        _print(
+            {
+                "ok": False,
+                "error": str(exc),
+                "diagnostic_id": report["error_id"],
+                "diagnostic_path": report.get("diagnostic_path"),
+            },
+            True,
+        )
+        return 1
         return 2

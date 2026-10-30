@@ -13,7 +13,7 @@ alwaysApply: false
 2. TDD failing test: Hub (dev-hub self-test) — targeted `bin/pytest` из корня; Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence; root cause — не mock/fallback
 3. **Scenario:** user-visible → parent-only Playwright **или** Hub `bin/pytest` HTTP outcome (managed: declared HTTP/API capability evidence); unit alone insufficient
 4. **Swarm batch (HARD):** одна parent-сессия закрывает **все** open. Spawn ≤3 `bugfix-fix`; **1 child = 1 bug**; disjoint files в волне. Item: `open → in_progress → done` + targeted contract green + evidence + done_at. Report narrative; contract update if keys; **источник:** queue + QA. **FORBIDDEN:** multi-bug subagent; partial exit / `PROGRESS_CONTINUE`.
-4a. Все terminal → `verification.command` + `verification.status=pass` → `verify-bugfix` → finish → re-QA. FAIL → gate repair append, остаёмся BUGFIX. Parent exit с open = `finish_not_committed`.
+4a. Все terminal → `verification.command` + `verification.status=pass` → `verify-bugfix`. Принятый PASS атомарно завершает BUGFIX и переводит в re-QA; повторный finish после PASS не нужен. FAIL → gate repair append, остаёмся BUGFIX. Parent exit с open = `finish_not_committed`.
 5. §0.11 re-verify
 6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
 

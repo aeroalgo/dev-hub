@@ -29,18 +29,44 @@ def _argv() -> list[str]:
     return values
 
 
+def _project_root_from_argv(values: list[str]) -> Path | None:
+    for index, value in enumerate(values[:-1]):
+        if value in {"--project", "--cwd"}:
+            candidate = Path(values[index + 1]).expanduser()
+            if candidate.is_dir() and (candidate / "memory-bank").is_dir():
+                return candidate.resolve()
+    candidate = os.environ.get("PROJECT_ROOT")
+    if candidate:
+        path = Path(candidate).expanduser()
+        if path.is_dir() and (path / "memory-bank").is_dir():
+            return path.resolve()
+    return None
+
+
 def main() -> int:
     from loop.kernel.cli import main as cli_main
     from loop.config import activate_loop_process
 
+    values = _argv()
     try:
         activate_loop_process()
-        return int(cli_main(_argv()))
+        return int(cli_main(values))
     except KeyboardInterrupt:
         print("loop interrupted by user", file=sys.stderr)
         return 130
     except Exception as exc:
-        print(f"loop fatal: {type(exc).__name__}: {exc}", file=sys.stderr)
+        from loop.diagnostics import capture_exception
+
+        report = capture_exception(
+            exc,
+            operation="loop.entrypoint",
+            project_root=_project_root_from_argv(values),
+            context={"argv": values},
+        )
+        print(
+            f"loop fatal [{report['error_id']}]: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
         print("  entrypoint: bin/loop.py", file=sys.stderr)
         print("  hint: set LOOP_DEBUG=1 for traceback", file=sys.stderr)
         if os.environ.get("LOOP_DEBUG") == "1":

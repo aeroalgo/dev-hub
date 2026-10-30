@@ -172,7 +172,7 @@ class LoopSettings(BaseSettings):
         ),
     )
     collaboration_wait_timeout: int | None = Field(
-        default=None,
+        default=900,
         ge=1,
         validation_alias=AliasChoices(
             "LOOP_COLLABORATION_WAIT_TIMEOUT",

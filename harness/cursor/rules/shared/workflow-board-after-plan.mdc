@@ -10,22 +10,28 @@ alwaysApply: true
 
 ## Обязательно
 
-1. В `prompt.md` секция `## Board`: `title` + `summary` **простым языком**
-   (что / зачем / стадии / результат). Без внутренних ID эпиков в title/summary.
-2. Актёр карточки (постановщик = исполнитель) — `.loop/board-actors.yaml`.
-3. Публикация:
+1. В `prompt.md` секция `## Board`: `title` + `summary`:
+   простой русский абзац (без ярлыка «Для людей») → **Зачем это бизнесу** → **Технически**.
+   **Без** внутренних ID эпиков и short roadmap-кодов в title/summary.
+2. Sync **только полным** `epic_id` = имя папки `plan/<epic_id>/`
+   (например `T-NF-005-prod-container-stack`), **не** `T-NF-005` из `queue.yaml` `id:`.
+3. Актёр карточки (постановщик = исполнитель) — `.loop/board-actors.yaml`.
+4. Публикация:
    ```bash
-   ./scripts/board-sync.sh <epic-id>
-   # или
-   ./scripts/board-sync.sh --all
+   ./scripts/board-sync.sh <full-epic-id>
+   # или несколько:
+   ./scripts/board-sync.sh <full-epic-id> <full-epic-id>...
    ```
-4. Канон продукта: `memory-bank/product/board-publish.md`
+   Скрипт сам подставит `--title`/`--summary` из `## Board` (нужно, чтобы Bitrix
+   обновил текст, а не только колонку).
+5. Канон продукта: `memory-bank/product/board-publish.md`
    (шаблон хаба: `harness/templates/board/board-publish.md`).
 
 ## Не оставлять
 
 PLAN без карточки на доске, если в продукте настроены `.env` (`LOOP_BOARD_*`)
-и `.loop/board-projection.yaml`.
+и `.loop/board-projection.yaml`.  
+Карточка с сырым кодом эпика вместо человеческого title = **не** done — пересинхронизировать.
 
 ## Не путать с BUGFIX
 

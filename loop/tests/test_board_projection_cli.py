@@ -418,6 +418,30 @@ def test_cli_board_sync_uses_plan_phase_without_cursor(tmp_path: Path, monkeypat
     assert fake_adapter.created[0].phase == "PLAN"
 
 
+def test_cli_board_sync_persists_unexpected_exception_diagnostic(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    _seed_project(tmp_path, epic_id="E1")
+    _write_projection_config(tmp_path, provider="plane")
+
+    def fail_projection(**kwargs: Any):
+        raise RuntimeError("projection transport exploded")
+
+    monkeypatch.setattr("loop.kernel.cli.project_epic_phase", fail_projection)
+
+    rc = main(["board-sync", "--project", str(tmp_path), "--epic", "E1", "--json"])
+
+    assert rc == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is False
+    assert payload["diagnostic_id"]
+    diagnostic_path = Path(payload["diagnostic_path"])
+    assert diagnostic_path.is_file()
+    assert "projection transport exploded" in diagnostic_path.read_text(encoding="utf-8")
+
+
 def test_cli_finish_without_config_no_http(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
     """finish without config succeeds with explicit disabled status and zero HTTP (AC-5, SC-002, TM-001)."""
     paths = _seed_project(tmp_path, epic_id="E1")

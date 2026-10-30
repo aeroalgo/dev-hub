@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import json
+
 import httpx
 import pytest
 
 from loop.board_projection.adapters.plane import PlaneAdapter
-from loop.board_projection.config import BoardProjectionConfig, PlaneConfig, ProvidersConfig
+from loop.board_projection.config import (
+    BoardProjectionConfig,
+    PlaneConfig,
+    ProvidersConfig,
+)
 from loop.board_projection.errors import AdapterExecutionError
 from loop.board_projection.protocol import BoardProjectionAdapter, EpicRef
 from loop.board_projection.registry import get_adapter
@@ -35,15 +40,16 @@ def test_plane_ensure_card() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         recorded_requests.append(request)
         assert request.method == "POST"
-        assert request.url.path == "/api/v1/workspaces/acme/projects/proj-uuid-1/issues/"
+        assert request.url.path == "/api/v1/workspaces/acme/projects/proj-uuid-1/work-items/"
         assert request.headers.get("x-api-key") == "secret-key"
         body = json.loads(request.content.decode("utf-8"))
         assert body["name"] == "[T-100] Implement login"
         assert body["description_html"] == "Login epic description"
-        assert body["state_id"] == "state-backlog"
+        assert body["state"] == "state-backlog"
+        assert "state_id" not in body
         return httpx.Response(
             201,
-            json={"id": "issue-uuid-123", "name": body["name"], "state_id": "state-backlog"},
+            json={"id": "issue-uuid-123", "name": body["name"], "state": "state-backlog"},
         )
 
     cfg = PlaneConfig(
@@ -73,13 +79,14 @@ def test_plane_move_card_success() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         recorded_requests.append(request)
         assert request.method == "PATCH"
-        assert request.url.path == "/api/v1/workspaces/acme/projects/proj-uuid-1/issues/issue-uuid-123/"
+        assert request.url.path == "/api/v1/workspaces/acme/projects/proj-uuid-1/work-items/issue-uuid-123/"
         assert request.headers.get("x-api-key") == "secret-key"
         body = json.loads(request.content.decode("utf-8"))
-        assert body["state_id"] == "state-build"
+        assert body["state"] == "state-build"
+        assert "state_id" not in body
         return httpx.Response(
             200,
-            json={"id": "issue-uuid-123", "state_id": "state-build"},
+            json={"id": "issue-uuid-123", "state": "state-build"},
         )
 
     cfg = PlaneConfig(
@@ -101,7 +108,7 @@ def test_plane_move_card_fail_closed() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"id": "issue-uuid-123", "state_id": "old-state-backlog"},
+            json={"id": "issue-uuid-123", "state": {"id": "old-state-backlog"}},
         )
 
     cfg = PlaneConfig(

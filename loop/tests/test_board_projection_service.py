@@ -25,6 +25,7 @@ class FakeAdapter(BoardProjectionAdapter):
         self._provider = provider
         self.created_cards: list[EpicRef] = []
         self.moved_cards: list[tuple[str, str]] = []
+        self.updated_cards: list[tuple[str, EpicRef]] = []
         self.fail_create: Exception | None = None
         self.fail_move: Exception | None = None
         self.next_external_id = "ext-101"
@@ -43,6 +44,9 @@ class FakeAdapter(BoardProjectionAdapter):
         if self.fail_move:
             raise self.fail_move
         self.moved_cards.append((external_id, phase))
+
+    def update_card(self, external_id: str, epic: EpicRef) -> None:
+        self.updated_cards.append((external_id, epic))
 
 
 def write_config(path: Path, provider: str = "plane", role_allowlist: list[str] | None = None) -> None:
@@ -155,6 +159,9 @@ def test_soft_fail_records_sync_error(tmp_path: Path, capsys: pytest.CaptureFixt
     assert result.status == "soft_fail"
     assert result.error is not None
     assert "500" in result.error
+    assert result.diagnostic_id
+    assert result.diagnostic_path == str(tmp_path / ".loop" / "diagnostics" / "last-exception.json")
+    assert (tmp_path / ".loop" / "diagnostics" / "last-exception.json").is_file()
 
     # Stderr check
     captured = capsys.readouterr()
@@ -223,6 +230,39 @@ def test_lazy_create_and_move_idempotence(tmp_path: Path):
     assert res3.status == "success"
     assert len(adapter.created_cards) == 1
     assert len(adapter.moved_cards) == 1  # Idempotent: no redundant move call
+
+
+def test_existing_card_explicit_content_is_updated_even_when_phase_is_unchanged(tmp_path: Path):
+    cfg_file = tmp_path / ".loop" / "board-projection.yaml"
+    write_config(cfg_file, provider="plane")
+    map_file = tmp_path / ".loop" / "board-epic-map.yaml"
+    save_board_epic_map(
+        BoardEpicMap(
+            provider="plane",
+            epics={"T-HUB-108": EpicMapEntry(external_id="issue-88", last_phase="PLAN")},
+        ),
+        map_file,
+    )
+
+    adapter = FakeAdapter(provider="plane")
+    result = project_epic_phase(
+        project_root=tmp_path,
+        epic_id="T-HUB-108",
+        phase="PLAN",
+        title="Updated title",
+        description="Updated description",
+        config_path=cfg_file,
+        map_path=map_file,
+        adapter=adapter,
+    )
+
+    assert result.status == "success"
+    assert adapter.moved_cards == []
+    assert len(adapter.updated_cards) == 1
+    external_id, epic = adapter.updated_cards[0]
+    assert external_id == "issue-88"
+    assert epic.title == "Updated title"
+    assert epic.description == "Updated description"
 
 
 def test_role_not_allowed(tmp_path: Path):

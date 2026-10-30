@@ -58,8 +58,14 @@ def test_missing_model_is_fail_closed() -> None:
     assert selection.env_name == "PROJECT_LOOP_IMPLEMENT_MODEL"
 
 
-def test_native_collaboration_wait_has_no_default_timeout() -> None:
-    assert LoopSettings().collaboration_wait_timeout is None
+def test_native_collaboration_wait_has_bounded_default() -> None:
+    assert LoopSettings().collaboration_wait_timeout == 900
+
+
+def test_native_collaboration_wait_timeout_can_be_overridden(monkeypatch) -> None:
+    monkeypatch.setenv("LOOP_COLLABORATION_WAIT_TIMEOUT", "17")
+
+    assert LoopSettings().collaboration_wait_timeout == 17
 
 
 def test_apply_environment_expands_tilde_in_omniroute_key_file(monkeypatch) -> None:

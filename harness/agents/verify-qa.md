@@ -67,7 +67,11 @@ Parent **обязан** передать:
    status-only trace запрещены. Synthetic fixture допустим только если
    production server/HTTP/assets/auth path реально подняты; он не заменяет
    live P0 journey. `status: skip` требует причины и применимого
-   non-UI/non-wire scope.
+   non-UI/non-wire scope. Если повторный browser/live/HTTP прогон перезаписывает
+   `evidence_file`, на который ссылается BUGFIX, queue preflight и BUGFIX gate
+   автоматически переносят новый валидный typed timestamp в затронутые
+   `done_at`/`last_run_at`; stale/invalid evidence остаётся FAIL. `sync-bugfix-queue`
+   доступен для явной диагностики.
 6. `retro` — проверь четыре поля: пропущенный дефект, лишний gate, flaky test,
    изменение следующего цикла. Пустые «всё хорошо» без evidence = gap; если
    ничего нет, записать `none`.

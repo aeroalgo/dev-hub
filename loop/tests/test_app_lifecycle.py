@@ -251,6 +251,7 @@ verification:
         tmp_path / f"memory-bank/app/qa/{EPIC_ID}/qa-20261029-pass.yaml",
         """schema: app-qa/v1
 verdict: pass
+suite_scope: app_lanes
 mode: regression
 charter:
   surfaces_required: [backend, frontend_build, browser, live_smoke, wire_journey]
