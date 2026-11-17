@@ -35,12 +35,20 @@ alwaysApply: false
    - **pass** → `@context-sync`; its valid `done` result atomically closes QA (parent does not call finish)
    - **fail|blocked** + open bugfix-queue → finish **всё равно обязателен** (routes BUGFIX). `verify-qa` FAIL ≠ «нельзя finish» (это не IMPLEMENT). Выход только с отчётом → `finish_not_committed` / retry QA.
 
+## Stack profile / CRM surface (когда продукт = CRM или Neftegaz front)
+
+- **Project stack profile:** следуй `docs/testing/front-stack-profile.md` / charter, если есть. **Neftegaz:** Vite build + Python Playwright (Vitest/tsc/`@playwright/test` могут отсутствовать намеренно). PR gate пример: `npm --prefix frontend ci && npm --prefix frontend run build` + `NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py`.
+- **CRM Playwright runtime:** `BASE_URL=http://erp.localhost:8000`. Compose `sleep infinity` → отдельно `bench start`. Editable `crm/`+`frappe/`+`design-system/` ≠ `frappe-bench/apps/*`. `npx playwright test` → `e2e/global-setup.ts` → `scripts/e2e-preflight.sh` (sync + Desk SCSS wires → CRM `yarn build` → `bench build --app frappe` → clear-cache → HTTP 200 tokens.css + desk.bundle с `--ds-desk-rail-width` если shell). Clear-cache alone ≠ Desk CSS update. Канон: `crm/AGENTS.md` § E2E.
+- **CRM QA contract check:** `verdict: FAIL` / `converged: false` → обязан `@gate-repair` (BLOCKERS|path|fix + ALLOW WRITE + VERIFY) → повторный contract check. Сессию «только отчётом» нельзя — `finish_not_committed` / `retry_exhausted`. `mb-finish` при `converged: false` отклоняет FINISH. **FORBIDDEN** выдуманный parent-driven review. Negative `rg` без hit = exit 1 = PASS. Это **не** отмена §6: product `verify-qa` FAIL + open queue → всё равно `loop.py finish --step QA` → BUGFIX (не прятать FAIL запретом finish).
+- **CRM purge `rg`:** только bounded theme/instruction paths; **FORBIDDEN** `sync.*disabled` по всему `frappe/` (ложный hit в jquery). Канон: `crm/AGENTS.md` § Purge.
+
 ## Abort
 
 - PASS без scenario на user-visible AC · subagent runs tests → reject/FAIL
-- **FORBIDDEN:** FRONT QA PASS / «suite green» на evidence только `bin/pytest` / backend pytest (без Vitest+Playwright) → FAIL (`suite_wrong_stack`)
+- **FORBIDDEN:** FRONT QA PASS / «suite green» на evidence только `bin/pytest` / backend pytest (без Vitest+Playwright / без stack-profile browser evidence) → FAIL (`suite_wrong_stack`)
 - PASS при leftover legacy/fallback / Kind I / fail `sot_enforce_scan` из plan sunset → FAIL
 - PASS при agent/hook/gate FR без behavior smoke → FAIL
 - FINISH/`qa-*.yaml` до завершения всех checks прогона → FAIL
 - blockers without eligible class prefix / checklist_sha256 drift → FAIL
 - fail/blocked без валидной bugfix queue в `load_now` → FAIL
+- CRM contract `converged: false` без gate-repair / с FINISH → FAIL

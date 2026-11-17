@@ -1,0 +1,29 @@
+# __SLUG__ — Codex project override
+
+Codex в **этом** каталоге читает `AGENTS.override.md` **вместо** корневого `AGENTS.md`
+(symlink на hub). В одном directory — один файл, override побеждает.
+
+## HARD — настройки проекта
+
+Продуктовые правила этого репозитория:
+
+1. Прочитай и следуй: `__PRODUCT_AGENTS__`
+2. Если есть вход в этап/состояние продукта — прочитай его сразу после (обычно `docs/STATE.md`)
+
+**Открыт __SLUG__ → канон продукта = `__PRODUCT_AGENTS__`.**  
+Секции hub про ERPNext / CRM для этого продукта **не применять**, если продукт к ним не относится.
+
+## Workflow (общий hub)
+
+Ролевые команды `BACK` / `FRONT` / `APP` / … и router — в hub AGENTS.  
+Путь: содержимое `.dev-hub` + `/AGENTS.md`.
+
+Прочитай hub AGENTS **после** `__PRODUCT_AGENTS__`.
+
+## Cursor vs Codex
+
+| Runtime | Как подхватывает продукт |
+|---------|--------------------------|
+| **Cursor** | `.cursor/rules.d/__SLUG__.mdc` (`alwaysApply`) → Read `__PRODUCT_AGENTS__` |
+| **Codex** | этот `AGENTS.override.md` → обязан Read `__PRODUCT_AGENTS__` |
+| **Claude** | hub `CLAUDE.md` + `CLAUDE.harness.md`; продукт — `__PRODUCT_AGENTS__` / `__PRODUCT_CLAUDE__` |

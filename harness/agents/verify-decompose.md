@@ -34,6 +34,7 @@ Parent **обязан** передать только:
 ## Status contract
 
 - Вход: parent/CLI подготовил decompose tree (`yaml/decompose-index.yaml` + shards) и прошёл `validate-decompose-tree`.
+- Для APP parent до spawn обязан пройти `loop.py preflight`; этот результат проверяет тот же tree и не заменяет твой gate.
 - Выход: structural readiness и semantic closure подтверждены одним чтением plan/index/shards:
   coverage, stages, outcomes, replacement cleanup, plan_contract/layout, skills,
   traceability, dilution, optional-SoT, ambiguity и отсутствие блокирующих gaps → `PASS`;
@@ -69,8 +70,10 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
 - `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp).
 - Emit **только** тот же JSON, что прошёл `valid: true` (byte-for-byte по канону stamp).
-- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
+- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`, `blockers`.
+- `verdict: PASS` → `blockers` = `[]` или поле опущено.
+- `verdict: FAIL` / `BLOCKED` → `blockers` **обязателен**, ≥1 строка ровно `<id> | <path> | <concrete_fix>` (полное описание проблемы и однозначный fix для parent → gate-repair). Голый FAIL без blockers = invalid.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
 - Fence language: **только** `json`.
 - После fence — ноль tool calls.
 

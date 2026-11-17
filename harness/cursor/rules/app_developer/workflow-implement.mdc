@@ -11,9 +11,16 @@ alwaysApply: false
 ## Hot path
 
 1. One APP shard = one mixed slice; `files:` may include backend, frontend, wire and their tests.
-2. Red → green for the contract and each touched surface. Backend targeted tests, frontend build/test and wire journey are named checkpoints from the shard.
-3. Frontend/browser commands are parent-only; no mock-only UI completion when production API/wire is in scope.
-4. Seed the implement artifact, run only shard checkpoints, then `verify-implement` and `loop.py finish`.
-5. The last APP IMPLEMENT step must prove contract + back + front + wire coverage; only then does the loop route to APP QA.
+2. Entry precondition is accepted `verify-decompose PASS` for the current epic. `preflight` and the gate are mandatory even when an implement artifact already exists.
+2a. Read тел SKILL.md **только** из shard `skills.impl` ∪ `skills.design*` (результат @.cursor/rules/app_developer/skills-gate-situational.mdc). Не сужать список на IMPLEMENT; не подменять полным каталогом `.agents/skills/`.
+3. Red → green for the contract and each touched surface. Run the exact commands from the current decompose shard `verify:` list; `implement.tests` is evidence, not a second command source.
+4. Frontend/browser commands are parent-only; no mock-only UI completion when production API/wire is in scope.
+5. Seed one implement artifact for the shard with `status: in_progress` and pending checkpoints. Do not hand-edit `status` or checkpoint statuses; `implement-flush`/`finish` own them.
+6. Run only shard checkpoints, then `verify-implement` and `loop.py finish`.
+7. The last APP IMPLEMENT step must prove contract + back + front + wire coverage; only then does the loop route to APP QA.
+
+### Gate status
+
+После preflight, `verify-decompose`, `verify-implement` и FINISH parent emits: `GATE STATUS: <gate> <PASS|FAIL> → <phase>/<step>`. A failed gate is a repair state, not completion.
 
 **Верификация:** gates + scope-lock + plan contract + mixed targeted evidence + FINISH → APP QA.

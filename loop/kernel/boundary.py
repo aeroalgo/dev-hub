@@ -572,7 +572,9 @@ class BoundaryService:
             f"boundary_metrics: {json.dumps(metrics, ensure_ascii=False, sort_keys=True)}",
         ]
         if cursor.failure:
-            lines.append(f"retry_context: previous attempt ended with {cursor.failure.code}: {cursor.failure.message}")
+            lines.append(
+                f"retry_context: previous attempt ended with {cursor.failure.code}: {cursor.failure.message}"
+            )
         paths = self.touched_paths(cursor)
         lines.append("touched_paths: " + (", ".join(paths) if paths else "(none)"))
         return "\n".join(lines)

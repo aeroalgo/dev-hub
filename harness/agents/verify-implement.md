@@ -67,7 +67,7 @@ Boundary transition после PASS атомарно ставит `completed` в
      - `AC+` ← `plan_contract.ac_quotes` (≥1; иначе `FAIL checklist_empty:AC+`)
      - `AC−` ← `out_of_scope` + `deletes` (≥1; иначе `FAIL checklist_empty:AC−`)
      - `§0.11` ← `context.consumes` ↔ `produces` / nouns (≥1 пункт counterpart; иначе `FAIL checklist_empty:§0.11`)
-     - `VERIFY` ← `implement.tests` если непусто, иначе `decompose.verify` / `checkpoints[].verify` (иначе `FAIL checklist_empty:VERIFY`)
+     - `VERIFY` ← **только** `decompose.verify` / `checkpoints[].verify`; `implement.tests` — evidence of what was run and never overrides the shard command source (иначе `FAIL checklist_empty:VERIFY`)
 2. Если step уже `status: completed` + все checkpoints `done` (re-check после finalize) — дальше только точечные Read/rg по FAIL-рискам из AC+/§0.11 (не читать целиком большие UI без нужды).
 3. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 4. Пронумеруй `AC−` → для каждого: докажи **только** по файлам из `ALLOW READ` ∩ boundary-state touched paths (Read или `git diff -- <этот path>`). Нарушение в ALLOW∩touched paths → `FAIL`. Path в ALLOW, но **нет** в boundary-state = чужой/pre-existing dirty → **ignore** (не FAIL).
@@ -102,8 +102,10 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 - Подставь IDs строго из `GATE_IDENTITY`, фактический `verdict`, текущий ISO 8601 `recorded_at`. Литералы `<…>` / `PASS|FAIL` в Bash — FORBIDDEN.
 - `valid: false` → исправь по `diagnostic_codes` / `errors` и **повтори Bash** до `valid: true` (команда пишет pre-emit stamp + `emit_exactly`).
 - Emit fence = поле `emit_exactly` из stdout CLI. `recorded_at` может отличаться; любое другое поле (`verdict`, ids, `evidence_sha256`) → новый `validate-verdict`.
-- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`.
-- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `blockers`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
+- Allowed keys **только**: `schema`, `agent_id`, `verdict`, `step_id`, `session_id`, `epic_id`, `recorded_at`, optional `evidence_sha256`, `blockers`.
+- `verdict: PASS` → `blockers` = `[]` или поле опущено.
+- `verdict: FAIL` / `BLOCKED` → `blockers` **обязателен**, ≥1 строка ровно `<id> | <path> | <concrete_fix>` (полное описание проблемы и однозначный fix для parent → gate-repair). Голый FAIL без blockers = invalid.
+- FORBIDDEN keys (extra_forbidden → reject): `evidence`, `touched_paths`, `evidence_id`, `reason`, `findings`, `gate`, `status`, `checkpoints`.
 - Fence language: **только** `json`.
 - После fence — ноль tool calls.
 
@@ -119,13 +121,32 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
   "step_id": "s06",
   "session_id": "<session_id>",
   "epic_id": "T-HUB-023",
-  "recorded_at": "<iso8601>"
+  "recorded_at": "<iso8601>",
+  "blockers": []
+}
+```
+
+FAIL пример (обязательные blockers — parent копирует 1:1 в gate-repair):
+
+```json
+{
+  "schema": "loop-gate-verdict/v1",
+  "agent_id": "verify-implement",
+  "verdict": "FAIL",
+  "step_id": "s06",
+  "session_id": "<session_id>",
+  "epic_id": "T-HUB-023",
+  "recorded_at": "<iso8601>",
+  "blockers": [
+    "missing_private_acl | elms/elms/admission/profile.py | enforce private File ACL deny for foreign learner on passport_scan"
+  ]
 }
 ```
 
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"FAIL"`.
 - `step_id`, `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
+- `blockers`: на FAIL/BLOCKED — полный список проблем; FORBIDDEN голый FAIL и FORBIDDEN оставлять описание только в prose вне JSON.
 
 ## FORBIDDEN
 
@@ -150,6 +171,6 @@ python3 $DEV_HUB/bin/loop.py validate-verdict --project "$PROJECT_ROOT" --payloa
 
 ## FAILSAFE (последний приоритет)
 
-Если завершаешь сессию без JSON fence — **немедленно** выдай fence с `"verdict":"FAIL"` и reason `incomplete_analysis`. Нет исключений. Ответ без JSON fence = протокольный FAIL.
+Если завершаешь сессию без JSON fence — **немедленно** выдай fence с `"verdict":"FAIL"` и `blockers: ["incomplete_analysis | . | resume verify with ALLOW READ and emit a complete FAIL/PASS fence"]`. Нет исключений. Ответ без JSON fence = протокольный FAIL.
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).

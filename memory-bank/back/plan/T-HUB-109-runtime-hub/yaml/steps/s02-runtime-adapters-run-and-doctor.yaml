@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-109-runtime-hub
+title: "s02 — Native runtime adapters, run path, and doctor"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Через единый RuntimeAdapter registry запустить официальный Codex, Claude Code и agy
+  под активным isolated profile, передать model/args и дать doctor проверку binaries, homes и active state.
+
+plan_contract:
+  fr_ids: [FR-003, FR-005, FR-007, FR-008, FR-009, FR-010, FR-012, US-002, US-003, US-004, US-006, BN-002, BN-003, BN-006, TM-002, TM-005]
+  nouns:
+    - runtime_hub/adapters/base.py
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/adapters/claude.py
+    - runtime_hub/adapters/agy.py
+    - runtime_hub/adapters/registry.py
+    - runtime_hub/doctor.py
+    - runtime_hub/cli.py:run
+    - runtime_hub/tests/test_adapters_and_run.py
+  layout_paths:
+    - runtime_hub/adapters/
+    - runtime_hub/doctor.py
+    - runtime_hub/tests/test_adapters_and_run.py
+  ac_quotes:
+    - "Given active profile, run starts the selected official binary with adapter env and propagates exit code."
+    - "Missing binary exits non-zero with binary_not_found and never falls back to a global home."
+    - "agy is spawn-only; no local OpenAI-compatible HTTP server is started."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md:91-180
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md:181-250
+
+context:
+  consumes:
+    - runtime_hub/models.py
+    - runtime_hub/store.py
+    - runtime_hub/cli.py
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md
+  produces:
+    - runtime_hub/adapters/base.py
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/adapters/claude.py
+    - runtime_hub/adapters/agy.py
+    - runtime_hub/adapters/registry.py
+    - runtime_hub/doctor.py
+    - runtime_hub/cli.py
+    - runtime_hub/tests/test_adapters_and_run.py
+  plan_refs: [FR-003, FR-005, FR-007, FR-008, FR-009, FR-010, FR-012, US-002, US-003, US-004, US-006, BN-002, BN-003, BN-006, TM-002, TM-005]
+  files:
+    - runtime_hub/adapters/base.py
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/adapters/claude.py
+    - runtime_hub/adapters/agy.py
+    - runtime_hub/adapters/registry.py
+    - runtime_hub/doctor.py
+    - runtime_hub/cli.py
+    - runtime_hub/tests/test_adapters_and_run.py
+
+as_built:
+  - "После s01 есть profile store и selection CLI, но нет runtime adapter boundary."
+  - "CodexRuntime в loop обслуживает loop runtime, а не Hub profile activation; loop остается out of scope."
+  - "Нет единого run/doctor entrypoint для fake-binary и missing-binary checks."
+
+delta:
+  - "Создать RuntimeAdapter Protocol с resolve_executable, build_env и build_argv."
+  - "Добавить codex/claude/agy adapters и registry без if runtime==, размазанного по CLI."
+  - "Реализовать run для active profile, foreground spawn/exec, model passthrough и exit-code propagation."
+  - "Реализовать doctor с проверками active profile, binary resolution, home existence/writability, structured reasons и informational OmniRoute warning."
+  - "Для Claude сохранить documented env names в adapter const и fail-closed при отсутствии официального имени; для agy явно документировать chdir/HOME override без HTTP bridge."
+  - "Добавить fake-PATH и tmp_path тесты для Codex/Claude/agy, missing binary и no-active paths."
+
+deletes: []
+wire_complete_required: true
+out_of_scope: []
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+  omit_justification:
+    fastapi-templates: "runtime_hub не предоставляет HTTP routes"
+    async-python-patterns: "spawn path uses synchronous subprocess and no async handlers"
+
+checkpoints:
+  - id: cp1
+    criterion: "RuntimeAdapter protocol and registry resolve all three official runtimes"
+    verify: "bin/pytest runtime_hub/tests/test_adapters_and_run.py -k 'registry or adapter' -q --tb=line"
+  - id: cp2
+    criterion: "Codex, Claude and agy receive isolated env/home and expected argv"
+    verify: "bin/pytest runtime_hub/tests/test_adapters_and_run.py -k 'codex or claude or agy' -q --tb=line"
+  - id: cp3
+    criterion: "run requires active profile and propagates fake binary exit status"
+    verify: "bin/pytest runtime_hub/tests/test_adapters_and_run.py -k 'run or exit_code or no_active' -q --tb=line"
+  - id: cp4
+    criterion: "doctor and missing binary fail closed with structured reason"
+    verify: "bin/pytest runtime_hub/tests/test_adapters_and_run.py -k 'doctor or missing_binary' -q --tb=line"
+
+verify:
+  - "bin/pytest runtime_hub/tests/test_adapters_and_run.py -q --tb=line"
+tdd:
+  - test_runtime_adapter_registry
+  - test_fake_binary_receives_isolated_env_and_argv
+  - test_missing_binary_fails_closed
+  - test_agy_does_not_start_http_bridge

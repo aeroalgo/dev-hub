@@ -5,6 +5,7 @@
 **Важно:** dev-hub — это **не** продуктовый репозиторий. Код приложения и `memory-bank/` артефакты живут в отдельном репо (продукте). Хаб подключается к продукту через `hub-link` (symlinks) и CLI.
 
 Краткий install-runbook: [`docs/install.md`](docs/install.md).
+Индекс DevOps skills: [`docs/runbooks/devops-skills.md`](docs/runbooks/devops-skills.md).
 
 ---
 
@@ -114,7 +115,7 @@ make hub-link
 
 | Mode | Когда | Что делает |
 |------|--------|------------|
-| **`alongside`** (default) | внешний продукт | symlink `harness/`, `.cursor/rules`→`harness/cursor/rules`, Claude/Codex overlays, `AGENTS.md`/`CLAUDE.md`, пишет `.dev-hub`; `--with-skills` → `.agents/skills` |
+| **`alongside`** (default) | внешний продукт | symlink `harness/`, `.cursor/rules`→`harness/cursor/rules`, Claude/Codex overlays, `AGENTS.md`/`CLAUDE.md`, пишет `.dev-hub`; свой `AGENTS.md`/`CLAUDE.md` → aside `*.<slug>.md` + `AGENTS.override.md` / `.cursor/rules.d/<slug>.mdc` (без затирания); `--with-skills` → `.agents/skills` |
 | **`full`** | dogfood / полная реплика | symlink `.cursor/rules`, `.agents/skills`, `.claude/*`, `settings.json` напрямую на shell хаба |
 
 ```bash
@@ -189,11 +190,30 @@ make hub-info
 make hub-link
 make loop ARGS="codex T-054-skyro-quality-dashboard-ui gpt-5.6-luna-max high"
 python3 "$DEV_HUB/bin/loop.py" status --project "$PWD" --json
+"$DEV_HUB/bin/devops-deploy" --project "$PWD" check --json
 ```
 
 Переопределить хаб на один запуск: `DEV_HUB=/other/path/dev-hub make hub-info`.
 
 Свои цели (`test`, `run`, …) — **после** `include $(DEV_HUB)/make/product.mk`. Не переопределяйте `hub-link` / `loop`.
+
+### Единый деплой и runtime-проверки
+
+Во всех проектах используется один runner: `bin/devops-deploy`. Он не угадывает
+команды и не принимает произвольные SSH/Docker-команды от агента. Для проекта
+читается только `projects/<basename>/deploy.json`; runner выполняет preflight,
+развёртку и postflight по декларативным allowlist-проверкам. Проверяются
+доступность адресов, SSH, systemd units, контейнеры, listeners, TCP/HTTP
+endpoints и проектный smoke. При любом FAIL деплой получает ненулевой код.
+
+Машиночитаемый запуск:
+
+```bash
+"$DEV_HUB/bin/devops-deploy" --project "$PWD" check --json
+"$DEV_HUB/bin/devops-deploy" --project "$PWD" apply --json
+```
+
+Отчёт: `runtime/<project>/deploy/last-report.json`.
 
 ---
 

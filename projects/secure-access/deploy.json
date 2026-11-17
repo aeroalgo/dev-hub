@@ -1,0 +1,45 @@
+{
+  "schema": "dev-hub-deploy/v1",
+  "project_id": "secure-access",
+  "deployment_profile": "production",
+  "deployment_note": "adapter defaults to production; vpn-pilot requires explicit local profile",
+  "adapter": {
+    "kind": "python",
+    "interpreter": "python3",
+    "entrypoint": "deploy/secure-access/deployctl.py",
+    "actions": {
+      "check": "check",
+      "status": "status",
+      "apply": "apply",
+      "rollback": "rollback"
+    },
+    "json_actions": ["check", "status"]
+  },
+  "targets": [
+    {
+      "name": "nl",
+      "ssh_host": "vps-nl",
+      "address": "138.124.67.189",
+      "units": ["secure-access-awg-exit.service", "awg-quick@awg0"],
+      "containers": ["secure-access-xray-exit"],
+      "listeners": [
+        {"protocol": "udp", "port": 47609},
+        {"protocol": "tcp", "port": 443}
+      ]
+    },
+    {
+      "name": "ru",
+      "ssh_host": "vps-ru",
+      "proxy_jump": "vps-nl",
+      "address": "137.22.145.143",
+      "units": ["secure-access-awg-relay.service"],
+      "containers": ["secure-access-xray-entry"],
+      "listeners": [{"protocol": "tcp", "port": 2087}]
+    }
+  ],
+  "tcp_endpoints": [
+    {"name": "ru-xhttp-entry", "host": "137.22.145.143", "port": 2087},
+    {"name": "nl-xray-exit", "host": "138.124.67.189", "port": 443, "via_target": "ru"}
+  ],
+  "http_endpoints": []
+}

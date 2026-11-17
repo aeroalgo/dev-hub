@@ -6,7 +6,43 @@ alwaysApply: false
 
 **Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
 **Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/clarify.mdc
+**Shared core:** @.cursor/rules/shared/workflow-clarify-core.mdc
+**PLAN orchestration:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+**Шаблон:** @.cursor/templates/clarify.md
+**Grill (HARD):** @.agents/skills/grill-me/SKILL.md — Phase 0 mandatory
+
+## Когда запускать
+
+- **`APP PLAN`** — Phase 0 запускается автоматически при триггерах; отдельный APP CLARIFY не обязателен.
+- **Standalone:** добор после 20/20 вопросов, CRITICAL после draft plan, revisit product decision или снятие ambiguity без создания плана в текущей сессии.
+
+## Фокус APP
+
+Снять только ambiguity, которая меняет outcome, mixed contract, ownership, UI journey, wire success/failure или done-критерий. Backend и frontend implementation в этот режим не входят.
+
+## Артефакт
+
+`memory-bank/app/clarify/clarify-YYYYMMDD-<slug>.md`
 
 ## Hot path
 
-Close only ambiguity that changes the vertical slice contract, ownership, UI journey or done criteria, then return to APP PLAN.
+1. Загрузить `activeContext.md` и существующий APP clarify-артефакт по slug.
+2. Прочитать `grill-me` и записать непустой `## Grill pass`.
+3. Выполнить shared taxonomy scan и frontier rounds: ≤4 раунда, ≤20 вопросов, только независимые вопросы текущего frontier.
+4. Зафиксировать Q→A, CRITICAL (resolved или defer-list с owner/next) и Completion Report на диске.
+5. После gate OK вернуться к `APP PLAN` Phase 1; внутри сессии PLAN не делать отдельный FINISH CLARIFY.
+
+## Done When
+
+- [ ] `## Grill pass` записан; Completion Report содержит `Grill:` и `mode=frontier`.
+- [ ] Нет открытых CRITICAL без resolve/defer-list.
+- [ ] Артефакт и Completion Report сохранены на диске.
+- [ ] Production code не изменён.
+
+## Handoff
+
+- Внутри `APP PLAN`: сразу продолжить Phase 1.
+- Standalone: `APP PLAN <slug>`.
+- Квота исчерпана с material gaps: `continue APP CLARIFY <slug>`.
+
+FINISH: `code_changed: no`; обновить `activeContext.md` согласно finish-block / finish-doc-router.

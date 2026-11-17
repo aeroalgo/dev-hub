@@ -35,7 +35,7 @@ from loop.kernel.index import (
 )
 from loop.kernel.lifecycle import SubagentLifecycle
 from loop.kernel.model import CursorStatus, RuntimeResult
-from loop.kernel.runtime import CodexRuntime, Runtime, _collaboration_state
+from loop.kernel.runtime import CodexRuntime, Runtime, _collaboration_state, _progress_seen
 from loop.kernel.session import SessionOutcome, SessionSupervisor
 from loop.kernel.store import CursorStore, LoopPaths
 from loop.kernel.verdict import (
@@ -57,6 +57,14 @@ from loop.config import LoopSettings
 def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _fail_blockers(*rows: str) -> list[str]:
+    if rows:
+        return list(rows)
+    return [
+        "test_blocker | memory-bank/back/plan/E1/yaml/decompose-index.yaml | apply the fixture repair described by the test"
+    ]
 
 
 def _seed_implement(
@@ -1353,6 +1361,7 @@ items:
             session_id=cursor.session_id,
             epic_id=cursor.epic_id,
             recorded_at="2026-09-21T00:00:00+00:00",
+            blockers=_fail_blockers(),
         ),
         expected_agent_id="verify-qa",
     )
@@ -1479,6 +1488,7 @@ def test_resume_reconciles_recorded_qa_fail_without_second_gate(tmp_path: Path) 
         session_id=cursor.session_id,
         epic_id=cursor.epic_id,
         recorded_at="2026-09-21T00:00:00+00:00",
+        blockers=_fail_blockers(),
     )
     engine.accept_verdict(verdict, expected_agent_id="verify-qa")
     write(tmp_path / "memory-bank/back/qa/E1/qa-20260921-fail.yaml", "schema: epic-qa/v1\nverdict: fail\n")
@@ -1977,6 +1987,7 @@ def test_finish_requires_verify_pass_and_fail_requires_repair(tmp_path: Path) ->
         session_id=cursor.session_id,
         epic_id=cursor.epic_id,
         recorded_at="2026-09-18T19:00:00+00:00",
+        blockers=_fail_blockers(),
     )
     engine.accept_verdict(failed, expected_agent_id="verify-implement")
     with pytest.raises(TransitionError, match="repair and re-verify"):
@@ -2223,7 +2234,7 @@ def test_finish_recovers_index_and_context_from_prepared_transaction(tmp_path: P
 
 
 def _verdict_payload(cursor, *, agent_id: str = "verify-implement", verdict: str = "PASS") -> dict:
-    return {
+    payload = {
         "schema": SCHEMA_GATE_VERDICT,
         "agent_id": agent_id,
         "verdict": verdict,
@@ -2232,6 +2243,11 @@ def _verdict_payload(cursor, *, agent_id: str = "verify-implement", verdict: str
         "epic_id": cursor.epic_id,
         "recorded_at": "2026-09-18T19:00:00+00:00",
     }
+    if verdict in {"FAIL", "BLOCKED"}:
+        payload["blockers"] = _fail_blockers()
+    else:
+        payload["blockers"] = []
+    return payload
 
 
 def _verdict_message(
@@ -2247,6 +2263,101 @@ def _verdict_message(
 
         write_pre_emit_stamp(paths, payload)
     return "```json\n" + json.dumps(payload) + "\n```"
+
+
+def test_fail_verdict_requires_structured_blockers_and_pass_forbids_them() -> None:
+    base = {
+        "schema": SCHEMA_GATE_VERDICT,
+        "agent_id": "verify-implement",
+        "step_id": "s01",
+        "session_id": "session-test",
+        "epic_id": "E1",
+        "recorded_at": "2026-09-18T19:00:00+00:00",
+    }
+    bare_fail = validate_boundary(SCHEMA_GATE_VERDICT, {**base, "verdict": "FAIL"})
+    assert not bare_fail.valid
+    assert any("blockers" in error.lower() for error in bare_fail.errors)
+
+    bad_shape = validate_boundary(
+        SCHEMA_GATE_VERDICT,
+        {**base, "verdict": "FAIL", "blockers": ["only-id-no-path"]},
+    )
+    assert not bad_shape.valid
+
+    ok_fail = validate_boundary(
+        SCHEMA_GATE_VERDICT,
+        {
+            **base,
+            "verdict": "FAIL",
+            "blockers": [
+                "missing_symbol | path/a.py | add symbol X required by verify evidence"
+            ],
+        },
+    )
+    assert ok_fail.valid and ok_fail.record is not None
+    assert ok_fail.record.blockers[0].startswith("missing_symbol |")
+
+    pass_with_blockers = validate_boundary(
+        SCHEMA_GATE_VERDICT,
+        {
+            **base,
+            "verdict": "PASS",
+            "blockers": [
+                "missing_symbol | path/a.py | add symbol X required by verify evidence"
+            ],
+        },
+    )
+    assert not pass_with_blockers.valid
+
+
+def test_content_fail_recovery_copies_verifier_blockers(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    engine.accept_verdict(
+        GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-implement",
+            verdict="FAIL",
+            step_id=cursor.step_id,
+            session_id=cursor.session_id,
+            epic_id=cursor.epic_id,
+            recorded_at="2026-09-21T00:30:00+00:00",
+            blockers=_fail_blockers(
+                "nfr001_file_acl | elms/elms/admission/profile.py | deny foreign learner private file access"
+            ),
+        ),
+        expected_agent_id="verify-implement",
+    )
+    recovery = _gate_recovery_prompt(engine.store.read(), engine)
+    assert "VERIFIER BLOCKERS" in recovery
+    assert "nfr001_file_acl | elms/elms/admission/profile.py |" in recovery
+    assert "FORBIDDEN: invent different product blockers" in recovery
+
+
+def test_protocol_fail_recovery_does_not_ask_product_gate_repair(tmp_path: Path) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    cursor = engine.start("E1")
+    engine.accept_verdict(
+        GateVerdict(
+            schema=SCHEMA_GATE_VERDICT,
+            agent_id="verify-implement",
+            verdict="FAIL",
+            step_id=cursor.step_id,
+            session_id=cursor.session_id,
+            epic_id=cursor.epic_id,
+            recorded_at="2026-09-21T00:31:00+00:00",
+            blockers=_fail_blockers(
+                "checkpoints_pending | memory-bank/back/implement/E1/s01.yaml | run loop.py implement-flush then respawn verify"
+            ),
+        ),
+        expected_agent_id="verify-implement",
+    )
+    recovery = _gate_recovery_prompt(engine.store.read(), engine)
+    assert "protocol/handoff result" in recovery
+    assert "implement-flush" in recovery
+    assert "FORBIDDEN: invent NFR/ACL/UI product blockers" in recovery
 
 
 def test_gate_verdict_is_strict_and_identity_bound(tmp_path: Path) -> None:
@@ -2335,6 +2446,106 @@ def test_qa_pass_keeps_parent_alive_until_context_sync_done(tmp_path: Path) -> N
     assert sync_action.continue_session is False
     assert sync_action.transition["event"] == "context_sync_completed"
     assert engine.store.read().status == CursorStatus.COMPLETE
+
+
+def test_qa_pass_handoff_mismatch_routes_to_gate_repair_without_qa_retry(
+    tmp_path: Path,
+) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "docs/reports/qa.json",
+        json.dumps(
+            {
+                "schema": "runtime-http-evidence/v1",
+                "status": "pass",
+                "live_evidence": True,
+                "evidence_type": "runtime_http",
+                "timestamp": "2026-10-29T12:00:00Z",
+                "command": "bash scripts/actual-qa.sh",
+                "exit_code": 0,
+                "raw_http": {"body": "ok"},
+            }
+        ),
+    )
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20261029-pass.yaml",
+        """schema: epic-qa/v1
+verdict: pass
+live_smoke:
+  status: pass
+  command: bash scripts/expected-qa.sh
+  evidence_file: docs/reports/qa.json
+  last_run_at: '2026-10-29T12:00:00Z'
+""",
+    )
+    cursor = engine.store.read()
+    assert cursor is not None and cursor.phase == "QA"
+
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-qa",
+            "last_assistant_message": _verdict_message(
+                cursor, agent_id="verify-qa", paths=paths
+            ),
+        }
+    )
+
+    assert not action.ok
+    assert action.continue_session
+    assert action.diagnostic_codes == ("qa_gate_repair_required",)
+    assert engine.store.read().phase == "QA"
+    assert engine.store.latest_event("qa_gate_repair_required")["reason"] == (
+        "runtime_evidence_command_mismatch"
+    )
+    assert engine.store.latest_event("verdict_transition_rejected") is None
+    recovery = _gate_recovery_prompt(engine.store.read(), engine)
+    assert "spawn agent_type=gate-repair" in recovery
+    assert "re-run verify-qa once" in recovery
+
+
+def test_qa_pass_product_evidence_failure_routes_to_bugfix_instructions(
+    tmp_path: Path,
+) -> None:
+    paths = seed_project(tmp_path)
+    engine = LoopEngine(paths)
+    engine.start("E1")
+    _finish_via_gate(engine)
+    _finish_via_gate(engine)
+    write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20261029-pass.yaml",
+        """schema: epic-qa/v1
+verdict: pass
+live_smoke:
+  status: pass
+  command: bash scripts/qa.sh
+  evidence_file: docs/reports/missing.json
+  last_run_at: '2026-10-29T12:00:00Z'
+""",
+    )
+    cursor = engine.store.read()
+    assert cursor is not None
+
+    action = SubagentLifecycle(paths).stop(
+        {
+            "cwd": str(tmp_path),
+            "agent_type": "verify-qa",
+            "last_assistant_message": _verdict_message(
+                cursor, agent_id="verify-qa", paths=paths
+            ),
+        }
+    )
+
+    assert not action.ok
+    assert action.continue_session
+    assert action.diagnostic_codes == ("qa_product_failure_required",)
+    recovery = _gate_recovery_prompt(engine.store.read(), engine)
+    assert "Do not gate-repair" in recovery
+    assert "finish --step QA" in recovery
 
 
 def test_old_context_sync_artifact_does_not_complete_current_qa(tmp_path: Path) -> None:
@@ -2459,6 +2670,7 @@ def test_content_fail_recovery_prompt_requires_gate_repair(tmp_path: Path) -> No
             session_id=cursor.session_id,
             epic_id=cursor.epic_id,
             recorded_at="2026-09-21T00:00:00+00:00",
+            blockers=_fail_blockers(),
         ),
         expected_agent_id="verify-implement",
     )
@@ -2468,11 +2680,14 @@ def test_content_fail_recovery_prompt_requires_gate_repair(tmp_path: Path) -> No
     recovery = _gate_recovery_prompt(current, engine)
     assert "gate-repair" in recovery
     assert "BLOCKERS" in recovery
+    assert "VERIFIER BLOCKERS" in recovery
+    assert "test_blocker |" in recovery
+    assert "copy EXACTLY" in recovery
     assert "product/content result" in recovery
     assert "evidence_sha256" in recovery
     assert "Do not finish" in recovery
-    assert "Classify the verifier's concrete finding" in recovery
     assert engine.store.latest_event("verdict_recorded")["phase"] == "IMPLEMENT"
+    assert engine.store.latest_event("verdict_recorded")["blockers"]
 
 
 def test_legacy_verdict_event_still_gets_gate_repair_recovery(tmp_path: Path) -> None:
@@ -2538,6 +2753,7 @@ def test_three_verify_fail_and_repair_cycles_restart_step(tmp_path: Path) -> Non
             session_id=engine.store.read().session_id,
             epic_id=cursor.epic_id,
             recorded_at=recorded_at,
+            blockers=_fail_blockers(),
         )
 
     for index in range(3):
@@ -2831,6 +3047,9 @@ def test_gate_verdict_pre_emit_stamp_mismatch_is_rejected(tmp_path: Path) -> Non
     write_pre_emit_stamp(paths, stamped)
     mutated = dict(stamped)
     mutated["verdict"] = "FAIL"
+    mutated["blockers"] = _fail_blockers(
+        "pre_emit_mismatch_probe | memory-bank/back/plan/E1/yaml/decompose-index.yaml | keep stamp in sync after semantic change"
+    )
     action = SubagentLifecycle(paths).stop(
         {
             "cwd": str(tmp_path),
@@ -3010,6 +3229,34 @@ def test_codex_renders_compact_progress_events() -> None:
     assert completed == "  ✓ write finished (exit=0)"
 
 
+def test_codex_progress_seen_resets_on_reasoning_and_tools() -> None:
+    cmd_chunk = json.dumps(
+        {"type": "item.started", "item": {"type": "command_execution", "command": "rg foo"}}
+    )
+    reasoning_chunk = json.dumps(
+        {"type": "item.completed", "item": {"type": "reasoning", "text": "Designing payment webhook"}}
+    )
+    file_chunk = json.dumps(
+        {"type": "item.completed", "item": {"type": "file_change", "changes": []}}
+    )
+    silence = '{"type":"thread.started","thread_id":"t1"}\n'
+
+    progressed, _ = _progress_seen("", cmd_chunk + "\n", mode="codex_json")
+    assert progressed is True
+    progressed, _ = _progress_seen("", reasoning_chunk + "\n", mode="codex_json")
+    assert progressed is True
+    progressed, _ = _progress_seen("", file_chunk + "\n", mode="codex_json")
+    assert progressed is True
+    progressed, _ = _progress_seen("", silence, mode="codex_json")
+    assert progressed is False
+    # Split JSON across reads still counts once the item event type arrives.
+    head, tail = '{"type": "ite', 'm.completed", "item": {"type": "reasoning", "text": "x"}}\n'
+    progressed, carry = _progress_seen("", head, mode="codex_json")
+    assert progressed is False
+    progressed, _ = _progress_seen(carry, tail, mode="codex_json")
+    assert progressed is True
+
+
 def test_codex_labels_gate_spawn_from_current_phase_when_payload_omits_type(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -3186,7 +3433,6 @@ def test_runtime_heartbeat_elapsed_and_idle_timeout_are_recorded(tmp_path: Path,
             status_heartbeat=1,
             stream_idle_timeout=1,
             session_kill_grace=1,
-            collaboration_wait_timeout=1,
         )
     ).run(
         "prompt",
@@ -3369,7 +3615,6 @@ def test_runtime_idle_timeout_applies_after_subagent_wait_completes(
             status_heartbeat=1,
             stream_idle_timeout=2,
             session_kill_grace=1,
-            collaboration_wait_timeout=None,
         )
     ).run(
         "prompt",
@@ -3389,8 +3634,7 @@ def test_runtime_idle_timeout_applies_after_subagent_wait_completes(
 
 
 def test_collaboration_state_clears_pending_when_wait_completes() -> None:
-    """Wait completion must clear pending so idle timeout is not bypassed forever."""
-    now = 100.0
+    """Wait completion clears pending so the idle watchdog can resume."""
     spawn = {
         "type": "item.started",
         "item": {
@@ -3399,9 +3643,8 @@ def test_collaboration_state_clears_pending_when_wait_completes() -> None:
             "receiver_thread_ids": ["thr-1"],
         },
     }
-    pending, started, done = _collaboration_state(json.dumps(spawn), set(), None, now=now)
+    pending, done = _collaboration_state(json.dumps(spawn), set())
     assert pending == {"thr-1"}
-    assert started == now
     assert done is False
 
     wait_done = {
@@ -3413,13 +3656,12 @@ def test_collaboration_state_clears_pending_when_wait_completes() -> None:
             "agents_states": {"thr-1": {"status": "completed"}},
         },
     }
-    pending, started, done = _collaboration_state(json.dumps(wait_done), pending, started, now=now + 1)
+    pending, done = _collaboration_state(json.dumps(wait_done), pending)
     assert pending == set()
-    assert started is None
     assert done is True
 
 
-def test_collaboration_state_preserves_pending_on_wait_completed_without_states() -> None:
+def test_collaboration_state_preserves_pending_on_empty_wait() -> None:
     pending = {"thr-2"}
     wait_done = {
         "type": "item.completed",
@@ -3429,38 +3671,33 @@ def test_collaboration_state_preserves_pending_on_wait_completed_without_states(
             "receiver_thread_ids": ["thr-2"],
         },
     }
-    pending, started, done = _collaboration_state(json.dumps(wait_done), pending, 50.0, now=60.0)
+    pending, done = _collaboration_state(json.dumps(wait_done), pending)
     assert pending == {"thr-2"}
-    assert started == 50.0
     assert done is False
 
 
-def test_collaboration_state_does_not_reset_wait_clock_on_repeated_empty_waits() -> None:
-    pending = {"thr-2"}
-    wait_done = json.dumps(
+def test_collaboration_state_empty_wait_churn_keeps_child_pending() -> None:
+    pending = {"thr-stall"}
+    empty_wait = json.dumps(
         {
             "type": "item.completed",
             "item": {
                 "type": "collab_tool_call",
                 "tool": "wait",
-                "receiver_thread_ids": ["thr-2"],
+                "receiver_thread_ids": [],
+                "agents_states": {},
+                "status": "completed",
             },
         }
     )
-
-    pending, started, done = _collaboration_state(wait_done, pending, 50.0, now=60.0)
-    assert pending == {"thr-2"}
-    assert started == 50.0
-    assert done is False
-
-    pending, started, done = _collaboration_state(wait_done, pending, started, now=70.0)
-    assert pending == {"thr-2"}
-    assert started == 50.0
-    assert done is False
+    for _ in range(3):
+        pending, done = _collaboration_state(empty_wait, pending)
+        assert pending == {"thr-stall"}
+        assert done is False
 
 
 def test_collaboration_state_spawn_completed_keeps_pending_while_child_runs() -> None:
-    pending, started, done = _collaboration_state(
+    pending, done = _collaboration_state(
         json.dumps(
             {
                 "type": "item.started",
@@ -3472,11 +3709,9 @@ def test_collaboration_state_spawn_completed_keeps_pending_while_child_runs() ->
             }
         ),
         set(),
-        None,
-        now=1.0,
     )
     assert done is False
-    pending, started, done = _collaboration_state(
+    pending, done = _collaboration_state(
         json.dumps(
             {
                 "type": "item.completed",
@@ -3488,11 +3723,8 @@ def test_collaboration_state_spawn_completed_keeps_pending_while_child_runs() ->
             }
         ),
         pending,
-        started,
-        now=2.0,
     )
     assert pending == {"thr-3"}
-    assert started == 1.0
     assert done is False
 
 
@@ -3522,7 +3754,80 @@ def test_collaboration_state_spawn_and_wait_same_chunk_marks_wave_done() -> None
             ),
         ]
     )
-    pending, started, done = _collaboration_state(chunk, set(), None, now=10.0)
+    pending, done = _collaboration_state(chunk, set())
     assert pending == set()
-    assert started is None
     assert done is True
+
+
+def test_runtime_waits_until_parent_timeout_without_collab_watchdog(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Empty wait churn must not create a separate collaboration retry."""
+
+    class HungChildRuntime(Runtime):
+        name = "hung-child"
+        progress_mode = "codex_json"
+
+        def executable(self) -> str:
+            return sys.executable
+
+        def command(self, prompt: str, *, model: str, project: Path) -> list[str]:
+            spawn = json.dumps(
+                {
+                    "type": "item.started",
+                    "item": {
+                        "type": "collab_tool_call",
+                        "tool": "spawn_agent",
+                        "receiver_thread_ids": ["thr-stall"],
+                        "status": "in_progress",
+                    },
+                }
+            )
+            empty_wait = json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "type": "collab_tool_call",
+                        "tool": "wait",
+                        "receiver_thread_ids": [],
+                        "agents_states": {},
+                        "status": "completed",
+                    },
+                }
+            )
+            script = (
+                "import time\n"
+                f"print({spawn!r}, flush=True)\n"
+                "for _ in range(40):\n"
+                f"    print({empty_wait!r}, flush=True)\n"
+                "    time.sleep(0.25)\n"
+                "time.sleep(60)\n"
+            )
+            return [sys.executable, "-u", "-c", script]
+
+    started = time.monotonic()
+    result = HungChildRuntime(
+        LoopSettings(
+            status_heartbeat=1,
+            stream_idle_timeout=30,
+            session_kill_grace=1,
+        )
+    ).run(
+        "prompt",
+        model="model",
+        project=tmp_path,
+        log_path=tmp_path / "session-collab-wait.log",
+        timeout=2,
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 15, f"parent timeout too slow: elapsed={elapsed:.1f}s"
+    assert result.exit_code == 124
+    assert result.timed_out is True
+    assert result.hung is False
+    assert result.message == "session timeout"
+    log = (tmp_path / "session-collab-wait.log").read_text(encoding="utf-8")
+    assert "SESSION_COLLAB_CHILD_STALL" not in log
+    assert "SESSION_COLLAB_WAIT_TIMEOUT" not in log
+    captured = capsys.readouterr().out
+    assert "child stall" not in captured

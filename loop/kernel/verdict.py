@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from .inventory import (
     INVENTORY_AGENT_ALIASES,
@@ -107,6 +107,58 @@ _ALLOWED_FENCE_LANGS = frozenset(
     }
 )
 _PROMPT_INCOMPLETE_RE = re.compile(r"^prompt_incomplete:(?P<section>.+)$", re.IGNORECASE)
+# Machine SoT for FAIL/BLOCKED → gate-repair handoff. Same row shape parent must copy.
+_BLOCKER_ROW_RE = re.compile(
+    r"^(?P<id>[^\s|]+)\s*\|\s*(?P<path>[^|]+?)\s*\|\s*(?P<fix>.+)$"
+)
+PROTOCOL_BLOCKER_IDS = frozenset(
+    {
+        "checkpoints_pending",
+        "incomplete_analysis",
+        "step_missing",
+        "decompose_missing",
+        "step_status",
+        "template_mismatch",
+        "step_path_mismatch",
+        "verdict_json_fence_missing",
+        "verdict_json_fence_multiple",
+    }
+)
+
+
+def blocker_id_of(row: str) -> str:
+    return str(row or "").split("|", 1)[0].strip()
+
+
+def is_protocol_blocker_row(row: str) -> bool:
+    blocker_id = blocker_id_of(row).lower()
+    if not blocker_id:
+        return False
+    if blocker_id in PROTOCOL_BLOCKER_IDS:
+        return True
+    return (
+        blocker_id.startswith("prompt_incomplete")
+        or blocker_id.startswith("pre_emit_")
+        or blocker_id.startswith("schema_")
+        or blocker_id.startswith("checklist_empty")
+        or blocker_id.startswith("verdict_wrong_")
+        or blocker_id.startswith("session_mismatch")
+    )
+
+
+def validate_blocker_rows(rows: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    for item in rows:
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError("blockers must be a list of non-empty strings")
+        row = " ".join(item.split())
+        if _BLOCKER_ROW_RE.match(row) is None:
+            raise ValueError(
+                "each blocker must be '<id> | <path> | <concrete_fix>' "
+                f"(received {item!r})"
+            )
+        cleaned.append(row)
+    return cleaned
 
 
 def normalize_repair_payload(raw: dict[str, Any]) -> dict[str, Any]:
@@ -147,6 +199,7 @@ class GateVerdict(BaseModel):
     epic_id: str
     recorded_at: str
     evidence_sha256: str | None = None
+    blockers: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -183,6 +236,28 @@ class GateVerdict(BaseModel):
         except ValueError as exc:
             raise ValueError("recorded_at must be a valid ISO 8601 timestamp") from exc
         return value.strip()
+
+    @field_validator("blockers", mode="before")
+    @classmethod
+    def normalize_blockers(cls, value: object) -> object:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("blockers must be a list of strings")
+        return validate_blocker_rows([str(item) for item in value])
+
+    @model_validator(mode="after")
+    def blockers_match_verdict(self) -> GateVerdict:
+        if self.verdict == "PASS":
+            if self.blockers:
+                raise ValueError("PASS forbids non-empty blockers")
+            return self
+        if not self.blockers:
+            raise ValueError(
+                "FAIL/BLOCKED requires non-empty blockers "
+                "('<id> | <path> | <concrete_fix>'); bare FAIL is forbidden"
+            )
+        return self
 
 
 class RepairResult(BaseModel):
@@ -637,6 +712,7 @@ __all__ = [
     "MANAGED_FIX_AGENTS",
     "MANAGED_SYNC_AGENTS",
     "MANAGED_SUBAGENTS",
+    "PROTOCOL_BLOCKER_IDS",
     "REPAIR_IGNORABLE_EXTRA_FIELDS",
     "REPAIR_RESULT_ONLY_FIELDS",
     "SCHEMA_GATE_VERDICT",
@@ -650,8 +726,11 @@ __all__ = [
     "ContextSyncResult",
     "SunsetReport",
     "ValidationResult",
+    "blocker_id_of",
     "extract_json_fence",
+    "is_protocol_blocker_row",
     "normalize_repair_payload",
+    "validate_blocker_rows",
     "normalize_agent_id",
     "repair_contract_errors",
     "validate_boundary",

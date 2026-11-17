@@ -15,13 +15,15 @@ alwaysApply: false
 
 | Тема | Скиллы |
 |------|--------|
-| docker | `docker-compose`, `docker-management` |
-| k8s / helm | `kubernetes`, `kubernetes-ops`, `helm-charts`, `kustomize` |
-| nginx / proxy / порты | `reverse-proxy`, `ssl-tls-management`, `load-balancing`, `firewall-config` |
-| ansible | `ansible` |
-| terraform / opentofu | `terraform`, `opentofu-migration`, `terraform-aws`, `terraform-gcp`, `terraform-azure` |
+| docker | [`docker-compose`](../../../skills/docker-compose/SKILL.md), [`docker-management`](../../../skills/docker-management/SKILL.md) |
+| k8s / helm | [`kubernetes`](../../../skills/kubernetes/SKILL.md), [`kubernetes-ops`](../../../skills/kubernetes-ops/SKILL.md), [`helm-charts`](../../../skills/helm-charts/SKILL.md), [`kustomize`](../../../skills/kustomize/SKILL.md) |
+| nginx / proxy / порты | [`reverse-proxy`](../../../skills/reverse-proxy/SKILL.md), [`ssl-tls-management`](../../../skills/ssl-tls-management/SKILL.md), [`load-balancing`](../../../skills/load-balancing/SKILL.md), [`firewall-config`](../../../skills/firewall-config/SKILL.md) |
+| ansible | [`ansible`](../../../skills/ansible/SKILL.md) |
+| terraform / opentofu | [`terraform`](../../../skills/terraform/SKILL.md), [`opentofu-migration`](../../../skills/opentofu-migration/SKILL.md), [`terraform-aws`](../../../skills/terraform-aws/SKILL.md), [`terraform-gcp`](../../../skills/terraform-gcp/SKILL.md), [`terraform-azure`](../../../skills/terraform-azure/SKILL.md) |
 
 Пути Read: `.agents/skills/<name>/SKILL.md`.
+
+Полный индекс с назначением каждого skill: [`docs/runbooks/devops-skills.md`](../../../../docs/runbooks/devops-skills.md).
 
 ## 3. Политика
 

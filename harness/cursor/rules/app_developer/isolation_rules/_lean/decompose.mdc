@@ -5,8 +5,9 @@ alwaysApply: false
 # APP DECOMPOSE — gates
 
 1. Write `memory-bank/app/plan/<epic_id>/yaml/decompose-index.yaml` and exactly one `steps/sNN-*.yaml` per index step.
-2. Every shard uses `schema: epic-decompose/v1`, `role: app`, `next_phase: APP IMPLEMENT`, and includes plan contract, files, verify, TDD, deletes and mixed skills.
+2. Every shard uses `schema: epic-decompose/v1`, `role: app`, `next_phase: APP IMPLEMENT`, and includes canonical `plan_contract.ac_ids`/`ac_quotes`, `files`, `context.produces`, `verify`, TDD, deletes and mixed skills from @.cursor/rules/app_developer/skills-gate-situational.mdc (full BACK∪FRONT union; `visible_ui: yes` → full Design D0; FORBIDDEN APP-lite skill subset).
 3. A shard may list backend, frontend, wire and test files together. `wire_complete_required: true` for a machine boundary.
-4. Use the single `verify-decompose` closure gate before APP IMPLEMENT; unresolved critical gaps fail it.
+4. Run the machine `preflight` command before spawning `verify-decompose`. It checks AC traceability, `files ↔ produces`, checkpoint commands and split rationale.
+5. Use the single `verify-decompose` closure gate before APP IMPLEMENT; unresolved critical gaps fail it. Existing implement artifacts never bypass this gate.
 
-Abort: orphan shard, missing contract coverage, separate integration queue for the same slice, or an open creative gate without a creative step.
+Abort: orphan shard, missing contract coverage, missing canonical AC quote, `files/produces/verify` drift, undocumented split of a cohesive slice, separate integration queue for the same slice, or an open creative gate without a creative step.

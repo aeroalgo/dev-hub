@@ -1,0 +1,19 @@
+{
+  "schema": "dev-hub-deploy/v1",
+  "project_id": "__PROJECT_ID__",
+  "adapter": {
+    "kind": "python",
+    "interpreter": "python3",
+    "entrypoint": "deploy/deployctl.py",
+    "actions": {
+      "check": "check",
+      "status": "status",
+      "apply": "apply",
+      "rollback": "rollback"
+    },
+    "json_actions": ["check", "status"]
+  },
+  "targets": [],
+  "tcp_endpoints": [],
+  "http_endpoints": []
+}

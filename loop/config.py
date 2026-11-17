@@ -171,14 +171,6 @@ class LoopSettings(BaseSettings):
             "EPIC_STREAM_IDLE_TIMEOUT_SEC",
         ),
     )
-    collaboration_wait_timeout: int | None = Field(
-        default=900,
-        ge=1,
-        validation_alias=AliasChoices(
-            "LOOP_COLLABORATION_WAIT_TIMEOUT",
-            "EPIC_COLLAB_WAIT_TIMEOUT_SEC",
-        ),
-    )
     max_attempts: int = Field(
         default=3,
         ge=1,
@@ -268,7 +260,6 @@ class LoopSettings(BaseSettings):
     @field_validator(
         "status_heartbeat",
         "stream_idle_timeout",
-        "collaboration_wait_timeout",
         mode="before",
     )
     @classmethod

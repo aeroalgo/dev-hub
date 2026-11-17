@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-109-runtime-hub
+task_id: T-HUB-109-runtime-hub
+title: s01 — Isolated profile store and fail-closed selection CLI IMPLEMENT
+level: L3
+status: completed
+decompose_ref: memory-bank/back/plan/T-HUB-109-runtime-hub/yaml/steps/s01-profile-store-and-cli.yaml
+date: 2026-11-11
+
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-configuration/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+
+done:
+  - Profile schema validates required fields and supported runtimes.
+  - ProfileStore reads RUNTIME_HUB_HOME and atomically writes active.
+  - Relative profile homes stay under profiles/ and are created on activation.
+  - list, use, and status CLI commands expose fail-closed selection behavior.
+  - Unknown profiles, conflicts, force policy, dirty state, and invalid config preserve active.
+
+files:
+  - runtime_hub/__init__.py
+  - runtime_hub/models.py
+  - runtime_hub/store.py
+  - runtime_hub/errors.py
+  - runtime_hub/cli.py
+  - bin/hub-runtime
+  - runtime_hub/tests/test_store_and_cli.py
+
+deletes: []
+
+wire_complete:
+  call_sites:
+    - bin/hub-runtime -> runtime_hub.cli.main
+    - runtime_hub.cli -> runtime_hub.store.ProfileStore
+  enforce_path: runtime_hub.store.ProfileStore.use -> _write_active
+  deny_old_proven: true
+
+tests:
+  - "bin/pytest runtime_hub/tests/test_store_and_cli.py -q --tb=line"
+
+integration_check:
+  - "bin/hub-runtime list/use/status are wired through runtime_hub.cli.main"
+
+checkpoints:
+  - id: cp1
+    criterion: Profile schema and RUNTIME_HUB_HOME store roundtrip are executable
+    status: done
+  - id: cp2
+    criterion: list/use/status activate a named profile and write active atomically
+    status: done
+  - id: cp3
+    criterion: Unknown profile and active conflict fail without mutating active
+    status: done
+  - id: cp4
+    criterion: Invalid configuration and global-home fallback are rejected
+    status: done
+  - id: cp5
+    criterion: HUB_RUNTIME_REQUIRE_FORCE=1 and doctor-marked dirty state deny without --force, preserve active, and never fall back or mutate
+    status: done
+
+resume_from: null

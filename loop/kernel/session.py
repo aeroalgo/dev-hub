@@ -61,7 +61,6 @@ class SessionSupervisor:
             "log_path": str(result.log_path),
             "timed_out": result.timed_out,
             "idle_timed_out": result.idle_timed_out,
-            "collaboration_wait_timed_out": result.collaboration_wait_timed_out,
             "hung": result.hung,
             "elapsed_sec": result.elapsed_sec,
             "heartbeat_count": result.heartbeat_count,
@@ -196,9 +195,6 @@ class SessionSupervisor:
             if result.idle_timed_out:
                 reason = "session_idle_timeout"
                 code = "session_idle_timeout"
-            elif result.collaboration_wait_timed_out:
-                reason = "collaboration_wait_timeout"
-                code = "collaboration_wait_timeout"
             else:
                 reason = "session_timeout"
                 code = "session_timeout"

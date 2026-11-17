@@ -140,14 +140,13 @@ class RuntimeResult:
     timed_out: bool = False
     interrupted: bool = False
     idle_timed_out: bool = False
-    collaboration_wait_timed_out: bool = False
     elapsed_sec: float = 0.0
     heartbeat_count: int = 0
 
     @property
     def hung(self) -> bool:
         """Whether the runtime was stopped by an inactivity watchdog."""
-        return self.idle_timed_out or self.collaboration_wait_timed_out
+        return self.idle_timed_out
 
     @property
     def ok(self) -> bool:

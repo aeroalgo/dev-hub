@@ -154,6 +154,140 @@ copy_or_link_file() {
   fi
 }
 
+# Product slug for aside names: basename of product root, safe for filenames.
+product_slug() {
+  local raw
+  raw="$(basename "$PRODUCT_ROOT")"
+  raw="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g')"
+  if [[ -z "$raw" ]]; then
+    raw="product"
+  fi
+  printf '%s' "$raw"
+}
+
+render_product_overlay_template() {
+  local src="$1"
+  local dest="$2"
+  local slug="$3"
+  local product_agents="$4"
+  local product_claude="$5"
+  if [[ ! -f "$src" ]]; then
+    echo "ERROR: product overlay template missing: $src" >&2
+    exit 2
+  fi
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] write $dest (from $(basename "$src"))"
+    return 0
+  fi
+  if [[ -e "$PRODUCT_ROOT/$dest" ]]; then
+    echo "keep    $dest"
+    return 0
+  fi
+  mkdir -p "$(dirname "$PRODUCT_ROOT/$dest")"
+  python3 - "$src" "$PRODUCT_ROOT/$dest" "$slug" "$product_agents" "$product_claude" <<'PY'
+from pathlib import Path
+import sys
+src, dest, slug, agents, claude = sys.argv[1:6]
+text = Path(src).read_text(encoding="utf-8")
+text = (
+    text.replace("__SLUG__", slug)
+    .replace("__PRODUCT_AGENTS__", agents)
+    .replace("__PRODUCT_CLAUDE__", claude)
+)
+Path(dest).write_text(text, encoding="utf-8")
+PY
+  echo "write   $dest"
+}
+
+# Move product-owned AGENTS.md / CLAUDE.md aside without deleting content.
+# Sets ASIDE_RESULT to relative aside name when a product file exists (moved or already present).
+aside_runtime_entrypoint() {
+  local name="$1"   # AGENTS.md | CLAUDE.md
+  local slug="$2"
+  local stem="${name%.md}"
+  local dest="$PRODUCT_ROOT/$name"
+  local aside_name="${stem}.${slug}.md"
+  local aside_path="$PRODUCT_ROOT/$aside_name"
+  ASIDE_RESULT=""
+
+  if [[ -L "$dest" ]]; then
+    if [[ -f "$aside_path" ]]; then
+      ASIDE_RESULT="$aside_name"
+    fi
+    return 0
+  fi
+
+  if [[ ! -e "$dest" ]]; then
+    if [[ -f "$aside_path" ]]; then
+      ASIDE_RESULT="$aside_name"
+    fi
+    return 0
+  fi
+
+  if [[ ! -f "$dest" ]]; then
+    echo "ERROR: $dest exists and is not a regular file or symlink. Move it aside first." >&2
+    exit 2
+  fi
+
+  if [[ -e "$aside_path" ]]; then
+    if cmp -s "$dest" "$aside_path"; then
+      if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "[dry-run] remove duplicate $name (same as $aside_name)"
+      else
+        rm "$dest"
+        echo "drop    $name (same as $aside_name)"
+      fi
+      ASIDE_RESULT="$aside_name"
+      return 0
+    fi
+    local stamp
+    stamp="$(date -u +%Y%m%d%H%M%S)"
+    aside_name="${stem}.${slug}.pre-hub-${stamp}.md"
+    aside_path="$PRODUCT_ROOT/$aside_name"
+  fi
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[dry-run] aside  $name → $aside_name"
+  else
+    mv "$dest" "$aside_path"
+    echo "aside   $name → $aside_name"
+  fi
+  ASIDE_RESULT="$aside_name"
+}
+
+ensure_product_runtime_overlays() {
+  local slug="$1"
+  local product_agents="${2:-}"
+  local product_claude="${3:-}"
+  local tmpl_dir="$DEV_HUB/harness/templates/product-overlay"
+
+  if [[ -z "$product_agents" ]]; then
+    return 0
+  fi
+  if [[ -z "$product_claude" ]]; then
+    product_claude="CLAUDE.${slug}.md"
+  fi
+
+  render_product_overlay_template \
+    "$tmpl_dir/AGENTS.override.md.tmpl" \
+    "AGENTS.override.md" \
+    "$slug" "$product_agents" "$product_claude"
+
+  render_product_overlay_template \
+    "$tmpl_dir/product.mdc.tmpl" \
+    ".cursor/rules.d/${slug}.mdc" \
+    "$slug" "$product_agents" "$product_claude"
+
+  if [[ ! -e "$PRODUCT_ROOT/$product_claude" && ! -L "$PRODUCT_ROOT/$product_claude" ]]; then
+    render_product_overlay_template \
+      "$tmpl_dir/CLAUDE.product.md.tmpl" \
+      "$product_claude" \
+      "$slug" "$product_agents" "$product_claude"
+  else
+    echo "keep    $product_claude"
+  fi
+}
+
 if [[ "$MODE" == "alongside" ]]; then
   if [[ ! -d "$DEV_HUB/harness" ]]; then
     echo "ERROR: hub harness directory missing: $DEV_HUB/harness" >&2
@@ -213,6 +347,25 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
+  # 4. Product entrypoints: move regular AGENTS.md/CLAUDE.md aside, wire overlays, then link hub.
+  #    Never deletes product content; never overwrites existing AGENTS.override.md / rules.d / CLAUDE.<slug>.md.
+  PRODUCT_SLUG="$(product_slug)"
+  ASIDE_RESULT=""
+  aside_runtime_entrypoint "AGENTS.md" "$PRODUCT_SLUG"
+  PRODUCT_AGENTS_ASIDE="$ASIDE_RESULT"
+  ASIDE_RESULT=""
+  aside_runtime_entrypoint "CLAUDE.md" "$PRODUCT_SLUG"
+  PRODUCT_CLAUDE_ASIDE="$ASIDE_RESULT"
+  # Prefer canonical AGENTS.<slug>.md / CLAUDE.<slug>.md for overlays (stamped *.pre-hub-* is backup only).
+  if [[ -f "$PRODUCT_ROOT/AGENTS.${PRODUCT_SLUG}.md" ]]; then
+    PRODUCT_AGENTS_ASIDE="AGENTS.${PRODUCT_SLUG}.md"
+  fi
+  if [[ -f "$PRODUCT_ROOT/CLAUDE.${PRODUCT_SLUG}.md" ]]; then
+    PRODUCT_CLAUDE_ASIDE="CLAUDE.${PRODUCT_SLUG}.md"
+  fi
+  if [[ -n "$PRODUCT_AGENTS_ASIDE" ]]; then
+    ensure_product_runtime_overlays "$PRODUCT_SLUG" "$PRODUCT_AGENTS_ASIDE" "${PRODUCT_CLAUDE_ASIDE:-CLAUDE.${PRODUCT_SLUG}.md}"
+  fi
   link_one "AGENTS.md" "$DEV_HUB/AGENTS.md"
   link_one "CLAUDE.md" "$DEV_HUB/CLAUDE.md"
 

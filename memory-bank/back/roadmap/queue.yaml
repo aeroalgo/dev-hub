@@ -1,6 +1,12 @@
 version: roadmap-queue/v2
 role: back
-queue: []
+queue:
+- id: T-HUB-109
+  epic_id: T-HUB-109-runtime-hub
+  kind: feature
+  plan: T-HUB-109-runtime-hub/md/plan.md
+  batch: runtime-hub-20261106
+  deps: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -628,3 +634,10 @@ batches:
     note: T-HUB-108 Protocol+registry, soft-fail post-finish mirror, provider switch,
       mapping sidecar under .loop/; clarify clarify-20261026-bitrix-loop-epic-board.md;
       details in plan/T-HUB-108-loop-board-projection/md/plan.md
+  runtime-hub-20261106:
+    title: Runtime Hub — multi-runtime profile CLI (Codex/Claude/agy)
+    note: T-HUB-109 CLI-only orchestrator, isolated profile homes under ~/.dev-hub/runtime-hub/,
+      spawn official binaries, OmniRoute explicit-only, agy spawn-only; loop deferred;
+      north star after 109 = Cursor extension (T-HUB-110 candidate), not Electron IDE;
+      intent memory-bank/back/intent/intent-20261106-runtime-hub-cursor-extension.md;
+      clarify clarify-20261106-runtime-hub.md; details in plan/T-HUB-109-runtime-hub/md/plan.md

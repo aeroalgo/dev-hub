@@ -19,8 +19,8 @@ alwaysApply: false
    - backend surface → targeted pytest / capability `test.targeted` (timeout 300s);
    - frontend surface → build + targeted browser/script per stack profile (parent-only);
    - оба → оба green до `done`.
-5. Swarm: parent spawn ≤3 `bugfix-fix`; 1 child = 1 item; parent держит сессию до пустой open-очереди.
-6. Все terminal → `verification.command` покрывает touched surfaces → `verification.status=pass` → FINISH → **APP QA**.
+5. **Swarm batch (HARD):** одна parent-сессия закрывает **все** open. Spawn ≤3 `bugfix-fix`; **1 child = 1 bug** (disjoint files в волне). Выход с ещё open без finish = `finish_not_committed` (не `PROGRESS_CONTINUE`).
+6. Все terminal → `verification.command` покрывает touched surfaces → `verification.status=pass` → `verify-bugfix` → FINISH → **APP QA** (не BACK QA / не FRONT QA порознь).
 7. §0.11 если refs.
 
 ## Abort
@@ -29,4 +29,5 @@ alwaysApply: false
 - Subagent runs browser/frontend suite → FAIL
 - FINISH с open/in_progress или verification ≠ pass → FAIL
 - Epic известен, bugfix вне `app/bugfix/<epic_id>/` → FAIL
-- Next mode = BACK QA alone после mixed fix → FAIL (нужен APP QA)
+- Next mode = BACK QA alone / FRONT QA alone после mixed fix → FAIL (нужен APP QA)
+- Parent exit с open queue / `PROGRESS_CONTINUE` → FAIL (`finish_not_committed`)

@@ -16,7 +16,11 @@ from .model import RuntimeResult
 
 
 _TOOL_PROGRESS_RE = re.compile(r'"type"\s*:\s*"(?:tool_use|tool_result)"')
-_CODEX_PROGRESS_RE = re.compile(r'"type"\s*:\s*"(?:command_execution|agent_message)"')
+_CODEX_PROGRESS_RE = re.compile(
+    r'"type"\s*:\s*"(?:item\.(?:started|completed|updated)|'
+    r"command_execution|agent_message|reasoning|file_change|"
+    r'collab_tool_call|mcp_tool_call|web_search)"'
+)
 _COLLAB_TERMINAL_STATES = frozenset(
     {
         "completed",
@@ -51,18 +55,14 @@ def _progress_seen(tail: str, chunk: str, *, mode: str) -> tuple[bool, str]:
 def _collaboration_state(
     text: str,
     pending: set[str],
-    wait_started: float | None,
-    *,
-    now: float,
-) -> tuple[set[str], float | None, bool]:
-    """Track native Codex children so a long wait is not mistaken for silence.
+ ) -> tuple[set[str], bool]:
+    """Track native Codex children for idle-timeout suppression.
 
     Subagent completion / wait return MUST clear pending. Otherwise idle timeout
     is bypassed forever and the parent session never ends after the child finishes.
 
-    Returns (pending, wait_started, wave_completed). wave_completed is True when
-    a wait/close cleared the last pending child in this batch (including
-    spawn+wait in one JSONL chunk).
+    Returns (pending, wave_completed). wave_completed is True when a
+    wait/close cleared the last pending child in this batch.
     """
     wave_completed = False
     for raw_line in text.splitlines():
@@ -131,11 +131,7 @@ def _collaboration_state(
             and not pending
         ):
             wave_completed = True
-        if pending and wait_started is None:
-            wait_started = now
-        if not pending:
-            wait_started = None
-    return pending, wait_started, wave_completed
+    return pending, wave_completed
 
 
 def _message_value(value: object) -> str | None:
@@ -188,18 +184,16 @@ class Runtime:
     def _progress_started(self, project: Path, prompt: str) -> None:
         self._progress_buffer = ""
 
-    def _watchdog_settings(self) -> tuple[float | None, float | None, float, float | None]:
-        """Return heartbeat, idle, kill-grace and child-wait limits."""
+    def _watchdog_settings(self) -> tuple[float | None, float | None, float]:
+        """Return heartbeat, idle and kill-grace settings."""
         settings = self.settings
         heartbeat = getattr(settings, "status_heartbeat", None) if settings else None
         idle = getattr(settings, "stream_idle_timeout", None) if settings else None
         kill_grace = float(getattr(settings, "session_kill_grace", 5) if settings else 5)
-        collab = getattr(settings, "collaboration_wait_timeout", None) if settings else None
         return (
             float(heartbeat) if heartbeat is not None else None,
             float(idle) if idle is not None else None,
             max(0.0, kill_grace),
-            float(collab) if collab is not None else None,
         )
 
     def _emit_progress(self, text: str, *, final: bool = False) -> None:
@@ -233,7 +227,7 @@ class Runtime:
         command = self.command(prompt, model=model, project=project)
         self._progress_started(project, prompt)
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        heartbeat_sec, idle_timeout, kill_grace, collaboration_timeout = self._watchdog_settings()
+        heartbeat_sec, idle_timeout, kill_grace = self._watchdog_settings()
         session_id = log_path.stem
         started = time.monotonic()
         last_activity = started
@@ -242,11 +236,9 @@ class Runtime:
         activity_tail = ""
         collaboration_buffer = ""
         collaboration_pending: set[str] = set()
-        collaboration_wait_started: float | None = None
         last_activity_label = "starting"
         timed_out = False
         idle_timed_out = False
-        collaboration_wait_timed_out = False
 
         with log_path.open("w", encoding="utf-8") as log:
             effort = getattr(self, "effort", None)
@@ -369,9 +361,8 @@ class Runtime:
                 selector. Without unregister, the wait loop spins forever on an
                 exited process (heartbeat state=exited, activity stuck).
                 """
-                nonlocal collaboration_pending, collaboration_wait_started
+                nonlocal collaboration_pending
                 collaboration_pending.clear()
-                collaboration_wait_started = None
                 for sel_key in list(selector.get_map().values()):
                     try:
                         selector.unregister(sel_key.fileobj)
@@ -402,13 +393,11 @@ class Runtime:
                         break
                     if proc.poll() is not None and collaboration_pending:
                         collaboration_pending.clear()
-                        collaboration_wait_started = None
                     poll_for = min(
                         remaining,
                         0.25,
                         heartbeat_sec or remaining,
                         idle_timeout or remaining,
-                        collaboration_timeout or remaining,
                     )
                     try:
                         events = selector.select(max(0.01, poll_for))
@@ -418,7 +407,8 @@ class Runtime:
                         break
                     now = time.monotonic()
                     if collaboration_pending and proc.poll() is None:
-                        last_activity = now
+                        # Pending alone is not parent progress — empty wait churn
+                        # must not refresh the idle clock. Only label heartbeat.
                         last_activity_label = "native collaboration wait"
                     write_heartbeat(now, state="running" if proc.poll() is None else "exited")
                     if (
@@ -444,33 +434,6 @@ class Runtime:
                         stop_and_collect()
                         abandon_stdout_wait(reason="idle_timeout")
                         break
-                    if (
-                        collaboration_timeout is not None
-                        and collaboration_pending
-                        and collaboration_wait_started is not None
-                        and proc.poll() is None
-                        and now - collaboration_wait_started >= collaboration_timeout
-                    ):
-                        collaboration_wait_timed_out = True
-                        waited = now - collaboration_wait_started
-                        threads = ",".join(sorted(collaboration_pending))
-                        log.write(
-                            f"SESSION_COLLAB_WAIT_TIMEOUT session={session_id} "
-                            f"timeout={collaboration_timeout:g}s wait_for={waited:.1f}s "
-                            f"threads={threads}\n"
-                        )
-                        log.flush()
-                        if self.progress:
-                            print(
-                                f"==> native collaboration wait timeout: session={session_id} "
-                                f"wait_for={waited:.1f}s limit={collaboration_timeout:g}s "
-                                f"threads={threads}",
-                                flush=True,
-                            )
-                        terminate(signal.SIGTERM)
-                        stop_and_collect()
-                        abandon_stdout_wait(reason="collab_wait_timeout")
-                        break
                     # Exited process + drained/stuck selector → leave immediately.
                     if proc.poll() is not None and not events:
                         abandon_stdout_wait(reason="process_exited")
@@ -486,13 +449,10 @@ class Runtime:
                                 collaboration_buffer = complete_lines.pop()
                                 (
                                     collaboration_pending,
-                                    collaboration_wait_started,
                                     collab_wave_done,
                                 ) = _collaboration_state(
                                     "\n".join(complete_lines),
                                     collaboration_pending,
-                                    collaboration_wait_started,
-                                    now=now,
                                 )
                                 collaboration_buffer = collaboration_buffer[-64_000:]
                                 # Subagent wait/close cleared last pending child.
@@ -578,7 +538,7 @@ class Runtime:
             if timed_out:
                 log.write(f"SESSION_TIMEOUT session={session_id} timeout={timeout:g}s\n")
                 code = 124
-            elif idle_timed_out or collaboration_wait_timed_out:
+            elif idle_timed_out:
                 code = 124
             else:
                 code = int(proc.returncode or 0)
@@ -593,8 +553,6 @@ class Runtime:
             message = "session timeout"
         elif idle_timed_out:
             message = "stream idle timeout"
-        elif collaboration_wait_timed_out:
-            message = "native collaboration wait timeout"
         else:
             message = _error_message(output) if code else None
         return RuntimeResult(
@@ -604,7 +562,6 @@ class Runtime:
             message=message,
             timed_out=timed_out,
             idle_timed_out=idle_timed_out,
-            collaboration_wait_timed_out=collaboration_wait_timed_out,
             elapsed_sec=elapsed_sec,
             heartbeat_count=heartbeat_count,
         )
@@ -858,6 +815,18 @@ class CodexRuntime(Runtime):
         )
         if terminal_restart:
             self._end_session_requested = True
+        if "qa_gate_repair_required" in diagnostic_codes:
+            return (
+                f"    QA gate-repair required ({reason}). PASS was NOT accepted; "
+                "spawn gate-repair for the concrete QA handoff/evidence mismatch, "
+                "wait for repair_recorded, then re-run verify-qa once."
+            )
+        if "qa_product_failure_required" in diagnostic_codes:
+            return (
+                f"    QA product failure ({reason}). PASS was NOT accepted; "
+                "write QA verdict=fail plus an open bugfix queue and finish QA → BUGFIX. "
+                "Do not gate-repair or re-run verify-qa for this result."
+            )
         if not action.ok:
             halted = (
                 reason.startswith("step_restart_exhausted:")

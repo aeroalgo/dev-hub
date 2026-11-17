@@ -1,0 +1,189 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-109-runtime-hub
+level: L3
+sNN_cap: 3
+appetite:
+  timebox_days: 3
+  cut_list:
+    - Cursor extension / desktop UI
+    - loop as runtime-hub source of truth
+    - Antigravity HTTP bridge
+    - OmniRoute wrapper deletion
+    - multi-machine profile sync
+steps:
+  - id: s01
+    file: s01-profile-store-and-cli.yaml
+    title: "s01 — Isolated profile store and fail-closed selection CLI"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-runtime-adapters-run-and-doctor.yaml
+    title: "s02 — Native runtime adapters, run path, and doctor"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-omniroute-policy-and-kind-i.yaml
+    title: "s03 — Explicit OmniRoute policy, Kind I cleanup, examples, and operator docs"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+requirements_coverage:
+  - id: FR-001
+    step: s01
+    description: '`RUNTIME_HUB_HOME` (default `~/.dev-hub/runtime-hub`) содержит `profiles.yaml`, `active`, `profiles/<id>/`.'
+  - id: FR-002
+    step: s01
+    description: 'Schema profile: `id`, `runtime ∈ {codex,claude,agy}`, `model` (optional), `home` (relative under profiles/ or absolute), `executable` (optional), `env` map (optional), `notes` (optional).'
+  - id: FR-003
+    step: [s01, s02]
+    description: 'CLI spans s01 selection (`list` · `use <id> [--force]` · `status`) and s02 execution (`run [--] [args…]` · `doctor`).'
+  - id: FR-004
+    step: s01
+    description: '`use` пишет active pointer атомарно; без `--force` отказывает при политике конфликта (active exists and different + optional lock flag) — минимум: отказ перезаписать если `HUB_RUNTIME_REQUIRE_FORCE=1` или если doctor marks dirty; канон MVP: отказ если active уже другой id без `--force`.'
+  - id: FR-005
+    step: s02
+    description: 'Registry RuntimeAdapter для `codex`, `claude`, `agy`.'
+  - id: FR-006
+    step: s03
+    description: 'Codex adapter: default executable `codex` on PATH; sets `CODEX_HOME` to profile home; does not prepend omniroute unless `executable` points to wrapper.'
+  - id: FR-007
+    step: s02
+    description: 'Claude adapter: sets documented config/home env for official Claude Code CLI (investigate as-built var names in IMPLEMENT; fail-closed if undocumented — store in adapter const).'
+  - id: FR-008
+    step: s02
+    description: 'agy adapter: resolve `agy` or `executable`; set isolated home/state env if officially supported else chdir/HOME override documented in adapter; **no** HTTP server.'
+  - id: FR-009
+    step: s02
+    description: '`run` requires active profile; merges adapter env; exec/spawn foreground; propagate exit code.'
+  - id: FR-010
+    step: s02
+    description: '`doctor`: checks binaries, homes exist/writable, active validity, warns if default would have been omniroute (informational).'
+  - id: FR-011
+    step: s03
+    description: 'Ship `runtime_hub/profiles.example.yaml` + short `runtime_hub/README.md` (commands + anti-spoof policy).'
+  - id: FR-012
+    step: s02
+    description: 'Unit tests with fake binaries via tmp_path; no network.'
+  - id: FR-013
+    step: s03
+    description: 'Secrets: never write API keys into repo; optional `env_file` path outside repo referenced by profile (optional MVP stretch — if not shipped, document env-only).'
+  - id: US-001
+    step: s01
+    description: "Operator lists, activates, and inspects a named profile"
+  - id: US-002
+    step: s02
+    description: "Operator runs native Codex under its isolated CODEX_HOME"
+  - id: US-003
+    step: s02
+    description: "Operator runs Claude with its own config/home"
+  - id: US-004
+    step: s02
+    description: "Operator spawns agy without an HTTP bridge"
+  - id: US-005
+    step: s03
+    description: "Operator opts into a named Codex-OmniRoute profile"
+  - id: US-006
+    step: [s01, s02]
+    description: "Fail-closed behavior spans s01 unknown-profile/selection conflicts and s02 missing-active/binary run and doctor checks; no fallback."
+  - id: BN-001
+    step: s01
+    description: "Unknown profile id returns unknown_profile and preserves active"
+  - id: BN-002
+    step: s02
+    description: "run without active returns no_active_profile"
+  - id: BN-003
+    step: s02
+    description: "Missing runtime binary returns binary_not_found without fallback"
+  - id: BN-004
+    step: s01
+    description: "Changing active profile without --force returns active_conflict"
+  - id: BN-005
+    step: s03
+    description: "Default Codex never resolves to codex-omniroute.sh"
+  - id: BN-006
+    step: s02
+    description: "agy adapter starts no HTTP server or bridge"
+  - id: BN-007
+    step: s01
+    description: "Invalid YAML or missing required profile field fails closed"
+  - id: TM-001
+    step: s01
+    description: "unknown profile → ≠0"
+  - id: TM-002
+    step: s02
+    description: "run fail-closed missing active/bin"
+  - id: TM-003
+    step: s01
+    description: "use conflict without force"
+  - id: TM-004
+    step: s03
+    description: "native vs omniroute executable resolve"
+  - id: TM-005
+    step: s02
+    description: "agy spawn-only"
+  - id: TM-006
+    step: s01
+    description: "list/use/status roundtrip on tmp RUNTIME_HUB_HOME"
+stages_coverage:
+  - stage: "Stage 1: Profile schema, storage, atomic activation, and selection CLI"
+    step: s01
+  - stage: "Stage 2: RuntimeAdapter registry, native spawn, run, and doctor"
+    step: s02
+  - stage: "Stage 3: OmniRoute cutover policy, examples, documentation, and contract tests"
+    step: s03
+
+outcome_map:
+  - outcome: "Profile registry + activate"
+    step: s01
+  - outcome: "Spawn Codex/Claude/agy"
+    step: s02
+  - outcome: "Fail-closed conflicts"
+    step: s01
+  - outcome: "OmniRoute non-default"
+    step: s03
+  - outcome: "Example + doctor"
+    step: [s02, s03]
+
+replacement_cleanup:
+  - symbol: "codex/bin/codex-omniroute.sh"
+    kind: A
+    replacement: "retain only for explicit OmniRoute profile and legacy loop paths"
+    step: s03
+    policy: keep
+    fallback: false
+    notes: "Non-cutover retention: this epic changes Hub default egress only; the legacy loop path and explicit profile are intentionally outside the Hub cutover."
+  - symbol: "Hub Codex default executable = codex-omniroute.sh"
+    kind: B
+    replacement: "native codex executable unless profile.executable explicitly names OmniRoute"
+    step: s03
+    policy: delete in-epic
+    fallback: false
+    notes: "The old implicit Hub selection is purged; only an explicit profile.executable may select the wrapper."
+  - symbol: "Fallback to ~/.codex or ~/.claude when profile home is unavailable"
+    kind: C
+    replacement: "fail-closed adapter/store error with no global-home fallback"
+    step: s03
+    policy: delete in-epic
+    fallback: true
+    notes: "s01 implements fail-closed behavior; s03 owns the complete replacement inventory and negative scan."
+  - symbol: "Hub silently falls back to OmniRoute or ~/.codex when profile home missing"
+    kind: C
+    replacement: "fail-closed adapter/store error with structured reason"
+    step: s03
+    policy: delete in-epic
+    fallback: true
+    notes: "The final scan covers both global-home and implicit OmniRoute fallback branches."
+  - symbol: "Runtime profile and credentials mixed into repository state"
+    kind: I
+    replacement: "RUNTIME_HUB_HOME outside git plus example-only profile config"
+    step: s03
+    policy: delete in-epic
+    fallback: false
+    notes: "README and example config must teach external homes and secret-free configuration only."
+  - symbol: "TM-004: default profile executable != omniroute script path"
+    kind: I
+    replacement: "targeted native-vs-OmniRoute regression test"
+    step: s03
+    policy: delete in-epic
+    fallback: false
+    notes: "The old/default policy assertion is replaced by the targeted native-vs-explicit regression contract."

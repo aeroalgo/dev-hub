@@ -19,6 +19,7 @@ DEVOPS = выбрать и Read infra-скиллы → сделать задач
 | Команда | Процесс |
 |---------|---------|
 | `DEVOPS CHECK SERVER` | read-only SSH-аудит через `scripts/devops_check_server.py`; JSON/text отчёт, без lifecycle |
+| `DEVOPS DEPLOY` | фиксированный secure-access deployctl из канонического каталога; без произвольных SSH-команд |
 | `DEVOPS` | @.cursor/rules/devops/workflow.mdc — тема из сообщения или один уточняющий вопрос |
 | `DEVOPS <темы>` | тот же — темы: docker · k8s/helm · nginx/proxy · ansible · terraform/opentofu |
 

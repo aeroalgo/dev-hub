@@ -23,6 +23,7 @@ python3 bin/loop.py run --project /path/to/project --epic E1 --model <model>
 python3 bin/loop.py finish --project /path/to/project --step s01
 python3 bin/loop.py halt --project /path/to/project --reason "manual stop"
 python3 bin/loop.py status --project /path/to/project --json
+python3 bin/loop.py preflight --project /path/to/project --epic APP-01 --role app --json
 python3 bin/loop.py doctor --project /path/to/project --json
 python3 bin/loop.py validate-verdict --project /path/to/project --payload '<json-object>'
 python3 bin/loop.py board-sync --project /path/to/project [--epic E1]
@@ -43,7 +44,12 @@ Managed gate-субагент завершает ответ ровно одни�
 `loop-gate-verdict/v1`. `SubagentStop` проверяет его через Pydantic, сверяет
 `session_id`, `epic_id`, `step_id` и `agent_id` с курсором и передаёт запись в
 `LoopEngine.accept_verdict`. Только `PASS` под lock меняет очередь и курсор;
-`FAIL`/`BLOCKED` обычно записываются как verdict-событие для recovery. Исключение —
+`FAIL`/`BLOCKED` обычно записываются как verdict-событие для recovery и **обязаны**
+нести `blockers[]` в форме `<id> | <path> | <concrete_fix>` (голый FAIL без blockers
+invalid). Recovery копирует эти строки 1:1 в `gate-repair` BLOCKERS; parent
+**не** выдумывает другие product blockers. Protocol-only ids
+(`checkpoints_pending`, `prompt_incomplete:*`, …) идут в handoff/flush, не в
+product repair. Исключение —
 `verify-qa: FAIL`: если последний `qa-*.yaml` имеет `verdict: fail|failed|blocked`
 и `bugfix-queue.yaml` проходит intake-проверку, boundary атомарно переводит
 курсор `QA → BUGFIX`. После завершения BUGFIX следующий валидный gate возвращает
@@ -55,6 +61,11 @@ Managed gate-субагент завершает ответ ровно одни�
 file → `DONE`. ARCHIVE остаётся операторской командой после финального DONE.
 Cadence pause только при `LOOP_RESPECT_CADENCE=1`. Повторный callback идемпотентен, а три
 некорректных JSON-ответа переводят курсор в `HALTED`.
+
+Для APP `preflight` — обязательная граница DECOMPOSE → IMPLEMENT: она проверяет
+канонические AC IDs/цитаты, покрытие `files`/`context.produces`, executable
+`verify` и обоснование split. Затем требуется принятый `verify-decompose PASS`;
+наличие старого implement-файла это не заменяет.
 
 Проверка payload до финального ответа агента:
 
@@ -89,16 +100,16 @@ supervisor. Если ни один источник не задан, запус�
 |---|---:|---|
 | `LOOP_SESSION_TIMEOUT` | `3600` сек | общий предел одной сессии |
 | `LOOP_STATUS_HEARTBEAT` | `30` сек | период `SESSION_HEARTBEAT` с `elapsed` и `idle_for` |
-| `LOOP_STREAM_IDLE_TIMEOUT` | `300` сек | таймаут отсутствия реального tool/command прогресса |
-| `LOOP_COLLABORATION_WAIT_TIMEOUT` | `900` сек | предел ожидания native Codex subagent |
+| `LOOP_STREAM_IDLE_TIMEOUT` | `300` сек | таймаут отсутствия живого прогресса в JSONL (tools, file edits, reasoning/обмен с model server, collab/MCP) |
 | `LOOP_SESSION_KILL_GRACE` | `30` сек | время на graceful stop перед `SIGKILL` |
 
 Heartbeat виден в обычном выводе и сохраняется в `session-*.log`. При idle,
 ожидании subagent или общем timeout процесс завершается, результат получает
 отдельный диагностический код, а `SessionSupervisor` выполняет обычный bounded
-retry; это не маскируется под пользовательский interrupt. Пустое значение
-`LOOP_COLLABORATION_WAIT_TIMEOUT` явно отключает только этот watchdog, но по
-умолчанию ожидание native Codex subagent ограничено 900 секундами.
+retry; это не маскируется под пользовательский interrupt. Ожидание native
+Codex subagent не имеет отдельного wall-time или child-silence watchdog: пустые
+`wait` не запускают повторную родительскую сессию. Верхним пределом остаётся только общий
+`LOOP_SESSION_TIMEOUT` родительской сессии.
 
 Hooks активны только когда процесс запущен через `bin/loop.py`: он выставляет
 `LOOP_ACTIVE=1` и `EPIC_LOOP=1`. Hook entrypoints без этих маркеров ничего не

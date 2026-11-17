@@ -5,12 +5,24 @@ alwaysApply: false
 ### Команда: APP DECOMPOSE
 
 **Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
-**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/decompose.mdc
+**Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/decompose.mdc  
+**Situational skills (HARD):** @.cursor/rules/app_developer/skills-gate-situational.mdc  
+(= полный BACK∪FRONT union; wide pool → situational pick; **FORBIDDEN** APP-lite subset)
 
 ## Hot path
 
 1. `OK APP DECOMPOSE` → `memory-bank/app/plan/<epic_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`.
 2. Один shard может содержать `backend + frontend + wire` paths; не разносить один contract по BACK/FRONT/INTEG эпикам.
-3. В shard копируются FR/AC, layout paths, `files:`, `verify:`, `tdd:` и union skills (`skills.impl`, `skills.design*` при UI).
-4. `next_phase: APP IMPLEMENT`; `needs_creative` закрывается до IMPLEMENT, если нужен дизайн.
-5. Один `verify-decompose` выполняет structural + semantic closure; PASS атомарно открывает APP IMPLEMENT.
+3. В shard копируются канонические `ac_ids` + `ac_quotes` (из plan без переименования), `files:`, `context.produces:`, `verify:`, `tdd:` и **skills gate result**: прогнать checklists из `skills-gate-situational.mdc` (BACK lane + FRONT lane + Design D0 при UI + wire) → `skills.impl` / `skills.design*` / `omit_justification`. Не урезать до «нескольких любимых» APP-скиллов.
+4. `files:` — write allowlist, `context.produces:` — ожидаемые результаты, `verify:` — единственный источник executable-команд. Checkpoint `verify` обязан ссылаться на команду из этого списка.
+5. До spawn gate запусти `python3 $DEV_HUB/bin/loop.py preflight --project "$PROJECT_ROOT" --epic <epic> --role app --json`. Красный preflight означает STOP: сначала исправить shard/index.
+6. `next_phase: APP IMPLEMENT`; `needs_creative` закрывается до IMPLEMENT, если нужен дизайн.
+7. Один `verify-decompose` выполняет structural + semantic closure; только принятый `PASS` атомарно открывает APP IMPLEMENT. Наличие старого implement-файла этот gate не заменяет.
+
+### Cohesion rule
+
+APP не режет один cohesive vertical slice на последовательность «сначала backend, потом UI, потом склейка». Несколько шагов допустимы только при независимых acceptance boundaries: в index должны быть заполнены `effort_probe.independent_outcomes`, `effort_probe.split_seams` и `split_rationale`. Каждый AC ID принадлежит ровно одному shard’у. Если boundary нельзя проверить отдельно, это один implement artifact/shard.
+
+### Gate status
+
+После каждого gate parent сообщает одну строку: `GATE STATUS: <gate> <PASS|FAIL> → <phase>/<step>`. При `FAIL` указывается следующий repair action; prose «готово» без принятого machine verdict не меняет фазу.

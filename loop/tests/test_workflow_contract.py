@@ -43,12 +43,58 @@ def test_app_is_a_full_vertical_slice_role() -> None:
     assert "`APP `" in router
     assert "role: back|front|app" in verify_implement
     assert "`deny_old_proven: true`" in verify_implement
+    app_decompose = (app_rules / "workflow-decompose.mdc").read_text(encoding="utf-8")
+    app_decompose_gates = (app_rules / "isolation_rules/_lean/decompose.mdc").read_text(encoding="utf-8")
+    app_implement = (app_rules / "workflow-implement.mdc").read_text(encoding="utf-8")
+    app_implement_gates = (app_rules / "isolation_rules/_lean/implement.mdc").read_text(encoding="utf-8")
+    assert "preflight" in app_decompose
+    assert "ac_ids" in app_decompose and "ac_quotes" in app_decompose
+    assert "split_rationale" in app_decompose
+    assert "Existing implement artifacts never bypass this gate" in app_decompose_gates
+    assert "implement.tests` is evidence" in app_implement
+    assert "Do not hand-edit" in app_implement
+    assert "accepted `verify-decompose PASS`" in app_implement_gates
+    assert "gate_status" in (ROOT / "loop/kernel/engine.py").read_text(encoding="utf-8")
     assert "`back` / `front` / `app` / `integration`" in context_sync
     assert "exactly one fenced JSON object" in context_sync
     assert "do not emit a bare JSON object" in context_sync
-    for mode in ("van", "plan", "decompose", "creative", "implement", "task", "refactor", "archive", "replan", "reconcile"):
+    for mode in ("van", "plan", "clarify", "decompose", "creative", "implement", "task", "refactor", "archive", "replan", "reconcile"):
         assert (app_rules / f"workflow-{mode}.mdc").is_file()
         assert (app_rules / "isolation_rules/_lean" / f"{mode}.mdc").is_file()
+
+
+def test_app_plan_has_back_parity_for_phase0_clarify() -> None:
+    app_rules = ROOT / "harness/cursor/rules/app_developer"
+    app_index = (app_rules / "mainrule.mdc").read_text(encoding="utf-8")
+    plan = (app_rules / "workflow-plan.mdc").read_text(encoding="utf-8")
+    clarify = (app_rules / "workflow-clarify.mdc").read_text(encoding="utf-8")
+    plan_gates = (app_rules / "isolation_rules/_lean/plan.mdc").read_text(encoding="utf-8")
+    clarify_gates = (app_rules / "isolation_rules/_lean/clarify.mdc").read_text(encoding="utf-8")
+
+    assert "Phase 0 auto-clarify + Phase 1" in app_index
+    assert "workflow-plan-clarify-orchestration.mdc" in plan
+    assert "CLARIFY (Phase 0 mechanics)" in plan
+    assert "Phase 0 Clarify (orchestration)" in plan
+    assert plan.index("Phase 0 Clarify") < plan.index("OK APP PLAN - Phase 1 Plan writing")
+    assert "Shared core" in clarify and "PLAN orchestration" in clarify
+    assert "Phase 0 запускается автоматически" in clarify
+    assert "Completion Report" in clarify_gates
+    assert "Phase 0" in plan_gates
+
+
+def test_app_task_direct_mode_is_loop_safe() -> None:
+    app_rules = ROOT / "harness/cursor/rules/app_developer"
+    workflow = (app_rules / "workflow-task.mdc").read_text(encoding="utf-8")
+    gates = (app_rules / "isolation_rules/_lean/task.mdc").read_text(encoding="utf-8")
+
+    assert "direct-ad-hoc" in workflow
+    assert "GATE_IDENTITY" in workflow
+    assert "activeContext" in workflow
+    assert "loop.py finish" in workflow
+    assert "direct-ad-hoc" in gates
+    assert "overlap" in gates
+    assert "Never call `loop.py start`, `loop.py finish`" in gates
+    assert "Synthetic browser routes are not `live_smoke` evidence." in gates
 
 
 def test_plan_and_qa_contracts_keep_the_interactive_and_evidence_gates() -> None:

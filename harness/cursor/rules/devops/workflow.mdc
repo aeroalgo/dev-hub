@@ -30,6 +30,11 @@ alwaysApply: false
 ```text
 DEVOPS
 DEVOPS CHECK SERVER
+DEVOPS DEPLOY
+DEVOPS DEPLOY CHECK
+DEVOPS DEPLOY STATUS
+DEVOPS DEPLOY APPLY
+DEVOPS DEPLOY ROLLBACK
 DEVOPS docker nginx
 DEVOPS k8s helm
 DEVOPS terraform aws
@@ -75,9 +80,36 @@ cookie/token/authorization и private keys не попадают в отчёт.
 
 Без темы и без задачи в сообщении → один вопрос: какая тема (docker / k8s / nginx / ansible / terraform).
 
+## `DEVOPS DEPLOY`
+
+Для любого проекта команда всегда вызывает один канонический runner из
+`dev-hub/bin/devops-deploy`; проектный манифест выбирается по имени проекта в
+`dev-hub/projects/<project-id>/deploy.json`. Агент не придумывает SSH, Docker,
+systemd, `curl` или команды удаления.
+
+```bash
+"$DEV_HUB/bin/devops-deploy" --project "$PWD" check
+```
+
+`DEVOPS DEPLOY` и `DEVOPS DEPLOY CHECK` — read-only preflight. `STATUS` имеет
+тот же fail-closed probe. Изменения разрешены только явной командой
+`DEVOPS DEPLOY APPLY`; runner сначала выполняет preflight, затем единственный
+разрешённый adapter `apply`, затем postflight. `ROLLBACK` разрешён только
+проектному adapter по его собственным правилам и также заканчивается
+проверками. Любая ошибка манифеста, SSH, контейнера, listener, TCP/HTTP
+endpoint или adapter блокирует PASS. Отчёт сохраняется в
+`dev-hub/runtime/<project>/deploy/last-report.json`; `--json` выводит только
+машиночитаемый отчёт.
+
+Проектный adapter обязан быть обычным `python3`-файлом внутри проекта и иметь
+ровно действия `check`, `status`, `apply`, `rollback`. Полный контракт и шаблон:
+`harness/templates/devops-deploy.json`.
+
 ---
 
 ## Skills
 
 Только выбранный subset pack.  
 **FORBIDDEN:** весь каталог `.agents/skills/` · marketing/eval/back packs.
+
+Прямые ссылки на канонические skills сгруппированы в [`DEVOPS skills runbook`](../../../../docs/runbooks/devops-skills.md). Они указывают на те же файлы, которые агент читает через `.agents/skills/`.

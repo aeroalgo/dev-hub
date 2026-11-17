@@ -1,10 +1,65 @@
 ---
-description: "APP TASK gates — bounded mixed change"
+description: "APP TASK gates — mixed change, large ad-hoc allowed"
 alwaysApply: false
 ---
 # APP TASK — gates
 
-1. Use one task artifact and one bounded file allowlist; no unrelated surface cleanup.
-2. State contract impact and whether backend, frontend, wire and browser lanes are required or skipped with reasons.
-3. Run targeted red → green checks for every touched surface; parent owns frontend/browser commands.
-4. Finish with evidence and a follow-up APP PLAN when the change is a new vertical slice.
+## Execution modes (HARD)
+
+`APP TASK` has two intentionally separate execution modes:
+
+1. **Direct ad-hoc task (default for a user chat):** `OK APP TASK — ...` runs a
+   mixed change (small or large) without creating or advancing a loop cursor.
+   Its SoT is one flat artifact at `memory-bank/app/task/task-YYYYMMDD-<slug>.md`.
+2. **Loop-bound TASK:** only a loop-generated prompt with `GATE_IDENTITY` and
+   `phase: TASK` may enter the loop phase. It follows the generated epic/step
+   shard, `verify-implement`, and machine `loop.py finish` contract.
+
+The text `APP TASK` alone never promotes an ad-hoc task into the loop phase.
+Do not infer loop-bound execution from an unrelated `activeContext` epic.
+
+## Direct ad-hoc task gates
+
+1. The request and one outcome are present (same turn or resumed task artifact).
+   If a task artifact already exists for this outcome, resume it; do not create
+   a second task file or repeat the planning round.
+2. Create/read exactly one `memory-bank/app/task/task-YYYYMMDD-<slug>.md` with:
+   `execution: direct-ad-hoc`, root cause/intent, contract impact, explicit
+   `files:` allowlist, required/skipped lanes with reasons, selected skills,
+   and evidence. The task artifact is not an epic plan or loop step. Large
+   allowlists and multi-surface work are allowed in one TASK.
+3. Before production writes, if `memory-bank/activeContext.md` exists, read only
+   its `load_now` paths and compare the task allowlist with the current loop
+   shard files. If paths overlap, stop and route to the current
+   `APP IMPLEMENT`/`APP TASK` step. **If `activeContext.md` is missing or no
+   loop shard is active, treat as no-overlap and proceed** with the task
+   allowlist (do not fail closed solely for missing AC).
+4. In direct mode, never write or delete `memory-bank/activeContext.md`,
+   `memory-bank/app/roadmap/**`, `memory-bank/app/plan/**`,
+   `memory-bank/app/implement/**`, decompose indexes, runtime cursor files, or
+   `tasks.md`. Never call `loop.py start`, `loop.py finish`, `finalize-step`,
+   `mb-finish`, or `verify-implement` for the ad-hoc task.
+5. Use clear patches; do not rewrite files through shell/Python/Node quoting
+   experiments. Read only the selected skills once, before production edits,
+   and do not scan the whole skills catalog.
+6. TDD red → green for every touched surface. Backend, frontend/build and wire
+   evidence are separate lanes; browser and live HTTP checks are parent-owned.
+   Synthetic browser routes are not `live_smoke` evidence. Live VPS deploy only
+   when the artifact marks `live_smoke`/`deploy` required **and** the owner
+   named the machines / rollback in chat or in the artifact.
+7. Run targeted checks after the relevant patch and one final required-lane
+   matrix. Do not rerun unaffected lanes after an isolated repair. Record exact
+   commands, counts, failures and live/synthetic boundaries in the task file.
+8. Direct completion is an evidence update in the task artifact plus the normal
+   code-change verification (including graphify when the repository requires
+   it); it does not change loop state. **Do not** stop a growing TASK to open
+   `APP PLAN`. Widen the same task artifact (`files:`, lanes, evidence) and
+   keep implementing. Suggest `APP PLAN` only if the user explicitly asks for
+   an epic/roadmap queue.
+
+## Loop-bound TASK gates
+
+When the kernel supplies `GATE_IDENTITY` with `phase: TASK`, ignore the direct
+mode exception above and follow the generated current epic/step contract. The
+machine remains the only writer of cursor, step/index status and `activeContext`
+handoff state.

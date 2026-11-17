@@ -20,11 +20,13 @@ description: "DEVOPS command pack — Docker, K8s/Helm, nginx/reverse-proxy, Ans
 
 | Тема / ключевые слова | Скиллы (пути `.agents/skills/…/SKILL.md`) |
 |-----------------------|-------------------------------------------|
-| docker, compose, контейнер | `docker-compose`, `docker-management` |
-| k8s, kubernetes, helm, kustomize | `kubernetes`, `kubernetes-ops`, `helm-charts`, `kustomize` |
-| nginx, proxy, tls, ssl, порт, firewall, lb | `reverse-proxy`, `ssl-tls-management`, `load-balancing`, `firewall-config` |
-| ansible, сервер, пакеты, конфиг хоста | `ansible` |
-| terraform, opentofu, iac, aws/gcp/azure infra | `terraform`, `opentofu-migration`, `terraform-aws`, `terraform-gcp`, `terraform-azure` |
+| docker, compose, контейнер | [`docker-compose`](../docker-compose/SKILL.md), [`docker-management`](../docker-management/SKILL.md) |
+| k8s, kubernetes, helm, kustomize | [`kubernetes`](../kubernetes/SKILL.md), [`kubernetes-ops`](../kubernetes-ops/SKILL.md), [`helm-charts`](../helm-charts/SKILL.md), [`kustomize`](../kustomize/SKILL.md) |
+| nginx, proxy, tls, ssl, порт, firewall, lb | [`reverse-proxy`](../reverse-proxy/SKILL.md), [`ssl-tls-management`](../ssl-tls-management/SKILL.md), [`load-balancing`](../load-balancing/SKILL.md), [`firewall-config`](../firewall-config/SKILL.md) |
+| ansible, сервер, пакеты, конфиг хоста | [`ansible`](../ansible/SKILL.md) |
+| terraform, opentofu, iac, aws/gcp/azure infra | [`terraform`](../terraform/SKILL.md), [`opentofu-migration`](../opentofu-migration/SKILL.md), [`terraform-aws`](../terraform-aws/SKILL.md), [`terraform-gcp`](../terraform-gcp/SKILL.md), [`terraform-azure`](../terraform-azure/SKILL.md) |
+
+Полный индекс с назначением каждого skill: [`docs/runbooks/devops-skills.md`](../../../docs/runbooks/devops-skills.md).
 
 ## Выбор по умолчанию
 

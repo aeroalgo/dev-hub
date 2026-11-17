@@ -6,11 +6,19 @@ alwaysApply: false
 
 **Контекст:** @.cursor/rules/app_developer/mainrule-core.mdc  
 **Gates:** @.cursor/rules/app_developer/isolation_rules/_lean/plan.mdc
+**Phase 0 orchestration:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+**CLARIFY (Phase 0 mechanics):** @.cursor/rules/app_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 
 ## Hot path
 
-1. `OK APP PLAN` → один plan в `memory-bank/app/plan/<epic_id>/md/plan.md`.
-2. Сначала WHAT и done-критерий, затем контракт: method/path, input, output, typed errors, roles/RBAC, UI journey и wire success/failure.
-3. Ownership matrix допускает один mixed owner; BACK/FRONT остаются surface-only lanes, INTEG не создаётся.
-4. План обязан включать backend targeted, frontend targeted, wire journey и APP QA charter lanes.
-5. После PLAN → `APP DECOMPOSE`; foundation-only допустим только с явным follow-up epic.
+1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`.
+2. `OK APP PLAN - Phase 1 Plan writing` → один plan в `memory-bank/app/plan/<epic_id>/md/plan.md`.
+3. Сначала WHAT и done-критерий, затем контракт: method/path, input, output, typed errors, roles/RBAC, UI journey и wire success/failure.
+4. Ownership matrix допускает один mixed owner; BACK/FRONT остаются surface-only lanes, INTEG не создаётся.
+5. План обязан включать backend targeted, frontend targeted, wire journey и APP QA charter lanes.
+6. После PLAN → `APP DECOMPOSE`; foundation-only допустим только с явным follow-up epic.
+
+## Процесс
+
+0. **Phase 0 Clarify (orchestration):** при триггерах выполнить role gates + shared core + `grill-me` до Completion Report; не писать полный план до Phase 0 gate OK. При taxonomy-clear зафиксировать skip в `§Product probe`.
+1. **Phase 1:** прочитать APP PLAN gates и написать contract-first mixed vertical-slice plan. Если Phase 0 создал артефакт, добавить ссылку на него и краткий `## Clarifications`.

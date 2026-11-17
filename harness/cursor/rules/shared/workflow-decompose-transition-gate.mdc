@@ -25,6 +25,12 @@ adapter переводит нативные события провайдера 
 - Ненулевой exit, timeout, abort или отсутствие обязательного terminal result
   означает незавершённую сессию, даже если в хвосте лога встретилось слово
   `FINISH`. Повторяется текущая фаза; completion marker не создаётся.
+- **YAML shards (HARD):** в `verify:` / `command:` double-quoted нельзя писать `\.`
+  (YAML unknown escape → `verdict hook error` → `finish_not_committed`). Используй
+  single quotes или block `|`. Один step в index ↔ один файл в `yaml/steps/`;
+  orphan yaml запрещены. Нельзя объявлять DECOMPOSE done без accepted
+  `verify-decompose` PASS: этот единственный gate сам проверяет структуру и
+  semantic closure и атомарно продвигает фазу.
 
 ## Adapter contract
 

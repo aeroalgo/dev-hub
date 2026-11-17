@@ -28,6 +28,7 @@ from .index import (
     plan_path,
     resolve_epic_kind,
     resolve_epic_role,
+    validate_app_preflight,
 )
 from .runtime import runtime_for
 from .session import SessionOutcome, SessionSupervisor
@@ -54,6 +55,7 @@ def _parser() -> argparse.ArgumentParser:
             "status",
             "doctor",
             "scope",
+            "preflight",
             "check-bugfix-queue",
             "sync-bugfix-queue",
             "validate",
@@ -285,14 +287,9 @@ def _print_step_banner(
     print(f"│ attempt: {cursor.attempt + 1} | session: {cursor.session_id}")
     heartbeat = f"{settings.status_heartbeat}s" if settings.status_heartbeat is not None else "off"
     idle = f"{settings.stream_idle_timeout}s" if settings.stream_idle_timeout is not None else "off"
-    collaboration = (
-        f"{settings.collaboration_wait_timeout}s"
-        if settings.collaboration_wait_timeout is not None
-        else "off"
-    )
     print(
         f"│ limits: timeout={settings.session_timeout}s | heartbeat={heartbeat} | "
-        f"idle_timeout={idle} | collab_wait={collaboration} | "
+        f"idle_timeout={idle} | "
         f"kill_grace={settings.session_kill_grace}s"
     )
     print("└────────────────────────────────────────────────────────────")
@@ -309,6 +306,7 @@ def _normalize_legacy_args(argv: list[str]) -> list[str]:
         "status",
         "doctor",
         "scope",
+        "preflight",
         "check-bugfix-queue",
         "sync-bugfix-queue",
         "validate",
@@ -417,6 +415,8 @@ def _phase_instruction(cursor, project: Path, engine: LoopEngine | None = None) 
             f"Read the plan at {project / 'memory-bank' / cursor.role / 'plan' / epic / 'md' / 'plan.md'}. "
             "Create yaml/decompose-index.yaml + yaml/steps/sNN-*.yaml (L1→1 / L2→2 / L3→3 sNN_cap). "
             "Prefer single-quoted or block scalars for rg patterns. One index step ↔ one steps file. "
+            "For APP, first run `python3 $DEV_HUB/bin/loop.py preflight --project \"$PROJECT_ROOT\" "
+            "--epic " + epic + " --role app --json`; fix every failed check before spawning the gate. "
             "HARD before promotion: spawn verify-decompose (ALLOW READ: plan + index + shards). "
             "The agent performs both structural and semantic/traceability checks; its PASS "
             "atomically promotes DECOMPOSE → IMPLEMENT/CREATIVE and ends this parent session; "
@@ -834,10 +834,13 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
         "",
         "Parent discipline (HARD — do not wander):",
         f"- Hub tools live under $DEV_HUB (currently required entrypoint: python3 $DEV_HUB/bin/loop.py …). FORBIDDEN: search product tree for epic_resolve.py, validate-verdict binaries, or .claude/hooks/epic_resolve.py.",
-        "- Parent may run only: `python3 $DEV_HUB/bin/loop.py scope --project \"$PROJECT_ROOT\" --json` and the exact VERIFY command from the implement shard. FORBIDDEN as parent: `loop.py validate` / `validate-verdict` without --payload '<json>'; `validate --epic/--step` (that is not step validation); inventing evidence_sha256 requirements.",
+                "- Parent may run only: `python3 $DEV_HUB/bin/loop.py scope --project \"$PROJECT_ROOT\" --json`, APP `preflight`, and the exact VERIFY commands from the current decompose shard. FORBIDDEN as parent: `loop.py validate` / `validate-verdict` without --payload '<json>'; `validate --epic/--step` (that is not step validation); inventing evidence_sha256 requirements.",
         "- evidence_sha256 is OPTIONAL on loop-gate-verdict/v1. A fence without it is valid. Never FAIL/respawn because evidence_sha256 is missing.",
         "- Codex spawn_agent: set agent_type/subagent_type to the gate agent AND fork_context=false (self-contained prompt). FORBIDDEN: full-history fork together with agent_type (Codex error: Full-history forked agents inherit the parent agent type).",
-        "- After a boundary-accepted FAIL/BLOCKED (verdict_recorded), do NOT respawn the verifier to chase schema/optional fields. Spawn gate-repair with concrete BLOCKERS/ALLOW WRITE/VERIFY, wait for loop-repair-result/v1, then respawn the same verifier once.",
+        "- After a boundary-accepted FAIL/BLOCKED (verdict_recorded), do NOT respawn the verifier to chase schema/optional fields. "
+        "The FAIL fence MUST carry blockers '<id> | <path> | <concrete_fix>'. Copy those exact rows into gate-repair "
+        "BLOCKERS (or run implement-flush / fix handoff when blockers are protocol-only). "
+        "FORBIDDEN: invent different product blockers. Wait for loop-repair-result/v1, then respawn the same verifier once.",
         "- After pre_emit_validate_missing / pre_emit_validate_mismatch / schema_extra_forbidden: the CHILD must re-run validate-verdict; parent only respawns the same verifier with exact GATE_IDENTITY + ALLOW READ. Do not invent product blockers for protocol errors.",
         "- HARD: `gate … handoff rejected` / `schema_retry_exhausted` / `step_restarted` means the boundary did NOT accept the verdict. FORBIDDEN: claim Готово / PASS / фаза завершена / step closed. On `step_restarted`: end session — loop re-arms the same step from scratch. Else respawn or NEED_HUMAN.",
         f"The required {gate_agent} spawn_agent call must put the exact first line "
@@ -855,7 +858,7 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 "Check structural and semantic closure: requirements, stages, "
                 "outcomes, replacement cleanup, plan_contract/layout, skills, traceability, "
                 "dilution, optional-SoT, ambiguity, and unresolved critical gaps.",
-                "PASS is the complete DECOMPOSE gate and atomically promotes to IMPLEMENT/CREATIVE; "
+                "Run APP preflight before this spawn. PASS is the complete DECOMPOSE gate and atomically promotes to IMPLEMENT/CREATIVE; "
                 "do not request or expect a legacy analysis artifact, parent-packed FINDINGS, or a second gate.",
                 "Before PASS: every indexed shard must parse with yaml.safe_load. Loop auto-repairs "
                 "invalid double-quoted escapes and purges orphan steps/*.yaml not listed in the index; "
@@ -878,7 +881,8 @@ def _gate_protocol(cursor, project: Path, gate_agent: str | None) -> str:
                 f"Required sections in the {gate_agent} spawn prompt:",
                 "ALLOW READ:",
                 _relative_paths(project, paths),
-                "Add each concrete touched code or test file; never use a directory or glob.",
+                "Add each concrete touched code or test file; never use a directory or glob. "
+                "Checklist VERIFY comes only from the decompose shard `verify:` list; implement.tests is evidence, not a command source.",
                 "The verifier must return one fenced loop-gate-verdict/v1 JSON object.",
             ]
         )
@@ -969,6 +973,8 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
         {
             "verdict_transition_rejected",
             "verdict_rejected",
+            "qa_gate_repair_required",
+            "qa_product_failure_required",
             "repair_result_rejected",
             "repair_recorded",
             "verdict_recorded",
@@ -1013,6 +1019,28 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
             "FORBIDDEN repair keys: session_id,epic_id,step_id,blockers,changed_paths,"
             "verification,repair_status. Do not finish before repair_recorded + verifier PASS.\n"
         )
+    if event_name == "qa_gate_repair_required":
+        reason = str(event.get("reason") or "QA handoff mismatch")
+        return (
+            "\nRecovery state: verify-qa produced PASS, but the boundary rejected it as a "
+            f"QA handoff/metadata error ({reason}). The PASS is NOT accepted. "
+            "This is exactly one bounded gate-repair cycle: spawn agent_type=gate-repair "
+            "with concrete BLOCKERS for the QA artifact/evidence mapping, ALLOW WRITE limited "
+            "to those paths, and an exact VERIFY command. Wait for one accepted "
+            "loop-repair-result/v1 repair_recorded result, then re-run verify-qa once with "
+            "the same GATE_IDENTITY. Do not start a full QA run, do not create BUGFIX for "
+            "this protocol error, and do not call finish between repair and re-verify.\n"
+        )
+    if event_name == "qa_product_failure_required":
+        reason = str(event.get("reason") or "QA evidence failed")
+        return (
+            "\nRecovery state: verify-qa claimed PASS, but the boundary found a real QA/product "
+            f"failure ({reason}). The PASS is NOT accepted. Do not gate-repair and do not "
+            "re-run verify-qa to chase the same result: write/update the canonical qa-*.yaml "
+            "with verdict: fail, add the concrete blocker to an open bugfix-queue.yaml, then "
+            "call finish --step QA once. This routes directly to BUGFIX; after BUGFIX closes, "
+            "the next QA is a fresh verification.\n"
+        )
     if event_name in {"verdict_transition_rejected", "verdict_rejected"}:
         codes = event.get("diagnostic_codes") or []
         errors = event.get("errors") or []
@@ -1051,25 +1079,59 @@ def _gate_recovery_prompt(cursor, engine: LoopEngine) -> str:
         )
     if event_name == "verdict_recorded" and str(event.get("verdict") or "") in {"FAIL", "BLOCKED"}:
         agent = str(event.get("agent_id") or "the verifier")
+        raw_blockers = event.get("blockers") or []
+        blockers = [str(item).strip() for item in raw_blockers if str(item).strip()]
+        blockers_block = ""
+        if blockers:
+            from .verdict import is_protocol_blocker_row
+
+            blockers_block = (
+                "\nVERIFIER BLOCKERS (machine SoT — copy EXACTLY, do not invent/replace):\n"
+                + "\n".join(f"- {row}" for row in blockers)
+                + "\n"
+            )
+            protocol_only = all(is_protocol_blocker_row(row) for row in blockers)
+        else:
+            protocol_only = False
+            blockers_block = (
+                "\nVERIFIER BLOCKERS missing on this recorded FAIL (legacy/stale fence). "
+                "HARD: do not invent product ACL/UI blockers. Re-run the same verifier once so it emits "
+                "FAIL with required blockers '<id> | <path> | <concrete_fix>', then repair from that list.\n"
+            )
         if cursor.phase == "QA" and str(event.get("verdict") or "") == "FAIL":
             return (
                 f"\nRecovery state: {agent} returned FAIL, but the QA failure could not be routed to BUGFIX yet. "
+                f"{blockers_block}"
                 "Write/update the canonical qa-*.yaml with verdict: fail and eligible blockers, create or merge "
                 "bugfix-queue.yaml, then call the generated Handoff finish command once. The boundary will reconcile "
                 "the recorded FAIL and route QA to BUGFIX atomically; only respawn verify-qa if the artifact or queue "
                 "is invalid. Do not send a product QA failure to gate-repair.\n"
             )
+        if protocol_only:
+            return (
+                f"\nRecovery state: {agent} already returned {event.get('verdict')} and the boundary recorded it. "
+                "This is a protocol/handoff result, not a product gate-repair. "
+                f"{blockers_block}"
+                "HARD: copy the verifier blockers above as the only diagnosis. "
+                "If any id is checkpoints_pending → run "
+                "`python3 $DEV_HUB/bin/loop.py implement-flush --project \"$PROJECT_ROOT\"` "
+                "(machine-owned checkpoint statuses), then respawn the same verifier. "
+                "If id is prompt_incomplete:* / pre_emit_* / schema_* / session mismatch → fix the spawn "
+                "prompt / GATE_IDENTITY / validate-verdict handoff and respawn the same verifier. "
+                "FORBIDDEN: invent NFR/ACL/UI product blockers or spawn gate-repair for protocol-only FAILs. "
+                "Do not finish.\n"
+            )
         return (
             f"\nRecovery state: {agent} already returned {event.get('verdict')} and the boundary recorded it. "
             "This is a product/content result, not a schema problem. "
+            f"{blockers_block}"
             "Do not finish, do not hunt evidence_sha256, do not re-validate empty loop.py validate flags, "
             "and do not respawn the verifier only to re-emit the same FAIL. "
-            "Classify the verifier's concrete finding: "
-            "prompt/contract failures (prompt_incomplete, missing ALLOW READ, pre_emit_*, schema_extra_forbidden, "
-            "session/transition mismatch) → fix handoff and respawn the same verifier; "
-            "a concrete product blocker → spawn gate-repair with structured BLOCKERS, concrete ALLOW WRITE, "
-            "exact VERIFY, optional ALLOW READ; wait for loop-repair-result/v1; then respawn the same verifier "
-            "once with the same GATE_IDENTITY.\n"
+            "HARD: spawn gate-repair with BLOCKERS copied EXACTLY from VERIFIER BLOCKERS above "
+            "(same <id> | <path> | <concrete_fix> rows). Derive ALLOW WRITE from those paths only; "
+            "VERIFY = one exact command from the current decompose shard. "
+            "FORBIDDEN: invent different product blockers, drop paths/fixes, or substitute a guess. "
+            "Wait for loop-repair-result/v1; then respawn the same verifier once with the same GATE_IDENTITY.\n"
         )
     return ""
 
@@ -1452,6 +1514,57 @@ def main(argv: list[str] | None = None) -> int:
             result = BoundaryService(paths).scope(cursor)
             _print(result, args.json)
             return 0 if result["ok"] else 1
+        if args.command == "preflight":
+            epic_id = _epic(args, engine)
+            role = resolve_epic_role(paths.project, epic_id, args.role, kind=args.kind)
+            if role != "app":
+                _print(
+                    {
+                        "ok": False,
+                        "error": "preflight_role_not_supported",
+                        "role": role,
+                        "hint": "APP preflight is only for role=app; use the role-specific decompose gate otherwise.",
+                    },
+                    True,
+                )
+                return 2
+            try:
+                queue = validate_app_preflight(paths.project, role, epic_id)
+            except (ValueError, FileNotFoundError, OSError) as exc:
+                _print(
+                    {
+                        "ok": False,
+                        "epic_id": epic_id,
+                        "role": role,
+                        "phase": "DECOMPOSE",
+                        "next_phase": "APP IMPLEMENT",
+                        "gate": "verify-decompose",
+                        "error": str(exc),
+                    },
+                    True,
+                )
+                return 1
+            _print(
+                {
+                    "ok": True,
+                    "epic_id": epic_id,
+                    "role": role,
+                    "phase": "DECOMPOSE",
+                    "next_phase": "APP IMPLEMENT",
+                    "gate": "verify-decompose",
+                    "steps": [step.step_id for step in queue.steps],
+                    "checks": [
+                        "canonical_ac_ids_and_quotes",
+                        "requirements_coverage",
+                        "files_produces",
+                        "verify_commands",
+                        "split_rationale",
+                    ],
+                    "status": "preflight_pass",
+                },
+                True,
+            )
+            return 0
         if args.command in {"check-bugfix-queue", "sync-bugfix-queue"}:
             cursor = engine.store.read()
             epic_id = args.epic or (cursor.epic_id if cursor else None)

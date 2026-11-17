@@ -59,6 +59,14 @@ alwaysApply: false
 | full | full suite | full profile | full browser | health (+ extended if live FR) |
 | regression | full + prior fails | same | same + prior fails | same |
 
+## Stack profile / finish (HARD)
+
+- Смешанная приёмка back+front+browser+live_smoke — **именованные lanes** (выше). Канон процесса: `docs/process/app-qa-bugfix.md`. Артефакты: `memory-bank/app/qa|bugfix/`.
+- Если есть `docs/testing/front-stack-profile.md` (Neftegaz и т.п.) — lane `frontend_build`/`browser` **только** по профилю; не подменять hub Vitest, если профиль его не требует.
+- CRM Desk/Playwright surface в mixed slice → runtime/preflight как у FRONT QA (`crm/AGENTS.md` § E2E); contract `converged: false` → `@gate-repair` до FINISH pass.
+- Default после **APP BUGFIX** (mixed) → снова **APP QA**, не два formal BACK+FRONT QA.
+- `verify-qa` FAIL + open `bugfix-queue.yaml` → обязан `loop.py finish --step QA` → APP BUGFIX (`finish_not_committed` если уйти только с отчётом).
+
 ## Abort
 
 - PASS без charter / без `lanes[]` → FAIL
@@ -71,3 +79,4 @@ alwaysApply: false
 - FINISH до завершения required lanes + verify-qa → FAIL
 - blockers без eligible prefix → FAIL
 - epic известен, qa вне `app/qa/<epic_id>/` → FAIL
+- Next = formal BACK QA + FRONT QA вместо APP QA после mixed BUGFIX → FAIL

@@ -11,7 +11,7 @@ endif
 DEV_HUB := $(abspath $(DEV_HUB))
 PROJECT_ROOT := $(CURDIR)
 
-.PHONY: hub-info hub-link hub-unlink cursor-workspace loop
+.PHONY: hub-info hub-link hub-unlink cursor-workspace loop devops-deploy
 
 hub-info:
 	@echo "DEV_HUB=$(DEV_HUB)"
@@ -29,6 +29,9 @@ cursor-workspace:
 	@echo "Open product folder in Cursor: $(PROJECT_ROOT)"
 	@echo "Do NOT open multi-root product+hub (two memory-bank/ confuse agents)."
 	@echo "Or run: make hub-link  # then Reload Window"
+
+devops-deploy:
+	@"$(DEV_HUB)/bin/devops-deploy" --project "$(PROJECT_ROOT)" "$${DEVOPS_ACTION:-check}" $${DEVOPS_ARGS:-}
 
 loop:
 	@set -- $(ARGS); \

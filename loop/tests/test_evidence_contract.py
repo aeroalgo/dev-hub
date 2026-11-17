@@ -198,6 +198,26 @@ browser:
     assert reason == "qa_browser_evidence_required"
 
 
+def test_qa_pass_is_blocked_by_open_bugfix_queue(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "memory-bank/back/qa/E1/qa-20261029-unit.yaml",
+        "schema: epic-qa/v1\nverdict: pass\n",
+    )
+    _write(
+        tmp_path / "memory-bank/back/bugfix/E1/bugfix-queue.yaml",
+        """schema: epic-bugfix-queue/v1
+items:
+  - id: BF-001
+    status: open
+""",
+    )
+
+    valid, reason = qa_pass_state(tmp_path, "back", "E1")
+
+    assert not valid
+    assert reason == "bugfix_queue_open"
+
+
 def test_qa_pass_accepts_browser_claim_with_real_runtime_trace(tmp_path: Path) -> None:
     command = "timeout -k 10s 300s bash scripts/live_smoke.sh"
     _write(

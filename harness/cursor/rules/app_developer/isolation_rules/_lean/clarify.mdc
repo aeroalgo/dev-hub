@@ -4,6 +4,16 @@ alwaysApply: false
 ---
 # APP CLARIFY — gates
 
-1. Ask only questions that change outcome, contract, ownership, UI journey or done criteria.
-2. Record decisions in the APP plan/clarify artifact; do not write production code.
-3. Return to APP PLAN with no unresolved blocking questions.
+**Артефакт:** `memory-bank/app/clarify/clarify-YYYYMMDD-<slug>.md`
+**Shared:** @.cursor/rules/shared/workflow-clarify-core.mdc
+**PLAN orchestration:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+**Шаблон:** @.cursor/templates/clarify.md
+
+1. Load only `activeContext.md` and the APP clarify artifact, with bounded jumps when contract ambiguity requires them.
+2. Read `grill-me/SKILL.md` fully and record a non-empty `## Grill pass` before taxonomy questions.
+3. Ask only questions that change outcome, contract, ownership, UI journey, wire completion or done criteria.
+4. Keep frontier rounds ≤4 and total questions ≤20; record every round and decision in the artifact.
+5. Resolve CRITICAL questions or record an explicit defer-list with owner and next action.
+6. Write Completion Report before returning to APP PLAN Phase 1; do not write production code.
+
+Abort: missing slug/goal, open CRITICAL without resolve/defer-list, missing Grill pass, or missing Completion Report.

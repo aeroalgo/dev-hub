@@ -34,6 +34,14 @@ SKILL.md — только copy paths в step (`shared/_lean/decompose-skills-loa
 Не загружай workflow или skills заранее и не выбирай другую роль или режим.
 Пути и имена файлов определяются каноническими workflow, index и skills.
 
+Роли вне BACK/FRONT/APP (указатели, не режимные правила):
+
+- `EVAL …` → `.cursor/rules/eval/mainrule.mdc`
+- `DEVOPS` / `DEVOPS <темы>` → `.cursor/rules/devops/mainrule.mdc`
+
+Режимные HARD (QA / BUGFIX / DECOMPOSE / stack / Frappe) — **только** в
+`{role}/isolation_rules/_lean/<mode>.mdc` и shared gates после выбора команды.
+
 ## Workflow-owned skills
 
 Единственный skill-root этого workflow — локальный `.agents/skills/` репозитория
@@ -72,9 +80,3 @@ Write `activeContext` — `.cursor/rules/token-economy-stub.mdc` §0.7.
 - Исправляй причину ошибки, не скрывай её fallback-логикой.
 - Коммиты и PR выполняй только по явному запросу.
 - Комментарии в коде добавляй только по запросу.
-
-## Root classification & Testing
-
-- Hub (dev-hub self-test) / **BACK**: Python tests — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
-- **FRONT** (IMPLEMENT/TASK/QA): Vitest + Playwright (`timeout -k 10s 300s npm --prefix frontend exec vitest|playwright …`). **FORBIDDEN:** `bin/pytest` / backend pytest как FRONT suite.
-- Managed projects: верификация через stack profile `capability_checks` и typed execution evidence; без generic fallback к raw pytest. Role surface сохраняется (front checks ≠ backend suite).

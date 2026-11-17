@@ -158,7 +158,7 @@ class LoopEngine:
                 and getattr(active_queue, "kind", None) != "security"
                 and cursor.kind != "security"
                 and not decompose_verified
-                and not self._has_implementation_progress(active_queue)
+                and (cursor.role == "app" or not self._has_implementation_progress(active_queue))
             ):
                 return "DECOMPOSE", "DECOMPOSE", "decompose closure gate required"
             step = work[0]
@@ -1127,6 +1127,10 @@ class LoopEngine:
                         session_id=candidate.session_id,
                         epic_id=candidate.epic_id,
                         recorded_at=pending_qa_failure.get("recorded_at") or "1970-01-01T00:00:00+00:00",
+                        blockers=list(pending_qa_failure.get("blockers") or [])
+                        or [
+                            "qa_fail_reconcile | memory-bank | route recorded verify-qa FAIL to BUGFIX via finish/resume"
+                        ],
                     )
                     return self._finish_plan(
                         candidate,
@@ -1336,6 +1340,10 @@ class LoopEngine:
                     session_id=current.session_id,
                     epic_id=current.epic_id,
                     recorded_at=pending_qa_failure.get("recorded_at") or "1970-01-01T00:00:00+00:00",
+                    blockers=list(pending_qa_failure.get("blockers") or [])
+                    or [
+                        "qa_fail_reconcile | memory-bank | route recorded verify-qa FAIL to BUGFIX via finish/resume"
+                    ],
                 )
                 return self._finish_plan(
                     current,
@@ -1445,6 +1453,28 @@ class LoopEngine:
                 raise TransitionError(
                     f"verdict agent mismatch for {current.phase}: expected={required_agent}, received={record.agent_id}"
                 )
+            qa_artifacts = (
+                phase_artifacts(self.paths.project, current.role, current.epic_id, "qa")
+                if current.phase == "QA"
+                else []
+            )
+            qa_artifact_verdict = qa_verdict(qa_artifacts[-1]) if qa_artifacts else None
+            if (
+                current.phase == "QA"
+                and record.agent_id == "verify-qa"
+                and record.verdict == "PASS"
+                and qa_artifact_verdict in {"pass", "passed", "complete", "completed"}
+            ):
+                # Keep the semantic QA gate inside the same transaction boundary.
+                # SubagentLifecycle classifies the error for recovery, but the
+                # engine remains fail-closed for direct callers as well.
+                qa_ready, qa_reason = qa_pass_state(
+                    self.paths.project,
+                    current.role,
+                    current.epic_id,
+                )
+                if not qa_ready:
+                    raise TransitionError(f"qa_pass_gate_invalid:{qa_reason}")
             event = {
                 "event": "verdict_accepted" if record.verdict == "PASS" else "verdict_recorded",
                 "key": key,
@@ -1459,6 +1489,8 @@ class LoopEngine:
                 "verdict_phase_epoch": current.phase_epoch,
                 "recorded_at": record.recorded_at,
                 "evidence_sha256": record.evidence_sha256,
+                "blockers": list(record.blockers),
+                "gate_status": f"{record.agent_id} {record.verdict} -> {current.phase}/{current.step_id}",
             }
             if record.agent_id == "verify-decompose" and record.verdict == "PASS":
                 try:
@@ -1632,6 +1664,7 @@ class LoopEngine:
                 "key": result.event.get("key"),
                 "agent_id": result.event.get("agent_id"),
                 "verdict": result.event.get("verdict"),
+                "gate_status": result.event.get("gate_status"),
                 "context_sync_required": result.event.get("context_sync_required", False),
                 "session_keep_alive": result.event.get("session_keep_alive", False),
             },

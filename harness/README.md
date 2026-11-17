@@ -43,6 +43,12 @@ Non-destructive integration designed for external product repositories. It layer
 - Writes relative path to `$DEV_HUB` in `.dev-hub` (one-line pointer, never YAML/config directory)
 - Copies router stub to `.cursor/rules.d/dev-hub-harness-router.mdc` (installer-owned refresh only)
 - Symlinks `AGENTS.md` / `CLAUDE.md` → `$DEV_HUB/…`; `CLAUDE.harness.md` → harness overlay
+- If product already has **regular** `AGENTS.md` / `CLAUDE.md`: move aside to
+  `AGENTS.<slug>.md` / `CLAUDE.<slug>.md` (slug = имя папки продукта), затем:
+  - пишет `AGENTS.override.md` (только если ещё нет) — Codex читает продукт вместо hub
+  - пишет `.cursor/rules.d/<slug>.mdc` (только если ещё нет) — Cursor alwaysApply → продукт
+  - пишет `CLAUDE.<slug>.md` (только если ещё нет) — короткий указатель на продукт
+  Содержимое продукта **не удаляется** и существующие overlay-файлы **не перезаписываются**.
 - Mirrors consumer layout (fail-closed if destination exists as regular file/dir):
   - `.cursor/rules` → `harness/cursor/rules`
   - `.cursor/templates`, `.cursor/hooks`, `.cursor/hooks-artifacts`, `.cursor/schemas`
@@ -57,11 +63,14 @@ Non-destructive integration designed for external product repositories. It layer
   - Rules (via symlink): `shared/workflow-board-sync.mdc`, `shared/workflow-board-after-plan.mdc`
 
 Project targets / workflow pack — только корневой `dev-hub.project.yaml` (`dev-hub-project/v1`). Старые `project.yaml` / `.dev-hub/project.yaml` не читаются. Шаблон: `harness/templates/dev-hub.project.yaml`.
+Шаблоны product overlay: `harness/templates/product-overlay/`.
 
 #### Fail-closed:
-- Existing **regular** `AGENTS.md` / `CLAUDE.md` / `.cursor/rules` / … → ERROR (переименовать вручную, затем повторить)
+- Existing **regular** `.cursor/rules` / `.agents/skills` / прочие shell-пути → ERROR (не затираем чужие деревья)
+- Existing **regular** `AGENTS.md` / `CLAUDE.md` → **aside** в `*.<slug>.md`, не ERROR
 - Existing **symlink** → refresh (`ln -sfn`)
 - Не трогает `.claude/settings.json` permissions в alongside (в отличие от `--mode full`)
+- Не трогает `Makefile`, скрипты и прочие команды продукта
 
 > **Note:** Never run `alongside` against dev-hub root. In hub, harness is dogfooded natively.
 

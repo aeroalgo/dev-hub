@@ -1,0 +1,118 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-109-runtime-hub
+title: "s01 — Isolated profile store and fail-closed selection CLI"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Дать оператору рабочую CLI-поверхность для хранения именованных runtime-профилей,
+  list/use/status и атомарной активации изолированного home без fallback на глобальное состояние.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004, US-001, US-006, BN-001, BN-004, BN-007, TM-001, TM-003, TM-006]
+  nouns:
+    - RUNTIME_HUB_HOME/profiles.yaml
+    - RUNTIME_HUB_HOME/active
+    - RUNTIME_HUB_HOME/profiles/<id>/
+    - runtime_hub/models.py
+    - runtime_hub/store.py
+    - runtime_hub/errors.py
+    - runtime_hub/cli.py
+    - bin/hub-runtime
+    - runtime_hub/tests/test_store_and_cli.py
+  layout_paths:
+    - runtime_hub/
+    - bin/hub-runtime
+    - runtime_hub/tests/test_store_and_cli.py
+  ac_quotes:
+    - "When use gpt-work, active file = gpt-work and status reports the profile id."
+    - "Unknown id or active conflict exits non-zero and does not mutate active."
+    - "No profile home may silently fall back to ~/.codex or ~/.claude."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md:1-90
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md:91-180
+
+context:
+  consumes:
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md
+    - memory-bank/back/clarify/clarify-20261106-runtime-hub.md
+  produces:
+    - RUNTIME_HUB_HOME/profiles.yaml
+    - RUNTIME_HUB_HOME/active
+    - RUNTIME_HUB_HOME/profiles/<id>/
+    - runtime_hub/__init__.py
+    - runtime_hub/models.py
+    - runtime_hub/store.py
+    - runtime_hub/errors.py
+    - runtime_hub/cli.py
+    - bin/hub-runtime
+    - runtime_hub/tests/test_store_and_cli.py
+  plan_refs: [FR-001, FR-002, FR-003, FR-004, US-001, US-006, BN-001, BN-004, BN-007, TM-001, TM-003, TM-006]
+  files:
+    - runtime_hub/__init__.py
+    - runtime_hub/models.py
+    - runtime_hub/store.py
+    - runtime_hub/errors.py
+    - runtime_hub/cli.py
+    - bin/hub-runtime
+    - runtime_hub/tests/test_store_and_cli.py
+
+as_built:
+  - "В dev-hub нет пакета runtime_hub и entrypoint bin/hub-runtime."
+  - "В loop нет реестра профилей, active pointer или schema для isolated homes."
+  - "Текущие Codex/Claude homes не должны становиться неявным fallback для Hub."
+
+delta:
+  - "Создать Profile schema с runtime codex/claude/agy, model, home, executable, env и notes."
+  - "Создать Store, который читает RUNTIME_HUB_HOME, profiles.yaml и active, создает только profile homes и атомарно пишет active pointer."
+  - "Создать fail-closed ошибки unknown_profile, active_conflict, no_active_profile и invalid_profile_config."
+  - "Создать CLI list/use/status с --force только для явного обхода active conflict; канонический different-active конфликт без --force сохраняет active и не делает fallback."
+  - "При HUB_RUNTIME_REQUIRE_FORCE=1 и при doctor-marked dirty state отказывать без --force, сохранять active без мутации и не использовать fallback."
+  - "Добавить executable bin/hub-runtime, который вызывает runtime_hub.cli без bash-логики."
+  - "Добавить tmp_path-тесты для roundtrip, invalid config, unknown id, conflict и отсутствия fallback."
+
+deletes: []
+wire_complete_required: true
+out_of_scope: []
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+  omit_justification:
+    fastapi-templates: "нет HTTP routes или FastAPI dependencies"
+    async-python-patterns: "синхронное чтение YAML и активация профиля"
+
+checkpoints:
+  - id: cp1
+    criterion: "Profile schema and RUNTIME_HUB_HOME store roundtrip are executable"
+    verify: "bin/pytest runtime_hub/tests/test_store_and_cli.py -k 'profile_schema or store_roundtrip' -q --tb=line"
+  - id: cp2
+    criterion: "list/use/status activate a named profile and write active atomically"
+    verify: "bin/pytest runtime_hub/tests/test_store_and_cli.py -k 'list or use or status' -q --tb=line"
+  - id: cp3
+    criterion: "Unknown profile and active conflict fail without mutating active"
+    verify: "bin/pytest runtime_hub/tests/test_store_and_cli.py -k 'unknown or conflict' -q --tb=line"
+  - id: cp4
+    criterion: "Invalid configuration and global-home fallback are rejected"
+    verify: "bin/pytest runtime_hub/tests/test_store_and_cli.py -k 'invalid or fallback' -q --tb=line"
+  - id: cp5
+    criterion: "HUB_RUNTIME_REQUIRE_FORCE=1 and doctor-marked dirty state deny without --force, preserve active, and never fall back or mutate"
+    verify: "bin/pytest runtime_hub/tests/test_store_and_cli.py -k 'force or dirty' -q --tb=line"
+
+verify:
+  - "bin/pytest runtime_hub/tests/test_store_and_cli.py -q --tb=line"
+tdd:
+  - test_profile_schema_and_store_roundtrip
+  - test_use_unknown_profile_does_not_mutate_active
+  - test_use_conflict_requires_force
+  - test_require_force_and_dirty_state_fail_closed_without_mutation
+  - test_invalid_profile_config_fails_closed

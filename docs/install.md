@@ -108,7 +108,8 @@ make hub-link          # обновить symlinks / router stub
 | Симптом | Действие |
 |---------|----------|
 | `DEV_HUB not found` | `.dev-hub` или `DEV_HUB=` или соседний `../dev-hub` |
-| `exists and is not a symlink` | убрать/переименовать локальный конфликт, повторить link |
+| `exists and is not a symlink` (`.cursor/rules`, skills, …) | убрать/переименовать локальный конфликт каталога, повторить link |
+| был свой `AGENTS.md` / `CLAUDE.md` | `hub-link` сам переносит в `AGENTS.<slug>.md` / `CLAUDE.<slug>.md` и пишет overlay (`AGENTS.override.md`, `.cursor/rules.d/<slug>.mdc`) |
 | rules не видны в Cursor | `make hub-link` + Reload Window; не multi-root с хабом |
 | `model_required` у loop | задать `--model` или `LOOP_MODEL*` в `.env` хаба |
 | два `memory-bank/` | открыта только папка продукта |

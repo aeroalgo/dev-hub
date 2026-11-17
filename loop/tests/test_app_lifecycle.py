@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from loop.kernel.engine import LoopEngine
-from loop.kernel.index import Step, implement_path
+from loop.kernel.index import Step, implement_path, validate_app_preflight
 from loop.kernel.model import CursorStatus
 from loop.kernel.store import LoopPaths
 from loop.kernel.verdict import (
@@ -23,11 +25,20 @@ def write(path: Path, content: str) -> None:
 
 
 def seed_decompose(root: Path) -> None:
-    write(root / f"memory-bank/app/plan/{EPIC_ID}/md/plan.md", "# APP lifecycle plan\n")
+    write(
+        root / f"memory-bank/app/plan/{EPIC_ID}/md/plan.md",
+        "# APP lifecycle plan\n\n## Acceptance criteria\n\n"
+        "- **AC-001:** Contract and UI are both live.\n"
+        "- **AC-002:** The wire journey reaches the real contract.\n",
+    )
     write(
         root / f"memory-bank/app/plan/{EPIC_ID}/yaml/decompose-index.yaml",
         f"""schema: epic-decompose-index/v1
 plan_id: {EPIC_ID}
+effort_probe:
+  independent_outcomes: 2
+  split_seams: 1
+split_rationale: The contract and UI/wire journey are independently verifiable.
 steps:
   - id: s01
     file: s01-contract.yaml
@@ -39,6 +50,11 @@ steps:
     title: UI and wire
     next_phase: APP IMPLEMENT
     status: pending
+requirements_coverage:
+  - id: AC-001
+    step: s01
+  - id: AC-002
+    step: s02
 """,
     )
     shard_template = """schema: epic-decompose/v1
@@ -51,17 +67,25 @@ needs_creative: {needs_creative}
 goal: one mixed vertical slice
 plan_contract:
   fr_ids: [FR-001]
+  ac_ids: [{ac_id}]
   nouns: [method/path, UI journey, wire contract]
   layout_paths: [memory-bank/app/plan/{epic}/, memory-bank/app/implement/{epic}/]
-  ac_quotes: [contract and UI are both live]
+  ac_quotes: ["{ac_id}: {ac_quote}"]
   plan_jumps: []
 context:
   consumes: []
-  produces: []
+  produces:
+    - path: backend/contract.py
+      reason: contract implementation
   plan_refs: []
   files:
     - loop/kernel/index.py
     - loop/tests/test_app_lifecycle.py
+files:
+  - backend/contract.py
+  - frontend/feature.ts
+  - loop/kernel/index.py
+  - loop/tests/test_app_lifecycle.py
 as_built: []
 delta:
   - enable APP lifecycle
@@ -69,7 +93,8 @@ deletes: []
 out_of_scope: []
 skills:
   code_surface: test
-  impl: []
+  impl:
+    - test
 checkpoints:
   - id: cp1
     criterion: mixed contract is covered
@@ -87,6 +112,8 @@ tdd:
             epic=EPIC_ID,
             title="contract and backend",
             needs_creative="no",
+            ac_id="AC-001",
+            ac_quote="Contract and UI are both live",
         ),
     )
     write(
@@ -96,6 +123,8 @@ tdd:
             epic=EPIC_ID,
             title="UI and wire",
             needs_creative='"yes (CR-APP-1)"',
+            ac_id="AC-002",
+            ac_quote="The wire journey reaches the real contract",
         ),
     )
 
@@ -142,16 +171,22 @@ checkpoints:
 def gate(engine: LoopEngine, agent_id: str, verdict: str, timestamp: str) -> None:
     cursor = engine.store.read()
     assert cursor is not None
+    payload = {
+        "schema": SCHEMA_GATE_VERDICT,
+        "agent_id": agent_id,
+        "verdict": verdict,
+        "step_id": cursor.step_id,
+        "session_id": cursor.session_id,
+        "epic_id": cursor.epic_id,
+        "recorded_at": timestamp,
+        "blockers": [],
+    }
+    if verdict in {"FAIL", "BLOCKED"}:
+        payload["blockers"] = [
+            "test_blocker | memory-bank/app/plan/E1/yaml/decompose-index.yaml | apply the fixture repair described by the test"
+        ]
     engine.accept_verdict(
-        GateVerdict(
-            schema=SCHEMA_GATE_VERDICT,
-            agent_id=agent_id,
-            verdict=verdict,
-            step_id=cursor.step_id,
-            session_id=cursor.session_id,
-            epic_id=cursor.epic_id,
-            recorded_at=timestamp,
-        ),
+        GateVerdict.model_validate(payload),
         expected_agent_id=agent_id,
     )
 
@@ -287,3 +322,26 @@ lanes:
         )
     )
     assert (transition.phase, transition.step_id, transition.status) == ("DONE", "DONE", CursorStatus.COMPLETE)
+
+
+def test_app_existing_implement_artifact_cannot_bypass_decompose_gate(tmp_path: Path) -> None:
+    seed_decompose(tmp_path)
+    write_implement_artifact(tmp_path, "s01")
+    write_implement_artifact(tmp_path, "s02")
+
+    cursor = LoopEngine(LoopPaths(project=tmp_path, hub=tmp_path / "hub")).start(EPIC_ID, role="app")
+
+    assert (cursor.phase, cursor.step_id) == ("DECOMPOSE", "DECOMPOSE")
+
+
+def test_app_preflight_rejects_ac_quote_drift(tmp_path: Path) -> None:
+    seed_decompose(tmp_path)
+    shard = tmp_path / f"memory-bank/app/plan/{EPIC_ID}/yaml/steps/s01-contract.yaml"
+    text = shard.read_text(encoding="utf-8").replace(
+        'ac_quotes: ["AC-001: Contract and UI are both live"]',
+        'ac_quotes: ["AC-999: drifted quote"]',
+    )
+    shard.write_text(text, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not present in plan|exactly one quote"):
+        validate_app_preflight(tmp_path, "app", EPIC_ID)

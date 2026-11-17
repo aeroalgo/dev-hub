@@ -38,6 +38,44 @@ from .verdict import (
 
 _AGENT_RE = re.compile(r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)")
 
+# These failures mean that a claimed QA PASS is malformed or no longer aligned
+# with its typed evidence. They are repairable handoff/metadata problems. A
+# missing/failed/non-live runtime observation is intentionally *not* here: that
+# is a product QA failure and must go through QA FAIL → BUGFIX.
+_QA_GATE_REPAIR_REASONS = frozenset(
+    {
+        "qa_artifact_missing",
+        "qa_artifact_invalid",
+        "qa_suite_scope_app_lanes_required",
+        "runtime_evidence_command_mismatch",
+        "runtime_evidence_schema_missing",
+        "runtime_evidence_type_missing",
+        "runtime_evidence_type_invalid",
+        "runtime_evidence_timestamp_missing",
+        "runtime_evidence_anchor_invalid",
+        "runtime_evidence_anchor_mismatch",
+        "runtime_evidence_stale",
+        "qa_new_artifact_required",
+    }
+)
+
+
+def _qa_gate_recovery_kind(message: str) -> tuple[str, str] | None:
+    """Classify a rejected QA PASS without treating product failure as repair."""
+
+    prefix = "qa_pass_gate_invalid:"
+    if prefix in message:
+        reason = message.split(prefix, 1)[1].split()[0].strip(";,. ")
+    elif "qa_artifact_required_before_pass" in message:
+        reason = "qa_artifact_missing"
+    elif "qa_new_artifact_required" in message:
+        reason = "qa_new_artifact_required"
+    else:
+        return None
+    if reason in _QA_GATE_REPAIR_REASONS:
+        return "gate_repair", reason
+    return "product_failure", reason
+
 
 @dataclass(frozen=True)
 class HookAction:
@@ -249,8 +287,11 @@ class SubagentLifecycle:
             "do not match the stamp. Copy emit_exactly into the final fence; recorded_at may "
             "differ. Changing verdict/ids/evidence_sha256 requires a new validate-verdict. "
             "Allowed keys only: schema,agent_id,verdict,step_id,session_id,epic_id,"
-            "recorded_at,evidence_sha256(optional). Never require evidence_sha256. "
-            "FORBIDDEN keys: evidence,blockers,touched_paths,"
+            "recorded_at,evidence_sha256(optional),blockers. Never require evidence_sha256. "
+            "PASS → blockers must be [] or omitted. FAIL/BLOCKED → blockers REQUIRED, ≥1 row, "
+            "each exactly '<id> | <path> | <concrete_fix>' (full problem + fix for gate-repair). "
+            "Bare FAIL without blockers is invalid. "
+            "FORBIDDEN keys: evidence,touched_paths,"
             "evidence_id,reason,findings,gate,status,checkpoints. "
             "After the fence: zero tool calls."
         )
@@ -774,6 +815,64 @@ class SubagentLifecycle:
             )
         except TransitionError as exc:
             message_text = str(exc)
+            qa_recovery = (
+                _qa_gate_recovery_kind(message_text)
+                if agent_type == "verify-qa" and record.verdict == "PASS"
+                else None
+            )
+            if qa_recovery is not None:
+                recovery_kind, recovery_reason = qa_recovery
+                event_name = (
+                    "qa_gate_repair_required"
+                    if recovery_kind == "gate_repair"
+                    else "qa_product_failure_required"
+                )
+                diagnostic = (
+                    "qa_gate_repair_required"
+                    if recovery_kind == "gate_repair"
+                    else "qa_product_failure_required"
+                )
+                self.engine.record_event(
+                    {
+                        "event": event_name,
+                        "key": (
+                            f"{cursor.session_id}:{cursor.epic_id}:{cursor.step_id}:"
+                            f"verify-qa:PASS:{recovery_reason}"
+                        ),
+                        "source": "subagent-stop",
+                        "agent_id": "verify-qa",
+                        "phase": cursor.phase,
+                        "step_id": cursor.step_id,
+                        "session_id": cursor.session_id,
+                        "epic_id": cursor.epic_id,
+                        "verdict": "PASS",
+                        "reason": recovery_reason,
+                        "diagnostic_codes": [diagnostic],
+                        "errors": [message_text],
+                    }
+                )
+                if recovery_kind == "gate_repair":
+                    return HookAction(
+                        False,
+                        True,
+                        2,
+                        (
+                            f"QA PASS rejected as handoff/metadata error ({recovery_reason}); "
+                            "spawn gate-repair, wait for repair_recorded, then re-run verify-qa only"
+                        ),
+                        (diagnostic,),
+                    )
+                return HookAction(
+                    False,
+                    True,
+                    2,
+                    (
+                        f"QA PASS rejected because QA evidence is a product failure ({recovery_reason}); "
+                        "write qa-*.yaml verdict=fail plus an open bugfix-queue and finish QA → BUGFIX; "
+                        "do not gate-repair or re-run QA"
+                    ),
+                    (diagnostic,),
+                )
             stale = (
                 "session mismatch" in message_text
                 or "step mismatch" in message_text

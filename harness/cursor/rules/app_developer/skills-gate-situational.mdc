@@ -1,14 +1,283 @@
 ---
-description: "APP skills gate — union of backend, frontend, wire and design skills"
+description: "APP skills gate — full BACK∪FRONT union; wide pool, situational pick per surface"
 alwaysApply: false
 ---
 # APP skills gate
 
-APP DECOMPOSE выбирает только навыки, нужные текущему vertical slice:
+**SoT пула:** полный union  
+@.cursor/rules/back_developer/skills-gate-situational.mdc ∪  
+@.cursor/rules/front_developer/skills-gate-situational.mdc  
+(+ mixed/wire ниже).
 
-- contract/API/wire: `tdd`, `python-testing-patterns`, `python-error-handling`, CRM/API-contract skills;
-- backend: `modern-python` и профиль backend-проекта;
-- frontend: `frontend-testing`, `playwright-best-practices` и `design` только при `visible_ui: yes`;
-- mixed acceptance: `verification-before-completion` перед QA evidence.
+**Цель:** широкий кандидатный пул (весь BACK + весь FRONT канон), на шаг — **точный** выбор под поверхность/задачу.  
+**FORBIDDEN:** урезанный «APP-lite» subset; один `frontend-design` вместо Design groups; игнор BACK/FRONT checklist «потому что APP».
 
-Пути записываются в текущий shard `skills.impl` / `skills.design*`. IMPLEMENT читает только этот allowlist; APP не создаёт отдельный `app-tdd` skill и не дублирует shared skills.
+Пути: `.agents/skills/<name>/SKILL.md`
+
+**DECOMPOSE vs Read тел (HARD):** @.cursor/rules/shared/_lean/decompose-skills-load.mdc —  
+DECOMPOSE = **copy paths** в `skills.impl` / `skills.design*`. **FORBIDDEN** Read тел SKILL.md «чтобы нарезать».  
+IMPLEMENT / CREATIVE = Read тел **только** по списку из step / creative-файла.
+
+APP **не** создаёт отдельный `app-tdd` и не дублирует shared skills под другими именами.
+
+---
+
+## 0. Surfaces на shard (обязательно)
+
+На каждый `sNN` зафиксировать поверхности (одна или несколько):
+
+| flag | Когда |
+|------|--------|
+| `backend: yes` | Python/API/DocType/service/sql/ws/infra в `files:` |
+| `frontend: yes` | Desk/JS/TSX/CSS/page UI в `files:` |
+| `visible_ui: yes\|no` | User-facing UI (как FRONT). `yes` → Design groups |
+| `wire: yes` | API↔UI call sites / enforce / leftover SoT в том же shard |
+
+Defaults по slice: mixed vertical → обычно `backend+frontend+wire=yes`, `visible_ui` по факту UI.
+
+---
+
+## 1. Core (всегда copy paths при наличии surface)
+
+### 1a. BACK Core — если `backend: yes`
+
+- `.agents/skills/tdd/SKILL.md`
+- `.agents/skills/python-testing-patterns/SKILL.md`
+- `.agents/skills/modern-python/SKILL.md`
+- `.agents/skills/python-anti-patterns/SKILL.md`
+
+### 1b. FRONT Impl Core — если `frontend: yes`
+
+- `.agents/skills/tdd/SKILL.md` (уже в 1a — один путь)
+- `.agents/skills/frontend-testing/SKILL.md`
+- `.agents/skills/frontend-patterns/SKILL.md`
+- `.agents/skills/next-best-practices/SKILL.md`
+- `.agents/skills/vercel-react-best-practices/SKILL.md`
+- `.agents/skills/vercel-composition-patterns/SKILL.md`
+
+**ELMS / Frappe Desk note:** Next/Vercel core всё равно в allowlist FRONT; если stack = Desk/JS без React SPA — **не omit молча**: либо copy paths (агент калибрует), либо явный `skills.omit_justification` на каждый опущенный FRONT Core id (`next-best-practices`, `vercel-react-best-practices`, `vercel-composition-patterns`, `frontend-patterns` при pure vanilla Desk).  
+`frontend-testing` + `tdd` при `frontend: yes` **omit запрещён**.
+
+### 1c. Mixed / wire Core — если `wire: yes` или APP QA handoff в том же epic-шаге evidence
+
+- `.agents/skills/verification-before-completion/SKILL.md`
+
+---
+
+## 2. BACK situational allowlist (полный пул — 17)
+
+| id | skill | DECOMPOSE/IMPLEMENT | CREATIVE |
+|----|-------|:-------------------:|:--------:|
+| B-S01 | `fastapi-templates` | ✓ | — |
+| B-S02 | `async-python-patterns` | ✓ | ✓ |
+| B-S03 | `python-error-handling` | ✓ | — |
+| B-S04 | `sqlalchemy-postgres` | ✓ | — |
+| B-S05 | `supabase-postgres-best-practices` | ✓ | — |
+| B-S06 | `websocket-engineer` | ✓ | ✓ |
+| B-S07 | `python-performance-optimization` | ✓ | ✓ |
+| B-S08 | `python-configuration` | ✓ | — |
+| B-S09 | `python-observability` | ✓ | — |
+| B-S10 | `python-resilience` | ✓ | — |
+| B-S11 | `python-type-safety` | ✓ | — |
+| B-S12 | `grill-me` | — | ✓ |
+| B-S13 | `improve-codebase-architecture` | — | ✓ |
+| B-S14 | `python-design-patterns` | — | ✓ |
+| B-S15 | `property-based-testing` | — | ✓ |
+| B-S16 | `clean-ddd-hexagonal` | — | ✓ |
+| B-S17 | `query-builder` | — | ✓ |
+
+**Cap на shard (backend lane):** situational BACK ≤ **6** (+ BACK Core).  
+Только из таблицы выше — **FORBIDDEN** BACK situational вне allowlist.
+
+### Checklist — BACK lane (DECOMPOSE → `skills.impl`)
+
+`backend: yes` → пройти все вопросы; yes → добавь путь.
+
+| # | Вопрос | skill |
+|---|--------|-------|
+| 1 | `code_surface` backend? `service\|api\|sql\|ws\|model\|infra\|test` | — |
+| 2 | HTTP routes / schemas / envelope / DI? | `fastapi-templates` |
+| 3 | async I/O / concurrent / handlers / WS tasks? | `async-python-patterns` |
+| 4 | domain/HTTP/envelope ошибки? | `python-error-handling` |
+| 5 | ORM / Alembic / asyncpg? | `sqlalchemy-postgres` |
+| 6 | raw SQL / indexes / Postgres practices? | `supabase-postgres-best-practices` |
+| 7 | WebSocket / fanout / Redis realtime? | `websocket-engineer` |
+| 8 | hot-path / downsample / perf? | `python-performance-optimization` |
+| 9 | settings / env / config? | `python-configuration` |
+| 10 | health / metrics / structured logs? | `python-observability` |
+| 11 | rate-limit / retry / timeout / circuit? | `python-resilience` |
+| 12 | публичные типы / Pydantic / typing API? | `python-type-safety` |
+
+**Defaults (не docs-only):** `api` → #2–4; `service` → #3–4; `ws` → #3 #4 #7; `sql` → #5 (+#6 если SQL); Frappe whitelist/Pydantic DTO → #4 + #12 как минимум.
+
+**Frappe / Desk backend:** нет FastAPI — `fastapi-templates` не default; при omit default из surface — `omit_justification`. Pydantic/typed errors → всё равно #4/#12.
+
+---
+
+## 3. FRONT situational allowlist (полный пул — 7)
+
+| id | skill | DECOMPOSE/IMPLEMENT | CREATIVE |
+|----|-------|:-------------------:|:--------:|
+| F-S01 | `playwright-best-practices` | ✓ | — |
+| F-S02 | `playwright-generate-test` | ✓ | — |
+| F-S03 | `web-design-guidelines` | ✓ | ✓ |
+| F-S04 | `vercel-react-view-transitions` | ✓ | ✓ |
+| F-S05 | `grill-me` | — | ✓ |
+| F-S06 | `full-output-enforcement` | ✓ | ✓ |
+| F-S07 | `ui-ux-pro-max` | ✓ | ✓ |
+
+**Cap на shard (frontend lane):** situational FRONT ≤ **4** (+ FRONT Impl Core).  
+Design groups **не** в этом cap.
+
+### Checklist — FRONT lane (DECOMPOSE → `skills.impl` + Design)
+
+`frontend: yes` → пройти:
+
+| # | Вопрос | skill / группа |
+|---|--------|----------------|
+| 1 | User-facing UI? → `visible_ui:` yes\|no | **yes** → §4 Design groups |
+| 2 | E2E / user-visible scenario / PW? | `playwright-best-practices` |
+| 3 | Новый Playwright spec с нуля? | `playwright-generate-test` |
+| 4 | View Transitions API? | `vercel-react-view-transitions` |
+| 5 | Web design / a11y audit в scope? | `web-design-guidelines` |
+| 6 | Полный unabridged UI dump? | `full-output-enforcement` |
+| 7 | Style encyclopedia / UX checklist? | `ui-ux-pro-max` |
+
+**Defaults:** user-visible flow → #2 **yes**; новый e2e файл → +#3; Desk product UI → часто +#5/#7 по задаче визуала.
+
+---
+
+## 4. Design skills (полный FRONT pack — не lite)
+
+Канон групп = FRONT gate §Design.  
+**FORBIDDEN:** копировать все taste/design подряд.  
+**REQUIRED при `visible_ui: yes`:** минимум **D0 Lean Core (все 3 пути)**; плюс группы по surface/clarify.
+
+### D0 — Lean Core (всегда при UI)
+
+- `.agents/skills/frontend-design/SKILL.md`
+- `.agents/skills/impeccable/SKILL.md`
+- `.agents/skills/emil-design-eng/SKILL.md`
+
+**FAIL:** `visible_ui: yes` и в `skills.design*` нет полного D0 (одного `frontend-design` недостаточно).
+
+### D1 — Marketing / anti-slop
+
+Только `marketing_landing` · `portfolio` · `marketing_redesign`:
+
+- `.agents/skills/design-taste-frontend/SKILL.md`
+- `.agents/skills/redesign-existing-projects/SKILL.md` — только mode `redesign_existing`
+
+### D2 — Style dialect (XOR ≤ 1)
+
+| id | skill |
+|----|-------|
+| `minimalist` | `.agents/skills/minimalist-ui/SKILL.md` |
+| `brutalist` | `.agents/skills/industrial-brutalist-ui/SKILL.md` |
+| `high_end` | `.agents/skills/high-end-visual-design/SKILL.md` |
+| `gpt_awwards` | `.agents/skills/gpt-taste/SKILL.md` |
+
+Default `product_ui` / существующий DS: **`none`** (только D0 + тема проекта).
+
+### D3 — Image pipeline (по триггеру)
+
+- `.agents/skills/imagegen-frontend-web/SKILL.md`
+- `.agents/skills/imagegen-frontend-mobile/SKILL.md`
+- `.agents/skills/brandkit/SKILL.md`
+- `.agents/skills/image-to-code/SKILL.md`
+
+### D4 — Tooling (по триггеру)
+
+- `.agents/skills/stitch-design-taste/SKILL.md` — только Google Stitch
+
+### Surface → groups (defaults)
+
+| `surface` | Groups |
+|-----------|--------|
+| `product_ui` | **D0** |
+| `marketing_landing` | D0 + D1 |
+| `portfolio` | D0 + D1 |
+| `marketing_redesign` | D0 + D1 + redesign |
+| `product_redesign` | D0 + redesign |
+| `brand_identity` | D0 + brandkit |
+| `mobile_app_mock` | D0 + imagegen-mobile |
+| `stitch_export` | D0 + stitch |
+| `image_to_code_site` | D0 + image-to-code (± imagegen-web) |
+
+`visible_ui: no` → Design `—` + причина; группы не копировать.
+
+В step: плоский список в `skills.design` / `design_skills` + `# surface=… groups=D0,…`.
+
+---
+
+## 5. Wire / mixed situational (APP-only additions)
+
+| id | skill | Когда |
+|----|-------|--------|
+| W01 | `verification-before-completion` | `wire: yes` или закрытие mixed shard / pre-QA evidence (см. §1c) |
+| W02 | `diagnosing-bugs` | wire flake / contract drift repair в том же BUGFIX-шаге |
+| W03 | `requesting-code-review` | явный review gate в step (редко) |
+
+Не заменяют BACK/FRONT пулы.
+
+---
+
+## 6. Как собирать `skills` на APP `sNN` (HARD)
+
+1. Определить §0 surfaces.  
+2. Copy **все** сработавшие Core (§1) для yes-surfaces.  
+3. Прогнать **полный** BACK checklist если `backend: yes` → до ≤6 situational.  
+4. Прогнать **полный** FRONT checklist если `frontend: yes` → до ≤4 situational.  
+5. Если `visible_ui: yes` → **полный D0** + optional D1–D4 по surface/clarify.  
+6. Если `wire: yes` → W01 (+ W02/W03 по триггеру).  
+7. Записать в YAML:
+   - `skills.code_surface` (dominant или `mixed`)
+   - `skills.impl` — Core ∪ BACK situational ∪ FRONT situational ∪ wire
+   - `skills.design` / `design_skills` — Design paths при UI
+   - `skills.omit_justification` — map id→reason для каждого **default**, который не взят (BACK defaults / FRONT Core Desk omit / D0 нельзя omit при visible_ui)
+
+**Bias к покрытию:** при сомнении «нужен ли skill под поверхность» — **включай** (шире), если не ломает cap; не выкидывай Design/Core ради краткости.
+
+**Caps суммарно на mixed shard:**  
+BACK situational ≤6 **и** FRONT situational ≤4 **независимо** (lanes). Design вне situational caps.  
+Нет общего «max 5 на весь APP» — это и был запрещённый lite-режим.
+
+---
+
+## 7. CREATIVE (APP)
+
+Если `needs_creative` / UI batch:
+
+- Design groups по §4 (минимум D0 при UI)
+- BACK CREATIVE situational из B-S12–S17 + overlapping B-S02/S06/S07 по checklist BACK CREATIVE (cap ≤5)
+- FRONT CREATIVE situational F-S03–S07 (cap ≤3) + Design
+
+Те же FORBIDDEN: lite subset, один design skill вместо D0.
+
+---
+
+## 8. FAIL / AC−
+
+1. Situational вне BACK∪FRONT∪wire таблиц.  
+2. `visible_ui: yes` без полного D0 в `skills.design*`.  
+3. Урезанный APP-only список вместо прогона BACK+FRONT checklists.  
+4. `skills.impl: []` при любом yes-surface.  
+5. FRONT/BACK Core omit без `omit_justification` там, где surface yes и default/core обязателен.  
+6. >1 D2 dialect.  
+7. Session skills (`writing-plans`, `brainstorming`, …) в `impl`/`design`.  
+8. DECOMPOSE Read тел SKILL.md.
+
+---
+
+## 9. Размер пула (ориентир)
+
+| Пул | Кандидатов |
+|-----|------------|
+| BACK Core | 4 |
+| BACK situational | 17 |
+| FRONT Impl Core | 6 |
+| FRONT situational | 7 |
+| Design D0–D4 | 3 + optional groups |
+| Wire | 3 |
+
+На шаг в `impl`/`design` попадает **подмножество по checklist**, не весь каталог `.agents/skills/` (~250) и не «только 4 любимых APP».

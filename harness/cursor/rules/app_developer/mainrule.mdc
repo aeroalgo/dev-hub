@@ -11,7 +11,7 @@ alwaysApply: false
 | Команда | Workflow |
 |---------|----------|
 | `APP VAN` | @.cursor/rules/app_developer/workflow-van.mdc |
-| `APP PLAN` | @.cursor/rules/app_developer/workflow-plan.mdc |
+| `APP PLAN` | @.cursor/rules/app_developer/workflow-plan.mdc — Phase 0 auto-clarify + Phase 1 |
 | `APP DECOMPOSE` | @.cursor/rules/app_developer/workflow-decompose.mdc |
 | `APP CREATIVE` | @.cursor/rules/app_developer/workflow-creative.mdc |
 | `APP IMPLEMENT` | @.cursor/rules/app_developer/workflow-implement.mdc |

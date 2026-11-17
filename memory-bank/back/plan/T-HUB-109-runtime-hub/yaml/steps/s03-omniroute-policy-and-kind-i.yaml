@@ -1,0 +1,208 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-109-runtime-hub
+title: "s03 — Explicit OmniRoute policy, Kind I cleanup, and legacy-fallback purge"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть policy и Kind I boundary: native Codex остается default, OmniRoute доступен только
+  через явный profile.executable, а оператор получает безопасный example/README без tracked secrets.
+
+plan_contract:
+  fr_ids: [FR-006, FR-011, FR-013, US-005, BN-005, TM-004]
+  nouns:
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/profiles.example.yaml
+    - runtime_hub/README.md
+    - runtime_hub/tests/test_omniroute_policy_and_docs.py
+  layout_paths:
+    - runtime_hub/profiles.example.yaml
+    - runtime_hub/README.md
+    - runtime_hub/tests/test_omniroute_policy_and_docs.py
+  ac_quotes:
+    - "Default Codex profile executable basename is codex, never codex-omniroute.sh."
+    - "A named codex-omniroute profile may resolve the wrapper only when executable is explicit."
+    - "The legacy wrapper remains only as a kind A explicit-profile path; Hub has no implicit OmniRoute default or fallback branch."
+    - "Example config contains no API keys or checked-in profile homes."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md:181-260
+
+context:
+  consumes:
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/doctor.py
+    - runtime_hub/store.py
+    - memory-bank/back/plan/T-HUB-109-runtime-hub/md/plan.md
+  produces:
+    - runtime_hub/profiles.example.yaml
+    - runtime_hub/README.md
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/tests/test_omniroute_policy_and_docs.py
+  plan_refs: [FR-006, FR-011, FR-013, US-005, BN-005, TM-004]
+  files:
+    - runtime_hub/profiles.example.yaml
+    - runtime_hub/README.md
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/tests/test_omniroute_policy_and_docs.py
+
+as_built:
+  - "codex/bin/codex-omniroute.sh существует как legacy/explicit candidate и не удаляется этим эпиком."
+  - "Нет Hub example config или README, объясняющих native default и внешние homes."
+  - "Нет теста, запрещающего случайный OmniRoute default и tracked secrets."
+
+delta:
+  - "Зафиксировать в Codex adapter правило: native codex default; wrapper только через явный executable profile field."
+  - "Добавить profiles.example.yaml с codex native, claude, agy и explicit codex-omniroute examples без secrets."
+  - "Написать runtime_hub/README.md с use/list/status/run/doctor, RUNTIME_HUB_HOME и anti-spoof/fail-closed policy."
+  - "Документировать env-only режим и запрет tracked API keys; env_file допускается только внешним путем."
+  - "Добавить targeted tests для native-vs-OmniRoute resolve, example safety и документационного Kind I contract."
+
+replacement_cleanup:
+  - symbol: "codex/bin/codex-omniroute.sh"
+    kind: A
+    replacement: "retain only for a profile whose executable explicitly names the wrapper; do not delete the legacy path"
+  - symbol: "implicit Hub default or fallback selection of codex/bin/codex-omniroute.sh"
+    kind: B
+    replacement: "remove and deny the old/default policy; native codex is the only implicit executable"
+  - symbol: "tracked runtime profile homes or credentials"
+    kind: I
+    replacement: "purge repository instructions and examples; keep only external RUNTIME_HUB_HOME state and secret-free examples"
+
+sunset_inventory:
+  - symbol: "codex/bin/codex-omniroute.sh"
+    kind: A
+    replacement: "explicit profile.executable selection only; legacy loop path remains outside this Hub cutover"
+    policy: keep
+    rg_scope: "codex/bin/codex-omniroute.sh runtime_hub/"
+    expect: "Explicit-profile/legacy-loop references may remain; no implicit Hub caller or default selection remains."
+  - symbol: "implicit Hub default selection of codex/bin/codex-omniroute.sh"
+    kind: B
+    replacement: "native codex executable unless profile.executable explicitly names the wrapper"
+    policy: delete in-epic
+    rg_scope: "runtime_hub/"
+    expect: "No implicit default or fallback branch selects codex-omniroute.sh."
+  - symbol: "fallback to ~/.codex or ~/.claude when profile home is unavailable"
+    kind: C
+    replacement: "structured fail-closed store/adapter error"
+    policy: delete in-epic
+    rg_scope: "runtime_hub/"
+    expect: "No global-home fallback or silent success exists in the Hub path."
+  - symbol: "silent OmniRoute fallback when a profile executable/home is unavailable"
+    kind: C
+    replacement: "structured fail-closed error without a second runtime path"
+    policy: delete in-epic
+    rg_scope: "runtime_hub/"
+    expect: "No implicit OmniRoute fallback branch exists."
+  - symbol: "tracked runtime profile homes or credentials"
+    kind: I
+    replacement: "external RUNTIME_HUB_HOME and secret-free example configuration"
+    policy: delete in-epic
+    rg_scope: "runtime_hub/README.md runtime_hub/profiles.example.yaml"
+    expect: "Examples contain no API keys, credentials, or checked-in profile homes."
+  - symbol: "TM-004 legacy/default executable assertion"
+    kind: I
+    replacement: "native-vs-explicit-OmniRoute regression test"
+    policy: delete in-epic
+    rg_scope: "runtime_hub/tests/test_omniroute_policy_and_docs.py"
+    expect: "The test asserts the new native default and explicit opt-in contract only."
+
+deletes:
+  - "implicit Hub selection of codex/bin/codex-omniroute.sh"
+  - "README/example instruction presenting OmniRoute as the default Codex executable"
+  - "tracked runtime profile homes or credentials in examples"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: "codex/bin/codex-omniroute.sh"
+    command: |
+      rg -n 'codex/bin/codex-omniroute\.sh|codex-omniroute\.sh' runtime_hub/ codex/ || true
+    expect: "Only explicit-profile or legacy-loop references; no implicit Hub caller."
+  - id: inv-b-01
+    kind: B
+    symbol: "implicit Hub default OmniRoute selection"
+    command: |
+      rg -n 'default.*codex-omniroute|codex-omniroute.*default|fallback.*omniroute' runtime_hub/ || true
+    expect: "No output for an implicit/default selection branch."
+  - id: inv-c-01
+    kind: C
+    symbol: "global-home or implicit OmniRoute fallback"
+    command: |
+      rg -n 'fallback|HOME.*\.codex|HOME.*\.claude' runtime_hub/ --glob '*.py' || true
+    expect: "No fallback implementation; allowed explicit-profile policy text is checked separately."
+  - id: inv-i-01
+    kind: I
+    symbol: "tracked credentials or old default instruction"
+    command: |
+      rg -n 'api[_-]?key|secret|token|credentials|OmniRoute.*default|default.*OmniRoute' runtime_hub/README.md runtime_hub/profiles.example.yaml || true
+    expect: "No secrets, tracked homes, or instruction that makes OmniRoute the default."
+  - id: inv-i-02
+    kind: I
+    symbol: "legacy/default executable assertion"
+    command: |
+      rg -n 'native|omniroute|explicit|default' runtime_hub/tests/test_omniroute_policy_and_docs.py || true
+    expect: "Regression test documents native default and explicit-only wrapper selection."
+
+wire_complete_required: true
+sunset_scope:
+  required: true
+  boundary_id: codex-default-egress
+  new_sot: runtime_hub/adapters/codex.py
+  allow_read:
+    - codex/bin/codex-omniroute.sh
+    - runtime_hub/adapters/codex.py
+    - runtime_hub/profiles.example.yaml
+    - runtime_hub/README.md
+  kind_hint: [A, B, C, I]
+out_of_scope: []
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+  omit_justification:
+    fastapi-templates: "нет HTTP surface"
+    async-python-patterns: "policy resolution and docs are synchronous"
+
+checkpoints:
+  - id: cp-inventory-a
+    criterion: |
+      Kind A inventory: the wrapper is retained only for explicit profile/legacy-loop use;
+      no implicit Hub caller remains.
+    verify: |
+      rg -n 'codex/bin/codex-omniroute\.sh|codex-omniroute\.sh' runtime_hub/ codex/ || true
+  - id: cp-inventory-b
+    criterion: "Kind B inventory: native codex is the only implicit executable and the old default policy is denied."
+    verify: |
+      rg -n 'default.*codex-omniroute|codex-omniroute.*default|fallback.*omniroute' runtime_hub/ || true
+  - id: cp-inventory-c
+    criterion: "Kind C inventory: missing profile homes/binaries fail closed without global-home or OmniRoute fallback."
+    verify: |
+      rg -n 'fallback|HOME.*\.codex|HOME.*\.claude' runtime_hub/ --glob '*.py' || true
+  - id: cp-inventory-i
+    criterion: "Kind I inventory: examples and README use external RUNTIME_HUB_HOME and contain no tracked secrets or old default instructions."
+    verify: |
+      rg -n 'api[_-]?key|secret|token|credentials|OmniRoute.*default|default.*OmniRoute' runtime_hub/README.md runtime_hub/profiles.example.yaml || true
+  - id: cp-obsolete-tests
+    criterion: "The policy test asserts the replacement contract: native default plus explicit-only OmniRoute selection."
+    verify: "bin/pytest runtime_hub/tests/test_omniroute_policy_and_docs.py -k 'native or omniroute or default or implicit or fallback or negative' -q --tb=line"
+  - id: cp-suite-regression
+    criterion: "The complete targeted policy, example-safety, and documentation contract suite passes without network."
+    verify: "bin/pytest runtime_hub/tests/test_omniroute_policy_and_docs.py -q --tb=line"
+
+verify:
+  - 'bin/pytest runtime_hub/tests/test_omniroute_policy_and_docs.py -q --tb=line'
+tdd:
+  - test_native_codex_is_not_omniroute
+  - test_explicit_omniroute_requires_profile_field
+  - test_legacy_or_default_omniroute_policy_is_denied
+  - test_example_profiles_have_no_secrets
+  - test_readme_documents_fail_closed_policy

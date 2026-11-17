@@ -42,6 +42,17 @@ alwaysApply: false
 | L2 | step; component TDD | 2 |
 | L3 | phased; creative если flagged | 3 |
 
+## Frappe / ERPNext / CRM apps (HARD)
+
+Канон для кода в `frappe/`, `erpnext/`, `crm/`, `hrms/` (не для Python-хаба `bin/pytest`).
+
+- Стиль = соседний код app; API = `@frappe.whitelist()` + `return dict` / Document API; HTTP — Frappe (`/api/method/...`, `/api/resource/...`).
+- Модели = DocType (`*.json` + `*.py` Document), не параллельный Pydantic/SQLAlchemy «сбоку», если as-built так не устроен.
+- **FORBIDDEN:** параллельный FastAPI/TestClient/OpenAPI для той же фичи; silent fallback; prod без теста.
+- Новый CRM API: `.cursor/rules/crm-architecture.mdc` + `.cursor/rules/crm-api-contract.mdc` (тонкий adapter, `methods=[...]`, Pydantic In/Out, `frappe.throw`). Scope foundation_only — не размазывать на правки upstream `frappe/` / `erpnext/` / `hrms/`.
+- Тесты: стиль app (`FrappeAPITestCase` / `FrappeTestCase`); новый whitelist в эпике → тест контракта + по возможности HTTP через `FrappeAPITestCase`; прогон `bench --site <site> run-tests --app <app> --module <dotted.module>`. Smoke `bench execute` ≠ тест.
+- Runtime: контейнер backend / `frappe-bench`. Hub `bin/pytest` ≠ suite Frappe/ERPNext/CRM.
+
 ## Abort
 
 - Shard/step missing · creative open · red skipped → no code/FINISH

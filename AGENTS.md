@@ -34,6 +34,14 @@ SKILL.md — только copy paths в step (`shared/_lean/decompose-skills-loa
 Не загружай workflow или skills заранее и не выбирай другую роль или режим.
 Пути и имена файлов определяются каноническими workflow, index и skills.
 
+Роли вне BACK/FRONT/APP (указатели, не режимные правила):
+
+- `EVAL …` → `.cursor/rules/eval/mainrule.mdc`
+- `DEVOPS` / `DEVOPS <темы>` → `.cursor/rules/devops/mainrule.mdc`
+
+Режимные HARD (QA / BUGFIX / DECOMPOSE / stack / Frappe) — **только** в
+`{role}/isolation_rules/_lean/<mode>.mdc` и shared gates после выбора команды.
+
 ## Workflow-owned skills
 
 Единственный skill-root этого workflow — локальный `.agents/skills/` репозитория
@@ -72,67 +80,3 @@ Write `activeContext` — `.cursor/rules/token-economy-stub.mdc` §0.7.
 - Исправляй причину ошибки, не скрывай её fallback-логикой.
 - Коммиты и PR выполняй только по явному запросу.
 - Комментарии в коде добавляй только по запросу.
-
-## Frappe / ERPNext / CRM — стиль кода и тестов (HARD)
-
-Канон для кода в `frappe/`, `erpnext/`, `crm/`, `hrms/` (не для Python-хаба `bin/pytest`).
-
-### Стиль программирования
-
-- **Пишем в стиле уже существующего кода этого репо**, не «как в FastAPI/Django REST с нуля».
-- API = `@frappe.whitelist()` + `return dict` / Document API; HTTP-обёртка — Frappe (`/api/method/...`, `/api/resource/...`).
-- Модели данных = DocType (`*.json` + `*.py` Document), не отдельные Pydantic/SQLAlchemy-слои «сбоку», если as-built так не устроен.
-- Перед новым модулем — найти соседний образец в том же app (page / whitelist / test) и копировать паттерны: импорты, `frappe.get_all`, права `has_permission`, именование, структура ответа.
-- **FORBIDDEN:** параллельный стек (свой FastAPI, свой TestClient, свой OpenAPI) рядом с Frappe для той же фичи; silent fallback; «временный» код без теста.
-- **Новый CRM API и архитектура бэкенда (HARD):**
-  - Архитектурный канон слоёв: `.cursor/rules/crm-architecture.mdc` (Adapter, Service, Repository, Schema).
-  - API-контракт: `.cursor/rules/crm-api-contract.mdc` — явный `methods=[...]`, Pydantic-валидация входа, обязательный Out-контракт, тонкий adapter (без толстой бизнес-логики и SQL прямо в методе), ошибки через `frappe.throw` / typed exceptions (не success-body при ошибке).
-  - **FORBIDDEN:** FastAPI / Starlette / Django REST app в CRM; толстые whitelist без `methods=[...]`.
-  - Scope foundation_only: архитектурные каркасы и правила задают канон и не обещают сразу готовый продуктовый endpoint. Не размазывать этот контракт на правки upstream `frappe/` / `erpnext/` / `hrms/`.
-
-### Стиль тестов
-
-- Тесты пишем **в стиле, который уже есть в apps**, не изобретаем другой runner «для удобства».
-- Образцы:
-  - HTTP API ядра: `frappe/frappe/tests/test_api.py` (`FrappeAPITestCase`)
-  - App / DocType / whitelist: `FrappeTestCase` рядом с кодом (`erpnext/**/test_*.py`, `crm/crm/tests/test_*.py`)
-- Для нового `@frappe.whitelist()` в том же эпике/сессии IMPLEMENT:
-  1. тест на контракт ответа (ключи / типы / ветки) — минимум;
-  2. при user-facing HTTP — по возможности вызов через `FrappeAPITestCase` / `self.get(self.method("app.module.fn"))`, как в `test_api.py`;
-  3. прогон через **bench** (обычно Docker backend):  
-     `bench --site <site> run-tests --app <app> --module <dotted.module>`  
-     Smoke `bench execute` **не** заменяет тест.
-- **FAIL / не done:** prod whitelist или Desk-wire без теста в стиле app; только ручной клик / `execute` без `test_*.py`.
-- Hub `bin/pytest` — только self-test хаба; **не** подменять им suite Frappe/ERPNext/CRM.
-
-### Где гонять
-
-- Runtime apps: контейнер backend / `frappe-bench` + `bench run-tests`.
-- CRM UI: Vitest / Playwright (см. § Root classification & Testing и `crm/AGENTS.md`).
-- Не считать «зелёным» только build/migrate без прогона релевантных `test_*.py`.
-
-## EVAL (оценка ниши)
-
-Команды `EVAL FRAME|SEARCH|PRICE|GATE|…` — не BACK. Индекс: `.cursor/rules/eval/mainrule.mdc`.  
-Карта: `memory-bank/product/eval-pipeline.md`. Артефакты: `memory-bank/niche/<slug>/`.
-
-## DEVOPS (infra skills)
-
-Команда `DEVOPS` / `DEVOPS <темы>` — не BACK. Индекс: `.cursor/rules/devops/mainrule.mdc`.  
-Только подгрузка pack-скиллов из `.agents/skills/` (Docker, K8s/Helm, nginx, Ansible, Terraform/OpenTofu).  
-Pack loader: `.agents/skills/devops/SKILL.md`. **Не** пишет `activeContext`.
-
-## Root classification & Testing
-
-- Hub (dev-hub self-test) / **BACK**: Python tests — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
-- **BACK QA live_smoke (HARD):** `timeout -k 10s 300s bash scripts/live_smoke.sh` — живой uvicorn+HTTP; ASGI e2e/моки не считаются. Missing deps → установить в `.venv` (`pip install -e ".[dev]"`) и повторить (канон: `role-core-contract` §Environment bootstrap · `_lean/qa.mdc` §2c).
-- **APP QA / APP BUGFIX:** смешанная приёмка back+front+browser+live_smoke (именованные lanes). Канон: `docs/process/app-qa-bugfix.md` · rules `app_developer/`. Артефакты: `memory-bank/app/qa|bugfix/`. Default после mixed BUGFIX — `APP QA`, не два formal BACK+FRONT QA.
-- **FRONT** (IMPLEMENT/TASK/QA): используй project-specific stack profile; **FORBIDDEN:** `bin/pytest` / backend pytest как FRONT suite.
-- **Neftegaz FRONT profile:** `docs/testing/front-stack-profile.md` — Vite build + Python Playwright; Vitest, TypeScript и `@playwright/test` намеренно не добавляются. PR gate: `npm --prefix frontend ci && npm --prefix frontend run build` + `NEFTEGAZ_BROWSER=chromium .venv/bin/python scripts/run_browser_qa.py`; browser evidence загружается как CI artifact. Используется lane’ами `APP QA`.
-- **CRM Playwright runtime:** `BASE_URL=http://erp.localhost:8000`. Compose держит `sleep infinity` — нужен отдельно `bench start` в контейнере. Editable `crm/`+`frappe/`+`design-system/` ≠ `frappe-bench/apps/*` (копии get-app). `npx playwright test` → `e2e/global-setup.ts` → `scripts/e2e-preflight.sh` (sync hooks/frontend/design-system/**и** Desk SCSS wires `desktop.scss`/`desk.bundle.scss` → CRM `yarn build` → **`bench build --app frappe`** → clear-cache → **HTTP 200** tokens.css + desk.bundle содержит `--ds-desk-rail-width` если есть shell). Clear-cache alone ≠ Desk CSS update. Канон: `crm/AGENTS.md` § E2E.
-- **CRM QA contract finish:** `verdict: FAIL` / `converged: false` → **обязан** `@gate-repair` (BLOCKERS|path|fix + ALLOW WRITE + VERIFY) → повторный QA contract check. **Нельзя** закончить сессию «просто отчётом» — loop даст `finish_not_committed` / `retry_exhausted`. `mb-finish` при `converged: false` отклоняет FINISH. **FORBIDDEN** выдуманный parent-driven review. Negative `rg` без hit = exit 1 = PASS. Канон: `workflow-qa.mdc` + `spawn-hard.md`.
-- **CRM QA finish:** `verify-qa` FAIL + `qa-*.yaml` (`verdict: fail`) + open `bugfix-queue.yaml` → **обязан** `loop.py finish --step QA` → BUGFIX. FAIL ≠ запрет finish (это не IMPLEMENT). Без finish → `finish_not_committed` / retry QA. Канон: `workflow-qa.mdc` + `_lean/qa.mdc`.
-- **CRM BUGFIX sessions:** одна parent-сессия закрывает **все** open; spawn ≤3 `bugfix-fix`, **1 child = 1 bug** (disjoint files в волне). Выход с ещё open без finish = `finish_not_committed` (не `PROGRESS_CONTINUE`). `verify-bugfix` + `finish --step BUGFIX` когда все items `done` и `verification.status=pass`. Канон: `_lean/bugfix.mdc`.
-- **DECOMPOSE YAML:** в `verify:`/`command:` double-quoted нельзя писать `\.` (YAML unknown escape → `verdict hook error` → `finish_not_committed`). Используй single quotes или block `|`. Один step в index ↔ один файл в `yaml/steps/`; orphan yaml запрещены. Нельзя объявлять DECOMPOSE done без accepted `verify-decompose` PASS: этот единственный gate сам проверяет структуру и semantic closure и атомарно продвигает фазу.
-- **CRM purge `rg`:** только bounded theme/instruction paths; **FORBIDDEN** `sync.*disabled` по всему `frappe/` (ложный hit в jquery). Канон: `crm/AGENTS.md` § Purge.
-- Managed projects: верификация через stack profile `capability_checks` и typed execution evidence; без generic fallback к raw pytest. Role surface сохраняется (front checks ≠ backend suite).

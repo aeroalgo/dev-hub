@@ -1,5 +1,5 @@
 ---
-description: "APP TASK — bounded mixed-surface change"
+description: "APP TASK — mixed-surface change, including large ad-hoc work"
 alwaysApply: false
 ---
 ### Команда: APP TASK
@@ -9,7 +9,37 @@ alwaysApply: false
 
 ## Hot path
 
-1. `OK APP TASK` с одним bounded outcome и явным списком mixed files.
-2. Зафиксировать contract impact, root cause/intent, tests и touched surfaces в task artifact.
-3. TDD red → green на backend/front/wire lanes; browser/frontend только parent.
-4. APP TASK не создаёт скрытую вторую очередь: при новом product slice перейти в APP PLAN.
+1. На обычный пользовательский запуск ответить `OK APP TASK — начинаю` и
+   выбрать **direct-ad-hoc** режим. Не запускать отдельный «сначала создай
+   task, потом вернись за implement» цикл: постановка и реализация идут в одной
+   сессии. **Не** предлагать `APP PLAN` как следующий шаг после TASK.
+2. Прочитать bootstrap → Gates → scope-lock → этот Hot path → существующий
+   task artifact/`load_now` shard → только перечисленные в artifact skills.
+   Полный `plan.md`, весь каталог skills и repo-wide tourism не нужны.
+3. Перед кодом зафиксировать в одном task artifact: intent, contract impact,
+   точный allowlist, lane matrix, selected skills и loop-safety preflight.
+   Большой объём — нормален: расширяй allowlist в том же `task-*.md`, не уходи
+   в PLAN. При наличии активного loop-шарда проверить пересечение файлов; при
+   overlap остановиться и передать работу в текущий `APP IMPLEMENT`.
+4. Выполнить TDD red → green по backend/frontend/wire. Собрать UI один раз,
+   затем прогнать targeted browser lane; `live_smoke` запускать только если он
+   указан required в artifact. Browser через synthetic API явно помечать как
+   synthetic, не выдавать за live HTTP. Живая выкладка на VPS — только если
+   artifact явно разрешает и владелец подтвердил машины/откат.
+5. Для правок использовать один понятный patch и сохранять существующую
+   построчную обработку. После исправления перезапускать только затронутый
+   lane, а финальную матрицу запускать один раз и записывать фактические
+   результаты.
+6. Direct-ad-hoc APP TASK не меняет `activeContext`, roadmap, plan/decompose,
+   implement artifacts, cursor или loop index и не вызывает `loop.py finish`.
+   Завершение — evidence в `memory-bank/app/task/task-*.md` и обычная проверка
+   изменённых файлов. Next в чате: продолжение той же TASK / проверка / FINISH
+   evidence — **не** `APP PLAN`.
+7. Если prompt пришёл от kernel с `GATE_IDENTITY` и `phase: TASK`, это
+   **loop-bound TASK**: следовать generated shard, `verify-implement` и machine
+   finish; direct-ad-hoc правила к нему не применять.
+8. APP TASK не создаёт скрытую вторую очередь: при overlap с активным
+   loop-шагом — в текущий `APP IMPLEMENT`. При росте scope — **дописать
+   allowlist и lanes в том же task artifact** и продолжить реализацию.
+   Эскалация в `APP PLAN` из TASK **запрещена**, кроме явной команды
+   пользователя `APP PLAN`.

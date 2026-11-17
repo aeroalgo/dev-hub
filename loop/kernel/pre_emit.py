@@ -233,11 +233,11 @@ GATE_VERDICT_ALLOWED_KEYS = (
     "epic_id",
     "recorded_at",
     "evidence_sha256",
+    "blockers",
 )
 
 GATE_VERDICT_FORBIDDEN_HINTS = (
     "evidence",
-    "blockers",
     "touched_paths",
     "evidence_id",
     "reason",

@@ -52,7 +52,13 @@ def load_bundled() -> list[dict]:
 def build_catalog(bundled: list[dict], extra: list[dict]) -> dict:
     template = next((m for m in bundled if m.get("slug") == TEMPLATE_SLUG), bundled[0])
     extra_slugs = {row["value"] for row in extra}
-    merged = [m for m in bundled if m.get("slug") not in extra_slugs]
+    # Keep only Luna from the bundled catalog; drop sol/terra/daybreak/gpt-5.x/etc.
+    # Extra-models.json owns OmniRoute Luna variants + Gemini (agy/...).
+    merged = [
+        m for m in bundled
+        if m.get("slug") not in extra_slugs
+        and "luna" in str(m.get("slug", "")).lower()
+    ]
     for row in extra:
         entry = dict(template)
         entry["slug"] = row["value"]

@@ -415,6 +415,127 @@ _INDEX_STEP_STATUSES = frozenset({"pending", "completed", "done", "in_progress"}
 _FRESH_DECOMPOSE_STATUSES = frozenset({"pending"})
 _COMPLETED_INDEX_STATUSES = frozenset({"completed", "done"})
 _QA_SCHEMAS = frozenset({"epic-qa/v1", "app-qa/v1"})
+_CANONICAL_AC_ID = re.compile(r"^AC-\d{3}$")
+_PLAN_AC_ID = re.compile(r"\bAC-\d{3}\b")
+
+
+def _string_list(value: Any, *, field: str, path: Path, required: bool = True) -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError(f"APP decompose field {field!r} must be a list: {path}")
+    result = [str(item).strip() for item in value if str(item).strip()]
+    if required and not result:
+        raise ValueError(f"APP decompose field {field!r} must not be empty: {path}")
+    return result
+
+
+def _covered_path(produced: str, files: list[str]) -> bool:
+    normalized = produced.rstrip("/")
+    return any(
+        candidate == normalized or candidate.startswith(normalized + "/")
+        for candidate in files
+    )
+
+
+def _validate_app_decompose_contract(
+    project: Path,
+    queue: Queue,
+    index_payload: dict[str, Any],
+    step_id: str,
+    shard: Path,
+    shard_payload: dict[str, Any],
+) -> None:
+    """Fail closed on the APP preflight contract before any implementation starts."""
+
+    plan = plan_path(project, queue.role, queue.epic_id, kind=queue.kind)
+    if not plan.is_file():
+        raise FileNotFoundError(f"APP plan missing for decompose preflight: {plan}")
+    plan_ac_ids = set(_PLAN_AC_ID.findall(plan.read_text(encoding="utf-8")))
+    if not plan_ac_ids:
+        raise ValueError(f"APP plan has no canonical AC-### IDs: {plan}")
+
+    contract = shard_payload.get("plan_contract")
+    if not isinstance(contract, dict):
+        raise ValueError(f"APP plan_contract must be a mapping: {shard}")
+    ac_ids = _string_list(contract.get("ac_ids"), field="plan_contract.ac_ids", path=shard)
+    invalid_ids = [ac_id for ac_id in ac_ids if not _CANONICAL_AC_ID.fullmatch(ac_id)]
+    if invalid_ids:
+        raise ValueError(f"APP canonical AC IDs invalid {invalid_ids}: {shard}")
+    if len(set(ac_ids)) != len(ac_ids):
+        raise ValueError(f"APP plan_contract.ac_ids contains duplicates: {shard}")
+    unknown_ids = sorted(set(ac_ids) - plan_ac_ids)
+    if unknown_ids:
+        raise ValueError(f"APP AC IDs not present in plan {unknown_ids}: {shard}")
+
+    quotes = _string_list(contract.get("ac_quotes"), field="plan_contract.ac_quotes", path=shard)
+    quote_ids = [match.group(0) for quote in quotes if (match := _PLAN_AC_ID.search(quote))]
+    if set(quote_ids) != set(ac_ids) or len(quote_ids) != len(ac_ids):
+        raise ValueError(
+            f"APP ac_quotes must contain exactly one quote for each ac_id "
+            f"(ids={ac_ids}, quote_ids={quote_ids}): {shard}"
+        )
+
+    coverage = index_payload.get("requirements_coverage")
+    if not isinstance(coverage, list):
+        raise ValueError(f"APP index requirements_coverage must be a list: {queue.path}")
+    coverage_by_id = {
+        str(row.get("id") or "").strip(): str(row.get("step") or "").strip()
+        for row in coverage
+        if isinstance(row, dict)
+    }
+    for ac_id in ac_ids:
+        if coverage_by_id.get(ac_id) != step_id:
+            raise ValueError(
+                f"APP AC coverage mismatch for {ac_id}: expected step {step_id}, "
+                f"got {coverage_by_id.get(ac_id)!r}: {queue.path}"
+            )
+
+    context = shard_payload.get("context")
+    if not isinstance(context, dict):
+        raise ValueError(f"APP context must be a mapping: {shard}")
+    files = _string_list(shard_payload.get("files"), field="files", path=shard)
+    produces = context.get("produces")
+    if not isinstance(produces, list) or not produces:
+        raise ValueError(f"APP context.produces must be a non-empty list: {shard}")
+    produced_paths: list[str] = []
+    for item in produces:
+        produced_path = item.get("path") if isinstance(item, dict) else item
+        value = str(produced_path or "").strip()
+        if not value:
+            raise ValueError(f"APP context.produces contains an empty path: {shard}")
+        produced_paths.append(value)
+    uncovered = [path for path in produced_paths if not _covered_path(path, files)]
+    if uncovered:
+        raise ValueError(f"APP files do not cover context.produces {uncovered}: {shard}")
+
+    verify = _string_list(shard_payload.get("verify"), field="verify", path=shard)
+    if any(command.lower() in {"true", "false", "ok", "todo", "tbd"} for command in verify):
+        raise ValueError(f"APP verify contains a placeholder command: {shard}")
+    checkpoints = shard_payload.get("checkpoints")
+    if not isinstance(checkpoints, list) or not checkpoints:
+        raise ValueError(f"APP checkpoints must be a non-empty list: {shard}")
+    for checkpoint in checkpoints:
+        if not isinstance(checkpoint, dict):
+            raise ValueError(f"APP checkpoint must be a mapping: {shard}")
+        command = str(checkpoint.get("verify") or "").strip()
+        if not command or command not in verify:
+            raise ValueError(
+                f"APP checkpoint verify must be an exact command from shard verify: {shard}"
+            )
+
+    skills = shard_payload.get("skills")
+    if not isinstance(skills, dict) or not _string_list(skills.get("impl"), field="skills.impl", path=shard):
+        raise ValueError(f"APP skills.impl must be non-empty: {shard}")
+
+
+def validate_app_preflight(project: Path, role: str, epic_id: str) -> Queue:
+    """Validate the APP tree at the explicit DECOMPOSE → IMPLEMENT boundary."""
+
+    return validate_decompose_tree(
+        project,
+        role,
+        epic_id,
+        require_fresh_pending=True,
+    )
 
 
 def validate_decompose_tree(
@@ -434,6 +555,22 @@ def validate_decompose_tree(
         raise ValueError(f"decompose index has no steps: {queue.path}")
 
     expected_role = normalize_role(role)
+    if expected_role == "app":
+        if len(queue.steps) > 1:
+            effort_probe = payload.get("effort_probe")
+            if not isinstance(effort_probe, dict):
+                raise ValueError(
+                    f"APP multi-step index requires effort_probe.independent_outcomes and split_seams: {queue.path}"
+                )
+            independent_outcomes = effort_probe.get("independent_outcomes")
+            split_seams = effort_probe.get("split_seams")
+            if not independent_outcomes or not split_seams:
+                raise ValueError(
+                    f"APP multi-step index requires independent outcomes and split seams: {queue.path}"
+                )
+            rationale = str(payload.get("split_rationale") or "").strip()
+            if not rationale:
+                raise ValueError(f"APP multi-step index requires split_rationale: {queue.path}")
     steps_root = (queue.path.parent / "steps").resolve()
     seen: set[str] = set()
     referenced_shards: set[Path] = set()
@@ -471,10 +608,20 @@ def validate_decompose_tree(
                 f"allowed={sorted(_INDEX_STEP_STATUSES)}"
             )
         if require_fresh_pending and status not in _FRESH_DECOMPOSE_STATUSES:
-            raise ValueError(
-                f"decompose finish forbids step {step_id!r} status {status!r}; "
-                "must be pending (completed is machine-owned only after IMPLEMENT finish)"
-            )
+            # An interrupted APP epic may already have completed earlier shards.
+            # Those artifacts do not replace this gate; they only let the gate
+            # validate the preserved prefix before reopening the pending suffix.
+            if expected_role != "app" or status not in _COMPLETED_INDEX_STATUSES:
+                raise ValueError(
+                    f"decompose finish forbids step {step_id!r} status {status!r}; "
+                    "must be pending (completed is machine-owned only after IMPLEMENT finish)"
+                )
+            completed_step = queue.steps[position]
+            complete, reason = step_implement_complete(project, queue, completed_step)
+            if not complete:
+                raise ValueError(
+                    f"APP completed prefix step {step_id!r} has no completed implement artifact: {reason}"
+                )
         file_ref = str(raw.get("file") or "").strip()
         if not file_ref:
             raise ValueError(f"decompose step {step_id!r} has no file")
@@ -502,6 +649,15 @@ def validate_decompose_tree(
         for field in ("plan_contract", "context", "skills"):
             if not isinstance(shard_payload.get(field), dict):
                 raise ValueError(f"decompose shard field {field!r} must be a mapping: {shard}")
+        if expected_role == "app":
+            _validate_app_decompose_contract(
+                project,
+                queue,
+                payload,
+                step_id,
+                shard,
+                shard_payload,
+            )
     purge_orphan_decompose_shards(steps_root, referenced_shards)
     return queue
 
@@ -756,6 +912,19 @@ def qa_pass_state(project: Path, role: str, epic_id: str) -> tuple[bool, str]:
     suite_scope = str(payload.get("suite_scope") or "").strip().lower()
     if role == "app" and suite_scope != "app_lanes":
         return False, "qa_suite_scope_app_lanes_required"
+    # A PASS cannot close or advance QA while a product bug is still queued.
+    # Closed historical queues remain valid evidence for a re-QA; only open
+    # work items block the PASS.
+    queue_payload = phase_payload(bugfix_queue_path(project, role, epic_id))
+    if isinstance(queue_payload, dict):
+        items = queue_payload.get("items")
+        if isinstance(items, list) and any(
+            isinstance(item, dict)
+            and str(item.get("status") or "").strip().lower()
+            in {"open", "in_progress", "blocked"}
+            for item in items
+        ):
+            return False, "bugfix_queue_open"
     synced, sync_reason = sync_qa_runtime_evidence(project, role, epic_id)
     if not synced:
         return False, sync_reason
